@@ -1,0 +1,42 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+autopilot
+*.exe
+
+# Temporary files
+.temp/
+*.tmp
+
+# Logs
+*.log
+
+# Documentation
+README.md
+
+# JSON data files (will be generated at runtime)
+recommendations*.json
+node_recommendations.json
+recommendations-data/
+*.csv
+
+# Scripts (not needed in container)
+scripts/
+
+# Frontend (if separate)
+frontend/
+
+# Test files
+*_test.go 

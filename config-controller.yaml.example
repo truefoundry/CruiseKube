@@ -1,0 +1,48 @@
+controllerMode: local
+dependencies:
+  local:
+    kubeconfigPath: ""
+    prometheusURL: "http://localhost:9090"
+  inCluster:
+    prometheusURL: ""
+  tfyMultiCluster:
+    sfyServerURL: "https://internal.devtest.truefoundry.tech/api"
+    sfyServerAPIKey: "<YOUR_SFY_SERVER_API_KEY>"
+executionMode: both
+controller:
+  targetNamespace: "prometheus"
+  targetClusterID: "tfy-usea1-devtest"
+  writeAuthorizedClusters: []
+  tasks:
+    createStats:
+      enabled: true
+      schedule: "15m"
+    applyRecommendation:
+      enabled: false
+      schedule: "5m"
+      dryRun: true
+      nodeStatsURL:
+        host: "localhost:8080"
+      overridesURL:
+        host: "localhost:8080"
+    modifyEqualCPUResources:
+      enabled: false
+      schedule: "10m"
+    nodeLoadMonitoring:
+      enabled: false
+      schedule: "60s"
+    evictionForce:
+      enabled: false
+      schedule: "1m"
+server:
+  port: "8080"
+  basicAuth:
+    username: "admin"
+    password: "admin"
+webhook:
+  port: "8443"
+  certsDir: "/tmp/webhook-certs"
+  statsURL:
+    host: "localhost:8080"
+db:
+  filePath: "stats-data/autopilot.db"

@@ -1,0 +1,71 @@
+controllerMode: local
+dependencies:
+  local:
+    kubeconfigPath: ""
+    prometheusURL: "http://localhost:9090"
+  inCluster:
+    prometheusURL: ""
+  tfyMultiCluster:
+    sfyServerURL: ""
+    sfyServerAPIKey: ""
+executionMode: both
+controller:
+  targetNamespace: ""
+  targetClusterID: ""
+  writeAuthorizedClusters: []
+  tasks:
+    createStats:
+      enabled: false
+      schedule: "15m"
+      metadata:
+        skipMemory: false
+    applyRecommendation:
+      enabled: false
+      schedule: "5m"
+      metadata:
+        dryRun: false
+        skipMemory: false
+        nodeStatsURL:
+          host: "http://localhost:8080"
+        overridesURL:
+          host: "http://localhost:8080"
+    modifyEqualCPUResources:
+      enabled: false
+      schedule: "10m"
+    nodeLoadMonitoring:
+      enabled: false
+      schedule: "60s"
+    evictionForce:
+      enabled: false
+      schedule: "1m"
+    fetchMetrics:
+      enabled: false
+      schedule: "1m"
+metrics:
+  enabled: true
+  port: "8081"   
+server:
+  port: "8080"
+  basicAuth:
+    username: "admin"
+    password: "admin"
+webhook:
+  port: "8443"
+  certsDir: "/tmp/webhook-certs"
+  dryRun: false
+  statsURL:
+    host: "http://localhost:8080"
+    tfyClusterToken: "<cluster-token>"
+db:
+  filePath: "stats-data/autopilot.db"
+recommendationSettings:
+  newWorkloadThresholdHours: 1
+  disableMemoryApplication: true
+  applyBlacklistedNamespaces: []
+  maxConcurrentQueries: 30
+telemetry:
+  enabled: false
+  exporterOTLPEndpoint: ""
+  exporterOTLPHeaders: ""
+  serviceName: ""
+  traceRatio: 0.1

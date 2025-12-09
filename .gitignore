@@ -1,0 +1,57 @@
+.DS_STORE
+.cursor/
+stats-data/
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# Go module cache
+vendor/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Coverage reports
+*.cover
+coverage.txt
+coverage.html
+
+# Profiling data
+*.prof
+*.pprof
+
+# Air (live reload) temp files
+tmp/
+
+analysis/__pycache__/
+config-local.yaml
+config-local-oss.yaml
+
+./autopilot
+
+

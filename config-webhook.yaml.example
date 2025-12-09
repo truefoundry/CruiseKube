@@ -1,0 +1,6 @@
+executionMode: webhook
+webhook:
+  port: "8443"
+  certsDir: "/tmp/webhook-certs"
+  statsURL:
+    host: "localhost:8080"
