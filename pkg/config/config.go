@@ -12,7 +12,6 @@ const (
 	CreateStatsKey             = "createstats"
 	ModifyEqualCPUResourcesKey = "modifyequalcpuresources"
 	NodeLoadMonitoringKey      = "nodeloadmonitoring"
-	EvictionForceKey           = "evictionforce"
 )
 
 type Config struct {
