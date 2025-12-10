@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/viper"
+	"github.com/truefoundry/autopilot-oss/pkg/logging"
 )
 
 // LoadWithViper loads configuration using Viper from a single config file.
@@ -92,7 +93,8 @@ func (c *Config) ValidateControllerExecutionMode() error {
 			return fmt.Errorf("dependencies.inCluster.prometheusURL is required in inCluster mode")
 		}
 	default:
-		return fmt.Errorf("invalid mode: %s (expected local|inCluster|tfyMultiCluster)", c.ControllerMode)
+		logging.Errorf(context.Background(), "invalid controller-mode: %s (expected local|inCluster)", controllerMode)
+		return nil
 	}
 
 	return nil
