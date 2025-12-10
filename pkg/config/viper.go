@@ -91,13 +91,6 @@ func (c *Config) ValidateControllerExecutionMode() error {
 		if strings.TrimSpace(c.Dependencies.InCluster.PrometheusURL) == "" {
 			return fmt.Errorf("dependencies.inCluster.prometheusURL is required in inCluster mode")
 		}
-	case string(ClusterModeTfyMultiCluster):
-		if strings.TrimSpace(c.Dependencies.TfyMultiCluster.SfyServerURL) == "" {
-			return fmt.Errorf("dependencies.tfyMultiCluster.sfyServerURL is required in tfyMultiCluster mode")
-		}
-		if strings.TrimSpace(c.Dependencies.TfyMultiCluster.SfyServerAPIKey) == "" {
-			return fmt.Errorf("dependencies.tfyMultiCluster.sfyServerAPIKey is required in tfyMultiCluster mode")
-		}
 	default:
 		return fmt.Errorf("invalid mode: %s (expected local|inCluster|tfyMultiCluster)", c.ControllerMode)
 	}
