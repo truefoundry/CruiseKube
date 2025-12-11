@@ -1,0 +1,95 @@
+name: Release Autopilot Helm Chart
+
+on:
+  push:
+    tags:
+      - v*
+
+env:
+  HELM_REGISTRY_URL: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
+  HELM_REGISTRY_USERNAME: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
+  HELM_REGISTRY_PASSWORD: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+  HELM_CHART_REPOSITORY: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_HELM_REPOSITORY }}
+
+jobs:
+  # Read chart values first
+  read-chart-values:
+    runs-on: ubuntu-latest
+    outputs:
+      chart_version: ${{ steps.read_chart.outputs.CHART_VERSION }}
+      app_version: ${{ steps.read_chart.outputs.APP_VERSION }}
+      chart_name: ${{ steps.read_chart.outputs.CHART_NAME }}
+      autopilot_tag: ${{ steps.read_chart.outputs.AUTOPILOT_TAG }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+
+      - name: Install yq
+        run: |
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+          sudo chmod +x /usr/bin/yq
+
+      - name: Read chart values
+        id: read_chart
+        run: |
+          CHART_VERSION=$(yq -r '.version' charts/autopilot-oss/Chart.yaml)
+          echo "CHART_VERSION=$CHART_VERSION" >> $GITHUB_OUTPUT
+
+          APP_VERSION=$(yq -r '.appVersion' charts/autopilot-oss/Chart.yaml)
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_OUTPUT
+
+          CHART_NAME=$(yq -r '.name' charts/autopilot-oss/Chart.yaml)
+          echo "CHART_NAME=$CHART_NAME" >> $GITHUB_OUTPUT
+
+          AUTOPILOT_TAG=$(yq -r '.autopilotController.image.tag' charts/autopilot-oss/values.yaml)
+          echo "AUTOPILOT_TAG=$AUTOPILOT_TAG" >> $GITHUB_OUTPUT
+
+          echo "Chart values read: $CHART_NAME v$CHART_VERSION (app v$APP_VERSION)"
+          echo "Autopilot tag: $AUTOPILOT_TAG"
+
+  # Build and push autopilot-oss image
+  build-autopilot-oss:
+    name: Build and Push Autopilot-OSS Docker Images
+    needs: [read-chart-values]
+    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
+    with:
+      image_tag: ${{ needs.read-chart-values.outputs.autopilot_tag }}
+      image_artifact_name: "autopilot-oss"
+      dockerfile_path: "Dockerfile"
+      artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
+      artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
+    secrets:
+      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
+      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+
+  # Release the Helm chart
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-autopilot-oss, read-chart-values]
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+
+      - name: Helm registry login
+        run: |
+          helm registry login -u ${{ env.HELM_REGISTRY_USERNAME}} -p ${{ env.HELM_REGISTRY_PASSWORD }} ${{ env.HELM_REGISTRY_URL }}
+
+      - name: Helm push
+        run: |
+          cd charts
+          CHART_DIR=autopilot-oss
+          CHART_NAME=${{ needs.read-chart-values.outputs.chart_name }}
+          CHART_VERSION=${{ needs.read-chart-values.outputs.chart_version }}
+          # packaging chart
+          helm dependency update $CHART_DIR
+          helm package $CHART_DIR
+
+          # pushing the helm charts
+          echo "Pushing Chart: $CHART_NAME"
+          echo "Version: $CHART_NAME-$CHART_VERSION.tgz"
+          helm push $CHART_NAME-$CHART_VERSION.tgz oci://${{ env.HELM_CHART_REPOSITORY}}
+          echo "Successfully pushed chart: $CHART_NAME"
