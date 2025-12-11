@@ -265,11 +265,11 @@ verify_installation() {
     
     echo ""
     log_info "Checking controller logs (last 20 lines):"
-    kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=autopilotController --tail=20 || log_warning "Controller logs not available yet"
+    kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=autopilot-controller --tail=20 || log_warning "Controller logs not available yet"
     
     echo ""
     log_info "Checking webhook logs (last 20 lines):"
-    kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=autopilotWebhook --tail=20 || log_warning "Webhook logs not available yet"
+    kubectl logs -n $NAMESPACE -l app.kubernetes.io/name=autopilot-webhook --tail=20 || log_warning "Webhook logs not available yet"
 }
 
 cleanup() {
