@@ -75,8 +75,23 @@ func (c *Config) Validate() error {
 }
 
 func (c *Config) ValidateWebhookExecutionMode() error {
-	if c.Webhook.Port == "" || c.Webhook.StatsURL.Host == "" || c.Webhook.CertsDir == "" {
-		return fmt.Errorf("webhook.port, webhook.statsURL.host, and webhook.certsDir are required for webhook execution mode")
+	valueMissing := false
+	if c.Webhook.Port == "" {
+		fmt.Println("webhook.port is required for webhook execution mode")
+		valueMissing = true
+	}
+	if c.Webhook.StatsURL.Host == "" {
+		fmt.Println("webhook.statsURL.host is required for webhook execution mode")
+		valueMissing = true
+	}
+	if c.Webhook.CertsDir == "" {
+		fmt.Println("webhook.certsDir is required for webhook execution mode")
+		valueMissing = true
+	}
+
+	if valueMissing {
+		fmt.Println("Please provide all required webhook configuration values")
+		return fmt.Errorf("some required webhook configuration values are missing")
 	}
 	return nil
 }

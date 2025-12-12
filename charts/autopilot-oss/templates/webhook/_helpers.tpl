@@ -2,7 +2,7 @@
 Expand the name of the chart.
 */}}
 {{- define "autopilotWebhook.name" -}}
-{{- default .Chart.Name .Values.autopilotWebhook.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default "webhook" .Values.autopilotWebhook.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -14,7 +14,7 @@ If release name contains chart name it will be used as a full name.
 {{- if .Values.autopilotWebhook.fullnameOverride }}
 {{- .Values.autopilotWebhook.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.autopilotWebhook.nameOverride }}
+{{- $name := default "webhook" .Values.autopilotWebhook.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
