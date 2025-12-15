@@ -30,7 +30,6 @@ func UpdatePodCPUResources(
 	recommendedCPURequest float64,
 	recommendedCPULimit float64,
 ) (bool, string) {
-
 	containerPatch := corev1.Container{
 		Name: containerName,
 		Resources: corev1.ResourceRequirements{
@@ -78,7 +77,6 @@ func UpdatePodMemoryResources(
 	recommendedMemoryRequest float64,
 	recommendedMemoryLimit float64,
 ) (bool, string) {
-
 	containerPatch := corev1.Container{
 		Name: containerName,
 		Resources: corev1.ResourceRequirements{
@@ -120,7 +118,6 @@ func UpdatePodMemoryResources(
 }
 
 func EvictPod(ctx context.Context, kubeClient *kubernetes.Clientset, pod *corev1.Pod) (bool, string) {
-
 	eviction := &policyv1.Eviction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      pod.Name,
@@ -164,7 +161,6 @@ func BuildPodToWorkloadMapping(ctx context.Context, kubeClient *kubernetes.Clien
 }
 
 func getScheduledPodsAcrossNamespaces(ctx context.Context, kubeClient *kubernetes.Clientset, targetNamespace string) ([]*corev1.Pod, error) {
-
 	var podList *corev1.PodList
 	var err error
 

@@ -149,7 +149,6 @@ func memoryBytesToMB(memoryBytes int64) string {
 }
 
 func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg *config.Config) ([]map[string]any, error) {
-
 	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
 	if workloadInfo == nil {
 		logging.Warnf(ctx, "Could not determine workload for pod %s/%s, allowing without adjustment", pod.Namespace, getPodName(pod))

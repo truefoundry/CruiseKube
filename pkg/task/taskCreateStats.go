@@ -358,7 +358,6 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 		if simpleMemoryPrediction, exists := workloadContainerKeyVsSimpleMemoryPrediction[workloadContainerKey]; exists {
 			containerStat.SimplePredictionsMemory = &simpleMemoryPrediction
 		}
-
 	}
 
 	workloadMetrics, exists := nsVsWorkloadMetrics[workloadInfo.Namespace][workloadKey]

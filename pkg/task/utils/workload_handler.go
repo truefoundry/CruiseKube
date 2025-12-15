@@ -350,7 +350,6 @@ func ExtractUniqueNamespaces(workloads map[string]WorkloadInfo) []string {
 
 // CheckHPAOnCPU checks if workloads are horizontally autoscaled based on CPU metrics
 func CheckHPAOnCPU(ctx context.Context, dynamicClient dynamic.Interface, targetNamespace string, workloadHpaCpuMap map[string]bool) error {
-
 	hpaGVR := schema.GroupVersionResource{
 		Group:    "autoscaling",
 		Version:  "v2",

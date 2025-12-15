@@ -42,16 +42,15 @@ func NewSingleClusterManager(ctx context.Context, kubeClient *kubernetes.Clients
 	}
 }
 
-func (m *SingleClusterManager) AddTask(task task.Task) error {
+func (m *SingleClusterManager) AddTask(task task.Task) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	if !task.IsEnabled() {
-		return nil
+		return
 	}
 
 	m.registeredTasks[task.GetName()] = task
-	return nil
 }
 
 func (m *SingleClusterManager) GetTask(taskName string) (task.Task, error) {

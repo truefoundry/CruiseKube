@@ -11,7 +11,7 @@ import (
 )
 
 func WorkloadAnalysisHandlerForCluster(c *gin.Context) {
-	//ctx := c.Request.Context()
+	// ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
 	analysis, err := generateWorkloadAnalysisForCluster(clusterID)
