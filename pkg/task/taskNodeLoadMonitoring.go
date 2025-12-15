@@ -6,6 +6,7 @@ import (
 
 	"github.com/prometheus/common/model"
 	"github.com/truefoundry/cruiseKube/pkg/adapters/metricsProvider/prometheus"
+	"github.com/truefoundry/cruiseKube/pkg/contextutils"
 	"github.com/truefoundry/cruiseKube/pkg/logging"
 	"github.com/truefoundry/cruiseKube/pkg/task/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -63,6 +64,9 @@ func (n *NodeLoadMonitoringTask) IsEnabled() bool {
 }
 
 func (n *NodeLoadMonitoringTask) Run(ctx context.Context) error {
+	ctx = contextutils.WithTask(ctx, n.config.Name)
+	ctx = contextutils.WithCluster(ctx, n.config.ClusterID)
+
 	if !n.config.IsClusterWriteAuthorized {
 		logging.Infof(ctx, "Cluster %s is not write authorized, skipping NodeLoadMonitoring task", n.config.ClusterID)
 		return nil

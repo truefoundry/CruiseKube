@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/truefoundry/cruiseKube/pkg/adapters/metricsProvider/prometheus"
+	"github.com/truefoundry/cruiseKube/pkg/contextutils"
 	"github.com/truefoundry/cruiseKube/pkg/logging"
 	"github.com/truefoundry/cruiseKube/pkg/task/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -57,6 +58,9 @@ func (m *ModifyEqualCPUResourcesTask) IsEnabled() bool {
 }
 
 func (m *ModifyEqualCPUResourcesTask) Run(ctx context.Context) error {
+	ctx = contextutils.WithTask(ctx, m.config.Name)
+	ctx = contextutils.WithCluster(ctx, m.config.ClusterID)
+
 	if !m.config.IsClusterWriteAuthorized {
 		logging.Infof(ctx, "Cluster %s is not write authorized, skipping ModifyEqualCPUResources task", m.config.ClusterID)
 		return nil

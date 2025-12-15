@@ -11,6 +11,7 @@ import (
 	"github.com/truefoundry/cruiseKube/pkg/adapters/metricsProvider/prometheus"
 	"github.com/truefoundry/cruiseKube/pkg/client"
 	"github.com/truefoundry/cruiseKube/pkg/config"
+	"github.com/truefoundry/cruiseKube/pkg/contextutils"
 	"github.com/truefoundry/cruiseKube/pkg/logging"
 	"github.com/truefoundry/cruiseKube/pkg/metrics"
 	"github.com/truefoundry/cruiseKube/pkg/task/applystrategies"
@@ -98,6 +99,9 @@ func (a *ApplyRecommendationTask) IsEnabled() bool {
 }
 
 func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
+	ctx = contextutils.WithTask(ctx, a.config.Name)
+	ctx = contextutils.WithCluster(ctx, a.config.ClusterID)
+
 	applyChanges := true
 	if a.config.Metadata.DryRun {
 		applyChanges = false
