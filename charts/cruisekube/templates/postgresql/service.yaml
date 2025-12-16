@@ -1,0 +1,19 @@
+{{- if include "cruisekube.postgresqlLocalEnabled" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cruisekube.fullname" . }}-postgresql
+  labels:
+    {{- include "cruisekube.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+spec:
+  type: {{ .Values.postgresql.local.service.type }}
+  ports:
+    - port: {{ .Values.postgresql.local.service.port }}
+      targetPort: postgresql
+      protocol: TCP
+      name: postgresql
+  selector:
+    {{- include "cruisekube.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+{{- end }}

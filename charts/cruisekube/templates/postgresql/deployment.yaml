@@ -1,0 +1,93 @@
+{{- if include "cruisekube.postgresqlLocalEnabled" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cruisekube.fullname" . }}-postgresql
+  labels:
+    {{- include "cruisekube.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "cruisekube.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: postgresql
+  template:
+    metadata:
+      {{- with .Values.postgresql.local.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "cruisekube.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: postgresql
+        {{- with .Values.postgresql.local.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.postgresql.local.securityContext | nindent 8 }}
+      containers:
+        - name: postgresql
+          image: "{{ .Values.postgresql.local.image.repository }}:{{ .Values.postgresql.local.image.tag }}"
+          imagePullPolicy: {{ .Values.postgresql.local.image.pullPolicy }}
+          env:
+            - name: POSTGRES_DB
+              value: {{ .Values.postgresql.local.database | quote }}
+            - name: POSTGRES_USER
+              value: {{ .Values.postgresql.local.username | quote }}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cruisekube.fullname" . }}-postgresql-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - exec pg_isready -U "{{ .Values.postgresql.local.username }}" -d "{{ .Values.postgresql.local.database }}" -h 127.0.0.1 -p 5432
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - -e
+                - |
+                  exec pg_isready -U "{{ .Values.postgresql.local.username }}" -d "{{ .Values.postgresql.local.database }}" -h 127.0.0.1 -p 5432
+                  [ -f /opt/bitnami/postgresql/tmp/.initialized ] || [ -f /bitnami/postgresql/.initialized ]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.postgresql.local.resources | nindent 12 }}
+          volumeMounts:
+            {{- if .Values.postgresql.local.persistence.enabled }}
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            {{- end }}
+      volumes:
+        {{- if .Values.postgresql.local.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "cruisekube.fullname" . }}-postgresql-pvc
+        {{- else }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+{{- end }}

@@ -1,0 +1,22 @@
+{{- if and (include "cruisekube.postgresqlLocalEnabled" .) .Values.postgresql.local.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "cruisekube.fullname" . }}-postgresql-pvc
+  labels:
+    {{- include "cruisekube.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+spec:
+  accessModes:
+    - {{ .Values.postgresql.local.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.postgresql.local.persistence.size }}
+  {{- if .Values.postgresql.local.persistence.storageClass }}
+  {{- if (eq "-" .Values.postgresql.local.persistence.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: "{{ .Values.postgresql.local.persistence.storageClass }}"
+  {{- end }}
+  {{- end }}
+{{- end }}

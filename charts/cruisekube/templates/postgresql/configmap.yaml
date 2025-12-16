@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cruisekube.fullname" . }}-postgresql-config
+  labels:
+    {{- include "cruisekube.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgresql
+data:
+  {{- if .Values.postgresql.connection.url }}
+  # External PostgreSQL connection (user-managed remote instance)
+  POSTGRES_URL: {{ .Values.postgresql.connection.url | quote }}
+  POSTGRES_MODE: "external"
+  {{- else }}
+  # Local PostgreSQL connection (deployed in cluster)
+  POSTGRES_HOST: {{ include "cruisekube.fullname" . }}-postgresql
+  POSTGRES_PORT: {{ .Values.postgresql.local.service.port | quote }}
+  POSTGRES_DATABASE: {{ .Values.postgresql.local.database | quote }}
+  POSTGRES_USERNAME: {{ .Values.postgresql.local.username | quote }}
+  POSTGRES_SSL_MODE: {{ .Values.postgresql.connection.sslMode | quote }}
+  POSTGRES_MODE: "local"
+  {{- end }}
+  {{- if and .Values.postgresql.connection.host (not .Values.postgresql.connection.url) }}
+  # Alternative connection parameters (when URL not provided)
+  POSTGRES_HOST: {{ .Values.postgresql.connection.host | quote }}
+  POSTGRES_PORT: {{ .Values.postgresql.connection.port | quote }}
+  POSTGRES_DATABASE: {{ .Values.postgresql.connection.database | quote }}
+  POSTGRES_USERNAME: {{ .Values.postgresql.connection.username | quote }}
+  POSTGRES_SSL_MODE: {{ .Values.postgresql.connection.sslMode | quote }}
+  POSTGRES_MODE: "external"
+  {{- end }}

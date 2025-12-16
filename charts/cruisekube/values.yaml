@@ -120,3 +120,66 @@ cruisekubeWebhook:
       cpu: 100m
       memory: 128Mi
   env: {}
+
+postgresql:
+  # PostgreSQL connection configuration
+  # If url is not provided, a local PostgreSQL instance will be deployed in the cluster
+  connection:
+    # External PostgreSQL connection URL (user-managed remote instance)
+    # Format: postgresql://username:password@host:port/database
+    # If provided, local PostgreSQL deployment will be disabled
+    url: ""
+    
+    # Alternative connection parameters (used only if url is not provided)
+    host: ""
+    port: 5432
+    database: "cruisekube"
+    username: "cruisekube"
+    password: ""
+    
+    # SSL configuration
+    sslMode: "prefer"  # disable, allow, prefer, require, verify-ca, verify-full
+    
+  # Local PostgreSQL deployment configuration (used when connection.url is empty)
+  local:
+    enabled: true  # Automatically set based on connection.url presence
+    image:
+      repository: postgres
+      tag: "15-alpine"
+      pullPolicy: IfNotPresent
+    
+    # Database configuration
+    database: "cruisekube"
+    username: "cruisekube"
+    password: "cruisekube123"  # Change this in production
+    
+    # Storage configuration
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+      accessMode: ReadWriteOnce
+    
+    # Resource limits
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 5432
+    
+    # Pod configuration
+    podAnnotations: {}
+    podLabels: {}
+    
+    # Security context
+    securityContext:
+      runAsUser: 999
+      runAsGroup: 999
+      fsGroup: 999
