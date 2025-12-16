@@ -41,7 +41,6 @@ type ClusterClients struct {
 }
 
 type PrometheusConnectionInfo struct {
-	CTX         context.Context
 	URL         string
 	BearerToken string
 }

@@ -554,7 +554,7 @@ func checkExcludedAnnotation(podTemplate *corev1.PodTemplateSpec) bool {
 	if podTemplate.Annotations == nil {
 		return false
 	}
-	return podTemplate.Annotations[ExcludedAnnotation] == "true"
+	return podTemplate.Annotations[ExcludedAnnotation] == TrueValue
 }
 
 func checkDoNotDisruptAnnotation(podTemplate *corev1.PodTemplateSpec) bool {
@@ -571,21 +571,21 @@ func checkDoNotDisruptAnnotation(podTemplate *corev1.PodTemplateSpec) bool {
 
 	// Check cruiseKube.truefoundry.com/do-not-disrupt=true (prevents disruption)
 	if value, exists := podTemplate.Annotations["cruiseKube.truefoundry.com/do-not-disrupt"]; exists {
-		if strings.ToLower(value) == "true" {
+		if strings.ToLower(value) == TrueValue {
 			return true
 		}
 	}
 
 	// Check karpenter.sh/do-not-evict=true (prevents eviction)
 	if value, exists := podTemplate.Annotations["karpenter.sh/do-not-evict"]; exists {
-		if strings.ToLower(value) == "true" {
+		if strings.ToLower(value) == TrueValue {
 			return true
 		}
 	}
 
 	// Check karpenter.sh/do-not-disrupt=true (prevents disruption)
 	if value, exists := podTemplate.Annotations["karpenter.sh/do-not-disrupt"]; exists {
-		if strings.ToLower(value) == "true" {
+		if strings.ToLower(value) == TrueValue {
 			return true
 		}
 	}

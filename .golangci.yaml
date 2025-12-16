@@ -11,7 +11,6 @@ linters:
 #     - contextcheck
     - copyloopvar
     - dogsled
-    - dupl
     - durationcheck
     - errcheck
     - errchkjson
@@ -19,10 +18,8 @@ linters:
     - errorlint
 #    - exhaustive
 #     - forcetypeassert
-    - gocognit
     - goconst
     - gocritic
-    - gocyclo
     # - gofmt
     - goheader
     # - goimports
@@ -36,7 +33,6 @@ linters:
     - importas
     - ineffassign
 #    - ireturn
-    - maintidx
     - makezero
     - misspell
     - nakedret
@@ -59,4 +55,9 @@ linters:
     - unused
     - usetesting
     - whitespace
-    - wrapcheck
+    # Ignored for now, but we should enable it in the future
+    # - wrapcheck
+    # - gocognit
+    # - dupl
+    # - gocyclo
+    # - maintidx

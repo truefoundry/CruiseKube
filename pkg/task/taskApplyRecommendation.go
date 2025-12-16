@@ -105,7 +105,6 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	applyChanges := !a.config.Metadata.DryRun
 
 	if !a.config.IsClusterWriteAuthorized {
-		applyChanges = false
 		logging.Infof(ctx, "Cluster %s is not write authorized, skipping ApplyRecommendation task", a.config.ClusterID)
 		return nil
 	}

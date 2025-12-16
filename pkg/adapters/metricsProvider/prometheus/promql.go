@@ -30,7 +30,7 @@ const (
 	RateIntervalMinutes      = 1
 )
 
-var promqlTracer = otel.Tracer("cruiseKube/tasks/promql")
+var _ = otel.Tracer("cruiseKube/tasks/promql") // promqlTracer unused but kept for future use
 
 type QueryResult struct {
 	Result   model.Value
@@ -42,7 +42,6 @@ type QueryResult struct {
 type ParallelQueryRequest struct {
 	QueryID string
 	Query   string
-	Context context.Context
 }
 
 func (p *PrometheusProvider) getOrCreateQuerySemaphore(clusterId string) chan struct{} {

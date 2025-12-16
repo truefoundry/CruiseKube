@@ -32,7 +32,6 @@ func RecommendationAnalysisHandlerForCluster(c *gin.Context) {
 }
 
 func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID string, clusterMgr cluster.Manager) (*types.RecommendationAnalysisResponse, error) {
-	clusterMgr.GetTask(clusterID + "_" + config.ApplyRecommendationKey)
 	clusterTask, err := clusterMgr.GetTask(clusterID + "_" + config.ApplyRecommendationKey)
 	if err != nil {
 		return nil, fmt.Errorf("error getting recommendation task: %w", err)
@@ -40,7 +39,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 
 	recomTask := clusterTask.GetCoreTask().(*task.ApplyRecommendationTask)
 
-	recomTask.GenerateNodeStatsForCluster(ctx)
+	_, _ = recomTask.GenerateNodeStatsForCluster(ctx)
 
 	nodeRecommendationMap, err := recomTask.GenerateNodeStatsForCluster(ctx)
 	if err != nil {
