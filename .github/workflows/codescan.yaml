@@ -17,6 +17,8 @@ jobs:
     permissions:
       security-events: write
       packages: read
+      actions: read
+      contents: read
 
     strategy:
       fail-fast: false
@@ -33,6 +35,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+
       - if: matrix.build-mode == 'manual'
         shell: bash
         run: |

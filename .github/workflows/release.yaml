@@ -82,7 +82,7 @@ jobs:
       - name: Helm push
         run: |
           cd charts
-          CHART_DIR=cruiseKube
+          CHART_DIR=cruisekube
           CHART_NAME=${{ needs.read-chart-values.outputs.chart_name }}
           CHART_VERSION=${{ needs.read-chart-values.outputs.chart_version }}
           # packaging chart
