@@ -56,79 +56,21 @@ type GormDB struct {
 
 // NewGormDB creates a new GormStorage instance with the provided GORM DB client
 func NewGormDB(db *gorm.DB) (*GormDB, error) {
-	storage := &GormDB{db: db}
+	gormDB := &GormDB{db: db}
 
 	// Auto-migrate the RowStats model
-	if err := storage.createTables(); err != nil {
+	if err := gormDB.createTables(); err != nil {
 		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
-	return storage, nil
+	return gormDB, nil
 }
 
 func (s *GormDB) createTables() error {
-	// Check if the table exists and handle migration carefully
-	if s.db.Migrator().HasTable(&RowStats{}) {
-		// Table exists, perform careful migration without AutoMigrate
-		return s.migrateExistingTable()
+	// Use GORM's AutoMigrate for both new and existing tables
+	if err := s.db.AutoMigrate(&RowStats{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate RowStats: %w", err)
 	}
-
-	// New table, create manually to avoid AutoMigrate issues
-	return s.createNewTable()
-}
-
-func (s *GormDB) createNewTable() error {
-	// Create table manually using raw SQL to avoid AutoMigrate issues
-	createTableSQL := `
-	CREATE TABLE IF NOT EXISTS stats (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		clusterId TEXT NOT NULL,
-		workloadId TEXT NOT NULL,
-		stats TEXT NOT NULL,
-		generatedAt DATETIME NOT NULL,
-		createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-		overrides TEXT DEFAULT '{}'
-	);`
-
-	if err := s.db.Exec(createTableSQL).Error; err != nil {
-		return fmt.Errorf("failed to create stats table: %w", err)
-	}
-
-	// Create indexes
-	indexes := []string{
-		"CREATE INDEX IF NOT EXISTS idx_stats_cluster_id ON stats(clusterId);",
-		"CREATE INDEX IF NOT EXISTS idx_stats_workload_id ON stats(workloadId);",
-		"CREATE INDEX IF NOT EXISTS idx_stats_generated_at ON stats(generatedAt);",
-		"CREATE INDEX IF NOT EXISTS idx_stats_updated_at ON stats(updatedAt);",
-		"CREATE UNIQUE INDEX IF NOT EXISTS idx_cluster_workload_unique ON stats(clusterId, workloadId);",
-	}
-
-	for _, indexSQL := range indexes {
-		if err := s.db.Exec(indexSQL).Error; err != nil {
-			return fmt.Errorf("failed to create index: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func (s *GormDB) migrateExistingTable() error {
-	// For existing tables, add missing columns without touching existing constraints
-	migrator := s.db.Migrator()
-
-	// Check and add missing columns
-	if !migrator.HasColumn(&RowStats{}, "overrides") {
-		if err := migrator.AddColumn(&RowStats{}, "overrides"); err != nil {
-			return fmt.Errorf("failed to add overrides column: %w", err)
-		}
-
-		// Set default value for existing rows
-		if err := s.db.Exec("UPDATE stats SET overrides = '{}' WHERE overrides IS NULL OR overrides = ''").Error; err != nil {
-			return fmt.Errorf("failed to set default overrides: %w", err)
-		}
-	}
-
 	return nil
 }
 
