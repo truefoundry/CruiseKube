@@ -168,7 +168,7 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 	if err != nil {
 		logging.Fatalf(ctx, "Failed to initialize database: %v", err)
 	}
-	logging.Infof(ctx, "SQLite Adapter initialized")
+	logging.Infof(ctx, "Database initialized")
 
 	storageRepo, err := storage.NewStorageRepo(DatabaseAdapter)
 	if err != nil {
