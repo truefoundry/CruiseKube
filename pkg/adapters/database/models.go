@@ -6,13 +6,14 @@ import (
 
 type RowStats struct {
 	ID          uint      `json:"id" gorm:"primaryKey;autoIncrement"`
-	ClusterID   string    `json:"cluster_id" gorm:"column:clusterId;not null;index:idx_cluster_workload,unique;index:idx_cluster_updated;index:idx_cluster_generated"`
-	WorkloadID  string    `json:"workload_id" gorm:"column:workloadId;not null;index:idx_cluster_workload,unique"`
+	ClusterID   string    `json:"cluster_id" gorm:"column:clusterId;not null;index"`
+	WorkloadID  string    `json:"workload_id" gorm:"column:workloadId;not null;index"`
 	Stats       string    `json:"stats" gorm:"not null"`
-	GeneratedAt time.Time `json:"generated_at" gorm:"column:generatedAt;not null;index:idx_cluster_generated"`
+	GeneratedAt time.Time `json:"generated_at" gorm:"column:generatedAt;not null;index"`
 	CreatedAt   time.Time `json:"created_at" gorm:"column:createdAt;autoCreateTime"`
-	UpdatedAt   time.Time `json:"updated_at" gorm:"column:updatedAt;autoUpdateTime;index:idx_cluster_updated"`
+	UpdatedAt   time.Time `json:"updated_at" gorm:"column:updatedAt;autoUpdateTime;index"`
 	Overrides   string    `json:"overrides" gorm:"default:'{}'"`
+	Test        string    `json:"test" gorm:"column:test"`
 }
 
 func (RowStats) TableName() string {

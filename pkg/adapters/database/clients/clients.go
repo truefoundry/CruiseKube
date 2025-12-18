@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	SQLITE     = "sqlite"
-	POSTGRES   = "postgres"
-	POSTGRESQL = "postgresql"
+	TYPE_SQLITE     = "sqlite"
+	TYPE_POSTGRES   = "postgres"
+	TYPE_POSTGRESQL = "postgresql"
+	TYPE_DEFAULT    = ""
 )
 
 // FactoryConfig holds configuration for database connections
@@ -31,9 +32,9 @@ type ClientFactory interface {
 // createClientFactory creates the appropriate client factory based on database type
 func CreateClientFactory(config FactoryConfig) (ClientFactory, error) {
 	switch config.Type {
-	case SQLITE, "":
+	case TYPE_SQLITE, TYPE_DEFAULT:
 		return NewSQLiteClientFactory(config.Database), nil
-	case POSTGRES, POSTGRESQL:
+	case TYPE_POSTGRES, TYPE_POSTGRESQL:
 		return NewPostgreSQLClientFactory(config), nil
 	default:
 		return nil, fmt.Errorf("unsupported database type: %s", config.Type)
