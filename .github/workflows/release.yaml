@@ -94,6 +94,7 @@ jobs:
         with:
           fetch-depth: "0"
           submodules: "recursive"
+          token: ${{ secrets.CRUISE_KUBE_CI_SECRET }}
 
       - name: Validate registry configuration
         run: |
