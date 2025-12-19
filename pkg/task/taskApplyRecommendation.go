@@ -24,10 +24,7 @@ import (
 )
 
 const (
-	cruisekubePausePodNamespace     = "cruisekube-test"
-	cruisekubePausePodDaemonSet     = "cruisekube-pause-daemonset"
-	DefaultCPUForcruisekubePausePod = 0.001
-	CPUClampValue                   = 10
+	CPUClampValue = 10
 )
 
 type RecommendationResult struct {
@@ -129,7 +126,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	workloadOverrides, err := recommenderClient.ListWorkloads(ctx, a.config.ClusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Error loading workload overrides from client: %v", err)
-		return err
+		return fmt.Errorf("failed to list workloads from recommender service: %w", err)
 	}
 
 	overridesMap := make(map[string]*types.WorkloadOverrideInfo)
@@ -191,17 +188,8 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		availableMemory := nodeInfo.AllocatableMemory
 		// reducing the available resources by the pods i can't touch
 		for _, nonOptimizablePod := range nonOptimizablePods {
-			availableCPU -= nonOptimizablePod.CurrentCPU
 			availableMemory -= nonOptimizablePod.CurrentMemory
-		}
-
-		// adding back the cruisekube pause pod resources because we will recalculate the spec for it
-		for _, pod := range nodeInfo.Pods {
-			if pod.Namespace == cruisekubePausePodNamespace && pod.WorkloadName == cruisekubePausePodDaemonSet && pod.WorkloadKind == utils.DaemonSetKind {
-				availableCPU += pod.RequestedCPU - DefaultCPUForcruisekubePausePod
-				availableMemory += pod.RequestedMemory
-				break
-			}
+			availableCPU -= nonOptimizablePod.CurrentCPU
 		}
 
 		result, err := strategy.OptimizeNode(a.kubeClient, overridesMap, utils.NodeOptimizationData{
@@ -279,31 +267,6 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 		}
 
-		pausePodName := ""
-		for _, pod := range nodeInfo.Pods {
-			if pod.Namespace == cruisekubePausePodNamespace && pod.WorkloadName == cruisekubePausePodDaemonSet && pod.WorkloadKind == utils.DaemonSetKind {
-				pausePodName = pod.Name
-				break
-			}
-		}
-		if pausePodName != "" {
-			if applyChanges {
-				freshPod, found := podsOnNode[utils.GetPodKey(cruisekubePausePodNamespace, pausePodName)]
-				if !found {
-					logging.Errorf(ctx, "Pod %s/%s not found on node %s", cruisekubePausePodNamespace, pausePodName, nodeName)
-					continue
-				}
-
-				utils.UpdatePodCPUResources(ctx, a.kubeClient, freshPod, "pause", 0.0, result.MaxRestCPU)
-				// TODO: cannot decrease memory limit. will be possible from 1.34
-				// contextutils.UpdatePodMemoryResources(ctx, kubeClient, freshPod, "pause", 0.0, result.MaxRestMemory)
-				logging.Infof(ctx, "pause pod %v/%v cpu limit updated: %v -> %v", cruisekubePausePodNamespace, pausePodName, 0.0, result.MaxRestCPU)
-				logging.Infof(ctx, "pause pod %v/%v memory limit updated: %v -> %v", cruisekubePausePodNamespace, pausePodName, 0.0, result.MaxRestMemory)
-			} else {
-				logging.Infof(ctx, "[dry run] pause pod %v/%v cpu limit updated: %v -> %v", cruisekubePausePodNamespace, pausePodName, 0.0, result.MaxRestCPU)
-				logging.Infof(ctx, "[dry run] pause pod %v/%v memory limit updated: %v -> %v", cruisekubePausePodNamespace, pausePodName, 0.0, result.MaxRestMemory)
-			}
-		}
 		logging.Infof(ctx, "Successfully applied %d recommendations and evicted %d pods", len(appliedRecommendations), len(podsToEvict))
 	}
 
@@ -480,8 +443,9 @@ func (a *ApplyRecommendationTask) getFreshPodsOnNode(ctx context.Context, nodeNa
 	return podMap, nil
 }
 
-func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx context.Context, allPodInfos []utils.PodInfo, overridesMap map[string]*types.WorkloadOverrideInfo) (optimizablePods []utils.PodInfo, nonOptimizablePods []utils.NonOptimizablePodInfo) {
-	nonOptimizablePods = make([]utils.NonOptimizablePodInfo, 0)
+func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx context.Context, allPodInfos []utils.PodInfo, overridesMap map[string]*types.WorkloadOverrideInfo) ([]utils.PodInfo, []utils.NonOptimizablePodInfo) {
+	optimizablePods := make([]utils.PodInfo, 0)
+	nonOptimizablePods := make([]utils.NonOptimizablePodInfo, 0)
 
 	for _, podInfo := range allPodInfos {
 		if len(a.config.RecommendationSettings.ApplyBlacklistedNamespaces) > 0 && slices.Contains(a.config.RecommendationSettings.ApplyBlacklistedNamespaces, podInfo.Namespace) {
@@ -552,11 +516,6 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 				CurrentCPU:    podInfo.RequestedCPU,
 				CurrentMemory: podInfo.RequestedMemory,
 			})
-			continue
-		}
-
-		if podInfo.Namespace == cruisekubePausePodNamespace && podInfo.WorkloadName == cruisekubePausePodDaemonSet && podInfo.WorkloadKind == utils.DaemonSetKind {
-			// Not adding cruisekube pause pod to either of optimizable or non-optimizable
 			continue
 		}
 

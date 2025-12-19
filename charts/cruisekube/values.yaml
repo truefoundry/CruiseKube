@@ -26,7 +26,7 @@ cruisekubeController:
   image:
     repository: tfy.jfrog.io/tfy-images/cruisekube
     imagePullPolicy: IfNotPresent
-    tag: "0.1.5"
+    tag: "0.1.6"
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -94,7 +94,7 @@ cruisekubeWebhook:
   image:
     repository: tfy.jfrog.io/tfy-images/cruisekube
     imagePullPolicy: IfNotPresent
-    tag: "0.1.5"
+    tag: "0.1.6"
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -159,6 +159,8 @@ cruisekubeWebhook:
       cpu: 100m
       memory: 128Mi
   env: {}
+
+
 postgresql:
   # Automatically disable PostgreSQL when using external secret (external database)
   enabled: "{{ if .Values.global.postgresql.existingSecret.name }}false{{ else }}true{{ end }}"
@@ -180,3 +182,30 @@ postgresql:
       requests:
         cpu: 100m
         memory: 128Mi
+
+
+cruisekubeFrontend:
+  enabled: true
+  replicas: 1
+  image:
+    repository: tfy.jfrog.io/tfy-images/cruisekube-frontend
+    imagePullPolicy: IfNotPresent
+    tag: "0.1.6"
+  imagePullSecrets: []
+  nameOverride: ""
+  fullnameOverride: ""
+  podAnnotations: {}
+  podLabels: {}
+  service:
+    type: ClusterIP
+    httpPort: 3000
+    annotations: {}
+  backendURL: ""
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  env: {}
