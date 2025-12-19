@@ -5,5 +5,9 @@ import (
 )
 
 func GetConfigFromGinContext(c *gin.Context) *Config {
-	return c.MustGet("appConfig").(*Config) //nolint:forcetypeassert
+	appConfig, ok := c.MustGet("appConfig").(*Config)
+	if !ok {
+		panic("invalid app config type")
+	}
+	return appConfig
 }
