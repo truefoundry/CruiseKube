@@ -120,3 +120,22 @@ cruisekubeWebhook:
       cpu: 100m
       memory: 128Mi
   env: {}
+postgresql:
+  enabled: false
+  auth:
+    enablePostgresUser: true
+    postgresPassword: "postgres"
+    username: "cruisekube"
+    password: "cruisekube"
+    database: "cruisekube"
+  primary:
+    persistence:
+      enabled: true
+      size: 2Gi
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi

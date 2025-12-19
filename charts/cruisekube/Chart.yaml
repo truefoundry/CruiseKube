@@ -4,3 +4,8 @@ description: A Helm chart for TrueFoundry cruisekube OSS controller and webhook
 type: application
 version: 0.1.5
 appVersion: "1.16.0"
+dependencies:
+  - name: postgresql
+    version: "18.1.14"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
