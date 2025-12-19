@@ -36,13 +36,13 @@ func NewDatabase(config DatabaseConfig) (ports.Database, error) {
 		SSLMode:  config.SSLMode,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create client factory: %w", err)
 	}
 
 	// Create the database client
 	db, err := clientFactory.CreateClient()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create database client: %w", err)
 	}
 
 	// Create the shared storage implementation
@@ -78,9 +78,13 @@ func (s *GormDB) createTables() error {
 func (s *GormDB) Close() error {
 	sqlDB, err := s.db.DB()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to close database connection: %w", err)
 	}
-	return sqlDB.Close()
+
+	if err := sqlDB.Close(); err != nil {
+		return fmt.Errorf("failed to close database connection: %w", err)
+	}
+	return nil
 }
 
 func (s *GormDB) UpsertStat(clusterID, workloadID string, stat types.WorkloadStat, generatedAt time.Time) error {
