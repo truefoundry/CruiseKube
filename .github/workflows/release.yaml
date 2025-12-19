@@ -133,12 +133,12 @@ jobs:
           platforms: ${{ env.PLATFORMS }}
           push: true
           tags: ${{ steps.prepare_tags.outputs.image }}
-          cache-from: type=registry,ref=${{ env.ARTIFACTORY_REGISTRY_URL }}/${{ env.IMAGE_ARTIFACT_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.ARTIFACTORY_REGISTRY_URL }}/${{ env.IMAGE_ARTIFACT_NAME }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ steps.prepare_tags.outputs.image_name }}:buildcache
+          cache-to: type=registry,ref=${{ steps.prepare_tags.outputs.image_name }}:buildcache,mode=max
 
       - name: Output image digest
         run: |
-          echo "Image digest for ${IMAGE_ARTIFACT_NAME}:${IMAGE_TAG} has been pushed successfully"
+          echo "Image digest for ${{ steps.prepare_tags.outputs.image }} has been pushed successfully"
 
   # Release the Helm chart
   release:
