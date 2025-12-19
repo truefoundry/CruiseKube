@@ -1,7 +1,7 @@
 global:
   postgresql:
     # Connection details
-    host: "{{ .Release.Name }}-postgresql"  # Default to in-cluster PostgreSQL service, override for external PostgreSQL
+    host: "cruisekube-postgresql"  # Default to in-cluster PostgreSQL service, override for external PostgreSQL
     port: "5432"
     # Authentication - use either direct values OR existingSecret
     auth:

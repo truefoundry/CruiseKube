@@ -181,7 +181,7 @@ install_cruisekube_chart() {
         --set cruisekubeWebhook.webhook.statsURL.host="$RELEASE_NAME-cruisekubeWebhook.cruisekube-system.svc.cluster.local:8080" \
         --set postgresql.enabled=true \
         --set cruisekubeFrontend.enabled=false \
-        --wait --timeout=30s
+        --wait --timeout=60s
 
     log_success "Global cruisekube chart installed successfully"
     
