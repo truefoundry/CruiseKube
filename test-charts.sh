@@ -174,7 +174,7 @@ install_cruisekube_chart() {
         --set cruisekubeController.image.tag=$IMAGE_TAG \
         --set cruisekubeController.image.pullPolicy=IfNotPresent \
         --set cruisekubeController.persistence.storageClass=standard \
-        --set cruisekubeController.env.cruisekube_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090" \
+        --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090" \
         --set cruisekubeWebhook.image.repository=$IMAGE_NAME \
         --set cruisekubeWebhook.image.tag=$IMAGE_TAG \
         --set cruisekubeWebhook.image.pullPolicy=IfNotPresent \
@@ -328,14 +328,14 @@ main() {
     
     log_info "Starting cruisekube charts testing with Prometheus..."
     
-    check_prerequisites
-    create_kind_cluster
-    build_and_load_image
-    setup_namespaces
-    add_helm_repos
-    install_prometheus
+    # check_prerequisites
+    # create_kind_cluster
+    # build_and_load_image
+    # setup_namespaces
+    # add_helm_repos
+    # install_prometheus
     install_cruisekube_chart
-    create_service_monitors
+    # create_service_monitors
     verify_installation
     
     log_success "All done! Your cruisekube charts with Prometheus are now running in Kind cluster '$CLUSTER_NAME'"

@@ -1,3 +1,25 @@
+global:
+  postgresql:
+    # Connection details
+    host: ""  # Leave empty to use in-cluster PostgreSQL, set for external PostgreSQL
+    port: "5432"
+    # Authentication - use either direct values OR existingSecret
+    auth:
+      username: "cruisekube"
+      password: "cruisekube"
+      database: "cruisekube"
+    # Kubernetes secret configuration (takes precedence over auth fields if set)
+    existingSecret:
+      name: ""  # Name of existing Kubernetes secret containing PostgreSQL credentials
+      keys:
+        # Keys in the secret for PostgreSQL chart
+        postgresPasswordKey: ""  # Key for PostgreSQL admin password
+        userPasswordKey: ""               # Key for user password
+        # Keys in the secret for cruisekubeController environment variables
+        hostKey: ""                  # Key for PostgreSQL host
+        portKey: ""                  # Key for PostgreSQL port
+        databaseKey: ""                # Key for database name
+        usernameKey: ""              # Key for username
 cruisekubeController:
   enabled: true
   replicas: 1
@@ -47,7 +69,24 @@ cruisekubeController:
       cpu: 100m
       memory: 128Mi
   volumeMounts: []
-  env: {}
+  env:
+    POSTGRES_HOST: "{{ .Values.global.postgresql.host }}"
+    POSTGRES_PORT: "{{ .Values.global.postgresql.port }}"
+    POSTGRES_DB: "{{ .Values.global.postgresql.auth.database }}"
+    POSTGRES_USER: "{{ .Values.global.postgresql.auth.username }}"
+    POSTGRES_PASSWORD: "{{ .Values.global.postgresql.auth.password }}"
+  envFromSecret:
+    - name: POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: "{{ .Values.global.postgresql.existingSecret.name }}"
+          key: "{{ .Values.global.postgresql.existingSecret.keys.userPasswordKey }}"
+    - name: POSTGRES_HOST
+      valueFrom:
+        secretKeyRef:
+          name: "{{ .Values.global.postgresql.existingSecret.name }}"
+          key: "{{ .Values.global.postgresql.existingSecret.keys.hostKey }}"
+
 
 cruisekubeWebhook:
   enabled: true
@@ -121,13 +160,15 @@ cruisekubeWebhook:
       memory: 128Mi
   env: {}
 postgresql:
-  enabled: false
+  # Automatically disable PostgreSQL when using external secret (external database)
+  enabled: "{{ if .Values.global.postgresql.existingSecret.name }}false{{ else }}true{{ end }}"
   auth:
-    enablePostgresUser: true
-    postgresPassword: "postgres"
-    username: "cruisekube"
-    password: "cruisekube"
-    database: "cruisekube"
+    username: "{{ .Values.global.postgresql.auth.username }}"
+    password: "{{ .Values.global.postgresql.auth.password }}"
+    database: "{{ .Values.global.postgresql.auth.database }}"
+    existingSecret: "{{ .Values.global.postgresql.existingSecret.name }}"
+    secretKeys:
+      userPasswordKey: "{{ .Values.global.postgresql.existingSecret.keys.userPasswordKey }}"
   primary:
     persistence:
       enabled: true
