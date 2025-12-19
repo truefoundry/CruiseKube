@@ -26,7 +26,6 @@ func NewKubeClient(ctx context.Context, kubeconfigPath string) (*kubernetes.Clie
 		logging.Infof(ctx, "Detected in-cluster environment, using service account configuration")
 		config, err = rest.InClusterConfig()
 		if err != nil {
-			logging.Errorf(ctx, "Failed to get in-cluster config: %v", err)
 			return nil, fmt.Errorf("failed to get in-cluster config: %w", err)
 		}
 	} else {
