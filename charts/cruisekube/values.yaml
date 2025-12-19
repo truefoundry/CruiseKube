@@ -68,20 +68,20 @@ cruisekubeController:
   env:
     CRUISEKUBE_DB_HOST: "{{ .Values.global.postgresql.host }}"
     CRUISEKUBE_DB_PORT: "{{ .Values.global.postgresql.port }}"
-    CRUISEKUBE_DB_DATABASE: "{{ .Values.global.postgresql.auth.database }}"
     CRUISEKUBE_DB_USERNAME: "{{ .Values.global.postgresql.auth.username }}"
     CRUISEKUBE_DB_PASSWORD: "{{ .Values.global.postgresql.auth.password }}"
-  envFromSecret:
-    - name: CRUISEKUBE_DB_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: "{{ .Values.global.postgresql.existingSecret.name }}"
-          key: "{{ .Values.global.postgresql.existingSecret.keys.userPasswordKey }}"
-    - name: CRUISEKUBE_DB_HOST
-      valueFrom:
-        secretKeyRef:
-          name: "{{ .Values.global.postgresql.existingSecret.name }}"
-          key: "{{ .Values.global.postgresql.existingSecret.keys.hostKey }}"
+    CRUISEKUBE_DB_DATABASE: "{{ .Values.global.postgresql.auth.database }}"
+  envFromSecret: 
+    # - name: CRUISEKUBE_DB_PASSWORD
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: "{{ .Values.global.postgresql.existingSecret.name }}"
+    #       key: "{{ .Values.global.postgresql.existingSecret.keys.userPasswordKey }}"
+    # - name: CRUISEKUBE_DB_HOST
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: "{{ .Values.global.postgresql.existingSecret.name }}"
+    #       key: "{{ .Values.global.postgresql.existingSecret.keys.hostKey }}"
 
 
 cruisekubeWebhook:

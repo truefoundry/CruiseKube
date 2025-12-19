@@ -47,7 +47,14 @@ spec:
           env:
             {{- range $key, $value := .Values.cruisekubeController.env }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              value: {{ tpl $value $ | quote }}
+            {{- end }}
+            {{- range .Values.cruisekubeController.envFromSecret }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .valueFrom.secretKeyRef.name $ }}
+                  key: {{ tpl .valueFrom.secretKeyRef.key $ }}
             {{- end }}
           volumeMounts:
             {{- if .Values.cruisekubeController.persistence.enabled }}
