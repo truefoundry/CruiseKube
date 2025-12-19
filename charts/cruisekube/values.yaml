@@ -1,8 +1,8 @@
 global:
   postgresql:
-    host: "cruisekube-postgresql"
-    port:
     auth:
+      host: "cruisekube-postgresql"
+      port:
       username: "cruisekube"
       password: "cruisekube"
       database: "cruisekube"
@@ -55,11 +55,7 @@ cruisekubeController:
       cpu: 100m
       memory: 128Mi
   volumeMounts: []
-  env:
-    CRUISEKUBE_DB_HOST: "{{ .Values.global.postgresql.host }}"
-    CRUISEKUBE_DB_USERNAME: "{{ .Values.global.postgresql.auth.username }}"
-    CRUISEKUBE_DB_PASSWORD: "{{ .Values.global.postgresql.auth.password }}"
-    CRUISEKUBE_DB_DATABASE: "{{ .Values.global.postgresql.auth.database }}"
+  env: {}
 
 cruisekubeWebhook:
   enabled: true
@@ -135,13 +131,7 @@ cruisekubeWebhook:
 
 
 postgresql:
-  # Automatically disable PostgreSQL when using external secret (external database)
   enabled: false
-  namespaceOverride: "cruisekube-system"
-  auth:
-    username: "{{ .Values.global.postgresql.auth.username }}"
-    password: "{{ .Values.global.postgresql.auth.password }}"
-    database: "{{ .Values.global.postgresql.auth.database }}"
   primary:
     persistence:
       enabled: true
