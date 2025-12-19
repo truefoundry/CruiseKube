@@ -1,7 +1,7 @@
 global:
   postgresql:
     # Connection details
-    host: ""  # Leave empty to use in-cluster PostgreSQL, set for external PostgreSQL
+    host: "{{ .Release.Name }}-postgresql"  # Default to in-cluster PostgreSQL service, override for external PostgreSQL
     port: "5432"
     # Authentication - use either direct values OR existingSecret
     auth:
@@ -66,6 +66,7 @@ cruisekubeController:
       memory: 128Mi
   volumeMounts: []
   env:
+    CRUISEKUBE_DB_TYPE: "postgres"
     CRUISEKUBE_DB_HOST: "{{ .Values.global.postgresql.host }}"
     CRUISEKUBE_DB_PORT: "{{ .Values.global.postgresql.port }}"
     CRUISEKUBE_DB_USERNAME: "{{ .Values.global.postgresql.auth.username }}"
