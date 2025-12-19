@@ -166,7 +166,6 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 		SSLMode:  cfg.DB.SSLMode,
 	})
 	if err != nil {
-		// logging.Infof(ctx, "DB config: Type: %s Host: %s Port: %d Database: %s Username: %s Password: %s SSLMode: %s", cfg.DB.Type, cfg.DB.Host, cfg.DB.Port, cfg.DB.Database, cfg.DB.Username, cfg.DB.Password, cfg.DB.SSLMode)
 		logging.Fatalf(ctx, "Failed to initialize database: %v", err)
 	}
 	logging.Infof(ctx, "Database initialized")
