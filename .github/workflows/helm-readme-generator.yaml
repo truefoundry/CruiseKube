@@ -32,7 +32,7 @@ jobs:
           for chart in ${charts_dirs_changed}; do
             echo "Updating README.md for ${chart}"
             readme-generator --values "${chart}/values.yaml" --readme "${chart}/README.md" --schema "/tmp/schema.json"
-          doneExpand commentComment on lines R26 to R35ResolvedCode has comments. Press enter to view.
+          done
       - name: Configure Git and push changes
         run: |
           if git status -s | grep charts; then
