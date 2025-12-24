@@ -1,13 +1,11 @@
 # Site
 site_name: CruiseKube
-site_url: 
+site_url: https://truefoundry.github.io/CruiseKube
 site_author: TrueFoundry
 site_description: >-
   CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.
 extra_css:
   - stylesheets/extra.css
-extra_files:
-  - docs/CNAME
 
 
 # Repository
@@ -21,7 +19,6 @@ theme:
   name: material
   logo: images/logo/cruiseKube_White.png
   favicon: images/logo/favicon/favicon.ico
-  # custom_dir: docs/overrides
   font:
     text: Roboto
     code: Roboto Mono
@@ -111,7 +108,7 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/discord
-      link: https://discord.gg/qFyN73htgE
+      link: https://discord.gg/Dqek4xJa3N
     - icon: fontawesome/brands/github
       link: https://github.com/truefoundry
     - icon: fontawesome/brands/x-twitter
@@ -122,5 +119,16 @@ nav:
   - Home: index.md
   - Getting started:
       - Introduction: src/gs-introduction.md
+      - Installation: src/installation.md
+      - Concepts:
+          - Tasks: src/concepts-tasks.md
+          - Metrics Provider: src/concepts-metrics.md
+          - Database: src/concepts-database.md
+      - Configuration:
+          - Helm Values: src/config-fields.md
+          - Environment Variables: src/config-env.md
+  - Architecture:
+      - Overview: src/arch-overview.md
+      - Components: src/arch-components.md
   - Development:
-      - Dev Environment: src/dev-env.md
+      - Environment: src/dev-env.md

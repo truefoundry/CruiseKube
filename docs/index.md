@@ -13,26 +13,12 @@ hide:
       Automatically monitor, analyze, and optimize your Kubernetes workloads for maximum efficiency and cost savings.
     </p>
     <div class="hero-buttons">
-      <a href="/src/gs-introduction/" class="btn-primary">Get Started</a>
-      <a href="https://discord.gg/qFyN73htgE" class="btn-secondary">Join Community</a>
+  <a href="/src/gs-setup/" class="cta-button md-button md-button--primary">Get Started</a>
+      <a href="https://discord.gg/qFyN73htgE" class="md-button md-button--secondary" rel="noopener noreferrer">Join our community</a>
     </div>
   </div>
-  
-  <div class="hero-visual">
-    <div class="optimization-dashboard">
-      <div class="metric-card">
-        <div class="metric-value">85%</div>
-        <div class="metric-label">CPU Optimized</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-value">92%</div>
-        <div class="metric-label">Memory Efficient</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-value">$2.4K</div>
-        <div class="metric-label">Monthly Savings</div>
-      </div>
-    </div>
+   <div class="hero-image">
+    <img src="images/hero-2.png" alt="Illustration of CruiseKube">
   </div>
 </div>
 
@@ -107,12 +93,52 @@ hide:
   </div>
 </div>
 
+
+<div class="features-section">
+  <div class="section-header">
+    <h2>Join Our Community</h2>
+    <p>Get help, share your experience, and contribute to CruiseKube</p>
+  </div>
+  
+  <div class="features-grid">
+    <a href="https://github.com/truefoundry/CruiseKube" >
+    <div class="feature-card">
+      <div class="feature-icon">
+        🐱
+      </div>
+      <h3>GitHub</h3>
+    </div>
+  </a>
+
+  <a href="https://discord.gg/Dqek4xJa3N">
+    <div class="feature-card">
+      <div class="feature-icon">
+        💬
+      </div>
+      <h3>Discord</h3>
+    </div>
+  </a>
+
+  <a href="https://github.com/truefoundry/CruiseKube/issues" >
+    <div class="feature-card">
+      <div class="feature-icon">
+        🐛
+      </div>
+      <h3>Report Issues</h3>
+    </div>
+  </a>
+
+  </div>
+    
+</div>
+
+
 <!-- CTA Section -->
 <div class="cta-section">
   <div class="cta-content">
     <h2>Ready to optimize your Kubernetes cluster?</h2>
     <p>Start saving costs and improving performance today</p>
-    <a href="/src/gs-introduction/" class="btn-primary">Get Started Now</a>
+    <a href="/src/gs-introduction/" class="cta-button">Get Started Now</a>
   </div>
 </div>
 
