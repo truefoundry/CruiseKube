@@ -1,4 +1,4 @@
-package observers
+package oom
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
-	v1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -21,14 +20,14 @@ const (
 	evictionWatchJitterFactor = 0.5
 )
 
-func SetupPodInformer(
+func setupPodInformer(
 	ctx context.Context,
 	kubeClient kubernetes.Interface,
 	resourceEventHandler cache.ResourceEventHandler,
 	namespace string,
 	stopCh <-chan struct{},
-) v1lister.PodLister {
-	// Skip watching pending pods (Only Running, Unknown, Succeeded, Failed)
+) cache.SharedIndexInformer {
+	// Skip watching pending pods (only Running, Unknown, Succeeded, Failed)
 	selector := fields.ParseSelectorOrDie("status.phase!=" + string(apiv1.PodPending))
 	podListWatch := cache.NewListWatchFromClient(
 		kubeClient.CoreV1().RESTClient(),
@@ -37,45 +36,45 @@ func SetupPodInformer(
 		selector,
 	)
 
-	indexer, controller := cache.NewIndexerInformer(
+	informer := cache.NewSharedIndexInformer(
 		podListWatch,
 		&apiv1.Pod{},
 		time.Hour,
-		resourceEventHandler,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
 
-	podLister := v1lister.NewPodLister(indexer)
-
-	go controller.Run(stopCh)
-
-	if !cache.WaitForCacheSync(stopCh, controller.HasSynced) {
-		logging.Errorf(ctx, "Failed to sync Pod cache during initialization")
-	} else {
-		logging.Infof(ctx, "Pod informer cache synced successfully")
+	_, err := informer.AddEventHandler(resourceEventHandler)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to add OOM event handler to pod informer: %v", err)
+		return nil
 	}
 
-	return podLister
+	go informer.Run(stopCh)
+
+	if !cache.WaitForCacheSync(stopCh, informer.HasSynced) {
+		logging.Errorf(ctx, "Failed to sync Pod cache for OOM observer")
+	} else {
+		logging.Infof(ctx, "OOM observer pod informer cache synced successfully")
+	}
+
+	return informer
 }
 
-type EventWatcherFunc func(*apiv1.Event)
-
-func WatchEventsWithRetries(
+func watchEventsWithRetries(
 	ctx context.Context,
 	kubeClient kubernetes.Interface,
-	fieldSelector string,
-	handler EventWatcherFunc,
+	handler func(*apiv1.Event),
 	namespace string,
 ) {
 	go func() {
 		options := metav1.ListOptions{
-			FieldSelector: fieldSelector,
+			FieldSelector: "reason=Evicted",
 		}
 
 		watchEventsOnce := func() {
 			watchInterface, err := kubeClient.CoreV1().Events(namespace).Watch(ctx, options)
 			if err != nil {
-				logging.Errorf(ctx, "Cannot initialize watching events with selector %s: %v", fieldSelector, err)
+				logging.Errorf(ctx, "Cannot initialize watching events: %v", err)
 				return
 			}
 			defer watchInterface.Stop()
@@ -85,27 +84,27 @@ func WatchEventsWithRetries(
 		for {
 			select {
 			case <-ctx.Done():
-				logging.Infof(ctx, "Stopping event watcher for selector: %s", fieldSelector)
+				logging.Infof(ctx, "Stopping OOM event watcher")
 				return
 			default:
 				watchEventsOnce()
-				// Wait between attempts
+				// Wait between attempts, retrying too often breaks API server.
 				waitTime := wait.Jitter(evictionWatchRetryWait, evictionWatchJitterFactor)
-				logging.Infof(ctx, "Event watch finished for selector %s, retrying in %v", fieldSelector, waitTime)
+				logging.Infof(ctx, "OOM event watch attempt finished, retrying in %v", waitTime)
 				time.Sleep(waitTime)
 			}
 		}
 	}()
 }
 
-func watchEvents(ctx context.Context, eventChan <-chan watch.Event, handler EventWatcherFunc) {
+func watchEvents(ctx context.Context, eventChan <-chan watch.Event, handler func(*apiv1.Event)) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case watchEvent, ok := <-eventChan:
 			if !ok {
-				logging.Infof(ctx, "Event channel closed")
+				logging.Infof(ctx, "OOM event channel closed")
 				return
 			}
 			if watchEvent.Type == watch.Added {

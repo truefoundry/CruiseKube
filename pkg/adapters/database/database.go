@@ -72,6 +72,9 @@ func (s *GormDB) createTables() error {
 	if err := s.db.AutoMigrate(&Stats{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate RowStats: %w", err)
 	}
+	if err := s.db.AutoMigrate(&OOMEvent{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate OOMEvent: %w", err)
+	}
 	return nil
 }
 
@@ -274,4 +277,47 @@ func (s *GormDB) UpdateStatOverridesForWorkload(clusterID, workloadID string, ov
 	}
 
 	return nil
+}
+
+func (s *GormDB) InsertOOMEvent(event *types.OOMEvent) error {
+	dbEvent := OOMEvent{
+		ClusterID:   event.ClusterID,
+		ContainerID: event.ContainerID,
+		Timestamp:   event.Timestamp,
+		Memory:      event.Memory,
+	}
+
+	result := s.db.Create(&dbEvent)
+	if result.Error != nil {
+		return fmt.Errorf("failed to insert OOM event: %w", result.Error)
+	}
+
+	return nil
+}
+
+func (s *GormDB) GetOOMEventsByWorkload(clusterID, workloadID string, since time.Time) ([]types.OOMEvent, error) {
+	var dbEvents []OOMEvent
+	likePattern := workloadID + ":%"
+	err := s.db.Where("cluster_id = ? AND container_id LIKE ? AND timestamp >= ?", clusterID, likePattern, since).
+		Order("timestamp DESC").
+		Find(&dbEvents).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to query OOM events: %w", err)
+	}
+
+	events := make([]types.OOMEvent, 0, len(dbEvents))
+	for _, dbEvent := range dbEvents {
+		events = append(events, types.OOMEvent{
+			ID:          dbEvent.ID,
+			ClusterID:   dbEvent.ClusterID,
+			ContainerID: dbEvent.ContainerID,
+			Timestamp:   dbEvent.Timestamp,
+			Memory:      dbEvent.Memory,
+			CreatedAt:   dbEvent.CreatedAt,
+			UpdatedAt:   dbEvent.UpdatedAt,
+		})
+	}
+
+	return events, nil
 }
