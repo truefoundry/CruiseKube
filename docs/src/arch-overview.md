@@ -21,7 +21,7 @@ By default, the **CruiseKube Helm chart** deploys:
 
 Conceptually, CruiseKube is composed of three tightly-coupled components:
 
-### Statistics Engine
+## Statistics Engine
 
 - Continuously evaluates CPU and memory usage for each workload
 - Track instances of high CPU load and memory OOMs
@@ -29,13 +29,13 @@ Conceptually, CruiseKube is composed of three tightly-coupled components:
 - Persists computed metrics in an internal datastore
 - Built on **Prometheus** as the primary metrics source
 
-### Runtime Optimizer
+## Runtime Optimizer
 
 - Implemented as a reconciliation loop in `cruisekube-controller`
 - Iteratively optimizes **running workloads**, one node at a time
 - Keeps the priority of individual workloads into account to minimise disruption
 
-### Admission Optimizer
+## Admission Optimizer
 
 - Implemented as a **mutating admission webhook**
 - Intercepts new pod creations
