@@ -119,10 +119,9 @@ nav:
   - Home: index.md
   - Getting started:
       - Introduction: src/gs-introduction.md
-      - Concepts: src/concepts-tasks.md
       - Installation: src/installation.md
       - Configuration: src/config.md
   - Architecture:
       - Architecture: src/arch-overview.md
   - Development:
-      - Environment: src/dev-env.md
+      - Dev Environment: src/dev-env.md

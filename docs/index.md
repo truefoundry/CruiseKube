@@ -13,7 +13,7 @@ hide:
       Automatically monitor, analyze, and optimize your Kubernetes workloads for maximum efficiency and cost savings.
     </p>
     <div class="hero-buttons">
-  <a href="/src/gs-setup/" class="cta-button md-button md-button--primary">Get Started</a>
+  <a href="/src/gs-introduction/" class="cta-button md-button md-button--primary">Get Started</a>
       <a href="https://discord.gg/qFyN73htgE" class="md-button md-button--secondary" rel="noopener noreferrer">Join our community</a>
     </div>
   </div>

@@ -1,13 +1,22 @@
-.PHONY: help test serve-docs build-docs fetch-contributors
+.PHONY: help test serve-docs build-docs fetch-contributors build
 
 help:
 	@echo "Available targets:"
 	@echo "  test              - Run tests"
+	@echo "  build             - Build images"
 	@echo "  help              - Show this help message"
 
 test:
 	@echo "Running tests..."
 	@go test ./...
+
+build:
+	@echo "Building images..."
+	@docker build -t cruisekube:latest .
+
+load-images:
+	@echo "Loading images into Kind cluster..."
+	@kind load docker-image cruisekube:latest --name cruisekube
 
 serve-docs: ## Serve docs
 	@command -v mkdocs >/dev/null 2>&1 || { \

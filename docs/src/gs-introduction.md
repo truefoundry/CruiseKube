@@ -44,3 +44,10 @@ Acts as a safety mechanism to protect cluster stability during optimization.
 
 Together, these tasks allow CruiseKube to continuously optimize resources **without relying on manual tuning or reactive scaling**.
 
+## Database
+
+CruiseKube stores its persistent data in a PostgreSQL database. The database schema is managed by CruiseKube and is automatically initialized during installation. You can configure the database connection details through Helm values during installation.
+
+## Configuration Dashboard
+
+CruiseKube provides a web-based configuration dashboard that allows you to view and enable/disable recommendations for different workloads. You can monitor the impact CruiseKube will have when enabled. The dashboard is accessible via a frontend service deployed within the cluster.
