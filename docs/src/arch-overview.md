@@ -44,6 +44,7 @@ flowchart LR
     Controller --> Database
     Webhook --> Database
     Controller --> Prometheus
+```
 
 By default, the **CruiseKube Helm chart** deploys:
 
