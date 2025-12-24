@@ -128,7 +128,6 @@ nav:
           - Helm Values: src/config-fields.md
           - Environment Variables: src/config-env.md
   - Architecture:
-      - Overview: src/arch-overview.md
-      - Components: src/arch-components.md
+      - Architecture: src/arch-overview.md
   - Development:
       - Environment: src/dev-env.md
