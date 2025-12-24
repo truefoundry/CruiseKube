@@ -20,7 +20,8 @@ CruiseKube is an intelligent Kubernetes resource optimization controller that au
 
 - [Content](#content)
 - [Introduction](#introduction)
-  - [Key Features](#key-features)
+  - [What is CruiseKube?](#what-is-cruisekube)
+  - [When do you need CruiseKube?](#when-do-you-need-cruisekube)
 - [Getting Started](#getting-started)
 - [Configure CruiseKube](#configure-cruisekube)
 - [Monitoring](#monitoring)
@@ -30,13 +31,21 @@ CruiseKube is an intelligent Kubernetes resource optimization controller that au
 
 # Introduction
 
+## What is CruiseKube?
 
-## Key Features
+**CruiseKube** is a Kubernetes-native, continuous resource optimization system that autonomously right-sizes CPU and memory for workloads at **runtime** and **admission time**. It focuses on eliminating persistent over-provisioning while preserving workload reliability and scheduling constraints.
 
-- **Automated Resource Optimization**: Continuously monitors workload resource usage and applies intelligent recommendations
-- **Configurable Tasks**: Multiple optimization tasks including CPU resource balancing, node load monitoring, and recommendation application
-- **Telemetry & Observability**: Built-in OpenTelemetry support with metrics and tracing
-- **Kubernetes Native**: Designed to work seamlessly with Kubernetes clusters both locally and in-cluster
+Unlike static requests, manual tuning, or reactive autoscaling, CruiseKube operates as a **closed-loop control system** that observes real workload behavior and incrementally converges resource requests toward optimal values.
+
+## When do you need CruiseKube?
+
+You would need CruiseKube if you are facing any of these issues -
+
+- **Chronic over-provisioning** driven by guesswork, peak-based sizing, and fear of CPU throttling or OOM crashes
+- **Cost inefficiency** that node-level bin packing as provided by autoscalers (Cluster Autoscaler/Karpenter) alone cannot fix
+- **Operational Load** arising from manual tuning of workloads on kubernetes by developers or DevOps teams
+
+CruiseKube explicitly addresses the **pod-level right-sizing problem**, in a fully hands-off manner.
 
 # Getting Started
 
