@@ -47,7 +47,7 @@ Conceptually, CruiseKube is composed of three tightly-coupled components:
 
 ```mermaid
 sequenceDiagram
-  %% Autopilot Telemetry Engine – Metrics Collection & Feature Building
+  %% CruiseKube Telemetry Engine – Metrics Collection & Feature Building
 
   participant P as Prometheus
   participant T as Statistics Engine
@@ -72,8 +72,8 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  %% Autopilot Core Loop (simplified)
-  participant C as Autopilot Controller
+  %% CruiseKube Core Loop (simplified)
+  participant C as CruiseKube Controller
   participant M as Database
 %%   participant N as Node
   participant K as Kube API
@@ -103,11 +103,11 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  %% Autopilot Admission Webhook – Scheduling-Time Optimization
+  %% CruiseKube Admission Webhook – Scheduling-Time Optimization
 
   participant U as User / Controller
   participant K as Kubernetes API Server
-  participant W as Autopilot Mutating Webhook
+  participant W as CruiseKube Mutating Webhook
   participant M as Database
 %%   participant S as Scheduler
 %%   participant N as Node
