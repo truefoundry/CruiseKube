@@ -95,7 +95,7 @@ Open your browser and navigate to `http://localhost:3000` to view the recommenda
 
 You can enable or disable specific workloads by toggling the corresponding flag in the dashboard.
 
-<img src="../../images/workload_toggle.png" alt="Workload Toggle" width="1000"/>
+<img src="../../images/demo_workload_toggle.png" alt="Workload Toggle" width="1000"/>
 
 ## Uninstall
 
