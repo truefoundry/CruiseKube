@@ -84,7 +84,7 @@ kubectl port-forward -n cruisekube-system svc/cruisekube-frontend 3000:3000
 
 Open your browser and navigate to `http://localhost:3000` to view the recommendations.
 
-<img src="../../../images/demo_recommendations.png" alt="Recommendations Dashboard" width="800"/>
+<img src="../../images/demo_recommendation.png" alt="Recommendations Dashboard" width="800"/>
 
 ## Uninstall
 
