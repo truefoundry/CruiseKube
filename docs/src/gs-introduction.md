@@ -24,21 +24,21 @@ Each task has a clearly defined responsibility and can be enabled or disabled in
 
 1. <u>**Create Stats Task:**</u>
 Builds persistent, workload-level CPU and memory statistics from Kubernetes state and Prometheus metrics.
-These stats form the foundation for all optimization decisions and are stored for reuse.
+These stats form the foundation for all optimization decisions and are stored for reuse. Read about the [architecture here](arch-overview.md#statistics-engine).
 
-2. <u>**Fetch Metrics Task:**</u>
+1. <u>**Fetch Metrics Task:**</u>
 Collects cluster-wide and node-level health signals such as utilization, pressure, OOMs, and scheduling issues.
 Primarily used for observability, dashboards, and safety guardrails.
 
-3. <u>**Apply Recommendation Task:**</u>
+1. <u>**Apply Recommendation Task:**</u>
 Generates and applies CPU and memory recommendations to workloads in a controlled, incremental manner.
-This is the core task responsible for actually right-sizing workloads.
+This is the core task responsible for actually right-sizing workloads. Read about the [architecture here](arch-overview.md#runtime-optimizer-flow).
 
-4. <u>**Modify Equal CPU Resources Task:**</u>
+1. <u>**Modify Equal CPU Resources Task:**</u>
 Fixes containers where CPU request and limit are equal, allowing them to burst and reducing throttling risk.
 Applies minimal, safe corrections at the workload spec level.
 
-5. <u>**Node Load Monitoring Task:**</u>
+1. <u>**Node Load Monitoring Task:**</u>
 Monitors node load and temporarily taints overloaded nodes to prevent further scheduling.
 Acts as a safety mechanism to protect cluster stability during optimization.
 
@@ -51,3 +51,4 @@ CruiseKube stores its persistent data in a PostgreSQL database. The database sch
 ## Configuration Dashboard
 
 CruiseKube provides a web-based configuration dashboard that allows you to view and enable/disable recommendations for different workloads. You can monitor the impact CruiseKube will have when enabled. The dashboard is accessible via a frontend service deployed within the cluster.
+

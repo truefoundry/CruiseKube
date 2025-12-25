@@ -110,7 +110,7 @@ type ControllerMode string
 
 const (
 	ClusterModeLocal     ControllerMode = "local"
-	ClusterModeInCluster ControllerMode = "inCluster"
+	ClusterModeInCluster ControllerMode = "in-cluster"
 )
 
 type ExecutionMode string
