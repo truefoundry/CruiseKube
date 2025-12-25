@@ -96,8 +96,6 @@ helm upgrade --install cruisekube \
 
 > Note: We have disabled the frontend for local development to simplify the setup.
 
-## 7. Redeploying changes
-
 To redeploy your changes after making code modifications, simply rebuild the image and reload it into the cluster:
 
 ```bash
