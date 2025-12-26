@@ -89,6 +89,8 @@ This page recognizes all the dedicated and incredible people who have contribute
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 15px;
     margin: 20px 0;
+    max-width: 100%;
+    overflow: hidden;
   }
   
   .contributor {
@@ -99,6 +101,9 @@ This page recognizes all the dedicated and incredible people who have contribute
     padding: 8px;
     border-radius: 6px;
     transition: transform 0.2s, box-shadow 0.2s;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
   }
   
   .contributor:hover {
@@ -112,11 +117,16 @@ This page recognizes all the dedicated and incredible people who have contribute
     border-radius: 50%;
     object-fit: cover;
     margin-bottom: 8px;
+    flex-shrink: 0;
   }
   
   .contributor-name {
     font-weight: bold;
     font-size: 0.9em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    line-height: 1.2;
   }
   
   .loading-message {
