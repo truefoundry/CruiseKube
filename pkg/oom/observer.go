@@ -131,7 +131,7 @@ func (o *Observer) onEvictionEvent(ctx context.Context, event *apiv1.Event) {
 	}
 }
 
-func (o *Observer) parseEvictionEvent(_ context.Context, event *apiv1.Event) []Info {
+func (o *Observer) parseEvictionEvent(ctx context.Context, event *apiv1.Event) []Info {
 	if event.Reason != "Evicted" || event.InvolvedObject.Kind != "Pod" {
 		return nil
 	}
@@ -153,7 +153,7 @@ func (o *Observer) parseEvictionEvent(_ context.Context, event *apiv1.Event) []I
 		return nil
 	}
 
-	pod, err := o.kubeClient.CoreV1().Pods(event.InvolvedObject.Namespace).Get(context.Background(), event.InvolvedObject.Name, metav1.GetOptions{})
+	pod, err := o.kubeClient.CoreV1().Pods(event.InvolvedObject.Namespace).Get(ctx, event.InvolvedObject.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil
 	}
