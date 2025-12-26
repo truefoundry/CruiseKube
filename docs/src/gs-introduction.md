@@ -24,13 +24,10 @@ Each task has a clearly defined responsibility and can be enabled or disabled in
 
 1. [**Create Stats Task:**](arch-overview.md#statistics-engine)
 Builds persistent, workload-level CPU and memory statistics from Kubernetes state and Prometheus metrics. These stats form the foundation for all optimization decisions and are stored for reuse.
-
 2. [**Apply Recommendation Task:**](arch-overview.md#runtime-optimizer-flow)
 Generates and applies CPU and memory recommendations to workloads in a controlled, incremental manner. This is the core task responsible for actually right-sizing workloads.
-
-1. **Fetch Metrics Task**
-2. **Modify Equal CPU Resources Task**
-3. **Node Load Monitoring Task**
+3. **Fetch Metrics Task**
+4. **Node Load Monitoring Task**
 
 Together, these tasks allow CruiseKube to continuously optimize resources **without relying on manual tuning or reactive scaling**.
 
