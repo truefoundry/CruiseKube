@@ -35,13 +35,14 @@ spec:
           args:
             - "--execution-mode=webhook"
             - "--webhook-certs-dir={{ .Values.cruisekubeWebhook.webhook.certsDir }}"
-            - "--webhook-stats-url-host={{ .Values.cruisekubeWebhook.webhook.statsURL.host }}"
+            - --webhook-stats-url-host={{ if .Values.cruisekubeWebhook.webhook.statsURL.host }}{{ .Values.cruisekubeWebhook.webhook.statsURL.host }}{{ else }}{{ printf "http://%s:%v" (include "cruisekubeController.fullname" .) .Values.cruisekubeController.service.httpPort }}{{ end }}
+            - "--webhook-port={{ .Values.cruisekubeWebhook.service.httpsPort }}"
           ports:
             - name: https
-              containerPort: 8443
+              containerPort: {{ .Values.cruisekubeWebhook.service.httpsPort }}
               protocol: TCP
             - name: metrics
-              containerPort: 8081
+              containerPort: {{ .Values.cruisekubeWebhook.service.metricsPort }}
               protocol: TCP
           resources:
             {{- toYaml .Values.cruisekubeWebhook.resources | nindent 12 }}

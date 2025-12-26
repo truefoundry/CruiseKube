@@ -1,11 +1,11 @@
-controllerMode: local
+controllerMode: in-cluster
 dependencies:
   local:
     kubeconfigPath: ""
     prometheusURL: "http://localhost:9090"
   inCluster:
     prometheusURL: ""
-executionMode: both
+executionMode: controller
 controller:
   targetNamespace: ""
   targetClusterID: ""
@@ -20,7 +20,7 @@ controller:
       enabled: false
       schedule: "5m"
       metadata:
-        dryRun: false
+        dryRun: true
         skipMemory: false
         nodeStatsURL:
           host: "http://localhost:8080"
@@ -32,9 +32,6 @@ controller:
     nodeLoadMonitoring:
       enabled: false
       schedule: "60s"
-    evictionForce:
-      enabled: false
-      schedule: "1m"
     fetchMetrics:
       enabled: false
       schedule: "1m"
@@ -49,7 +46,7 @@ server:
 webhook:
   port: "8443"
   certsDir: "/tmp/webhook-certs"
-  dryRun: false
+  dryRun: true
   statsURL:
     host: "http://localhost:8080"
     tfyClusterToken: "<cluster-token>"

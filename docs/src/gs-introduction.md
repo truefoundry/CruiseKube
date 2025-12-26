@@ -16,3 +16,26 @@ You would need CruiseKube if you are facing any of these issues -
 - **Operational Load** arising from manual tuning of workloads on kubernetes by developers or DevOps teams
 
 CruiseKube explicitly addresses the **pod-level right-sizing problem**, in a fully hands-off manner.
+
+## Tasks
+
+CruiseKube operates as a closed-loop system through a set of **periodic background tasks**.
+Each task has a clearly defined responsibility and can be enabled or disabled independently.
+
+1. [**Create Stats Task:**](arch-overview.md#statistics-engine)
+Builds persistent, workload-level CPU and memory statistics from Kubernetes state and Prometheus metrics. These stats form the foundation for all optimization decisions and are stored for reuse.
+2. [**Apply Recommendation Task:**](arch-overview.md#runtime-optimizer-flow)
+Generates and applies CPU and memory recommendations to workloads in a controlled, incremental manner. This is the core task responsible for actually right-sizing workloads.
+3. **Fetch Metrics Task**
+4. **Node Load Monitoring Task**
+
+Together, these tasks allow CruiseKube to continuously optimize resources **without relying on manual tuning or reactive scaling**.
+
+## Database
+
+CruiseKube stores its persistent data in a PostgreSQL database. The database schema is managed by CruiseKube and is automatically initialized during installation. You can configure the database connection details through Helm values during installation.
+
+## Configuration Dashboard
+
+CruiseKube provides a web-based configuration dashboard that allows you to view and enable/disable recommendations for different workloads. You can monitor the impact CruiseKube will have when enabled. The dashboard is accessible via a frontend service deployed within the cluster. Read more about it in the [Configuration Dashboard](config-dashboard.md) section.
+

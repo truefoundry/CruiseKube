@@ -13,12 +13,12 @@ hide:
       Automatically monitor, analyze, and optimize your Kubernetes workloads for maximum efficiency and cost savings.
     </p>
     <div class="hero-buttons">
-  <a href="/src/gs-setup/" class="cta-button md-button md-button--primary">Get Started</a>
+  <a href="/src/gs-introduction/" class="cta-button md-button md-button--primary">Get Started</a>
       <a href="https://discord.gg/qFyN73htgE" class="md-button md-button--secondary" rel="noopener noreferrer">Join our community</a>
     </div>
   </div>
    <div class="hero-image">
-    <img src="images/hero-2.png" alt="Illustration of CruiseKube">
+    <img src="images/hero.png" alt="Illustration of CruiseKube">
   </div>
 </div>
 
@@ -91,6 +91,11 @@ hide:
       </div>
     </div>
   </div>
+  <div class="demo-image">
+
+<img src="./images/demo_recommendation.png" alt="Recommendation Demo"/>
+<img src="./images/demo_workload_toggle.png" alt="Workload Toggle"/>
+</div>
 </div>
 
 
