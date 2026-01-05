@@ -7,8 +7,6 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/logging"
 )
 
-type TaskFunc func()
-
 type Scheduler struct {
 	tasks map[string]*time.Ticker
 	quit  chan struct{}
@@ -33,13 +31,17 @@ func (s *Scheduler) Register(ctx context.Context, name string, schedule string, 
 
 	go func() {
 		logging.Infof(ctx, "Launching initial task: %s", name)
-		_ = task(ctx)
+		if err := task(ctx); err != nil {
+			logging.Errorf(ctx, "Failed to run task %s: %v", name, err)
+		}
 
 		for {
 			select {
 			case <-ticker.C:
 				logging.Infof(ctx, "Launching task: %s", name)
-				_ = task(ctx)
+				if err := task(ctx); err != nil {
+					logging.Errorf(ctx, "Failed to run task %s: %v", name, err)
+				}
 			case <-s.quit:
 				ticker.Stop()
 				return
