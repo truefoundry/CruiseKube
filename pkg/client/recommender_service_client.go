@@ -141,7 +141,11 @@ func (c *RecommenderServiceClient) makeRequest(ctx context.Context, method, endp
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			logging.Errorf(ctx, "Failed to close response body: %v", err)
+		}
+	}()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

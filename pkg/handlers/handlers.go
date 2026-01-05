@@ -199,7 +199,11 @@ func HandlePrometheusProxy(c *gin.Context) {
 		})
 		return
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer func() {
+		if err = resp.Body.Close(); err != nil {
+			logging.Errorf(ctx, "Failed to close response body: %v", err)
+		}
+	}()
 
 	for header, values := range resp.Header {
 		for _, value := range values {
