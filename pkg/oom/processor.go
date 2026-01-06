@@ -99,9 +99,10 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	}
 
 	logging.Infof(ctx, "Triggering reactive apply recommendation for node %s", oomInfo.NodeName)
-	go func() {
-		if err := p.applyRecommendationTask.RunForNode(context.Background(), oomInfo.NodeName); err != nil {
-			logging.Errorf(context.Background(), "Failed to apply reactive recommendation for node %s: %v", oomInfo.NodeName, err)
+	go func(prevCtx context.Context) {
+		ctx := context.WithoutCancel(prevCtx)
+		if err := p.applyRecommendationTask.RunForNode(ctx, oomInfo.NodeName); err != nil {
+			logging.Errorf(ctx, "Failed to apply reactive recommendation for node %s: %v", oomInfo.NodeName, err)
 		}
-	}()
+	}(ctx)
 }
