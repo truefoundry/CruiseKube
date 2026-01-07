@@ -88,33 +88,3 @@ func BuildBatchMemoryUsageExpression(namespace string) string {
 
 	return fmt.Sprintf(template, namespace, podInfo)
 }
-
-func BuildBatchOOMMemoryExpression(namespace string) string {
-	podInfo := buildBatchPodInfoExpression(namespace)
-
-	template := `max by (created_by_kind, created_by_name, namespace, container) (
-		(
-			sum by (namespace, pod, container, node) (
-				kube_pod_container_resource_limits{job="kube-state-metrics",namespace="%s"}
-			)
-			* on (namespace, pod, container) group_right(node)
-			(
-				sum by (namespace, pod, container) (
-					kube_pod_container_status_last_terminated_reason{job="kube-state-metrics",namespace="%s",reason="OOMKilled"}
-					* on (namespace, pod, container)
-					sum by (namespace, pod, container) (
-						increase(
-							kube_pod_container_status_restarts_total{job="kube-state-metrics",namespace="%s"}[1m]
-						)
-					)
-				)
-				>
-				bool 0
-			)
-		)
-		* on (namespace, pod, node) group_left(created_by_kind, created_by_name)
-		(%s)
-	)`
-
-	return fmt.Sprintf(template, namespace, namespace, namespace, podInfo)
-}

@@ -230,9 +230,9 @@ func PredictSimpleStatsFromTimeSeriesModel(ctx context.Context, namespaces []str
 		var err error
 
 		if resourceType == "memory" {
-			matrix, err = fetchMemoryWithOOM(ctx, promClient, namespace, r)
+			matrix, err = fetchMemoryMatrix(ctx, promClient, namespace, r)
 			if err != nil {
-				logging.Errorf(ctx, "Error fetching memory with OOM for namespace %s: %v", namespace, err)
+				logging.Errorf(ctx, "Error fetching memory matrix for namespace %s: %v", namespace, err)
 				return nil, err
 			}
 		} else {
@@ -287,15 +287,9 @@ func PredictSimpleStatsFromTimeSeriesModel(ctx context.Context, namespaces []str
 	return result, nil
 }
 
-func fetchMemoryWithOOM(ctx context.Context, promClient v1.API, namespace string, r v1.Range) (model.Matrix, error) {
+func fetchMemoryMatrix(ctx context.Context, promClient v1.API, namespace string, r v1.Range) (model.Matrix, error) {
 	memoryQuery := EncloseWithinMemoryCleanupFunction(EncloseWithinQuantileOverTime(
 		BuildBatchMemoryUsageExpression(namespace),
-		timeStepSize,
-		1.0,
-	), MemoryDecimalPlaces)
-
-	oomQuery := EncloseWithinMemoryCleanupFunction(EncloseWithinQuantileOverTime(
-		BuildBatchOOMMemoryExpression(namespace),
 		timeStepSize,
 		1.0,
 	), MemoryDecimalPlaces)
@@ -306,119 +300,10 @@ func fetchMemoryWithOOM(ctx context.Context, promClient v1.API, namespace string
 		return nil, fmt.Errorf("error querying prometheus for memory predictions: %w", err)
 	}
 
-	logging.Infof(ctx, "Querying prometheus for OOM memory predictions with query: %s", CompressQueryForLogging(oomQuery))
-	oomVal, _, err := promClient.QueryRange(ctx, oomQuery, r)
-	if err != nil {
-		return nil, fmt.Errorf("error querying prometheus for OOM memory predictions: %w, query: %s", err, oomQuery)
-	}
-
 	memoryMatrix, ok := memoryVal.(model.Matrix)
 	if !ok {
 		return nil, fmt.Errorf("unable to convert memory result to matrix")
 	}
 
-	oomMatrix, ok := oomVal.(model.Matrix)
-	if !ok {
-		return nil, fmt.Errorf("unable to convert OOM memory result to matrix")
-	}
-
-	mergedMatrix := mergeMemoryAndOOMTimeSeries(memoryMatrix, oomMatrix)
-	return mergedMatrix, nil
-}
-
-func mergeMemoryAndOOMTimeSeries(memoryMatrix, oomMatrix model.Matrix) model.Matrix {
-	oomMap := make(map[string]*model.SampleStream)
-	for _, sample := range oomMatrix {
-		key := getSampleKey(sample)
-		oomMap[key] = sample
-	}
-
-	var mergedMatrix model.Matrix
-	for _, memorySample := range memoryMatrix {
-		key := getSampleKey(memorySample)
-		oomSample, exists := oomMap[key]
-
-		if !exists {
-			mergedMatrix = append(mergedMatrix, memorySample)
-			continue
-		}
-
-		mergedSample := mergeSampleStreams(memorySample, oomSample)
-		mergedMatrix = append(mergedMatrix, mergedSample)
-	}
-
-	for _, oomSample := range oomMatrix {
-		key := getSampleKey(oomSample)
-		found := false
-		for _, memorySample := range memoryMatrix {
-			if getSampleKey(memorySample) == key {
-				found = true
-				break
-			}
-		}
-		if !found {
-			mergedMatrix = append(mergedMatrix, oomSample)
-		}
-	}
-
-	return mergedMatrix
-}
-
-func getSampleKey(sample *model.SampleStream) string {
-	kind := string(sample.Metric["created_by_kind"])
-	namespace := string(sample.Metric["namespace"])
-	name := string(sample.Metric["created_by_name"])
-	container := string(sample.Metric["container"])
-	return fmt.Sprintf("%s:%s:%s:%s", kind, namespace, name, container)
-}
-
-func mergeSampleStreams(memorySample, oomSample *model.SampleStream) *model.SampleStream {
-	mergedValues := make([]model.SamplePair, 0)
-	memoryMap := make(map[model.Time]model.SampleValue)
-	oomMap := make(map[model.Time]model.SampleValue)
-
-	for _, pair := range memorySample.Values {
-		memoryMap[pair.Timestamp] = pair.Value
-	}
-
-	for _, pair := range oomSample.Values {
-		oomMap[pair.Timestamp] = pair.Value
-	}
-
-	allTimestamps := make(map[model.Time]bool)
-	for ts := range memoryMap {
-		allTimestamps[ts] = true
-	}
-	for ts := range oomMap {
-		allTimestamps[ts] = true
-	}
-
-	for ts := range allTimestamps {
-		memoryVal, memoryExists := memoryMap[ts]
-		oomVal, oomExists := oomMap[ts]
-
-		var finalValue model.SampleValue
-		switch {
-		case memoryExists && oomExists:
-			finalValue = model.SampleValue(max(float64(memoryVal), float64(oomVal)))
-		case memoryExists:
-			finalValue = memoryVal
-		default:
-			finalValue = oomVal
-		}
-
-		mergedValues = append(mergedValues, model.SamplePair{
-			Timestamp: ts,
-			Value:     finalValue,
-		})
-	}
-
-	slices.SortFunc(mergedValues, func(a, b model.SamplePair) int {
-		return cmp.Compare(a.Timestamp, b.Timestamp)
-	})
-
-	return &model.SampleStream{
-		Metric: memorySample.Metric,
-		Values: mergedValues,
-	}
+	return memoryMatrix, nil
 }
