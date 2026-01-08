@@ -128,7 +128,7 @@ func (s *Storage) UpdateOOMMemoryForContainer(clusterID, workloadID, containerNa
 		return fmt.Errorf("container %s not found in workload %s stats", containerName, workloadID)
 	}
 
-	if err := s.DB.UpsertStat(clusterID, workloadID, *stat, stat.UpdatedAt); err != nil {
+	if err := s.DB.UpsertStat(clusterID, workloadID, *stat, time.Now()); err != nil {
 		return fmt.Errorf("failed to update stat with OOM memory: %w", err)
 	}
 

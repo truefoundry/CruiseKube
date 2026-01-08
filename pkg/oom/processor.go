@@ -98,6 +98,11 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 			workloadID, containerName, oomInfo.LastObservedMemory)
 	}
 
+	if p.applyRecommendationTask == nil {
+		logging.Warnf(ctx, "Skipping reactive apply recommendation for node %s: apply recommendation task is not initialized", oomInfo.NodeName)
+		return
+	}
+
 	logging.Infof(ctx, "Triggering reactive apply recommendation for node %s", oomInfo.NodeName)
 	go func(prevCtx context.Context) {
 		ctx := context.WithoutCancel(prevCtx)
