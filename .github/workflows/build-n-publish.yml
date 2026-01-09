@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    needs: [build-operator]
+    needs: [build-operator, build-cruisekube-frontend]
     steps:
       - name: Checkout helm-main branch
         uses: actions/checkout@v4
