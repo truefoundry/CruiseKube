@@ -28,6 +28,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("controller.tasks.applyRecommendation.dryRun", true)
 	v.SetDefault("controller.tasks.applyRecommendation.overridesURL.host", "localhost:8080")
 	v.SetDefault("recommendationSettings.maxConcurrentQueries", 5)
+	v.SetDefault("recommendationSettings.oomCooldownMinutes", 5)
 	v.SetDefault("server.port", "8080")
 	v.SetDefault("webhook.port", "8443")
 	v.SetDefault("webhook.certsDir", "/certs")
