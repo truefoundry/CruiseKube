@@ -104,8 +104,8 @@ func (s *Storage) GetOOMEventsByWorkload(clusterID, workloadID string, since tim
 	return events, nil
 }
 
-func (s *Storage) GetLatestOOMEventForContainer(clusterID, containerID string) (*types.OOMEvent, error) {
-	event, err := s.DB.GetLatestOOMEventForContainer(clusterID, containerID)
+func (s *Storage) GetLatestOOMEventForContainer(clusterID, containerID, podName string) (*types.OOMEvent, error) {
+	event, err := s.DB.GetLatestOOMEventForContainer(clusterID, containerID, podName)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("failed to get latest OOM event for container: %w", err)
 	}

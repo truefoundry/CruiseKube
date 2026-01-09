@@ -308,15 +308,15 @@ func (s *GormDB) InsertOOMEvent(event *types.OOMEvent) error {
 	return nil
 }
 
-func (s *GormDB) GetLatestOOMEventForContainer(clusterID, containerID string) (*types.OOMEvent, error) {
+func (s *GormDB) GetLatestOOMEventForContainer(clusterID, containerID, podName string) (*types.OOMEvent, error) {
 	var dbEvent OOMEvent
-	err := s.db.Where("cluster_id = ? AND container_id = ?", clusterID, containerID).
+	err := s.db.Where("cluster_id = ? AND container_id = ? AND metadata->>'pod_name' = ?", clusterID, containerID, podName).
 		Order("timestamp DESC").
 		First(&dbEvent).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, err
+			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to query latest OOM event: %w", err)
 	}

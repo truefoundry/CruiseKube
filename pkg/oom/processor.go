@@ -2,7 +2,6 @@ package oom
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/task"
@@ -70,9 +69,9 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 		return
 	}
 
-	workloadID := fmt.Sprintf("%s:%s:%s", kind, namespace, workloadName)
+	workloadID := utils.GetWorkloadKey(kind, namespace, workloadName)
 
-	latestEvent, err := p.storage.GetLatestOOMEventForContainer(p.clusterID, oomInfo.ContainerID)
+	latestEvent, err := p.storage.GetLatestOOMEventForContainer(p.clusterID, oomInfo.ContainerID, oomInfo.PodName)
 	if err != nil {
 		logging.Warnf(ctx, "Failed to check latest OOM event for cooldown: %v", err)
 	} else if latestEvent != nil {
@@ -81,8 +80,8 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 
 		if timeSinceLastOOM < cooldownDuration {
 			remainingCooldown := cooldownDuration - timeSinceLastOOM
-			logging.Infof(ctx, "OOM cooldown active for container %s: last OOM was %.1f minutes ago, skipping (%.1f minutes remaining)",
-				oomInfo.ContainerID, timeSinceLastOOM.Minutes(), remainingCooldown.Minutes())
+			logging.Infof(ctx, "OOM cooldown active for pod %s/%s (container %s): last OOM was %.1f minutes ago, skipping (%.1f minutes remaining)",
+				oomInfo.Namespace, oomInfo.PodName, oomInfo.ContainerID, timeSinceLastOOM.Minutes(), remainingCooldown.Minutes())
 			return
 		}
 	}
