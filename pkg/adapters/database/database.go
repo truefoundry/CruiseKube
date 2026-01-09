@@ -294,6 +294,7 @@ func (s *GormDB) InsertOOMEvent(event *types.OOMEvent) error {
 		MemoryLimit:        event.MemoryLimit,
 		MemoryRequest:      event.MemoryRequest,
 		LastObservedMemory: event.LastObservedMemory,
+		LastResizeAt:       event.LastResizeAt,
 	}
 
 	result := s.db.Clauses(clause.OnConflict{
@@ -306,6 +307,39 @@ func (s *GormDB) InsertOOMEvent(event *types.OOMEvent) error {
 	}
 
 	return nil
+}
+
+func (s *GormDB) GetLatestOOMEventForContainer(clusterID, containerID string) (*types.OOMEvent, error) {
+	var dbEvent OOMEvent
+	err := s.db.Where("cluster_id = ? AND container_id = ?", clusterID, containerID).
+		Order("timestamp DESC").
+		First(&dbEvent).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to query latest OOM event: %w", err)
+	}
+
+	var metadata types.OOMEventMetadata
+	if err := json.Unmarshal([]byte(dbEvent.Metadata), &metadata); err != nil {
+		metadata = types.OOMEventMetadata{}
+	}
+
+	return &types.OOMEvent{
+		ID:                 dbEvent.ID,
+		ClusterID:          dbEvent.ClusterID,
+		ContainerID:        dbEvent.ContainerID,
+		Metadata:           metadata,
+		Timestamp:          dbEvent.Timestamp,
+		MemoryLimit:        dbEvent.MemoryLimit,
+		MemoryRequest:      dbEvent.MemoryRequest,
+		LastObservedMemory: dbEvent.LastObservedMemory,
+		LastResizeAt:       dbEvent.LastResizeAt,
+		CreatedAt:          dbEvent.CreatedAt,
+		UpdatedAt:          dbEvent.UpdatedAt,
+	}, nil
 }
 
 func (s *GormDB) GetOOMEventsByWorkload(clusterID, workloadID string, since time.Time) ([]types.OOMEvent, error) {
@@ -336,6 +370,7 @@ func (s *GormDB) GetOOMEventsByWorkload(clusterID, workloadID string, since time
 			MemoryLimit:        dbEvent.MemoryLimit,
 			MemoryRequest:      dbEvent.MemoryRequest,
 			LastObservedMemory: dbEvent.LastObservedMemory,
+			LastResizeAt:       dbEvent.LastResizeAt,
 			CreatedAt:          dbEvent.CreatedAt,
 			UpdatedAt:          dbEvent.UpdatedAt,
 		})

@@ -66,6 +66,7 @@ recommendationSettings:
   disableMemoryApplication: true
   applyBlacklistedNamespaces: []
   maxConcurrentQueries: 30
+  oomCooldownMinutes: 5
 telemetry:
   enabled: false
   exporterOTLPEndpoint: ""

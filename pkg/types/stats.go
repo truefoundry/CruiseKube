@@ -270,6 +270,7 @@ type OOMEvent struct {
 	MemoryLimit        int64            `json:"memory_limit"`
 	MemoryRequest      int64            `json:"memory_request"`
 	LastObservedMemory int64            `json:"last_observed_memory"`
+	LastResizeAt       time.Time        `json:"last_resize_at"`
 	CreatedAt          time.Time        `json:"created_at"`
 	UpdatedAt          time.Time        `json:"updated_at"`
 }

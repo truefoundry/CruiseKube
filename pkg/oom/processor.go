@@ -3,6 +3,7 @@ package oom
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/task"
 	"k8s.io/client-go/kubernetes"
@@ -19,14 +20,16 @@ type Processor struct {
 	clusterID               string
 	stopCh                  chan struct{}
 	applyRecommendationTask *task.ApplyRecommendationTask
+	oomCooldownMinutes      int
 }
 
-func NewProcessor(storageRepo *storage.Storage, kubeClient kubernetes.Interface, clusterID string, applyRecommendationTask *task.ApplyRecommendationTask) *Processor {
+func NewProcessor(storageRepo *storage.Storage, kubeClient kubernetes.Interface, clusterID string, applyRecommendationTask *task.ApplyRecommendationTask, oomCooldownMinutes int) *Processor {
 	return &Processor{
 		storage:                 storageRepo,
 		kubeClient:              kubeClient,
 		clusterID:               clusterID,
 		applyRecommendationTask: applyRecommendationTask,
+		oomCooldownMinutes:      oomCooldownMinutes,
 		stopCh:                  make(chan struct{}),
 	}
 }
@@ -61,6 +64,29 @@ func (p *Processor) Stop() {
 }
 
 func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
+	kind, namespace, workloadName, containerName, ok := utils.ParseWorkloadContainerKey(oomInfo.ContainerID)
+	if !ok {
+		logging.Errorf(ctx, "Failed to parse containerID: %s", oomInfo.ContainerID)
+		return
+	}
+
+	workloadID := fmt.Sprintf("%s:%s:%s", kind, namespace, workloadName)
+
+	latestEvent, err := p.storage.GetLatestOOMEventForContainer(p.clusterID, oomInfo.ContainerID)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to check latest OOM event for cooldown: %v", err)
+	} else if latestEvent != nil && !latestEvent.LastResizeAt.IsZero() {
+		timeSinceResize := time.Since(latestEvent.LastResizeAt)
+		cooldownDuration := time.Duration(p.oomCooldownMinutes) * time.Minute
+
+		if timeSinceResize < cooldownDuration {
+			remainingCooldown := cooldownDuration - timeSinceResize
+			logging.Infof(ctx, "OOM cooldown active for container %s: last resize was %.1f minutes ago, skipping (%.1f minutes remaining)",
+				oomInfo.ContainerID, timeSinceResize.Minutes(), remainingCooldown.Minutes())
+			return
+		}
+	}
+
 	event := &types.OOMEvent{
 		ClusterID:   p.clusterID,
 		ContainerID: oomInfo.ContainerID,
@@ -73,6 +99,7 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 		MemoryLimit:        oomInfo.MemoryLimit,
 		MemoryRequest:      oomInfo.MemoryRequest,
 		LastObservedMemory: oomInfo.LastObservedMemory,
+		LastResizeAt:       time.Now(),
 	}
 
 	if err := p.storage.InsertOOMEvent(event); err != nil {
@@ -82,14 +109,6 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 
 	logging.Infof(ctx, "OOM event stored: containerID=%s, pod=%s/%s, node=%s, limit=%d bytes, request=%d bytes, observed=%d bytes",
 		oomInfo.ContainerID, oomInfo.Namespace, oomInfo.PodName, oomInfo.NodeName, oomInfo.MemoryLimit, oomInfo.MemoryRequest, oomInfo.LastObservedMemory)
-
-	kind, namespace, workloadName, containerName, ok := utils.ParseWorkloadContainerKey(oomInfo.ContainerID)
-	if !ok {
-		logging.Errorf(ctx, "Failed to parse containerID: %s", oomInfo.ContainerID)
-		return
-	}
-
-	workloadID := fmt.Sprintf("%s:%s:%s", kind, namespace, workloadName)
 
 	if err := p.storage.UpdateOOMMemoryForContainer(p.clusterID, workloadID, containerName, oomInfo.LastObservedMemory); err != nil {
 		logging.Warnf(ctx, "Failed to update OOM memory in stats for %s: %v", oomInfo.ContainerID, err)
@@ -103,7 +122,7 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 		return
 	}
 
-	logging.Infof(ctx, "Triggering reactive apply recommendation for node %s", oomInfo.NodeName)
+	logging.Infof(ctx, "Triggering reactive apply recommendation for node %s (cooldown: %d minutes)", oomInfo.NodeName, p.oomCooldownMinutes)
 	go func(prevCtx context.Context) {
 		ctx := context.WithoutCancel(prevCtx)
 		if err := p.applyRecommendationTask.RunForNode(ctx, oomInfo.NodeName); err != nil {

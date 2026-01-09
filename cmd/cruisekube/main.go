@@ -275,7 +275,7 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 		)
 
 		oomObserver := oom.NewObserver(cluster.KubeClient)
-		oomProcessor := oom.NewProcessor(storageRepo, cluster.KubeClient, ID, applyRecommendationTask)
+		oomProcessor := oom.NewProcessor(storageRepo, cluster.KubeClient, ID, applyRecommendationTask, cfg.RecommendationSettings.OOMCooldownMinutes)
 
 		namespace := ""
 		if cfg.Controller.TargetNamespace != "" {
