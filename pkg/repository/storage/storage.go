@@ -1,12 +1,14 @@
 package storage
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/ports"
 	"github.com/truefoundry/cruisekube/pkg/types"
+	"gorm.io/gorm"
 )
 
 var Stg *Storage
@@ -104,7 +106,7 @@ func (s *Storage) GetOOMEventsByWorkload(clusterID, workloadID string, since tim
 
 func (s *Storage) GetLatestOOMEventForContainer(clusterID, containerID string) (*types.OOMEvent, error) {
 	event, err := s.DB.GetLatestOOMEventForContainer(clusterID, containerID)
-	if err != nil {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, fmt.Errorf("failed to get latest OOM event for container: %w", err)
 	}
 	return event, nil

@@ -316,7 +316,7 @@ func (s *GormDB) GetLatestOOMEventForContainer(clusterID, containerID string) (*
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, err
 		}
 		return nil, fmt.Errorf("failed to query latest OOM event: %w", err)
 	}
