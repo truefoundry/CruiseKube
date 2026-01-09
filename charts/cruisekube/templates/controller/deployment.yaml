@@ -71,4 +71,8 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+          volumeMounts:
+            {{- with .Values.cruisekubeController.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
 {{- end }}
