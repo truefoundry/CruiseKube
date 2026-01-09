@@ -2,6 +2,8 @@ package cluster
 
 import (
 	"context"
+	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -13,6 +15,7 @@ type taskEntry struct {
 }
 
 type Scheduler struct {
+	mu     sync.Mutex
 	tasks map[string]*taskEntry
 	quit  chan struct{}
 }
@@ -36,16 +39,19 @@ func (s *Scheduler) ScheduleTask(
 		return
 	}
 
+	s.mu.Lock()
+	if _, exists := s.tasks[name]; exists {
+		s.mu.Unlock()
+		logging.Errorf(ctx, "Task %s already exists", name)
+		return
+	}
+
 	entry := &taskEntry{
 		ticker: time.NewTicker(duration),
 		lock:   make(chan struct{}, 1), // semaphore
 	}
-
-	if _, exists := s.tasks[name]; exists {
-		logging.Errorf(ctx, "Task %s already exists", name)
-		return
-	}
 	s.tasks[name] = entry
+	s.mu.Unlock()
 
 	go func() {
 		// Run once immediately
@@ -78,6 +84,13 @@ func (s *Scheduler) executeTask(
 		logging.Debugf(ctx, "Task %s is already running, skipping", name)
 		return
 	}
+
+	// Install panic recovery before calling task to ensure semaphore is always released
+	defer func() {
+		if r := recover(); r != nil {
+			logging.Errorf(ctx, "Task %s panicked: %v\nStack trace:\n%s", name, r, debug.Stack())
+		}
+	}()
 
 	defer func() {
 		<-entry.lock // release
