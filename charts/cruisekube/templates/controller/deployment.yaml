@@ -72,17 +72,7 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
           volumeMounts:
-            {{- if .Values.cruisekubeController.persistence.enabled }}
-            - name: data
-              mountPath: {{ .Values.cruisekubeController.persistence.mountPath }}
-            {{- end }}
             {{- with .Values.cruisekubeController.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-      volumes:
-        {{- if .Values.cruisekubeController.persistence.enabled }}
-        - name: data
-          persistentVolumeClaim:
-            claimName: {{ include "cruisekubeController.fullname" . }}-data
-        {{- end }}
 {{- end }}

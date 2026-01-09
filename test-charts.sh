@@ -173,7 +173,6 @@ install_cruisekube_chart() {
         --set cruisekubeController.image.repository=$IMAGE_NAME \
         --set cruisekubeController.image.tag=$IMAGE_TAG \
         --set cruisekubeController.image.pullPolicy=IfNotPresent \
-        --set cruisekubeController.persistence.storageClass=standard \
         --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://localhost:9090" \
         --set cruisekubeController.env.CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED=true \
         --set cruisekubeWebhook.image.repository=$IMAGE_NAME \
