@@ -1,4 +1,4 @@
-CLUSTER_NAME := elasti-e2e
+CLUSTER_NAME := cruisekube-cluster
 
 .PHONY: help test serve-docs build-docs fetch-contributors
 
