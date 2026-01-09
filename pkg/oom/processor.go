@@ -75,14 +75,14 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	latestEvent, err := p.storage.GetLatestOOMEventForContainer(p.clusterID, oomInfo.ContainerID)
 	if err != nil {
 		logging.Warnf(ctx, "Failed to check latest OOM event for cooldown: %v", err)
-	} else if latestEvent != nil && !latestEvent.LastResizeAt.IsZero() {
-		timeSinceResize := time.Since(latestEvent.LastResizeAt)
+	} else if latestEvent != nil {
+		timeSinceLastOOM := time.Since(latestEvent.Timestamp)
 		cooldownDuration := time.Duration(p.oomCooldownMinutes) * time.Minute
 
-		if timeSinceResize < cooldownDuration {
-			remainingCooldown := cooldownDuration - timeSinceResize
-			logging.Infof(ctx, "OOM cooldown active for container %s: last resize was %.1f minutes ago, skipping (%.1f minutes remaining)",
-				oomInfo.ContainerID, timeSinceResize.Minutes(), remainingCooldown.Minutes())
+		if timeSinceLastOOM < cooldownDuration {
+			remainingCooldown := cooldownDuration - timeSinceLastOOM
+			logging.Infof(ctx, "OOM cooldown active for container %s: last OOM was %.1f minutes ago, skipping (%.1f minutes remaining)",
+				oomInfo.ContainerID, timeSinceLastOOM.Minutes(), remainingCooldown.Minutes())
 			return
 		}
 	}
@@ -99,7 +99,6 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 		MemoryLimit:        oomInfo.MemoryLimit,
 		MemoryRequest:      oomInfo.MemoryRequest,
 		LastObservedMemory: oomInfo.LastObservedMemory,
-		LastResizeAt:       time.Now(),
 	}
 
 	if err := p.storage.InsertOOMEvent(event); err != nil {

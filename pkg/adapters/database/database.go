@@ -294,7 +294,6 @@ func (s *GormDB) InsertOOMEvent(event *types.OOMEvent) error {
 		MemoryLimit:        event.MemoryLimit,
 		MemoryRequest:      event.MemoryRequest,
 		LastObservedMemory: event.LastObservedMemory,
-		LastResizeAt:       event.LastResizeAt,
 	}
 
 	result := s.db.Clauses(clause.OnConflict{
@@ -336,7 +335,6 @@ func (s *GormDB) GetLatestOOMEventForContainer(clusterID, containerID string) (*
 		MemoryLimit:        dbEvent.MemoryLimit,
 		MemoryRequest:      dbEvent.MemoryRequest,
 		LastObservedMemory: dbEvent.LastObservedMemory,
-		LastResizeAt:       dbEvent.LastResizeAt,
 		CreatedAt:          dbEvent.CreatedAt,
 		UpdatedAt:          dbEvent.UpdatedAt,
 	}, nil
@@ -370,7 +368,6 @@ func (s *GormDB) GetOOMEventsByWorkload(clusterID, workloadID string, since time
 			MemoryLimit:        dbEvent.MemoryLimit,
 			MemoryRequest:      dbEvent.MemoryRequest,
 			LastObservedMemory: dbEvent.LastObservedMemory,
-			LastResizeAt:       dbEvent.LastResizeAt,
 			CreatedAt:          dbEvent.CreatedAt,
 			UpdatedAt:          dbEvent.UpdatedAt,
 		})

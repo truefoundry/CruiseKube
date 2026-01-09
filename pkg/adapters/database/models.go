@@ -28,7 +28,6 @@ type OOMEvent struct {
 	MemoryLimit        int64     `gorm:"column:memory_limit;"`
 	MemoryRequest      int64     `gorm:"column:memory_request;"`
 	LastObservedMemory int64     `gorm:"column:last_observed_memory;"`
-	LastResizeAt       time.Time `gorm:"column:last_resize_at;"`
 	CreatedAt          time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt          time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 }
