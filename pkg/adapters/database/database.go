@@ -313,12 +313,8 @@ func (s *GormDB) GetLatestOOMEventForContainer(clusterID, containerID, podName s
 	err := s.db.Where("cluster_id = ? AND container_id = ? AND metadata->>'pod_name' = ?", clusterID, containerID, podName).
 		Order("timestamp DESC").
 		First(&dbEvent).Error
-
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to query latest OOM event: %w", err)
+		return nil, err
 	}
 
 	var metadata types.OOMEventMetadata
