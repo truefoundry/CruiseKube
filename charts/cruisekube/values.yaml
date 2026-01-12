@@ -43,19 +43,6 @@ cruisekubeController:
   rbac:
     ## @param cruisekubeController.rbac.create Specifies whether RBAC resources should be created
     create: true
-  persistence:
-    ## @param cruisekubeController.persistence.enabled Enable persistence using Persistent Volume Claims
-    enabled: true
-    ## @param cruisekubeController.persistence.size Persistent Volume size
-    size: 5Gi
-    ## @param cruisekubeController.persistence.storageClass Persistent Volume storage class
-    storageClass: ""
-    ## @param cruisekubeController.persistence.accessMode Persistent Volume access mode
-    accessMode: ReadWriteOnce
-    ## @param cruisekubeController.persistence.mountPath Persistent Volume mount path
-    mountPath: /app/stats-data
-    ## @param cruisekubeController.persistence.annotations [object] Additional custom annotations for the PVC
-    annotations: {}
   ## @param cruisekubeController.podAnnotations [object] Annotations for CruiseKube Controller pods
   podAnnotations: {}
   ## @param cruisekubeController.podLabels [object] Extra labels for CruiseKube Controller pods
@@ -105,6 +92,7 @@ cruisekubeController:
     CRUISEKUBE_EXECUTIONMODE: "controller"
     CRUISEKUBE_CONTROLLER_TARGETNAMESPACE: ""
     CRUISEKUBE_CONTROLLER_TARGETCLUSTERID: ""
+    CRUISEKUBE_CONTROLLER_WRITEAUTHORIZEDCLUSTERS: ""
     CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED: "false"
     CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_SCHEDULE: "15m"
     CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_METADATA_SKIPMEMORY: "false"
@@ -129,7 +117,7 @@ cruisekubeController:
     CRUISEKUBE_DB_SSLMODE: "disable"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_NEWWORKLOADTHRESHOLDHOURS: "1"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "true"
-    CRUISEKUBE_RECOMMENDATIONSETTINGS_APPLYBLACKLISTEDNAMESPACES: "[]"
+    CRUISEKUBE_RECOMMENDATIONSETTINGS_APPLYBLACKLISTEDNAMESPACES: ""
     CRUISEKUBE_RECOMMENDATIONSETTINGS_MAXCONCURRENTQUERIES: "30"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_OOMCOOLDOWNMINUTES: "5"
     CRUISEKUBE_TELEMETRY_ENABLED: "false"

@@ -82,7 +82,6 @@ helm upgrade --install cruisekube \
     --set cruisekubeController.image.repository=cruisekube \
     --set cruisekubeController.image.tag=latest \
     --set cruisekubeController.image.pullPolicy=Never \
-    --set cruisekubeController.persistence.storageClass=standard \
     --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
     --set cruisekubeController.env.CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED=true \
     --set cruisekubeWebhook.image.repository=cruisekube \
