@@ -1,7 +1,7 @@
 ---
 date: 2026-01-12
 pin: true
-title: Introducing CruiseKube: Runtime Resource Optimization for Kubernetes
+title: Introducing CruiseKube - Runtime Resource Optimization for Kubernetes
 description: Learn how CruiseKube can help you eliminate persistent over-provisioning while preserving workload reliability and scheduling constraints.
 keywords: 
   - CruiseKube

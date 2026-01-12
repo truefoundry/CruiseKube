@@ -1,6 +1,6 @@
 # Site
 site_name: CruiseKube
-site_url: http://localhost:8000
+site_url: https://cruisekube.com
 site_author: TrueFoundry
 site_description: >-
   CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.
@@ -120,7 +120,7 @@ extra:
       "@type": "Organization"
       name: "TrueFoundry"
       url: "https://truefoundry.com"
-      logo: "https://truefoundry.github.io/cruiseKube/images/logo/cruiseKube_Colour.png"
+      logo: "https://cruisekube.com/images/logo/cruiseKube_Colour.png"
       sameAs:
         - "https://github.com/truefoundry"
         - "https://discord.gg/Dqek4xJa3N"
@@ -131,7 +131,7 @@ extra:
       applicationCategory: "DeveloperApplication"
       operatingSystem: "Kubernetes"
       description: "CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs."
-      url: "https://cruisekube.dev"
+      url: "https://cruisekube.com"
       downloadUrl: "https://github.com/truefoundry/CruiseKube"
       author:
         "@type": "Organization"
@@ -148,7 +148,7 @@ extra:
       "@context": "https://schema.org"
       "@type": "WebSite"
       name: "CruiseKube Documentation"
-      url: "https://truefoundry.github.io/cruiseKube"
+      url: "https://cruisekube.com"
       description: "Official documentation for CruiseKube - Kubernetes resource optimization controller"
       publisher:
         "@type": "Organization"
@@ -156,7 +156,7 @@ extra:
         url: "https://truefoundry.com"
       potentialAction:
         "@type": "SearchAction"
-        target: "https://truefoundry.github.io/cruiseKube/search/?q={search_term_string}"
+        target: "https://cruisekube.com/search/?q={search_term_string}"
         "query-input": "required name=search_term_string"
     breadcrumb:
       "@context": "https://schema.org"
@@ -165,7 +165,7 @@ extra:
         - "@type": "ListItem"
           position: 1
           name: "Home"
-          item: "https://truefoundry.github.io/cruiseKube"
+          item: "https://cruisekube.com"
     documentation:
       "@context": "https://schema.org"
       "@type": "TechArticle"
@@ -181,10 +181,10 @@ extra:
         url: "https://truefoundry.com"
         logo:
           "@type": "ImageObject"
-          url: "https://truefoundry.github.io/cruiseKube/images/logo/cruiseKube_Colour.png"
+          url: "https://cruisekube.com/images/logo/cruiseKube_Colour.png"
       mainEntityOfPage:
         "@type": "WebPage"
-        "@id": "https://truefoundry.github.io/cruiseKube"
+        "@id": "https://cruisekube.com"
       datePublished: "2024-01-01"
       dateModified: "2025-01-01"
       articleSection: "Documentation"
