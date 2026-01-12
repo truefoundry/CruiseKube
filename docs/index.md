@@ -70,14 +70,14 @@ hide:
       </div>
     </div> 
     <div class="step">
-      <div class="step-number">03</div>
+      <div class="step-number">02</div>
       <div class="step-content">
         <h3>Recommend</h3>
         <p>Generates intelligent resource recommendations based on historical data</p>
       </div>
     </div>    
     <div class="step">
-      <div class="step-number">04</div>
+      <div class="step-number">03</div>
       <div class="step-content">
         <h3>Optimize</h3>
         <p>Safely applies recommendations with configurable automation levels</p>
