@@ -255,21 +255,17 @@ func (w *WorkloadStat) GetOriginalContainerResource(containerName string) (*Orig
 	return nil, fmt.Errorf("container %s not found in workload %s", containerName, w.WorkloadIdentifier)
 }
 
-type OOMEventMetadata struct {
-	NodeName  string `json:"node_name,omitempty"`
-	PodName   string `json:"pod_name,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
-}
-
 type OOMEvent struct {
-	ID                 uint             `json:"id"`
-	ClusterID          string           `json:"cluster_id"`
-	ContainerID        string           `json:"container_id"`
-	Metadata           OOMEventMetadata `json:"metadata"`
-	Timestamp          time.Time        `json:"timestamp"`
-	MemoryLimit        int64            `json:"memory_limit"`
-	MemoryRequest      int64            `json:"memory_request"`
-	LastObservedMemory int64            `json:"last_observed_memory"`
-	CreatedAt          time.Time        `json:"created_at"`
-	UpdatedAt          time.Time        `json:"updated_at"`
+	ID                 uint      `json:"id"`
+	ClusterID          string    `json:"cluster_id"`
+	ContainerID        string    `json:"container_id"`
+	PodName            string    `json:"pod_name"`
+	NodeName           string    `json:"node_name"`
+	Namespace          string    `json:"namespace"`
+	Timestamp          time.Time `json:"timestamp"`
+	MemoryLimit        int64     `json:"memory_limit"`
+	MemoryRequest      int64     `json:"memory_request"`
+	LastObservedMemory int64     `json:"last_observed_memory"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }

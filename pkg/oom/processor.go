@@ -87,13 +87,11 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	}
 
 	event := &types.OOMEvent{
-		ClusterID:   p.clusterID,
-		ContainerID: oomInfo.ContainerID,
-		Metadata: types.OOMEventMetadata{
-			NodeName:  oomInfo.NodeName,
-			PodName:   oomInfo.PodName,
-			Namespace: oomInfo.Namespace,
-		},
+		ClusterID:          p.clusterID,
+		ContainerID:        oomInfo.ContainerID,
+		PodName:            oomInfo.PodName,
+		NodeName:           oomInfo.NodeName,
+		Namespace:          oomInfo.Namespace,
 		Timestamp:          oomInfo.Timestamp,
 		MemoryLimit:        oomInfo.MemoryLimit,
 		MemoryRequest:      oomInfo.MemoryRequest,
