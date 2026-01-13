@@ -91,6 +91,7 @@ type RecommendationSettings struct {
 	DisableMemoryApplication   bool     `yaml:"disableMemoryApplication" mapstructure:"disableMemoryApplication"`
 	ApplyBlacklistedNamespaces []string `yaml:"applyBlacklistedNamespaces" mapstructure:"applyBlacklistedNamespaces"`
 	MaxConcurrentQueries       int      `yaml:"maxConcurrentQueries" mapstructure:"maxConcurrentQueries"`
+	OOMCooldownMinutes         int      `yaml:"oomCooldownMinutes" mapstructure:"oomCooldownMinutes"`
 }
 
 type TelemetryConfig struct {

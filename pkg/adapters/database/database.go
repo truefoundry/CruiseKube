@@ -281,15 +281,12 @@ func (s *GormDB) UpdateStatOverridesForWorkload(clusterID, workloadID string, ov
 }
 
 func (s *GormDB) InsertOOMEvent(event *types.OOMEvent) error {
-	metadataJSON, err := json.Marshal(event.Metadata)
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
-	}
-
 	dbEvent := OOMEvent{
 		ClusterID:          event.ClusterID,
 		ContainerID:        event.ContainerID,
-		Metadata:           string(metadataJSON),
+		PodName:            event.PodName,
+		NodeName:           event.NodeName,
+		Namespace:          event.Namespace,
 		Timestamp:          event.Timestamp,
 		MemoryLimit:        event.MemoryLimit,
 		MemoryRequest:      event.MemoryRequest,
@@ -308,6 +305,31 @@ func (s *GormDB) InsertOOMEvent(event *types.OOMEvent) error {
 	return nil
 }
 
+func (s *GormDB) GetLatestOOMEventForContainer(clusterID, containerID, podName string) (*types.OOMEvent, error) {
+	var dbEvent OOMEvent
+	err := s.db.Where("cluster_id = ? AND container_id = ? AND pod_name = ?", clusterID, containerID, podName).
+		Order("timestamp DESC").
+		First(&dbEvent).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to get OOM event for container %s: %w", containerID, err)
+	}
+
+	return &types.OOMEvent{
+		ID:                 dbEvent.ID,
+		ClusterID:          dbEvent.ClusterID,
+		ContainerID:        dbEvent.ContainerID,
+		PodName:            dbEvent.PodName,
+		NodeName:           dbEvent.NodeName,
+		Namespace:          dbEvent.Namespace,
+		Timestamp:          dbEvent.Timestamp,
+		MemoryLimit:        dbEvent.MemoryLimit,
+		MemoryRequest:      dbEvent.MemoryRequest,
+		LastObservedMemory: dbEvent.LastObservedMemory,
+		CreatedAt:          dbEvent.CreatedAt,
+		UpdatedAt:          dbEvent.UpdatedAt,
+	}, nil
+}
+
 func (s *GormDB) GetOOMEventsByWorkload(clusterID, workloadID string, since time.Time) ([]types.OOMEvent, error) {
 	var dbEvents []OOMEvent
 	likePattern := workloadID + ":%"
@@ -321,17 +343,13 @@ func (s *GormDB) GetOOMEventsByWorkload(clusterID, workloadID string, since time
 
 	events := make([]types.OOMEvent, 0, len(dbEvents))
 	for _, dbEvent := range dbEvents {
-		var metadata types.OOMEventMetadata
-		if err := json.Unmarshal([]byte(dbEvent.Metadata), &metadata); err != nil {
-			// If unmarshal fails, use empty metadata
-			metadata = types.OOMEventMetadata{}
-		}
-
 		events = append(events, types.OOMEvent{
 			ID:                 dbEvent.ID,
 			ClusterID:          dbEvent.ClusterID,
 			ContainerID:        dbEvent.ContainerID,
-			Metadata:           metadata,
+			PodName:            dbEvent.PodName,
+			NodeName:           dbEvent.NodeName,
+			Namespace:          dbEvent.Namespace,
 			Timestamp:          dbEvent.Timestamp,
 			MemoryLimit:        dbEvent.MemoryLimit,
 			MemoryRequest:      dbEvent.MemoryRequest,
