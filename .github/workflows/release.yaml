@@ -169,3 +169,20 @@ jobs:
           echo "Version: $CHART_NAME-$CHART_VERSION.tgz"
           helm push $CHART_NAME-$CHART_VERSION.tgz oci://${{ env.HELM_CHART_REPOSITORY}}
           echo "Successfully pushed chart: $CHART_NAME"
+
+      - name: Upload Helm chart to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: $CHART_NAME-$CHART_VERSION.tgz
+          tag_name: ${{ github.event.release.tag_name }}
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run chart-releaser
+        uses: chart-releaser/action@v2
+        with:
+          charts_dir: charts
+          config: .github/cr-config.yaml
+        env:
+          CR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
