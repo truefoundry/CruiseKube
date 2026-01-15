@@ -143,7 +143,7 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	}
 
 	logging.Infof(ctx, "Evicting pod %s/%s after OOM", oomInfo.Namespace, oomInfo.PodName)
-	evicted, errStr := utils.EvictPod(ctx, p.kubeClient.(*kubernetes.Clientset), pod)
+	evicted, errStr := utils.EvictPod(ctx, p.kubeClient, pod)
 	if !evicted || errStr != "" {
 		logging.Errorf(ctx, "Failed to evict pod %s/%s: %v", oomInfo.Namespace, oomInfo.PodName, errStr)
 		return
