@@ -2,11 +2,13 @@ package oom
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
@@ -19,14 +21,16 @@ type Processor struct {
 	clusterID          string
 	stopCh             chan struct{}
 	oomCooldownMinutes int
+	cfg                *config.Config
 }
 
-func NewProcessor(storageRepo *storage.Storage, kubeClient kubernetes.Interface, clusterID string, oomCooldownMinutes int) *Processor {
+func NewProcessor(storageRepo *storage.Storage, kubeClient kubernetes.Interface, clusterID string, oomCooldownMinutes int, cfg *config.Config) *Processor {
 	return &Processor{
 		storage:            storageRepo,
 		kubeClient:         kubeClient,
 		clusterID:          clusterID,
 		oomCooldownMinutes: oomCooldownMinutes,
+		cfg:                cfg,
 		stopCh:             make(chan struct{}),
 	}
 }
@@ -111,6 +115,11 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	logging.Infof(ctx, "Updated OOM memory in stats for workload=%s, container=%s: %d bytes",
 		workloadID, containerName, oomInfo.LastObservedMemory)
 
+	if p.cfg.RecommendationSettings.DisableMemoryApplication {
+		logging.Infof(ctx, "Memory application is disabled in configuration, skipping eviction for pod %s/%s", oomInfo.Namespace, oomInfo.PodName)
+		return
+	}
+
 	pod, err := p.kubeClient.CoreV1().Pods(oomInfo.Namespace).Get(ctx, oomInfo.PodName, metav1.GetOptions{})
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get pod %s/%s for eviction: %v", oomInfo.Namespace, oomInfo.PodName, err)
@@ -120,6 +129,19 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	if pod.Annotations[utils.ExcludedAnnotation] == "true" {
 		logging.Infof(ctx, "Pod %s/%s has cruisekube excluded annotation, skipping eviction", oomInfo.Namespace, oomInfo.PodName)
 		return
+	}
+
+	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
+	if workloadInfo != nil {
+		workloadID := strings.ReplaceAll(utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name), "/", ":")
+
+		workloadOverrides, err := p.storage.GetWorkloadOverrides(p.clusterID, workloadID)
+		if err != nil {
+			logging.Warnf(ctx, "Failed to fetch workload overrides for %s, proceeding with eviction: %v", workloadID, err)
+		} else if workloadOverrides.Enabled != nil && !*workloadOverrides.Enabled {
+			logging.Infof(ctx, "Workload %s is disabled via overrides, skipping eviction", workloadID)
+			return
+		}
 	}
 
 	logging.Infof(ctx, "Evicting pod %s/%s after OOM", oomInfo.Namespace, oomInfo.PodName)
