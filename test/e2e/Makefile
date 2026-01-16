@@ -43,7 +43,7 @@ kind-up: ## Create Kind cluster and load images
 	@kubectl wait --for=condition=Ready nodes --all --timeout=120s
 	kubectl scale --replicas=1 deployment/coredns -n kube-system
 	@echo "Loading controller image into kind cluster..."
-	@kind load docker-image $(CONTROLLER_IMAGE) --name $(CLUSTER_NAME)
+	@docker save $(CONTROLLER_IMAGE) | docker exec -i $(CLUSTER_NAME)-control-plane ctr -n k8s.io images import -
 	@echo "Image loaded successfully"
 
 .PHONY: kind-down
@@ -73,7 +73,7 @@ apply-deps: ## Install all dependencies
 .PHONY: reload-images
 reload-images: ## Reload images into kind and restart deployments
 	@echo "Loading images into kind cluster..."
-	@kind load docker-image $(CONTROLLER_IMAGE) --name $(CLUSTER_NAME)
+	@docker save $(CONTROLLER_IMAGE) | docker exec -i $(CLUSTER_NAME)-control-plane ctr -n k8s.io images import -
 	@echo "Restarting cruisekube controller deployment..."
 	@kubectl rollout restart deployment cruisekube-controller -n $(NAMESPACE)
 	@echo "Images reloaded and deployment restarted."
