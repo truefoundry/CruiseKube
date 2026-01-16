@@ -1,6 +1,0 @@
-# Chart Releaser config
-owner: truefoundry
-git-repo: cruiseKube
-charts_repo_url: https://cruisekube.com
-pages_branch: main
-pages_index_path: docs/index.yaml
