@@ -24,8 +24,6 @@ on:
       - '*.go'
       - 'go.mod'
       - 'go.sum'
-      - 'go.work'
-      - 'go.work.sum'
   schedule:
     - cron: "18 19 * * 5"
 

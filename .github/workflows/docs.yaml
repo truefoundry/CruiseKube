@@ -6,7 +6,6 @@ on:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - 'docs-requirements.txt'
 
 # Concurrency protection to prevent multiple workflow runs from executing simultaneously
 concurrency:
