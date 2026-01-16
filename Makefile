@@ -84,3 +84,8 @@ uninstall-prom: ## Delete prometheus
 	@echo "Deleting prometheus..."
 	@helm delete prometheus -n monitoring
 
+.PHONY: index-helm
+index-helm: ## Index helm chart
+	helm package charts/cruisekube -d docs/
+	helm repo index docs/ --url https://cruisekube.com --merge ./docs/index.yaml 
+	rm -rf docs/cruisekube-*.tgz
