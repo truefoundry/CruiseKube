@@ -15,7 +15,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * added arch section to docs by @shubhamrai1993 in [#33](https://github.com/truefoundry/CruiseKube/pull/33)
 * feat: add helm readme generator by @ramantehlan in [#34](https://github.com/truefoundry/CruiseKube/pull/34)
 * implement oom informer by @maanas-23 in [#31](https://github.com/truefoundry/CruiseKube/pull/31)
-* feat: add get started items and config by @ramantehlan in [35](https://github.com/truefoundry/CruiseKube/pull/35)
+* feat: add get started items and config by @ramantehlan in [#35](https://github.com/truefoundry/CruiseKube/pull/35)
 * feat: add workflow, and fix unhandled errors by @ramantehlan in [#36](https://github.com/truefoundry/CruiseKube/pull/36)
 * added algorithm details to architecture by @shubhamrai1993 in [#37](https://github.com/truefoundry/CruiseKube/pull/37)
 * some cleanup wrt arch algorithm by @shubhamrai1993 in [#39](https://github.com/truefoundry/CruiseKube/pull/39)
