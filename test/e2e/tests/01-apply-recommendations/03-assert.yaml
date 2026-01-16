@@ -1,0 +1,37 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 60
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-workloads
+  labels:
+    app: nginx
+spec:
+  containers:
+  - name: nginx
+    resources:
+      requests:
+        cpu: "509m"
+        memory: "68M"
+status:
+  phase: Running
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-workloads
+  labels:
+    app: busybox
+spec:
+  containers:
+  - name: busybox
+    resources:
+      requests:
+        cpu: "113m"
+        memory: "34M"
+status:
+  phase: Running
+

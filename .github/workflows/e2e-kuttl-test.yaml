@@ -1,0 +1,58 @@
+name: E2E Tests with Kuttl
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  kuttl-tests:
+    name: Run Kuttl E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.12.3'
+
+      - name: Build and push images
+        working-directory: ./test/e2e
+        run: |
+          make build-images
+
+      - name: Install Kind
+        uses: helm/kind-action@v1.12.0
+        with:
+          install_only: true
+
+      - name: Setup environment
+        working-directory: ./test/e2e
+        run: |
+          make setup
+
+      - name: Install Kuttl
+        run: |
+          curl -Lo kuttl.tar.gz https://github.com/kudobuilder/kuttl/releases/download/v0.22.0/kuttl_0.22.0_linux_x86_64.tar.gz
+          tar -xvf kuttl.tar.gz
+          sudo mv kubectl-kuttl /usr/local/bin/
+          kubectl kuttl version
+
+      - name: Run E2E Tests
+        working-directory: ./test/e2e
+        run: |
+          make test
