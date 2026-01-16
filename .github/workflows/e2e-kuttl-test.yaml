@@ -52,7 +52,7 @@ jobs:
           
           echo "Verifying checksum..."
 
-          EXPECTED_CHECKSUM="c31c6abceb87e9d18c17cc4cfef22ae7ed53d3f73ad3c03f5fec93bbc4b8f62c"
+          EXPECTED_CHECKSUM="9451186fd17517a58ac5c498c1b7761fd117e91db3c7543d437554fab7452294"
           ACTUAL_CHECKSUM=$(sha256sum kuttl.tar.gz | awk '{print $1}')
           if [ "$ACTUAL_CHECKSUM" != "$EXPECTED_CHECKSUM" ]; then
             echo "ERROR: Checksum verification failed!"
