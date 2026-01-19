@@ -211,5 +211,6 @@ nav:
       - Contributors: src/dev-contributors.md
   - Comparison:
       - CruiseKube vs VPA: src/comp-vs-vpa.md
+      - FAQ: src/comp-faq.md
   - Blog:
       - CruiseKube Announcement: blog/index.md

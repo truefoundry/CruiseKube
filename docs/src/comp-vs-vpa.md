@@ -11,71 +11,72 @@ keywords:
 
 ## CruiseKube vs Kubernetes Vertical Pod Autoscaler (VPA)
 
-**Both CruiseKube Autopilot and Kubernetes VPA aim to right-size workloads—but they are built for very different operating models.**
+Both CruiseKube and the Kubernetes Vertical Pod Autoscaler aim to reduce waste caused by poorly sized pod resources. The similarity largely ends there. CruiseKube builds on the same motivation as VPA, but focuses on a few specific capabilities that VPA does not emphasize.
 
 ### The Core Difference
 
-**VPA is a recommendation engine.
-Autopilot is a runtime optimization system.**
+- VPA is a recommendation system that periodically adjusts the resource requests and limits of its target.
+- CruiseKube is a runtime optimization system that actively optimizes resources, closer to real time.
+
+VPA answers the question:
+
+- **What should this workload generally request?**
+
+CruiseKube answers a different question:
+
+- **What should this specific pod request right now, on this node, given current conditions?**
 
 ---
 
 ### How They Differ
 
-| Dimension             | CruiseKube Autopilot               | Kubernetes Vertical Pod Autoscaler |
-| --------------------- | ---------------------------------- | ---------------------------------- |
-| Optimization mode     | Continuous, runtime                | Periodic, restart-based            |
-| Pod restarts required | ❌ No                               | ✅ Yes (for apply)                  |
-| Decision granularity  | Per-pod, per-node                  | Per-workload                       |
-| Time horizon          | Short-term, adaptive               | Long-term, historical              |
-| CPU handling          | Dynamic, PSI-aware, burst-friendly | Static recommendations             |
-| Memory handling       | Conservative, OOM-aware            | Risky if misapplied                |
-| Node awareness        | ✅ Yes (shared headroom)            | ❌ No                               |
-| Eviction strategy     | Priority-aware, safety-first       | None                               |
-| FinOps alignment      | Strong (waste-focused)             | Limited                            |
+| Dimension           | CruiseKube                                     | Kubernetes Vertical Pod Autoscaler          |
+| ------------------- | ---------------------------------------------- | ------------------------------------------- |
+| Optimization model  | Continuous, feedback-driven control loop       | Periodic analysis and recommendation        |
+| Unit of decision    | Individual pod, in node context                | Workload template                           |
+| View of the cluster | Node-local, shared capacity                    | Pod isolated from node context              |
+| Time horizon        | Short-term, adaptive                           | Long-term, historical                       |
+| CPU philosophy      | CPU is bursty and shareable                    | CPU is sized defensively                    |
+| Memory philosophy   | Treated as high-risk, optimized conservatively | Treated similarly to CPU in recommendations |
+| Primary goal        | Eliminate duplicated headroom                  | Improve default request sizing              |
+| Failure model       | Managed contention with guardrails             | Avoid contention via conservatism           |
 
 ---
 
-### Why VPA Falls Short in Practice
+### Why the conceptual gap matters
 
-* **Restart dependency**
-  Applying VPA recommendations requires pod restarts, making it unsuitable for frequent or fine-grained adjustments.
+VPA is designed for safety through static sizing. It assumes that once a good request value is found, it should remain stable for a while. This naturally leads to conservative recommendations and slow correction of over-provisioning.
 
-* **Workload-level abstraction**
-  VPA treats all replicas of a workload identically, ignoring node-specific conditions and skewed resource usage.
+CruiseKube assumes that resource needs are fluid and context-dependent. Because it can adjust continuously, it does not need to size for worst-case scenarios upfront. Instead, it treats capacity as something that can be shared dynamically and corrected when conditions change.
 
-* **Static safety bias**
-  VPA recommendations are intentionally conservative, often preserving over-provisioning rather than eliminating it.
+This difference in assumptions drives everything else.
 
 ---
 
-### What Autopilot Unlocks
+### What CruiseKube unlocks conceptually
 
-* **True runtime right-sizing**
-  Autopilot updates CPU and memory requests *in place*, without restarts, enabling near-real-time correction.
+* **Resource sharing instead of duplication**
+  Instead of every pod reserving its own peak capacity, CruiseKube allows pods on the same node to share headroom, based on the assumption that spikes are not perfectly correlated.
 
-* **Node-local intelligence**
-  Decisions account for colocated pods and available node headroom, not isolated workload averages.
+* **Correction over prediction**
+  CruiseKube does not need to be "right" ahead of time. It relies on frequent correction rather than long-horizon prediction.
 
-* **CPU burst efficiency without risk**
-  PSI-aware feedback allows safe CPU overcommit without throttling-induced reliability issues.
-
-* **Eviction as a controlled safety valve**
-  When capacity limits are reached, Autopilot enforces stability via priority-aware evictions—never blind pressure.
+* **Cost efficiency without abandoning safety**
+  Reliability is preserved through conservative memory handling, priority-based protection, and feedback signals, rather than static over-allocation.
 
 ---
 
-### When to Use Which
+### When each model makes sense
 
-* **Use VPA if**
+- Use VPA if you want a simple, conservative mechanism to improve request sizing and are comfortable treating optimization as an occasional adjustment problem.
 
-    * You want occasional, coarse recommendations
-    * Pod restarts are acceptable
-    * Cost optimization is secondary to simplicity
+- Use CruiseKube if you believe resource optimization is a continuous control problem and you want to actively trade unused safety margins for higher utilization, without making developers manually tune workloads.
 
-* **Use CruiseKube Autopilot if**
+---
 
-    * You want continuous cost and efficiency gains
-    * Restarts are unacceptable
-    * You operate multi-tenant or high-utilization clusters
-    * FinOps outcomes matter
+### Summary
+
+VPA helps you choose better numbers.
+CruiseKube changes how numbers are chosen altogether.
+
+Both are valid. They reflect different philosophies about how Kubernetes resources should be managed under real-world uncertainty.
