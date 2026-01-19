@@ -162,11 +162,11 @@ spec:
         - -c
         - |
           echo "Waiting for postgres to be ready..."
-          until pg_isready -h postgres.cruisekube-system.svc.cluster.local -U cruisekube; do
+          until pg_isready -h cruisekube-postgresql.cruisekube-system.svc.cluster.local -U cruisekube; do
             sleep 2
           done
           echo "Postgres is ready. Populating database..."
-          psql -h postgres.cruisekube-system.svc.cluster.local -U cruisekube -d cruisekube -f /scripts/populate.sql
+          psql -h cruisekube-postgresql.cruisekube-system.svc.cluster.local -U cruisekube -d cruisekube -f /scripts/populate.sql
           echo "Database populated successfully!"
         env:
         - name: PGPASSWORD
