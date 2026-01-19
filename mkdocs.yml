@@ -201,12 +201,12 @@ nav:
       - Configuration: 
         - Overview: src/config.md
         - Dashboard: src/config-dashboard.md
-      - FAQ: src/gs-faq.md
   - Architecture:
       - Introduction: src/arch-introduction.md
       - Overview: src/arch-overview.md
       - Algorithm: src/arch-algorithm.md
       - Limitations: src/arch-limitations.md
+      - FAQ: src/arch-faq.md
   - Development:
       - Dev Environment: src/dev-env.md
       - Contributors: src/dev-contributors.md
