@@ -201,6 +201,7 @@ nav:
       - Configuration: 
         - Overview: src/config.md
         - Dashboard: src/config-dashboard.md
+      - FAQ: src/gs-faq.md
   - Architecture:
       - Introduction: src/arch-introduction.md
       - Overview: src/arch-overview.md
@@ -211,6 +212,5 @@ nav:
       - Contributors: src/dev-contributors.md
   - Comparison:
       - CruiseKube vs VPA: src/comp-vs-vpa.md
-      - FAQ: src/comp-faq.md
   - Blog:
       - CruiseKube Announcement: blog/index.md
