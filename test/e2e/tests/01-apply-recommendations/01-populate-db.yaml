@@ -6,22 +6,6 @@ metadata:
   namespace: cruisekube-system
 data:
   populate.sql: |
-    CREATE TABLE IF NOT EXISTS stats (
-        id SERIAL PRIMARY KEY,
-        cluster_id VARCHAR(255) NOT NULL,
-        workload_id VARCHAR(255) NOT NULL,
-        stats TEXT NOT NULL,
-        generated_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        overrides TEXT DEFAULT '{}'
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_stats_cluster_id ON stats(cluster_id);
-    CREATE INDEX IF NOT EXISTS idx_stats_workload_id ON stats(workload_id);
-    CREATE INDEX IF NOT EXISTS idx_stats_generated_at ON stats(generated_at);
-    CREATE INDEX IF NOT EXISTS idx_stats_updated_at ON stats(updated_at);
-
     INSERT INTO stats (cluster_id, workload_id, stats, generated_at, overrides)
     VALUES (
         'default',

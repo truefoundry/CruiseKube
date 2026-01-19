@@ -1,7 +1,6 @@
 global:
   postgresql:
     auth:
-      host: "postgres"
       port: 5432
       username: "cruisekube"
       password: "cruisekube"
@@ -30,7 +29,11 @@ cruisekubeController:
     CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "false"
 
 postgresql:
-  enabled: false
+  enabled: true
+  auth:
+    username: "cruisekube"
+    password: "cruisekube"
+    database: "cruisekube"
 
 cruisekubeFrontend:
   enabled: false

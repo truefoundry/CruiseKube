@@ -60,10 +60,6 @@ kind-down: ## Delete Kind cluster
 apply-deps: ## Install all dependencies
 	@echo "Creating namespace..."
 	@kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
-	@echo "Installing PostgreSQL..."
-	@kubectl apply -f ./manifest/postgres.yaml
-	@echo "Waiting for PostgreSQL to be ready..."
-	@kubectl wait --for=condition=Ready pods -l app=postgres -n $(NAMESPACE) --timeout=180s
 	@echo "Building Helm dependencies..."
 	@cd ../../charts/cruisekube && helm dependency build
 	@echo "Installing CruiseKube via Helm..."
