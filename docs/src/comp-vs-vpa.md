@@ -15,7 +15,7 @@ Both CruiseKube and the Kubernetes Vertical Pod Autoscaler aim to reduce waste c
 
 ### The Core Difference
 
-- VPA is a recommendation system that periodically adjusts the resource requests and limits of its target.
+- VPA is a recommendation system that [periodically adjusts the resource requests and limits of its target](https://arc.net/l/quote/lqxfntui).
 - CruiseKube is a runtime optimization system that actively optimizes resources, closer to real time.
 
 VPA answers the question:
@@ -36,22 +36,8 @@ CruiseKube answers a different question:
 | Unit of decision    | Individual pod, in node context                | Workload template                           |
 | View of the cluster | Node-local, shared capacity                    | Pod isolated from node context              |
 | Time horizon        | Short-term, adaptive                           | Long-term, historical                       |
-<!-- | CPU philosophy      | CPU is bursty and shareable                    | CPU is sized defensively                    |
-| Memory philosophy   | Treated as high-risk, optimized conservatively | Treated similarly to CPU in recommendations |
-| Primary goal        | Eliminate duplicated headroom                  | Improve default request sizing              |
-| Failure model       | Managed contention with guardrails             | Avoid contention via conservatism           | -->
 
 ---
-
-<!-- ### Why the conceptual gap matters
-
-VPA is designed for safety through static sizing. It assumes that once a good request value is found, it should remain stable for a while. This naturally leads to conservative recommendations and slow correction of over-provisioning.
-
-CruiseKube assumes that resource needs are fluid and context-dependent. Because it can adjust continuously, it does not need to size for worst-case scenarios upfront. Instead, it treats capacity as something that can be shared dynamically and corrected when conditions change.
-
-This difference in assumptions drives everything else.
-
---- -->
 
 ### What CruiseKube unlocks conceptually
 
