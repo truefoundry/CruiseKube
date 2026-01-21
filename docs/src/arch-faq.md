@@ -12,7 +12,7 @@ keywords:
 
 ### Does it work with Java?
 
-JVM sets max heap size and that cannot be changed dynamically. So probably not.
+The JVM heap is bounded by configured limits (e.g., -Xms/-Xmx and container limits), so CruiseKube can't safely resize Java workloads at runtime; support is therefore limited.
 
 ### Do we take memory pressure into account?
 
@@ -24,8 +24,8 @@ No. CruiseKube is designed to work with cluster autoscalers that can provision n
 
 ### Why not set CPU limit?
 
-CPU limits can cause throttling issues and prevent workloads from utilizing available CPU capacity during low-traffic periods. CruiseKube focuses on optimizing CPU requests while allowing workloads to burst when CPU is available, which aligns with the philosophy that CPU is bursty and shareable.
+CPU limits can cause throttling issues and prevent workloads from utilizing available CPU capacity during low-traffic periods. [CruiseKube focuses on optimizing CPU requests](../arch-algorithm#why-cpu-limits-arent-needed) while allowing workloads to burst when CPU is available, which aligns with the philosophy that CPU is bursty and shareable.
 
-### Does it work with other cluster autoscalers?
+### Can it work in the same setup as a cluster autoscaler?
 
 Yes, CruiseKube works with other cluster autoscalers, including **Karpenter**.

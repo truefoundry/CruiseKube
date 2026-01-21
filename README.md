@@ -6,6 +6,7 @@
 </a>
 <a href="https://artifacthub.io/packages/helm/cruisekube/cruisekube">
 <img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/cruisekube" align="center" alt="Artifact Hub">
+</a>
  <a href="./LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg" align="center">
  </a>

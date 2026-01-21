@@ -12,7 +12,6 @@ keywords:
 
 This page outlines known limitations and tradeoffs when running CruiseKube. These are not bugs, but consequences of the design choices CruiseKube makes to optimize pod-level resources.
 
-
 ### Pod eviction can cause disruption
 
 CruiseKube may evict pods when a node cannot safely accommodate the optimized set of workloads.
