@@ -329,6 +329,62 @@ The admission webhook ensures pods are scheduled with requests equal to their pe
 - **PSI feedback**: High PSI values increase resource requests for future optimizations
 - **Proportional distribution**: Headroom is shared, reducing the likelihood of simultaneous spikes exhausting resources
 
+## OOM Handling
+
+CruiseKube includes a reactive mechanism to handle out of memory (OOM) events, automatically responding to memory pressure by evicting pods and allowing them to be recreated with updated resource recommendations.
+
+### How It Works
+
+When a container is OOM killed, CruiseKube:
+
+1. **Detects the OOM event** by monitoring kubernetes pod status
+2. **Records the OOM memory** value in the workload statistics database
+3. **Evaluates whether to evict** the pod based on configured policies
+4. **Evicts the pod** if all checks pass
+5. **Relies on the mutating webhook** to recreate the pod with the updated memory
+
+### OOM Detection
+
+CruiseKube currently monitors the kubernetes pod status to detect an OOM event.
+
+When an OOM is detected, the following information is captured:
+
+- Container and workload ID
+- Namespace, node and pod name
+- Memory limit and request
+- Last observed memory usage
+- Timestamp
+
+### OOM Memory Tracking
+
+The observed memory usage at OOM time is stored in the workload statistics to ensure that:
+
+- Future pod creations via the admission webhook use the OOM memory value
+- Memory limits are set to 2×  the maximum of either the highest memory usage over the last 7 days or the memory at OOM kill, providing sufficient headroom to prevent repeated OOM kills
+
+### Eviction Decision Flow
+
+Before evicting a pod after an OOM event, CruiseKube performs several checks:
+
+```mermaid
+flowchart TD
+    A[OOM Event Detected] --> B{Cooldown Active?}
+    B -->|Yes| Z[Skip Eviction]
+    B -->|No| C[Record OOM Event in DB]
+    C --> D[Update OOM Memory in Stats]
+    D --> E{Memory Application<br/>Disabled?}
+    E -->|Yes| Z
+    E -->|No| F[Fetch Pod from API]
+    F --> G{Pod Has Exclusion<br/>Annotation?}
+    G -->|Yes| Z
+    G -->|No| H{Workload Disabled<br/>via Override?}
+    H -->|Yes| Z
+    H -->|No| I[Evict Pod]
+    I --> J[ReplicaSet Recreates Pod]
+    J --> K[Admission Webhook Applies<br/>Updated Recommendations]
+    K --> L[Pod Starts with<br/>Higher Memory Limit]
+```
+
 ## References
 
 - [Kubernetes 1.33 - Pod-level resource updates](https://kubernetes.io/blog/2025/05/16/kubernetes-v1-33-in-place-pod-resize-beta/)

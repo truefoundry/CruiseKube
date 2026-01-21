@@ -96,6 +96,12 @@ The high-level architecture consists of 4 components deployed using the **Cruise
 - Intercepts new pod creations
 - Rewrites resource requests using learned recommendations
 
+**OOM Observer & Processor**:
+
+- Monitors kubernetes pod status and eviction events for OOM kills
+- Records OOM memory values in workload statistics
+- Triggers pod eviction when OOM events occur
+
 ## Control Flows
 
 ### Statistics Engine
@@ -182,6 +188,52 @@ sequenceDiagram
 1. Intercept pod spec
 2. Fetch statistics from the controller
 3. Mutate requests before scheduling
+
+### **Reactive OOM Handling Flow**
+
+```mermaid
+sequenceDiagram
+  %% CruiseKube OOM Handling – Reactive Memory Optimization
+
+  participant K as Kubernetes API Server
+  participant O as OOM Observer
+  participant P as OOM Processor
+  participant DB as Database
+  participant W as Admission Webhook
+  participant RC as ReplicaSet Controller
+
+  Note over K,O: Container OOM Event Occurs
+  K->>O: Pod Status Update (OOMKilled)
+  O->>P: OOM Event Notification
+  
+  P->>DB: Check Cooldown Period
+  alt Cooldown Active
+    P-->>P: Skip (prevent thrashing)
+  else Cooldown Expired
+    P->>DB: Record OOM Event
+    P->>DB: Update OOMMemory in Stats
+    P->>K: Fetch Pod Details
+    P->>P: Check Exclusions & Overrides
+    alt Pod Should Be Evicted
+      P->>K: Evict Pod
+      K->>RC: Pod Deleted (replica missing)
+      RC->>K: Create New Pod
+      K->>W: AdmissionReview (new pod)
+      W->>DB: Fetch Stats (with OOMMemory)
+      W->>W: Calculate Memory Limit<br/>(2x max(usage, OOMMemory))
+      W-->>K: Mutated Pod (higher memory)
+      K->>K: Schedule & Start Pod
+    else Skip Eviction
+      P-->>P: Skip (excluded/disabled)
+    end
+  end
+```
+
+1. Monitor pod status for OOM kill events
+2. Record OOM memory and update statistics
+3. Evaluate eviction decision based on policies
+4. Evict pod and let ReplicaSet recreate it
+5. Admission webhook applies updated memory limits
 
 ## Next Steps
 
