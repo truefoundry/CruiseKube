@@ -98,7 +98,7 @@ The high-level architecture consists of 4 components deployed using the **Cruise
 
 **OOM Observer & Processor**:
 
-- Monitors kubernetes pod status and eviction events for OOM kills
+- Monitors Kubernetes pod status and eviction events for OOM kills
 - Records OOM memory values in workload statistics
 - Triggers pod eviction when OOM events occur
 
@@ -231,7 +231,7 @@ sequenceDiagram
 
 1. Monitor pod status for OOM kill events
 2. Record OOM memory and update statistics
-3. Evaluate eviction decision based on policies
+3. Evaluate eviction decision based on policies (see [OOM Handling](./arch-algorithm.md#oom-handling) for detailed decision flow)
 4. Evict pod and let ReplicaSet recreate it
 5. Admission webhook applies updated memory limits
 

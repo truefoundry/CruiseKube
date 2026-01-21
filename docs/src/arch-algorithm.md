@@ -337,7 +337,7 @@ CruiseKube includes a reactive mechanism to handle out of memory (OOM) events, a
 
 When a container is OOM killed, CruiseKube:
 
-1. **Detects the OOM event** by monitoring kubernetes pod status
+1. **Detects the OOM event** by monitoring Kubernetes pod status
 2. **Records the OOM memory** value in the workload statistics database
 3. **Evaluates whether to evict** the pod based on configured policies
 4. **Evicts the pod** if all checks pass
@@ -345,7 +345,7 @@ When a container is OOM killed, CruiseKube:
 
 ### OOM Detection
 
-CruiseKube currently monitors the kubernetes pod status to detect an OOM event.
+CruiseKube currently monitors the Kubernetes pod status to detect an OOM event.
 
 When an OOM is detected, the following information is captured:
 
@@ -360,7 +360,7 @@ When an OOM is detected, the following information is captured:
 The observed memory usage at OOM time is stored in the workload statistics to ensure that:
 
 - Future pod creations via the admission webhook use the OOM memory value
-- Memory limits are set to 2×  the maximum of either the highest memory usage over the last 7 days or the memory at OOM kill, providing sufficient headroom to prevent repeated OOM kills
+- Memory limits are set to 2 × the maximum of either the highest memory usage over the last 7 days or the memory at OOM kill, providing sufficient headroom to prevent repeated OOM kills
 
 ### Eviction Decision Flow
 
@@ -380,10 +380,18 @@ flowchart TD
     G -->|No| H{Workload Disabled<br/>via Override?}
     H -->|Yes| Z
     H -->|No| I[Evict Pod]
-    I --> J[ReplicaSet Recreates Pod]
+    I --> J[Kubernetes Recreates Pod]
     J --> K[Admission Webhook Applies<br/>Updated Recommendations]
     K --> L[Pod Starts with<br/>Higher Memory Limit]
 ```
+
+### OOM Cooldown Mechanism
+
+The cooldown check prevents rapid OOM-eviction thrashing:
+
+- **Per-pod tracking**: Cooldown is tracked using the combination of `containerID` and `podName`, ensuring each pod instance is monitored independently
+- **Prevents thrashing**: If an OOM event occurred recently (within the cooldown period), subsequent OOM events on the same pod are ignored to prevent rapid eviction cycles
+- **Resets on pod recreation**: When a pod is recreated after eviction, it gets a new `podName`, so the cooldown resets and the new pod instance is monitored independently
 
 ## References
 
