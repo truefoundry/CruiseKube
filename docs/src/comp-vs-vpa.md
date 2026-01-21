@@ -15,7 +15,7 @@ Both CruiseKube and the Kubernetes Vertical Pod Autoscaler aim to reduce waste c
 
 ### The Core Difference
 
-- VPA is a recommendation system that [periodically adjusts the resource requests and limits of its target](https://arc.net/l/quote/lqxfntui).
+- VPA is a recommendation system that [periodically adjusts the resource requests and limits of its target](https://kubernetes.io/docs/concepts/workloads/autoscaling/vertical-pod-autoscale/#:~:text=The%20vertical%20pod%20autoscaling%20controller%2C%20running%20within%20the%20Kubernetes%20data%20plane%2C%20periodically%20adjusts%20the%20resource%20requests%20and%20limits%20of%20its%20target).
 - CruiseKube is a runtime optimization system that actively optimizes resources, closer to real time.
 
 VPA answers the question:
