@@ -10,6 +10,8 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 )
 
+const DefaultRetentionDays = 7
+
 type CleanupOOMEventsTaskConfig struct {
 	Name      string
 	Enabled   bool
@@ -32,6 +34,10 @@ func NewCleanupOOMEventsTask(ctx context.Context, storage *storage.Storage, conf
 	if err := taskConfig.ConvertMetadataToStruct(&cleanupOOMEventsMetadata); err != nil {
 		logging.Errorf(ctx, "Error converting metadata to struct: %v", err)
 		return nil
+	}
+
+	if cleanupOOMEventsMetadata.RetentionDays <= 0 {
+		cleanupOOMEventsMetadata.RetentionDays = DefaultRetentionDays
 	}
 
 	config.Metadata = cleanupOOMEventsMetadata
