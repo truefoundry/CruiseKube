@@ -1,0 +1,11 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: echo "=== WAITING FOR PODS TO BE RECREATED AND READY ==="
+  - command: sleep 5
+  - command: kubectl wait --for=condition=ready pod -l app=redis -n test-webhook --timeout=60s
+  - command: kubectl wait --for=condition=ready pod -l app=memcached -n test-webhook --timeout=60s
+  - command: echo ""
+  - command: echo "=== PODS ARE READY ==="
+  - command: kubectl get pods -n test-webhook -o wide
