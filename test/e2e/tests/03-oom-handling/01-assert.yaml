@@ -1,0 +1,12 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 120
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: populate-oom-db
+  namespace: cruisekube-system
+status:
+  succeeded: 1

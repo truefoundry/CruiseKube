@@ -1,0 +1,23 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 30
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: verify-oom
+  namespace: cruisekube-system
+status:
+  succeeded: 1
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-oom
+  labels:
+    app: stress
+status:
+  containerStatuses:
+  - name: stress
+    restartCount: 1

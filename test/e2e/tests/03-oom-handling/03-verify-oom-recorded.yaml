@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: verify-oom-script
+  namespace: cruisekube-system
+data:
+  verify.sql: |
+    -- Check if OOM event was recorded
+    SELECT COUNT(*) as oom_event_count 
+    FROM oom_events 
+    WHERE cluster_id = 'default' 
+      AND container_id LIKE '%stress-deployment%stress%';
+    
+    -- Check if OOM memory was updated in stats
+    SELECT 
+      workload_id,
+      stats::json->'container_stats'->0->'memory_stats'->>'oom_memory' as oom_memory
+    FROM stats 
+    WHERE workload_id = 'Deployment:test-oom:stress-deployment';
+    
+    -- Show the OOM events
+    SELECT * FROM oom_events 
+    WHERE cluster_id = 'default' 
+      AND container_id LIKE '%stress-deployment%stress%' 
+    ORDER BY timestamp DESC 
+    LIMIT 5;
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: verify-oom
+  namespace: cruisekube-system
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: verify-oom
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for postgres to be ready..."
+          until pg_isready -h cruisekube-postgresql.cruisekube-system.svc.cluster.local -U cruisekube; do
+            sleep 2
+          done
+          echo "Checking OOM records in database..."
+          psql -h cruisekube-postgresql.cruisekube-system.svc.cluster.local -U cruisekube -d cruisekube -f /scripts/verify.sql
+        env:
+        - name: PGPASSWORD
+          value: cruisekube
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+      volumes:
+      - name: scripts
+        configMap:
+          name: verify-oom-script
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: echo "Waiting for OOM processor to handle the event..."
+  - command: sleep 5
+  - command: echo "Checking controller logs for OOM handling..."
+  - command: kubectl logs -n cruisekube-system deploy/cruisekube-controller --tail=20
+  - command: echo "Checking if pod was evicted..."
+  - command: kubectl get events -n test-oom --sort-by='.lastTimestamp'
