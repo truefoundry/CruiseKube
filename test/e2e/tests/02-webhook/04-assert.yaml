@@ -18,7 +18,7 @@ spec:
         cpu: "375m"
         memory: "171M"
       limits:
-        memory: "514M"
+        memory: "440M"
 status:
   phase: Running
 ---
@@ -37,6 +37,6 @@ spec:
         cpu: "169m"
         memory: "68M"
       limits:
-        memory: "514M"
+        memory: "180M"
 status:
   phase: Running
