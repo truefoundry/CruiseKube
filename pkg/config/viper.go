@@ -30,6 +30,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("recommendationSettings.maxConcurrentQueries", 5)
 	v.SetDefault("recommendationSettings.oomCooldownMinutes", 5)
 	v.SetDefault("server.port", "8080")
+	v.SetDefault("server.enableDevAPIs", false)
 	v.SetDefault("webhook.port", "8443")
 	v.SetDefault("webhook.certsDir", "/certs")
 	v.SetDefault("db.filePath", "cruisekube.db")
