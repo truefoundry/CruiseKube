@@ -13,6 +13,7 @@ const (
 	CreateStatsKey             = "createstats"
 	ModifyEqualCPUResourcesKey = "modifyequalcpuresources"
 	NodeLoadMonitoringKey      = "nodeloadmonitoring"
+	CleanupOOMEventsKey        = "cleanupoomevent"
 )
 
 type Config struct {

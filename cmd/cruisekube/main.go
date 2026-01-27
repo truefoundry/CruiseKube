@@ -366,6 +366,19 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 				IsClusterWriteAuthorized: cfg.IsClusterWriteAuthorized(ID),
 			},
 		))
+
+		cleanupOOMEventsTaskConfig := cfg.GetTaskConfig(config.CleanupOOMEventsKey)
+		clusterManager.AddTask(task.NewCleanupOOMEventsTask(
+			ctx,
+			storageRepo,
+			&task.CleanupOOMEventsTaskConfig{
+				Name:      ID + "_" + config.CleanupOOMEventsKey,
+				Enabled:   cleanupOOMEventsTaskConfig.Enabled,
+				Schedule:  cleanupOOMEventsTaskConfig.Schedule,
+				ClusterID: ID,
+			},
+			cleanupOOMEventsTaskConfig,
+		))
 	}
 
 	if err := clusterManager.ScheduleAllTasks(); err != nil {

@@ -144,3 +144,13 @@ func (s *Storage) UpdateOOMMemoryForContainer(clusterID, workloadID, containerNa
 
 	return nil
 }
+
+func (s *Storage) DeleteOldOOMEvents(clusterID string, retentionDays int) (int64, error) {
+	cutoffTime := time.Now().Add(-time.Duration(retentionDays) * 24 * time.Hour)
+
+	rowsAffected, err := s.DB.DeleteOldOOMEvents(clusterID, cutoffTime)
+	if err != nil {
+		return rowsAffected, fmt.Errorf("failed to delete old OOM events: %w", err)
+	}
+	return rowsAffected, nil
+}

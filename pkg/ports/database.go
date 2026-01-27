@@ -34,4 +34,5 @@ type Database interface {
 	InsertOOMEvent(event *types.OOMEvent) error
 	GetOOMEventsByWorkload(clusterID, workloadID string, since time.Time) ([]types.OOMEvent, error)
 	GetLatestOOMEventForContainer(clusterID, containerID, podName string) (*types.OOMEvent, error)
+	DeleteOldOOMEvents(clusterID string, olderThan time.Time) (int64, error)
 }

@@ -35,6 +35,11 @@ controller:
     fetchMetrics:
       enabled: false
       schedule: "1m"
+    cleanupOOMEvent:
+      enabled: false
+      schedule: "24h"
+      metadata:
+        retentionDays: 7
 metrics:
   enabled: true
   port: "8081"   
