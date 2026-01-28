@@ -361,3 +361,12 @@ func (s *GormDB) GetOOMEventsByWorkload(clusterID, workloadID string, since time
 
 	return events, nil
 }
+
+func (s *GormDB) DeleteOldOOMEvents(clusterID string, olderThan time.Time) (int64, error) {
+	result := s.db.Where("cluster_id = ? AND timestamp < ?", clusterID, olderThan).Delete(&OOMEvent{})
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to delete old OOM events: %w", result.Error)
+	}
+
+	return result.RowsAffected, nil
+}

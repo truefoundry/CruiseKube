@@ -43,10 +43,6 @@ func (m *SingleClusterManager) AddTask(task task.Task) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if !task.IsEnabled() {
-		return
-	}
-
 	m.registeredTasks[task.GetName()] = task
 }
 
@@ -67,7 +63,9 @@ func (m *SingleClusterManager) ScheduleAllTasks() error {
 	defer m.mu.RUnlock()
 
 	for taskName, task := range m.registeredTasks {
-		m.scheduler.ScheduleTask(context.Background(), taskName, task.GetSchedule(), task.Run)
+		if task.IsEnabled() {
+			m.scheduler.ScheduleTask(context.Background(), taskName, task.GetSchedule(), task.Run)
+		}
 	}
 	m.scheduler.Wait(context.Background())
 
