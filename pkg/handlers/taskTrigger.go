@@ -43,14 +43,7 @@ func HandleTaskTrigger(c *gin.Context) {
 		return
 	}
 
-	if !task.IsEnabled() {
-		logging.Warnf(ctx, "Task '%s' is disabled", taskName)
-		c.JSON(http.StatusBadRequest, TaskTriggerResponse{
-			Status: "error",
-			Error:  fmt.Sprintf("Task '%s' is disabled", taskName),
-		})
-		return
-	}
+	logging.Infof(ctx, "Manual trigger - executing task '%s'", taskName)
 
 	startedAt := time.Now()
 

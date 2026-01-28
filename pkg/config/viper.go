@@ -33,6 +33,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("controller.tasks.cleanupOOMEvent.schedule", "24h")
 	v.SetDefault("controller.tasks.cleanupOOMEvent.metadata.retentionDays", 7)
 	v.SetDefault("server.port", "8080")
+	v.SetDefault("server.enableDevAPIs", false)
 	v.SetDefault("webhook.port", "8443")
 	v.SetDefault("webhook.certsDir", "/certs")
 	v.SetDefault("db.filePath", "cruisekube.db")

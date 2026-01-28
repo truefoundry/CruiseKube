@@ -10,7 +10,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
-func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook gin.HandlerFunc, ensureClusterExists gin.HandlerFunc, middleware ...gin.HandlerFunc) *gin.Engine {
+func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook gin.HandlerFunc, ensureClusterExists gin.HandlerFunc, enableDevAPIs bool, middleware ...gin.HandlerFunc) *gin.Engine {
 	r := gin.Default()
 	r.Use(otelgin.Middleware("cruisekube-api"))
 	r.Use(middleware...)
@@ -35,7 +35,13 @@ func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook
 		clusterGroup.GET("/workloads", handlers.ListWorkloadsHandler)
 		clusterGroup.GET("/workloads/:workloadID/overrides", handlers.GetWorkloadOverridesHandler)
 		clusterGroup.POST("/workloads/:workloadID/overrides", handlers.UpdateWorkloadOverridesHandler)
-		clusterGroup.POST("/tasks/:taskName/trigger", handlers.HandleTaskTrigger)
+	}
+
+	if enableDevAPIs {
+		devGroup := apiV1Group.Group("/dev/clusters/:clusterID", authAPI, ensureClusterExists)
+		{
+			devGroup.POST("/tasks/:taskName/trigger", handlers.HandleTaskTrigger)
+		}
 	}
 
 	uiGroup := r.Group("/ui")
