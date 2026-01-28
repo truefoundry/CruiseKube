@@ -26,6 +26,7 @@ cruisekubeController:
     CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_OVERRIDESURL_HOST: "http://localhost:8080"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_NEWWORKLOADTHRESHOLDHOURS: "0"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "false"
+    CRUISEKUBE_RECOMMENDATIONSETTINGS_OOMCOOLDOWNMINUTES: "1"
     CRUISEKUBE_SERVER_ENABLEDEVAPIS: "true"
 
 postgresql:
@@ -39,4 +40,21 @@ cruisekubeFrontend:
   enabled: false
 
 cruisekubeWebhook:
-  enabled: false
+  enabled: true
+  image:
+    repository: cruisekube
+    tag: latest
+    pullPolicy: IfNotPresent
+    imagePullPolicy: IfNotPresent
+  env:
+    CRUISEKUBE_RECOMMENDATIONSETTINGS_NEWWORKLOADTHRESHOLDHOURS: "0"
+    CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "false"
+    CRUISEKUBE_WEBHOOK_DRYRUN: "false"
+  serviceMonitor:
+    enabled: false
+  certGen:
+    enabled: true
+    image:
+      repository: registry.k8s.io/ingress-nginx/kube-webhook-certgen
+      tag: v1.5.2
+      imagePullPolicy: IfNotPresent

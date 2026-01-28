@@ -1,0 +1,42 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 60
+---
+# Original redis: 100m CPU, 64Mi memory, 128Mi limit
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-webhook
+  labels:
+    app: redis
+spec:
+  containers:
+  - name: redis
+    resources:
+      requests:
+        cpu: "375m"
+        memory: "171M"
+      limits:
+        memory: "440M"
+status:
+  phase: Running
+---
+# Original memcached: 50m CPU, 32Mi memory, 64Mi limit  
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-webhook
+  labels:
+    app: memcached
+spec:
+  containers:
+  - name: memcached
+    resources:
+      requests:
+        cpu: "169m"
+        memory: "68M"
+      limits:
+        memory: "180M"
+status:
+  phase: Running
