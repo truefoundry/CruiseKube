@@ -326,14 +326,14 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 		}
 	}
 	if recommendedMemoryLimit < currentMemoryLimit {
-		recommendedMemoryLimit = currentMemoryLimit
+		recommendedMemoryLimit = math.Ceil(currentMemoryLimit)
 	}
 	if currentMemoryLimit == 0 {
 		// cannot set memory limit when it is unset
 		recommendedMemoryLimit = 0
 	}
 
-	if math.Abs(recommendedMemoryRequest-currentMemoryRequest) >= 0 {
+	if math.Abs(recommendedMemoryRequest-currentMemoryRequest) > 0 {
 		if applyChanges {
 			applied, errStr := utils.UpdatePodMemoryResources(
 				ctx,
