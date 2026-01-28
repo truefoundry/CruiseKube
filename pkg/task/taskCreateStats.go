@@ -114,7 +114,7 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 		uniqueWorkloads[workloadKey] = workloadInfo
 	}
 
-	logging.Infof(ctx, "Filtered out %d workloads with recent stats (within 30 minutes)", filteredCount)
+	logging.Infof(ctx, "Filtered out %d workloads with recent stats (within %d minutes)", filteredCount, utils.RecentStatsLookbackMinutes)
 	namespaces := utils.ExtractUniqueNamespaces(uniqueWorkloads)
 	logging.Infof(ctx, "Found %d unique namespaces to process: %v", len(namespaces), namespaces)
 
@@ -369,27 +369,24 @@ func (c *CreateStatsTask) getAllContainerResourcesFromContainerSpecs(_ context.C
 			Name: container.Name,
 			Type: types.AppContainer,
 		}
-
 		c.setResourceRequestAndLimit(&container, &containerRes)
 		containerResources = append(containerResources, containerRes)
 	}
 
 	for _, container := range initContainerSpecs {
+		var ContainerType types.ContainerType
 		if utils.IsSidecarContainer(container) {
-			containerRes := utils.OriginalContainerResources{
-				Name: container.Name,
-				Type: types.SidecarContainer,
-			}
-			c.setResourceRequestAndLimit(&container, &containerRes)
-			containerResources = append(containerResources, containerRes)
+			ContainerType = types.SidecarContainer
 		} else {
-			containerRes := utils.OriginalContainerResources{
-				Name: container.Name,
-				Type: types.InitContainer,
-			}
-			c.setResourceRequestAndLimit(&container, &containerRes)
-			containerResources = append(containerResources, containerRes)
+			ContainerType = types.InitContainer
 		}
+
+		containerRes := utils.OriginalContainerResources{
+			Name: container.Name,
+			Type: ContainerType,
+		}
+		c.setResourceRequestAndLimit(&container, &containerRes)
+		containerResources = append(containerResources, containerRes)
 	}
 
 	return containerResources
