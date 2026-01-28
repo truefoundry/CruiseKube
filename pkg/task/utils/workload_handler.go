@@ -38,23 +38,6 @@ type DeploymentWrapper struct {
 	*appsv1.Deployment
 }
 
-func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
-	selector, err := d.GetSelector()
-	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
-		return d.Spec.Template.Spec.Containers
-	}
-
-	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil || len(pods.Items) == 0 {
-		logging.Errorf(ctx, "Error getting pods for deployment %s/%s: %v", d.Namespace, d.Name, err)
-		return d.Spec.Template.Spec.Containers
-	}
-
-	return pods.Items[0].Spec.Containers
-}
-
 func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
 	selector, err := d.GetSelector()
 	if err != nil {
@@ -70,6 +53,10 @@ func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient
 	}
 
 	return pods.Items[0].Spec.InitContainers
+}
+
+func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
+	return d.Spec.Template.Spec.Containers
 }
 
 func (d DeploymentWrapper) GetSelector() (labels.Selector, error) {
@@ -89,23 +76,6 @@ type StatefulSetWrapper struct {
 	*appsv1.StatefulSet
 }
 
-func (s StatefulSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
-	selector, err := s.GetSelector()
-	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for statefulset %s/%s: %v", s.Namespace, s.Name, err)
-		return s.Spec.Template.Spec.Containers
-	}
-
-	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pods, err := GetPods(ctx, kubeClient, s.Namespace, selector)
-	if err != nil || len(pods.Items) == 0 {
-		logging.Warnf(ctx, "Could not get pods for statefulset %s/%s, falling back to template: %v", s.Namespace, s.Name, err)
-		return s.Spec.Template.Spec.Containers
-	}
-
-	return pods.Items[0].Spec.Containers
-}
-
 func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
 	selector, err := s.GetSelector()
 	if err != nil {
@@ -121,6 +91,10 @@ func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, kubeClien
 	}
 
 	return pods.Items[0].Spec.InitContainers
+}
+
+func (s StatefulSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
+	return s.Spec.Template.Spec.Containers
 }
 
 func (s StatefulSetWrapper) GetSelector() (labels.Selector, error) {
@@ -140,23 +114,6 @@ type DaemonSetWrapper struct {
 	*appsv1.DaemonSet
 }
 
-func (d DaemonSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
-	selector, err := d.GetSelector()
-	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for daemonset %s/%s: %v", d.Namespace, d.Name, err)
-		return d.Spec.Template.Spec.Containers
-	}
-
-	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil || len(pods.Items) == 0 {
-		logging.Warnf(ctx, "Could not get pods for daemonset %s/%s, falling back to template: %v", d.Namespace, d.Name, err)
-		return d.Spec.Template.Spec.Containers
-	}
-
-	return pods.Items[0].Spec.Containers
-}
-
 func (d DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
 	selector, err := d.GetSelector()
 	if err != nil {
@@ -172,6 +129,10 @@ func (d DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient 
 	}
 
 	return pods.Items[0].Spec.InitContainers
+}
+
+func (d DaemonSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
+	return d.Spec.Template.Spec.Containers
 }
 
 func (d DaemonSetWrapper) GetSelector() (labels.Selector, error) {
