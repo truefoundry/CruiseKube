@@ -25,7 +25,7 @@ cruisekubeController:
     ## @param cruisekubeController.image.imagePullPolicy CruiseKube Controller image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeController.image.tag CruiseKube Controller image tag (immutable tags are recommended)
-    tag: "55f36a996f143f3a2dec0fca6ca9b73b9b0b2527"
+    tag: "8aefff439875166e2530fff15f097df7664c744d"
   ## @param cruisekubeController.imagePullSecrets [array] CruiseKube Controller image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeController.nameOverride String to partially override cruisekube.fullname
@@ -93,7 +93,7 @@ cruisekubeController:
     CRUISEKUBE_CONTROLLER_TARGETNAMESPACE: ""
     CRUISEKUBE_CONTROLLER_TARGETCLUSTERID: ""
     CRUISEKUBE_CONTROLLER_WRITEAUTHORIZEDCLUSTERS: ""
-    CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED: "false"
+    CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED: "true"
     CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_SCHEDULE: "15m"
     CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_METADATA_SKIPMEMORY: "false"
     CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_ENABLED: "false"
@@ -137,7 +137,7 @@ cruisekubeWebhook:
     ## @param cruisekubeWebhook.image.imagePullPolicy CruiseKube Webhook image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeWebhook.image.tag CruiseKube Webhook image tag (immutable tags are recommended)
-    tag: "55f36a996f143f3a2dec0fca6ca9b73b9b0b2527"
+    tag: "8aefff439875166e2530fff15f097df7664c744d"
   ## @param cruisekubeWebhook.imagePullSecrets [array] CruiseKube Webhook image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeWebhook.nameOverride String to partially override cruisekube.fullname
@@ -275,7 +275,7 @@ cruisekubeFrontend:
     ## @param cruisekubeFrontend.image.imagePullPolicy CruiseKube Frontend image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeFrontend.image.tag CruiseKube Frontend image tag (immutable tags are recommended)
-    tag: "55f36a996f143f3a2dec0fca6ca9b73b9b0b2527"
+    tag: "8aefff439875166e2530fff15f097df7664c744d"
   ## @param cruisekubeFrontend.imagePullSecrets [array] CruiseKube Frontend image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeFrontend.nameOverride String to partially override cruisekube.fullname
