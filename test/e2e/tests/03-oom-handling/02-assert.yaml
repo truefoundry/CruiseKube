@@ -1,17 +1,12 @@
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
-timeout: 90
+timeout: 60
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: batch/v1
+kind: Job
 metadata:
-  namespace: test-oom
-  labels:
-    app: stress
+  name: verify-oom-event
+  namespace: cruisekube-system
 status:
-  containerStatuses:
-  - name: stress
-    lastState:
-      terminated:
-        reason: OOMKilled
+  succeeded: 1
