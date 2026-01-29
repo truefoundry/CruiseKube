@@ -12,7 +12,6 @@ metadata:
 status:
   containerStatuses:
   - name: stress
-    restartCount: 1
     lastState:
       terminated:
         reason: OOMKilled

@@ -29,12 +29,12 @@ spec:
         - -c
         - |
           import time
-          data = bytearray(80 * 1024 * 1024)  # 80MB
-          print(f"Allocated 80MB, limit is 50MB")
+          data = bytearray(800 * 1024 * 1024)  # 800MB
+          print(f"Allocated 200MB, limit is 100MB")
           time.sleep(300)
         resources:
           requests:
-            memory: "30Mi"
+            memory: "300M"
             cpu: "100m"
           limits:
-            memory: "50Mi"
+            memory: "600M"

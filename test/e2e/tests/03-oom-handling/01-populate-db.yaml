@@ -6,6 +6,7 @@ metadata:
   namespace: cruisekube-system
 data:
   populate.sql: |
+    DELETE FROM stats WHERE cluster_id = 'default' AND workload_id = 'Deployment:test-oom:stress-deployment';
     INSERT INTO stats (cluster_id, workload_id, stats, generated_at, overrides)
     VALUES (
         'default',
@@ -30,12 +31,12 @@ data:
                 "p75": 0.15
               },
               "memory_stats": {
-                "max": 40.0,
-                "p75": 30.0,
+                "max": 300.0,
+                "p75": 250.0,
                 "oom_memory": 0.0
               },
               "memory_7day": {
-                "max": 45.0
+                "max": 350.0
               },
               "cpu_7day": {
                 "max": 0.25,
@@ -51,10 +52,10 @@ data:
                 "max_value": 0.2
               },
               "simple_predictions_memory": {
-                "weekly_prediction": 35.0,
-                "hourly_prediction": 32.0,
-                "current_prediction": 30.0,
-                "max_value": 40.0
+                "weekly_prediction": 300.0,
+                "hourly_prediction": 250.0,
+                "current_prediction": 200.0,
+                "max_value": 300.0
               }
             }
           ],
@@ -64,13 +65,13 @@ data:
               "type": 3,
               "cpu_request": 0.1,
               "cpu_limit": 0.2,
-              "memory_request": 30.0,
-              "memory_limit": 50.0
+              "memory_request": 300.0,
+              "memory_limit": 600.0
             }
           ]
         }',
         NOW() - INTERVAL '1 hour',
-        NULL
+        '{}'
     );
 
     SELECT workload_id FROM stats WHERE workload_id = 'Deployment:test-oom:stress-deployment';

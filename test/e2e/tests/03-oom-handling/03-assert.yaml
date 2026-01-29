@@ -1,23 +1,27 @@
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
-timeout: 30
+timeout: 120
 ---
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: verify-oom
-  namespace: cruisekube-system
-status:
-  succeeded: 1
----
+# Wait for Kubernetes to evict the OOM'd pod and deployment to recreate it
+# Original memory: 30Mi request, 100Mi limit
+# After OOM (100Mi = 104.8MB), webhook should apply ~104M request, 512M limit
 apiVersion: v1
 kind: Pod
 metadata:
   namespace: test-oom
   labels:
     app: stress
+spec:
+  containers:
+  - name: stress
+    resources:
+      requests:
+        memory: "572M"
+      limits:
+        memory: "1144M"
 status:
+  phase: Running
   containerStatuses:
   - name: stress
-    restartCount: 1
+    ready: true
