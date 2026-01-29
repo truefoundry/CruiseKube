@@ -14,7 +14,6 @@ cruisekubeController:
     repository: cruisekube
     tag: latest
     pullPolicy: IfNotPresent
-    imagePullPolicy: IfNotPresent
   env:
     CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://localhost:9090"
     CRUISEKUBE_CONTROLLER_TARGETCLUSTERID: "default"
