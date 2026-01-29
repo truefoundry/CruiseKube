@@ -13,6 +13,7 @@ const (
 	CreateStatsKey             = "createstats"
 	ModifyEqualCPUResourcesKey = "modifyequalcpuresources"
 	NodeLoadMonitoringKey      = "nodeloadmonitoring"
+	CleanupOOMEventsKey        = "cleanupoomevent"
 )
 
 type Config struct {
@@ -60,8 +61,9 @@ type URLConfig struct {
 }
 
 type ServerConfig struct {
-	Port      string          `yaml:"port" mapstructure:"port"`
-	BasicAuth BasicAuthConfig `yaml:"basicAuth" mapstructure:"basicAuth"`
+	Port          string          `yaml:"port" mapstructure:"port"`
+	BasicAuth     BasicAuthConfig `yaml:"basicAuth" mapstructure:"basicAuth"`
+	EnableDevAPIs bool            `yaml:"enableDevAPIs" mapstructure:"enableDevAPIs"`
 }
 
 type BasicAuthConfig struct {

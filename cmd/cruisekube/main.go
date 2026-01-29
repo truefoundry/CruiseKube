@@ -49,6 +49,7 @@ func main() {
 
 	// Server/Webhook flags
 	rootCmd.PersistentFlags().String("server-port", "", "Server port")
+	rootCmd.PersistentFlags().Bool("enable-dev-apis", false, "Enable development APIs")
 	rootCmd.PersistentFlags().String("webhook-port", "", "Webhook port")
 	rootCmd.PersistentFlags().String("webhook-certs-dir", "", "Webhook certificates directory")
 	rootCmd.PersistentFlags().String("webhook-stats-url-host", "", "Webhook stats URL host")
@@ -77,6 +78,9 @@ func main() {
 		logging.Fatalf(ctx, "Failed to bind flag: %v", err)
 	}
 	if err := v.BindPFlag("server.port", rootCmd.PersistentFlags().Lookup("server-port")); err != nil {
+		logging.Fatalf(ctx, "Failed to bind flag: %v", err)
+	}
+	if err := v.BindPFlag("server.enableDevAPIs", rootCmd.PersistentFlags().Lookup("enable-dev-apis")); err != nil {
 		logging.Fatalf(ctx, "Failed to bind flag: %v", err)
 	}
 	if err := v.BindPFlag("webhook.port", rootCmd.PersistentFlags().Lookup("webhook-port")); err != nil {
@@ -241,6 +245,7 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 		middleware.AuthAPI(),
 		middleware.AuthWebhook(),
 		middleware.EnsureClusterExists(),
+		cfg.Server.EnableDevAPIs,
 		middleware.Common(clusterManager, cfg)...)
 
 	serverPort := cfg.Server.Port
@@ -360,6 +365,19 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 				ClusterID:                ID,
 				IsClusterWriteAuthorized: cfg.IsClusterWriteAuthorized(ID),
 			},
+		))
+
+		cleanupOOMEventsTaskConfig := cfg.GetTaskConfig(config.CleanupOOMEventsKey)
+		clusterManager.AddTask(task.NewCleanupOOMEventsTask(
+			ctx,
+			storageRepo,
+			&task.CleanupOOMEventsTaskConfig{
+				Name:      ID + "_" + config.CleanupOOMEventsKey,
+				Enabled:   cleanupOOMEventsTaskConfig.Enabled,
+				Schedule:  cleanupOOMEventsTaskConfig.Schedule,
+				ClusterID: ID,
+			},
+			cleanupOOMEventsTaskConfig,
 		))
 	}
 
