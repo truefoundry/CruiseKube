@@ -3,9 +3,8 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
 timeout: 120
 ---
-# Wait for Kubernetes to evict the OOM'd pod and deployment to recreate it
-# Original memory: 30Mi request, 100Mi limit
-# After OOM (100Mi = 104.8MB), webhook should apply ~104M request, 512M limit
+# Original memory: 300Mi request, 600Mi limit
+# After OOM webhook should apply 572M request, 1144M limit
 apiVersion: v1
 kind: Pod
 metadata:
