@@ -1,0 +1,12 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: echo "Waiting for pod to OOM..."
+  - command: sleep 20
+  - command: echo "Checking pod status..."
+  - command: kubectl get pods -n test-oom -l app=stress -o wide
+  - command: echo "Checking for OOM events..."
+  - command: kubectl get events -n test-oom --sort-by='.lastTimestamp'
+  - command: echo "Checking container status..."
+  - command: kubectl get pods -n test-oom -l app=stress -o jsonpath='{range .items[*]}{.metadata.name}{" RestartCount:"}{.status.containerStatuses[0].restartCount}{" LastState:"}{.status.containerStatuses[0].lastState.terminated.reason}{"\n"}{end}'
