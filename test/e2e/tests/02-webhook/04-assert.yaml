@@ -15,10 +15,10 @@ spec:
   - name: redis
     resources:
       requests:
-        cpu: "375m"
-        memory: "171M"
+        cpu: "500m"
+        memory: "200M"
       limits:
-        memory: "440M"
+        memory: "512M"
 status:
   phase: Running
 ---
@@ -34,9 +34,9 @@ spec:
   - name: memcached
     resources:
       requests:
-        cpu: "169m"
-        memory: "68M"
+        cpu: "250m"
+        memory: "80M"
       limits:
-        memory: "180M"
+        memory: "512M"
 status:
   phase: Running

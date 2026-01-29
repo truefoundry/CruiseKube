@@ -70,7 +70,7 @@ data:
           ]
         }',
         NOW() - INTERVAL '1 hour',
-        NULL
+        '{}'
     );
 
     INSERT INTO stats (cluster_id, workload_id, stats, generated_at, overrides)
@@ -137,7 +137,7 @@ data:
           ]
         }',
         NOW() - INTERVAL '1 hour',
-        NULL
+        '{}'
     );
 
     SELECT workload_id FROM stats WHERE workload_id LIKE '%test-webhook%';
