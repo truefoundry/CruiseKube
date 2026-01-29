@@ -92,12 +92,13 @@ spec:
         - sh
         - -c
         - |
+          set -e
           echo "Waiting for postgres to be ready..."
           until pg_isready -h cruisekube-postgresql.cruisekube-system.svc.cluster.local -U cruisekube; do
             sleep 2
           done
           echo "Postgres is ready. Populating database..."
-          psql -h cruisekube-postgresql.cruisekube-system.svc.cluster.local -U cruisekube -d cruisekube -f /scripts/populate.sql
+          psql -v ON_ERROR_STOP=1 -h cruisekube-postgresql.cruisekube-system.svc.cluster.local -U cruisekube -d cruisekube -f /scripts/populate.sql
           echo "Database populated successfully!"
         env:
         - name: PGPASSWORD
