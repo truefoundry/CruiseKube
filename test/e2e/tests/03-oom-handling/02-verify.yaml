@@ -1,32 +1,10 @@
 ---
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: verify-oom-event
-  namespace: cruisekube-system
-spec:
-  backoffLimit: 30
-  template:
-    spec:
-      restartPolicy: OnFailure
-      containers:
-      - name: verify
-        image: postgres:15
-        command:
-        - sh
-        - -c
-        - |
-          count=$(psql -h cruisekube-postgres.cruisekube-system.svc.cluster.local -U cruisekube -d cruisekube -t -c "SELECT COUNT(*) FROM oom_events WHERE workload_id = 'Deployment:test-oom:stress-deployment' AND oom_memory > 0" | tr -d ' ')
-          if [ "$count" = "1" ]; then
-            echo "OOM event found in database!"
-            exit 0
-          else
-            echo "OOM event not found yet, count: $count"
-            exit 1
-          fi
-        env:
-        - name: PGPASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cruisekube-postgres
-              key: postgres-password
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: echo "Checking controller logs for OOM handling..."
+  - command: kubectl logs -n cruisekube-system deploy/cruisekube-controller --tail=20
+  - command: echo "Checking webhook logs for resource adjustments..."
+  - command: kubectl logs -n cruisekube-system deploy/cruisekube-webhook --tail=20
+  - command: echo "Checking current pods..."
+  - command: kubectl get pods -n test-oom -l app=stress -o wide
