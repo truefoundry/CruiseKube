@@ -62,15 +62,15 @@ You should see pods like `cruisekube-controller-manager-xxx` and `cruisekube-web
 
 ### **3. Enable Tasks**
 
-By default, all tasks are disabled. This is to prevent any unintended optimizations. 
+By default, all the mutating tasks are disabled. This is to prevent any unintended optimizations. 
 You will need to manually enable each task based on your requirements. To do this, you will need to pass environment variables in the values file to the Helm chart.
 
 
-1. **Enable Create Stats Task**
-    - To enable this task, set the `CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED` environment variable to `true` in your values file.
-    - You also need to configure prometheus URL in the env section of the values file. This will be used by the stats creation task to fetch metrics. Set `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` to the URL of your Prometheus instance.
+1. **Configure prometheus for the Create Stats Task**
+    - By default the Create Stats task is enabled. But it needs access to prometheus.
+    - You need to configure prometheus URL in the env section of the values file. This will be used by the stats creation task to fetch metrics. Set `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` to the URL of your Prometheus instance.
 
-2. **Enable Apply Recommendation Task**
+3. **Enable Apply Recommendation Task**
     - To enable this task, set the `CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_ENABLED` environment variable to `true` in your values file. Note this is currently in dry-run mode by default. So recommendations will only be generated but not applied.
 
 > Similarly, you can enable other tasks by checking the available environment variables in the [value.yaml file](https://github.com/truefoundry/cruiseKube/blob/2d187dbc5ed8275f747e1597b728e40b0d3f0a9e/charts/cruisekube/values.yaml#L101).
