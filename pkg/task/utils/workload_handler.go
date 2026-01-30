@@ -23,6 +23,29 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// mergeContainers returns workload containers first, then appends any pod containers
+// not already present (by name). Preserves workload order and capacity semantics.
+// If podContainers is empty, returns workload as-is. If workload is empty, returns
+// a copy of podContainers.
+func mergeContainers(workload, podContainers []corev1.Container) []corev1.Container {
+	if len(podContainers) == 0 {
+		return workload
+	}
+	workloadNames := make(map[string]struct{}, len(workload))
+	for _, c := range workload {
+		workloadNames[c.Name] = struct{}{}
+	}
+	merged := make([]corev1.Container, len(workload), len(workload)+len(podContainers))
+	copy(merged, workload)
+	for _, c := range podContainers {
+		if _, ok := workloadNames[c.Name]; !ok {
+			merged = append(merged, c)
+			workloadNames[c.Name] = struct{}{}
+		}
+	}
+	return merged
+}
+
 // WorkloadObject represents any Kubernetes workload that can be managed
 type WorkloadObject interface {
 	GetNamespace() string
@@ -72,24 +95,7 @@ func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, kubeClient *ku
 	}
 
 	podContainers := pods.Items[0].Spec.Containers
-	if len(podContainers) == 0 {
-		return workload
-	}
-
-	workloadNames := make(map[string]struct{}, len(workload))
-	for _, c := range workload {
-		workloadNames[c.Name] = struct{}{}
-	}
-
-	mergedContainersList := make([]corev1.Container, len(workload), len(workload)+len(podContainers))
-	copy(mergedContainersList, workload)
-	for _, c := range podContainers {
-		if _, ok := workloadNames[c.Name]; !ok {
-			mergedContainersList = append(mergedContainersList, c)
-			workloadNames[c.Name] = struct{}{}
-		}
-	}
-	return mergedContainersList
+	return mergeContainers(workload, podContainers)
 }
 
 func (d DeploymentWrapper) GetSelector() (labels.Selector, error) {
@@ -131,36 +137,19 @@ func (d StatefulSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *k
 	workload := d.Spec.Template.Spec.Containers
 	selector, err := d.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
+		logging.Errorf(ctx, "Error getting selector for statefulset %s/%s: %v", d.Namespace, d.Name, err)
 		return workload
 	}
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
 	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
 	if err != nil || len(pods.Items) == 0 {
-		logging.Errorf(ctx, "Error getting pods for deployment %s/%s: %v", d.Namespace, d.Name, err)
+		logging.Errorf(ctx, "Error getting pods for statefulset %s/%s: %v", d.Namespace, d.Name, err)
 		return workload
 	}
 
 	podContainers := pods.Items[0].Spec.Containers
-	if len(podContainers) == 0 {
-		return workload
-	}
-
-	workloadNames := make(map[string]struct{}, len(workload))
-	for _, c := range workload {
-		workloadNames[c.Name] = struct{}{}
-	}
-
-	mergedContainersList := make([]corev1.Container, len(workload), len(workload)+len(podContainers))
-	copy(mergedContainersList, workload)
-	for _, c := range podContainers {
-		if _, ok := workloadNames[c.Name]; !ok {
-			mergedContainersList = append(mergedContainersList, c)
-			workloadNames[c.Name] = struct{}{}
-		}
-	}
-	return mergedContainersList
+	return mergeContainers(workload, podContainers)
 }
 
 func (s StatefulSetWrapper) GetSelector() (labels.Selector, error) {
@@ -202,36 +191,19 @@ func (d DaemonSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kub
 	workload := d.Spec.Template.Spec.Containers
 	selector, err := d.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
+		logging.Errorf(ctx, "Error getting selector for daemonset %s/%s: %v", d.Namespace, d.Name, err)
 		return workload
 	}
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
 	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
 	if err != nil || len(pods.Items) == 0 {
-		logging.Errorf(ctx, "Error getting pods for deployment %s/%s: %v", d.Namespace, d.Name, err)
+		logging.Errorf(ctx, "Error getting pods for daemonset %s/%s: %v", d.Namespace, d.Name, err)
 		return workload
 	}
 
 	podContainers := pods.Items[0].Spec.Containers
-	if len(podContainers) == 0 {
-		return workload
-	}
-
-	workloadNames := make(map[string]struct{}, len(workload))
-	for _, c := range workload {
-		workloadNames[c.Name] = struct{}{}
-	}
-
-	mergedContainersList := make([]corev1.Container, len(workload), len(workload)+len(podContainers))
-	copy(mergedContainersList, workload)
-	for _, c := range podContainers {
-		if _, ok := workloadNames[c.Name]; !ok {
-			mergedContainersList = append(mergedContainersList, c)
-			workloadNames[c.Name] = struct{}{}
-		}
-	}
-	return mergedContainersList
+	return mergeContainers(workload, podContainers)
 }
 
 func (d DaemonSetWrapper) GetSelector() (labels.Selector, error) {

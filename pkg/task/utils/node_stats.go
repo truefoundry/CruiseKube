@@ -55,6 +55,9 @@ func (p *PodInfo) IsGuaranteedPod() bool {
 }
 
 func (p *PodInfo) GetContainerResource(containerName string) (*ContainerResources, error) {
+	if p == nil || p.Stats == nil || p.Stats.OriginalContainerResources == nil || len(p.Stats.OriginalContainerResources) == 0 {
+		return nil, fmt.Errorf("stats not available")
+	}
 	for _, containerResource := range p.Stats.OriginalContainerResources {
 		if strings.EqualFold(containerResource.Name, containerName) {
 			return &ContainerResources{
