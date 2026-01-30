@@ -62,6 +62,9 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 				currentRequestedCPU := containerResource.CPURequest
 				currentRequestedMemory := containerResource.MemoryRequest
 				analysisItem := analyzeWorkloadStats(rec.PodInfo.Stats, rec.PodInfo.Name, rec.ContainerName, result.NodeName, currentRequestedCPU, rec.CPU, currentRequestedMemory, rec.Memory)
+				if rec.PodInfo.Stats.Name == "query-benchmark" {
+					logging.Infof(ctx, "analysisItem: %+v", analysisItem)
+				}
 				analysis = append(analysis, analysisItem)
 				totalCurrentRequests += currentRequestedCPU
 				totalDifferences += analysisItem.CPUDifference
