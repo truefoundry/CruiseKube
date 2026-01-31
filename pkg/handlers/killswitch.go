@@ -32,6 +32,7 @@ func KillswitchHandler(c *gin.Context) {
 
 	clients, err := mgr.GetClusterClients(clusterID)
 	if err != nil {
+		logging.Errorf(ctx, "Unable to fetch cluster clients for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Unable to fetch cluster clients for cluster %s: %v", clusterID, err),
 		})

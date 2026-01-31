@@ -22,6 +22,7 @@ func RecommendationAnalysisHandlerForCluster(c *gin.Context) {
 	mgr := c.MustGet("clusterManager").(cluster.Manager)
 	response, err := generateRecommendationAnalysisForCluster(c.Request.Context(), clusterID, mgr)
 	if err != nil {
+		logging.Errorf(c.Request.Context(), "Failed to generate recommendation analysis for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to generate recommendation analysis for cluster %s: %v", clusterID, err),
 		})
