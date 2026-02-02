@@ -78,8 +78,8 @@ func GetConfigHandler(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"url":                        prometheusURL,
-		"connected":                  connected,
+		"url":                       prometheusURL,
+		"connected":                 connected,
 		"applyRecommendationDryRun": applyRecommendationDryRun,
 	}
 	if connectionError != "" {
