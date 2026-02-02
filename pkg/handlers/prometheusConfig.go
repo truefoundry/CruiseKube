@@ -12,7 +12,7 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-func GetPrometheusConfigHandler(c *gin.Context) {
+func GetConfigHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
@@ -68,9 +68,19 @@ func GetPrometheusConfigHandler(c *gin.Context) {
 		logging.Errorf(ctx, "Prometheus client not available for cluster %s", clusterID)
 	}
 
+	applyRecommendationDryRun := true // default to dry run
+	if tc := cfg.GetTaskConfig(config.ApplyRecommendationKey); tc != nil && tc.Metadata != nil {
+		if v, ok := tc.Metadata["dryRun"]; ok {
+			if b, ok := v.(bool); ok {
+				applyRecommendationDryRun = b
+			}
+		}
+	}
+
 	response := gin.H{
-		"url":       prometheusURL,
-		"connected": connected,
+		"url":                        prometheusURL,
+		"connected":                  connected,
+		"applyRecommendationDryRun": applyRecommendationDryRun,
 	}
 	if connectionError != "" {
 		response["error"] = connectionError
