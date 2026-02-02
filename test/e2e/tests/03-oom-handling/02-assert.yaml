@@ -1,0 +1,26 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 120
+---
+# Original memory: 300Mi request, 600Mi limit
+# After OOM webhook should apply 572M request, 1144M limit
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-oom
+  labels:
+    app: stress
+spec:
+  containers:
+  - name: stress
+    resources:
+      requests:
+        memory: "572M"
+      limits:
+        memory: "1144M"
+status:
+  phase: Running
+  containerStatuses:
+  - name: stress
+    ready: true

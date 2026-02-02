@@ -1,0 +1,10 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: echo "Checking controller logs for OOM handling..."
+  - command: kubectl logs -n cruisekube-system deploy/cruisekube-controller --tail=20
+  - command: echo "Checking webhook logs for resource adjustments..."
+  - command: kubectl logs -n cruisekube-system deploy/cruisekube-webhook --tail=20
+  - command: echo "Checking current pods..."
+  - command: kubectl get pods -n test-oom -l app=stress -o wide

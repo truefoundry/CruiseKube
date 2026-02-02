@@ -166,7 +166,7 @@ func HandlePrometheusProxy(c *gin.Context) {
 
 	targetURL, err := url.Parse(connInfo.URL)
 	if err != nil {
-		logging.Infof(ctx, "Failed to parse prometheus URL for cluster %s: %v", clusterID, err)
+		logging.Errorf(ctx, "Failed to parse prometheus URL for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to parse prometheus URL for cluster %s: %v", clusterID, err),
 		})
@@ -178,7 +178,7 @@ func HandlePrometheusProxy(c *gin.Context) {
 
 	proxyReq, err := http.NewRequestWithContext(c.Request.Context(), c.Request.Method, targetURL.String(), c.Request.Body)
 	if err != nil {
-		logging.Infof(ctx, "Failed to create proxy request for cluster %s: %v", clusterID, err)
+		logging.Errorf(ctx, "Failed to create proxy request for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to create proxy request for cluster %s: %v", clusterID, err),
 		})
@@ -196,7 +196,7 @@ func HandlePrometheusProxy(c *gin.Context) {
 	client := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	resp, err := client.Do(proxyReq)
 	if err != nil {
-		logging.Infof(ctx, "Failed to proxy request to prometheus for cluster %s: %v", clusterID, err)
+		logging.Errorf(ctx, "Failed to proxy request to prometheus for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusBadGateway, gin.H{
 			"error": fmt.Sprintf("Failed to proxy request to prometheus for cluster %s: %v", clusterID, err),
 		})
@@ -217,7 +217,7 @@ func HandlePrometheusProxy(c *gin.Context) {
 	c.Status(resp.StatusCode)
 	_, err = io.Copy(c.Writer, resp.Body)
 	if err != nil {
-		logging.Infof(ctx, "Failed to copy response body for cluster %s: %v", clusterID, err)
+		logging.Errorf(ctx, "Failed to copy response body for cluster %s: %v", clusterID, err)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 
@@ -21,6 +22,7 @@ func WorkloadAnalysisHandlerForCluster(c *gin.Context) {
 
 	analysis, err := generateWorkloadAnalysisForCluster(clusterID)
 	if err != nil {
+		logging.Errorf(c.Request.Context(), "Failed to generate workload analysis for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to generate workload analysis for cluster %s: %v", clusterID, err),
 		})
