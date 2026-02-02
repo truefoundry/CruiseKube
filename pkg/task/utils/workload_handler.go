@@ -27,16 +27,16 @@ import (
 // not already present (by name). Preserves workload order and capacity semantics.
 // If podContainers is empty, returns workload as-is. If workload is empty, returns
 // a copy of podContainers.
-func mergeContainers(workload, podContainers []corev1.Container) []corev1.Container {
+func mergeContainers(workloadContainers, podContainers []corev1.Container) []corev1.Container {
 	if len(podContainers) == 0 {
-		return workload
+		return workloadContainers
 	}
-	workloadNames := make(map[string]struct{}, len(workload))
-	for _, c := range workload {
+	workloadNames := make(map[string]struct{}, len(workloadContainers))
+	for _, c := range workloadContainers {
 		workloadNames[c.Name] = struct{}{}
 	}
-	merged := make([]corev1.Container, len(workload), len(workload)+len(podContainers))
-	copy(merged, workload)
+	merged := make([]corev1.Container, len(workloadContainers), len(workloadContainers)+len(podContainers))
+	copy(merged, workloadContainers)
 	for _, c := range podContainers {
 		if _, ok := workloadNames[c.Name]; !ok {
 			merged = append(merged, c)
