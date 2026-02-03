@@ -111,7 +111,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		logging.Infof(ctx, "Cluster version is not above 1.33, running in dry run mode")
 	}
 
-	nodeRecommendationMap, err := a.GenerateNodeStatsForCluster(ctx)
+	nodeRecommendationMap, err := a.GenerateNodeStatsForCluster(ctx, nil)
 	if err != nil {
 		logging.Errorf(ctx, "Error generating node recommendations: %v", err)
 		return err
@@ -526,7 +526,8 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 }
 
 // GenerateNodeStatsForCluster builds the node -> pods/resources map using cluster state and stored stats.
-func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Context) (map[string]utils.NodeResourceInfo, error) {
+// If since is non-nil, only stats updated after that time are loaded (local storage only).
+func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Context, since *time.Time) (map[string]utils.NodeResourceInfo, error) {
 	defer utils.TimeIt(ctx, "Generating node stats for cluster")
 
 	targetNamespace := ""
@@ -551,7 +552,11 @@ func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Contex
 		}
 	} else {
 		var err error
-		statsFile, err = utils.LoadStatsFromClusterStorage(a.config.ClusterID)
+		if since != nil {
+			statsFile, err = utils.LoadStatsFromClusterStorageUpdatedSince(a.config.ClusterID, *since)
+		} else {
+			statsFile, err = utils.LoadStatsFromClusterStorage(a.config.ClusterID)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to load stats from storage: %w", err)
 		}

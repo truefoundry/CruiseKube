@@ -169,6 +169,31 @@ func (s *GormDB) GetStatsForCluster(clusterID string) ([]types.WorkloadStat, err
 	return stats, nil
 }
 
+func (s *GormDB) GetStatsForClusterUpdatedSince(clusterID string, since time.Time) ([]types.WorkloadStat, error) {
+	var rowStats []Stats
+	err := s.db.Where(&Stats{ClusterID: clusterID}).
+		Where("updated_at > ?", since).
+		Order("updated_at DESC").
+		Find(&rowStats).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to query cluster stats: %w", err)
+	}
+
+	var stats []types.WorkloadStat
+	for _, row := range rowStats {
+		var stat types.WorkloadStat
+		if err := json.Unmarshal([]byte(row.Stats), &stat); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal stats: %w", err)
+		}
+
+		stat.UpdatedAt = row.UpdatedAt
+		stats = append(stats, stat)
+	}
+
+	return stats, nil
+}
+
 func (s *GormDB) GetStatForWorkload(clusterID, workloadID string) (*types.WorkloadStat, error) {
 	var rowStat Stats
 	err := s.db.Where(&Stats{ClusterID: clusterID, WorkloadID: workloadID}).
