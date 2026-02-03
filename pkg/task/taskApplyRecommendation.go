@@ -315,16 +315,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	currentMemoryLimitQuantity := currentContainerResources.Limits[corev1.ResourceMemory]
 	currentMemoryLimit := float64(currentMemoryLimitQuantity.Value()) / utils.BytesToMBDivisor
 
-	if currentMemoryRequest == currentMemoryLimit {
-		// We are setting both limit and request to 2 * max memory usage to be safe. This is to avoid any issues with OOM kills.
-		recommendedMemoryRequest = utils.EnforceMinimumMemory(2 * max(containerStat.Memory7Day.Max, containerStat.MemoryStats.OOMMemory))
-		recommendedMemoryLimit = recommendedMemoryRequest
-		logging.Infof(ctx, "equal memory limit and request pod %s/%s memory limit updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryLimit, recommendedMemoryLimit)
-		if recommendedMemoryLimit < currentMemoryLimit {
-			// TODO: will be possible from 1.34
-			return false, true, fmt.Errorf("cannot decrease memory limit from %.1f MB to %.1f MB", currentMemoryLimit, recommendedMemoryLimit)
-		}
-	}
+	// TODO: will be possible from 1.34
 	if recommendedMemoryLimit < currentMemoryLimit {
 		recommendedMemoryLimit = math.Ceil(currentMemoryLimit)
 	}
@@ -397,10 +388,6 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 	if currentCPULimit == 0.0 {
 		recommendedCPULimit = 0.0
 	}
-	if rec.PodInfo.IsGuaranteedPod() {
-		logging.Infof(ctx, "pod %s/%s is a guaranteed pod, skipping any kind of cpu changes", rec.PodInfo.Namespace, rec.PodInfo.Name)
-		return true, nil
-	}
 
 	if math.Abs(recommendedCPURequest-currentCPURequest) >= 0.001 || math.Abs(recommendedCPULimit-currentCPULimit) >= 0.001 {
 		if applyChanges {
@@ -471,8 +458,8 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 			continue
 		}
 
-		if podInfo.IsGuaranteedPod() {
-			logging.Infof(ctx, "Pod %s/%s is a guaranteed pod, skipping", podInfo.Namespace, podInfo.Name)
+		if podInfo.IsGuaranteedPod() && !a.config.RecommendationSettings.OptimizeGuaranteedPods {
+			logging.Infof(ctx, "Skipping guaranteed pod %s/%s", podInfo.Namespace, podInfo.Name)
 			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
 				PodInfo:       podInfo,
 				PodName:       podInfo.Name,

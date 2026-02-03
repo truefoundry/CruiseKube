@@ -72,6 +72,7 @@ recommendationSettings:
   applyBlacklistedNamespaces: []
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
+  optimizeGuaranteedPods: true
 telemetry:
   enabled: false
   exporterOTLPEndpoint: ""
