@@ -286,12 +286,6 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 		Query:   query,
 	})
 
-	oomQuery := p.EncloseWithinMemoryCleanupFunction(p.buildBatchOOMMemoryQuery(namespace), MemoryDecimalPlaces)
-	requests = append(requests, ParallelQueryRequest{
-		QueryID: fmt.Sprintf("%s-oom-memory", namespace),
-		Query:   oomQuery,
-	})
-
 	replicaQueryExpr := p.buildBatchReplicaCountQuery(namespace)
 	replicaQuery := fmt.Sprintf("quantile_over_time(0.5, (%s)[%s:1h])", replicaQueryExpr, ReplicaLookbackWindow.String())
 	requests = append(requests, ParallelQueryRequest{
@@ -406,23 +400,6 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 			}
 
 			utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, q.key+"_7day", false)
-		}
-	}
-
-	if result, exists := results[fmt.Sprintf("%s-oom-memory", namespace)]; exists {
-		if result.Error != nil {
-			logging.Infof(ctx, "Error getting OOM memory metrics for namespace %s: %v", namespace, result.Error)
-		} else {
-			if len(result.Warnings) > 0 {
-				logging.Infof(ctx, "Warnings from OOM memory query for namespace %s: %v", namespace, result.Warnings)
-			}
-
-			rawResults, err := p.parsePrometheusVectorResultForContainer(result.Result)
-			if err != nil {
-				logging.Infof(ctx, "Error parsing OOM memory results for namespace %s: %v", namespace, err)
-			} else {
-				utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, "oom_memory", false)
-			}
 		}
 	}
 
@@ -703,73 +680,6 @@ func (p *PrometheusProvider) buildBatchReplicaCountQuery(namespace string) strin
 	template := `count by (created_by_kind, created_by_name, namespace) (%s)`
 
 	return fmt.Sprintf(template, podInfo)
-}
-
-func (p *PrometheusProvider) buildBatchOOMMemoryQuery(namespace string) string {
-	oomExpression := p.buildBatchOOMMemoryExpression(namespace)
-
-	template := `max_over_time(
-		(%s)
-		[%s:1m]
-	)`
-
-	return fmt.Sprintf(template, oomExpression, MemoryLookbackWindow.String())
-}
-
-func (p *PrometheusProvider) buildBatchOOMMemoryExpression(namespace string) string {
-	podInfo := p.buildBatchPodInfoExpression(namespace)
-
-	template := `max by (created_by_kind, created_by_name, namespace, container) (
-		(
-			sum by (namespace, pod, container, node) (
-				kube_pod_container_resource_limits{job="kube-state-metrics",namespace="%s"}
-			)
-			* on (namespace, pod, container) group_right(node)
-			(
-				sum by (namespace, pod, container) (
-					kube_pod_container_status_last_terminated_reason{job="kube-state-metrics",namespace="%s",reason="OOMKilled"}
-					* on (namespace, pod, container)
-					sum by (namespace, pod, container) (
-						increase(
-							kube_pod_container_status_restarts_total{job="kube-state-metrics",namespace="%s"}[1m]
-						)
-					)
-				)
-				>
-				bool 0
-			)
-		)
-		* on (namespace, pod, node) group_left(created_by_kind, created_by_name)
-		(%s)
-	)`
-
-	return fmt.Sprintf(template, namespace, namespace, namespace, podInfo)
-}
-
-func BuildBatchMemoryUsageExpression(namespace string) string {
-	podInfo := buildBatchPodInfoExpression(namespace)
-
-	template := `max by (created_by_kind, created_by_name, namespace, container) (
-      container_memory_working_set_bytes{
-        job="kubelet",
-        namespace="%s",
-        container!~""
-      }
-      * on (namespace, pod, node) group_left(created_by_kind, created_by_name)
-      (%s)
-    )`
-
-	return fmt.Sprintf(template, namespace, podInfo)
-}
-
-func buildBatchPodInfoExpression(namespace string) string {
-	template := `max by (namespace, pod, container, node, created_by_kind, created_by_name) (
-		kube_pod_info{
-			job="kube-state-metrics",
-			namespace="%s"
-		}
-	)`
-	return fmt.Sprintf(template, namespace)
 }
 
 func ConvertModelValueToPrometheusJSON(result model.Value, warnings []string) (map[string]interface{}, error) {
