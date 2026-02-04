@@ -167,7 +167,16 @@ func computeSimpleTimeSeriesPredictions(ctx context.Context, timeseriesData []Si
 			}
 		}
 
-		maxValue := max(weeklyPrediction, hourlyPrediction, currentPrediction)
+		prevHour := (currentHour - 1 + 24) % 24
+		nextHour := (currentHour + 1) % 24
+
+		maxValue := currentPrediction
+		for i, t := range parsed {
+			hour := t.Hour()
+			if hour == currentHour || hour == prevHour || hour == nextHour {
+				maxValue = max(maxValue, values[i])
+			}
+		}
 
 		results = append(results, SimplePredictionResponse{
 			EntityName:        entityName,
