@@ -6,7 +6,7 @@ metadata:
   namespace: cruisekube-system
 data:
   populate.sql: |
-    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, overrides)
+    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
         'default',
         'Deployment:test-workloads:nginx-deployment',
@@ -70,11 +70,13 @@ data:
           ]
         }',
         NOW() - INTERVAL '1 hour',
+        NOW(),
+        NOW(),
         '{}'
     )
     ON CONFLICT DO NOTHING;
 
-    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, overrides)
+    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
         'default',
         'Deployment:test-workloads:busybox-deployment',
@@ -138,6 +140,8 @@ data:
           ]
         }',
         NOW() - INTERVAL '1 hour',
+        NOW(),
+        NOW(),
         '{}'
     )
     ON CONFLICT DO NOTHING;
