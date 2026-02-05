@@ -16,6 +16,12 @@ type WorkloadConstraints struct {
 	ExcludedAnnotation       bool `json:"excluded_annotation"`
 }
 
+// WorkloadStatMetadata holds metadata about a workload stat (e.g. exclusion from recommendations).
+type WorkloadStatMetadata struct {
+	Excluded       bool   `json:"excluded"`
+	ExcludedReason string `json:"excluded_reason,omitempty"`
+}
+
 type EvictionRanking int
 
 const (
@@ -50,6 +56,7 @@ type WorkloadStat struct {
 	Constraints                   *WorkloadConstraints `json:"constraints,omitempty"`
 	EvictionRanking               EvictionRanking      `json:"eviction_ranking"`
 	Replicas                      int32                `json:"replicas"`
+	Metadata                      *WorkloadStatMetadata `json:"metadata,omitempty"`
 
 	ContainerStats             []ContainerStats             `json:"container_stats"`
 	OriginalContainerResources []OriginalContainerResources `json:"original_container_resources"`

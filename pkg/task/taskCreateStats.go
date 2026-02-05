@@ -275,6 +275,10 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	if workloadHPAMap != nil {
 		if isAutoscaled, exists := workloadHPAMap[workloadKey]; exists && isAutoscaled {
 			workloadStat.IsHorizontallyAutoscaledOnCPU = true
+			workloadStat.Metadata = &types.WorkloadStatMetadata{
+				Excluded:       true,
+				ExcludedReason: "HPA enabled",
+			}
 		}
 	}
 
