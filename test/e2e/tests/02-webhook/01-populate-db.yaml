@@ -6,7 +6,7 @@ metadata:
   namespace: cruisekube-system
 data:
   populate.sql: |
-    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, overrides)
+    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
         'default',
         'Deployment:test-webhook:redis-deployment',
@@ -70,10 +70,12 @@ data:
           ]
         }',
         NOW() - INTERVAL '1 hour',
+        NOW(),
+        NOW(),
         '{}'
     );
 
-    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, overrides)
+    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
         'default',
         'Deployment:test-webhook:memcached-deployment',
@@ -137,6 +139,8 @@ data:
           ]
         }',
         NOW() - INTERVAL '1 hour',
+        NOW(),
+        NOW(),
         '{}'
     );
 

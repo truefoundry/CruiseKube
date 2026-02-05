@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
@@ -26,6 +27,15 @@ type StatsResponse = types.StatsResponse
 func LoadStatsFromClusterStorage(clusterID string) (*StatsResponse, error) {
 	var statsFile StatsResponse
 	if err := storage.Stg.ReadClusterStats(clusterID, &statsFile); err != nil {
+		return nil, fmt.Errorf("failed to read cluster stats: %w", err)
+	}
+	return &statsFile, nil
+}
+
+// LoadStatsFromClusterStorageUpdatedSince loads stats for the cluster that were updated after the given time.
+func LoadStatsFromClusterStorageUpdatedSince(clusterID string, since time.Time) (*StatsResponse, error) {
+	var statsFile StatsResponse
+	if err := storage.Stg.ReadClusterStatsUpdatedSince(clusterID, &statsFile, since); err != nil {
 		return nil, fmt.Errorf("failed to read cluster stats: %w", err)
 	}
 	return &statsFile, nil

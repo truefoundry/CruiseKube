@@ -42,6 +42,16 @@ func (s *Storage) ReadClusterStats(clusterID string, target *types.StatsResponse
 	return nil
 }
 
+func (s *Storage) ReadClusterStatsUpdatedSince(clusterID string, target *types.StatsResponse, since time.Time) error {
+	stats, err := s.DB.GetStatsForClusterUpdatedSince(clusterID, since)
+	if err != nil {
+		return fmt.Errorf("failed to read cluster stats: %w", err)
+	}
+
+	target.Stats = stats
+	return nil
+}
+
 func (s *Storage) ClusterStatsExists(clusterID string) (bool, error) {
 	exists, err := s.DB.HasStatForCluster(clusterID)
 	if err != nil {
@@ -82,6 +92,14 @@ func (s *Storage) GetWorkloadOverrides(clusterID, workloadID string) (*types.Ove
 
 func (s *Storage) GetAllStatsForCluster(clusterID string) ([]types.WorkloadStat, error) {
 	stats, err := s.DB.GetStatsForCluster(clusterID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stats for cluster: %w", err)
+	}
+	return stats, nil
+}
+
+func (s *Storage) GetAllStatsForClusterUpdatedSince(clusterID string, since time.Time) ([]types.WorkloadStat, error) {
+	stats, err := s.DB.GetStatsForClusterUpdatedSince(clusterID, since)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stats for cluster: %w", err)
 	}

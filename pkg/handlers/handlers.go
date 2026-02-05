@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,56 +19,6 @@ import (
 
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
-
-func HandleUIStaticFiles(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	// Get the filename from the URL path
-	urlPath := c.Request.URL.Path
-	fileName := filepath.Base(urlPath)
-
-	paths := []string{
-		filepath.Join("web", fileName),
-	}
-
-	var content []byte
-	var err error
-	for _, path := range paths {
-		// #nosec G304 - paths are controlled static file paths
-		content, err = os.ReadFile(path)
-		if err == nil {
-			break
-		}
-	}
-
-	if err != nil {
-		logging.Errorf(ctx, "Failed to read static file %s: %v", fileName, err)
-		c.String(http.StatusNotFound, "File not found")
-		return
-	}
-
-	contentType := "text/plain"
-	switch {
-	case strings.HasSuffix(fileName, ".js"):
-		contentType = "application/javascript"
-	case strings.HasSuffix(fileName, ".css"):
-		contentType = "text/css"
-	case strings.HasSuffix(fileName, ".html"):
-		contentType = "text/html"
-	case strings.HasSuffix(fileName, ".png"):
-		contentType = "image/png"
-	case strings.HasSuffix(fileName, ".jpg"), strings.HasSuffix(fileName, ".jpeg"):
-		contentType = "image/jpeg"
-	case strings.HasSuffix(fileName, ".gif"):
-		contentType = "image/gif"
-	case strings.HasSuffix(fileName, ".svg"):
-		contentType = "image/svg+xml"
-	case strings.HasSuffix(fileName, ".ico"):
-		contentType = "image/x-icon"
-	}
-
-	c.Data(http.StatusOK, contentType, content)
-}
 
 func HandleRoot(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json",
@@ -135,7 +83,9 @@ func HandleClusterStats(c *gin.Context) {
 	logging.Infof(ctx, "Serving stats for cluster %s to %s", clusterID, c.ClientIP())
 	c.Header("Content-Type", "application/json")
 	var statsResponse types.StatsResponse
-	if err := storage.Stg.ReadClusterStats(clusterID, &statsResponse); err != nil {
+	// Only return data updated in the last 24 hours
+	since := time.Now().Add(-StatsAPIDataLookbackWindow)
+	if err := storage.Stg.ReadClusterStatsUpdatedSince(clusterID, &statsResponse, since); err != nil {
 		logging.Errorf(ctx, "Failed to read cluster stats for %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to read cluster stats for %s: %v", clusterID, err),

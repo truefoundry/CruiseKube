@@ -44,15 +44,6 @@ func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook
 		}
 	}
 
-	uiGroup := r.Group("/ui")
-	uiGroup.Use(authAPI)
-	{
-		uiGroup.GET("/app.js", handlers.HandleUIStaticFiles)
-		uiGroup.GET("/styles.css", handlers.HandleUIStaticFiles)
-		uiGroup.GET("/ui.html", handlers.HandleUIStaticFiles)
-		uiGroup.GET("", handlers.GeneralUIHandler)
-	}
-
 	webhookGroup := apiV1Group.Group("/webhook/clusters/:clusterID", authWebhook, ensureClusterExists)
 	{
 		webhookGroup.GET("/stats", handlers.HandleClusterStats)

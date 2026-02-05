@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
@@ -39,7 +40,9 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 	}
 
 	recomTask := clusterTask.GetCoreTask().(*task.ApplyRecommendationTask)
-	nodeRecommendationMap, err := recomTask.GenerateNodeStatsForCluster(ctx)
+	// Only include data updated in the last 24 hours
+	since := time.Now().Add(-StatsAPIDataLookbackWindow)
+	nodeRecommendationMap, err := recomTask.GenerateNodeStatsForCluster(ctx, &since)
 	if err != nil {
 		return nil, fmt.Errorf("error generating node recommendations: %w", err)
 	}
@@ -55,7 +58,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 	for _, result := range recommendationResults {
 		for _, rec := range result.PodContainerRecommendations {
 			if rec.PodInfo.Stats != nil {
-				containerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
+				containerResource, err := rec.PodInfo.GetOriginalContainerResource(rec.ContainerName)
 				if err != nil {
 					logging.Errorf(ctx, "error getting container resource for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 					continue
