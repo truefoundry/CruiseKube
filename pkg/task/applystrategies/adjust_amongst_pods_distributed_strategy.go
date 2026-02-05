@@ -257,7 +257,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 			ContainerName: metric.containerStats.ContainerName,
 			CPU:           finalCPU,
 			Memory:        finalMemory,
-			Evict:         metric.pod.IsGuaranteedPod(),
+			Evict:         false,
 		}
 		result.PodContainerRecommendations = append(result.PodContainerRecommendations, podContainerRec)
 	}

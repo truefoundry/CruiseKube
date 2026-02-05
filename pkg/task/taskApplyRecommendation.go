@@ -227,7 +227,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				continue
 			}
 
-			if rec.Evict {
+			if rec.Evict || rec.PodInfo.IsGuaranteedPod() {
 				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
 				logging.Infof(ctx, "Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				if applyChanges {
