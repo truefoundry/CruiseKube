@@ -55,6 +55,15 @@ func (p *PodInfo) IsGuaranteedPod() bool {
 }
 
 func (p *PodInfo) GetContainerResource(containerName string) (*ContainerResources, error) {
+	for _, containerResource := range p.ContainerResources {
+		if strings.EqualFold(containerResource.Name, containerName) {
+			return containerResource, nil
+		}
+	}
+	return nil, fmt.Errorf("container resource %s not found", containerName)
+}
+
+func (p *PodInfo) GetOriginalContainerResource(containerName string) (*ContainerResources, error) {
 	// p.Stats can be nil if the pod has no stats generated yet.
 	if p.Stats == nil || p.Stats.OriginalContainerResources == nil || len(p.Stats.OriginalContainerResources) == 0 {
 		return nil, fmt.Errorf("stats not available")
