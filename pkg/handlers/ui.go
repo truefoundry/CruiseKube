@@ -19,7 +19,7 @@ func ListWorkloadsHandler(c *gin.Context) {
 	clusterID := c.Param("clusterID")
 	logging.Infof(ctx, "Listing workloads for cluster %s", clusterID)
 	// Only return workloads with data updated in the last 24 hours
-	since := time.Now().Add(-24 * time.Hour)
+	since := time.Now().Add(-StatsAPIDataLookbackWindow)
 	stats, err := storage.Stg.GetAllStatsForClusterUpdatedSince(clusterID, since)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get stats for cluster %s: %v", clusterID, err)

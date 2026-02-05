@@ -41,7 +41,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 
 	recomTask := clusterTask.GetCoreTask().(*task.ApplyRecommendationTask)
 	// Only include data updated in the last 24 hours
-	since := time.Now().Add(-24 * time.Hour)
+	since := time.Now().Add(-StatsAPIDataLookbackWindow)
 	nodeRecommendationMap, err := recomTask.GenerateNodeStatsForCluster(ctx, &since)
 	if err != nil {
 		return nil, fmt.Errorf("error generating node recommendations: %w", err)

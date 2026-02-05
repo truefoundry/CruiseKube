@@ -84,7 +84,7 @@ func HandleClusterStats(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	var statsResponse types.StatsResponse
 	// Only return data updated in the last 24 hours
-	since := time.Now().Add(-24 * time.Hour)
+	since := time.Now().Add(-StatsAPIDataLookbackWindow)
 	if err := storage.Stg.ReadClusterStatsUpdatedSince(clusterID, &statsResponse, since); err != nil {
 		logging.Errorf(ctx, "Failed to read cluster stats for %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
