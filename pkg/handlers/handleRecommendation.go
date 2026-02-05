@@ -58,7 +58,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 	for _, result := range recommendationResults {
 		for _, rec := range result.PodContainerRecommendations {
 			if rec.PodInfo.Stats != nil {
-				containerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
+				containerResource, err := rec.PodInfo.GetOriginalContainerResource(rec.ContainerName)
 				if err != nil {
 					logging.Errorf(ctx, "error getting container resource for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 					continue
