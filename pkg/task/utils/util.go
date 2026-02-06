@@ -558,7 +558,7 @@ func GetPodKey(namespace, name string) string {
 	return fmt.Sprintf("%s:%s", namespace, name)
 }
 
-func CheckIfClusterAbove133(ctx context.Context, kubeClient *kubernetes.Clientset) bool {
+func CheckIfClusterVersionAbove(ctx context.Context, kubeClient *kubernetes.Clientset, targetMajor, targetMinor int) bool {
 	version, err := kubeClient.Discovery().ServerVersion()
 	if err != nil {
 		logging.Errorf(ctx, "[ApplyRecommendation] Error getting cluster version: %v", err)
@@ -585,49 +585,13 @@ func CheckIfClusterAbove133(ctx context.Context, kubeClient *kubernetes.Clientse
 		return false
 	}
 
-	if major > 1 || (major == 1 && minor >= 33) {
-		logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is above 1.33", version.GitVersion)
-		return true
+	isAbove := major > targetMajor || (major == targetMajor && minor >= targetMinor)
+	if isAbove {
+		logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is above %d.%d", version.GitVersion, targetMajor, targetMinor)
+	} else {
+		logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is not above %d.%d", version.GitVersion, targetMajor, targetMinor)
 	}
-
-	logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is not above 1.33", version.GitVersion)
-	return false
-}
-
-func CheckIfClusterAbove134(ctx context.Context, kubeClient *kubernetes.Clientset) bool {
-	version, err := kubeClient.Discovery().ServerVersion()
-	if err != nil {
-		logging.Errorf(ctx, "[ApplyRecommendation] Error getting cluster version: %v", err)
-		return false
-	}
-
-	gitVersion := strings.TrimPrefix(version.GitVersion, "v")
-
-	versionParts := strings.Split(gitVersion, ".")
-	if len(versionParts) < 2 {
-		logging.Errorf(ctx, "[ApplyRecommendation] Invalid version format: %s", version.GitVersion)
-		return false
-	}
-
-	major, err := strconv.Atoi(versionParts[0])
-	if err != nil {
-		logging.Errorf(ctx, "[ApplyRecommendation] Error parsing major version: %v", err)
-		return false
-	}
-
-	minor, err := strconv.Atoi(versionParts[1])
-	if err != nil {
-		logging.Errorf(ctx, "[ApplyRecommendation] Error parsing minor version: %v", err)
-		return false
-	}
-
-	if major > 1 || (major == 1 && minor >= 34) {
-		logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is above 1.34", version.GitVersion)
-		return true
-	}
-
-	logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is not above 1.34", version.GitVersion)
-	return false
+	return isAbove
 }
 
 func GetWorkloadInfoFromPod(pod *corev1.Pod) *WorkloadInfo {

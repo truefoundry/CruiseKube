@@ -106,7 +106,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		return nil
 	}
 
-	if !utils.CheckIfClusterAbove133(ctx, a.kubeClient) {
+	if !utils.CheckIfClusterVersionAbove(ctx, a.kubeClient, 1, 33) {
 		applyChanges = false
 		logging.Infof(ctx, "Cluster version is not above 1.33, running in dry run mode")
 	}
@@ -315,7 +315,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	currentMemoryLimitQuantity := currentContainerResources.Limits[corev1.ResourceMemory]
 	currentMemoryLimit := float64(currentMemoryLimitQuantity.Value()) / utils.BytesToMBDivisor
 
-	supportsMemoryReduction := utils.CheckIfClusterAbove134(ctx, a.kubeClient)
+	supportsMemoryReduction := utils.CheckIfClusterVersionAbove(ctx, a.kubeClient, 1, 34)
 	if !supportsMemoryReduction && recommendedMemoryLimit < currentMemoryLimit {
 		recommendedMemoryLimit = math.Ceil(currentMemoryLimit)
 	}
