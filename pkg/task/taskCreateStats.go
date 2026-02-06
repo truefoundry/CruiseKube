@@ -139,15 +139,20 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 	}
 
 	workloadHpaCpuMap := make(map[string]bool)
+	workloadHpaMemoryMap := make(map[string]bool)
 	for key := range uniqueWorkloads {
 		workloadHpaCpuMap[key] = false
+		workloadHpaMemoryMap[key] = false
 	}
 
 	if c.dynamicClient != nil {
-		err = utils.CheckHPAOnCPU(ctx, c.dynamicClient, targetNamespace, workloadHpaCpuMap)
-		if err != nil {
-			logging.Errorf(ctx, "Error checking HPA status: %v", err)
+		if err = utils.CheckHPAOnCPU(ctx, c.dynamicClient, targetNamespace, workloadHpaCpuMap); err != nil {
+			logging.Errorf(ctx, "Error checking HPA on CPU: %v", err)
 			return fmt.Errorf("failed to check HPA on CPU: %w", err)
+		}
+		if err = utils.CheckHPAOnMemory(ctx, c.dynamicClient, targetNamespace, workloadHpaMemoryMap); err != nil {
+			logging.Errorf(ctx, "Error checking HPA on memory: %v", err)
+			return fmt.Errorf("failed to check HPA on memory: %w", err)
 		}
 	}
 
@@ -176,6 +181,7 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 			namespaceVsSimpleCPUPredictions[workloadInfo.Namespace],
 			namespaceVsSimpleMemoryPredictions[workloadInfo.Namespace],
 			workloadHpaCpuMap,
+			workloadHpaMemoryMap,
 			c.dynamicClient,
 			pdbCache,
 		); stat != nil {
@@ -236,7 +242,8 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	containerKeyVsMemoryPrediction map[string]utils.WorkloadPrediction,
 	workloadContainerKeyVsSimpleCPUPrediction map[string]utils.SimplePrediction,
 	workloadContainerKeyVsSimpleMemoryPrediction map[string]utils.SimplePrediction,
-	workloadHPAMap map[string]bool,
+	workloadHpaCpuMap map[string]bool,
+	workloadHpaMemoryMap map[string]bool,
 	dynamicClient dynamic.Interface,
 	pdbCache map[string][]policyv1.PodDisruptionBudget,
 ) *utils.WorkloadStat {
@@ -271,14 +278,35 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	workloadStat.CreationTime = workloadObj.GetCreationTime()
 	workloadStat.UpdatedAt = time.Now()
 
-	// Check if this workload is horizontally autoscaled on CPU
-	if workloadHPAMap != nil {
-		if isAutoscaled, exists := workloadHPAMap[workloadKey]; exists && isAutoscaled {
-			workloadStat.IsHorizontallyAutoscaledOnCPU = true
-			workloadStat.Metadata = &types.WorkloadStatMetadata{
-				Excluded:       true,
-				ExcludedReason: "HPA enabled",
-			}
+	// Check if this workload is horizontally autoscaled on CPU and/or memory
+	hpaOnCPU := workloadHpaCpuMap != nil && workloadHpaCpuMap[workloadKey]
+	hpaOnMemory := workloadHpaMemoryMap != nil && workloadHpaMemoryMap[workloadKey]
+	if hpaOnCPU {
+		workloadStat.IsHorizontallyAutoscaledOnCPU = true
+	}
+	if hpaOnMemory {
+		workloadStat.IsHorizontallyAutoscaledOnMem = true
+	}
+	excludedCodes := []types.ExcludedCode{}
+	if hpaOnCPU || hpaOnMemory {
+		if hpaOnCPU && hpaOnMemory {
+			excludedCodes = append(excludedCodes, types.ExcludedCodeCPUHPA, types.ExcludedCodeMemoryHPA)
+		} else if hpaOnCPU {
+			excludedCodes = append(excludedCodes, types.ExcludedCodeCPUHPA)
+		} else {
+			excludedCodes = append(excludedCodes, types.ExcludedCodeMemoryHPA)
+		}
+		workloadStat.Metadata = &types.WorkloadStatMetadata{
+			Excluded:      true,
+			ExcludedCodes: excludedCodes,
+		}
+	}
+
+	if utils.WorkloadHasGPU(containerSpecs, initContainerSpecs) {
+		logging.Infof(ctx, "Workload %s has GPU requests/limits, excluding from stats", workloadKey)
+		workloadStat.Metadata = &types.WorkloadStatMetadata{
+			Excluded:      true,
+			ExcludedCodes: append(excludedCodes, types.ExcludedCodeGPUWorkload),
 		}
 	}
 

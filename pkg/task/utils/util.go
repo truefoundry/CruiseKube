@@ -22,6 +22,36 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// Known GPU resource names (Prometheus uses nvidia_com_gpu / amd_com_gpu; K8s uses nvidia.com/gpu, amd.com/gpu).
+var gpuResourceNames = []corev1.ResourceName{
+	"nvidia.com/gpu",
+	"amd.com/gpu",
+}
+
+// WorkloadHasGPU returns true if any of the given container specs request or limit GPU resources.
+func WorkloadHasGPU(containers ...[]corev1.Container) bool {
+	for _, list := range containers {
+		for i := range list {
+			if containerHasGPU(&list[i]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func containerHasGPU(c *corev1.Container) bool {
+	for _, name := range gpuResourceNames {
+		if q, ok := c.Resources.Requests[name]; ok && !q.IsZero() {
+			return true
+		}
+		if q, ok := c.Resources.Limits[name]; ok && !q.IsZero() {
+			return true
+		}
+	}
+	return false
+}
+
 func updatePodResources(
 	ctx context.Context,
 	kubeClient *kubernetes.Clientset,

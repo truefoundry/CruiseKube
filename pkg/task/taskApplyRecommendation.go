@@ -507,8 +507,8 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 			continue
 		}
 
-		if podInfo.Stats.IsHorizontallyAutoscaledOnCPU {
-			logging.Infof(ctx, "Pod %s/%s is horizontally autoscaled on CPU, skipping", podInfo.Namespace, podInfo.Name)
+		if podInfo.Stats.IsHorizontallyAutoscaledOnCPU || podInfo.Stats.IsHorizontallyAutoscaledOnMem {
+			logging.Infof(ctx, "Pod %s/%s is horizontally autoscaled on CPU/Memory, skipping", podInfo.Namespace, podInfo.Name)
 			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
 				PodInfo:       podInfo,
 				PodName:       podInfo.Name,

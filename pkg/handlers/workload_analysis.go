@@ -42,7 +42,7 @@ func analyzeWorkload(stat utils.WorkloadStat) []types.WorkloadAnalysisItem {
 
 	// Determine autoscaling status
 	autoscalingOnCPU := NoValue
-	if stat.IsHorizontallyAutoscaledOnCPU {
+	if stat.IsHorizontallyAutoscaledOnCPU || stat.IsHorizontallyAutoscaledOnMem {
 		autoscalingOnCPU = YesValue
 	}
 

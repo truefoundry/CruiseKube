@@ -108,7 +108,7 @@ func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, node
 	}
 
 	autoscalingOnCPU := "No"
-	if stat.IsHorizontallyAutoscaledOnCPU {
+	if stat.IsHorizontallyAutoscaledOnCPU || stat.IsHorizontallyAutoscaledOnMem {
 		autoscalingOnCPU = "Yes"
 	}
 

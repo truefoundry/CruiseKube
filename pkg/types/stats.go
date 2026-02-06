@@ -16,10 +16,19 @@ type WorkloadConstraints struct {
 	ExcludedAnnotation       bool `json:"excluded_annotation"`
 }
 
+type ExcludedCode string
+
+const (
+	ExcludedCodeGPUWorkload ExcludedCode = "GPU_WORKLOAD"
+	ExcludedCodeMemoryHPA   ExcludedCode = "MEMORY_HPA"
+	ExcludedCodeCPUHPA      ExcludedCode = "CPU_HPA"
+)
+
 // WorkloadStatMetadata holds metadata about a workload stat (e.g. exclusion from recommendations).
 type WorkloadStatMetadata struct {
-	Excluded       bool   `json:"excluded"`
-	ExcludedReason string `json:"excluded_reason,omitempty"`
+	Excluded      bool           `json:"excluded"`
+	ExcludedCodes []ExcludedCode `json:"excluded_codes,omitempty"`
+	IsGPUWorkload bool           `json:"is_gpu_workload,omitempty"`
 }
 
 type EvictionRanking int
@@ -53,6 +62,7 @@ type WorkloadStat struct {
 	UpdatedAt                     time.Time             `json:"updated_at"`
 	ContinuousOptimization        bool                  `json:"continuous_optimization"`
 	IsHorizontallyAutoscaledOnCPU bool                  `json:"is_horizontally_autoscaled_on_cpu"`
+	IsHorizontallyAutoscaledOnMem bool                  `json:"is_horizontally_autoscaled_on_memory"`
 	Constraints                   *WorkloadConstraints  `json:"constraints,omitempty"`
 	EvictionRanking               EvictionRanking       `json:"eviction_ranking"`
 	Replicas                      int32                 `json:"replicas"`

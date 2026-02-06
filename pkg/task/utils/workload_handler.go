@@ -437,27 +437,82 @@ func CheckHPAOnCPU(ctx context.Context, dynamicClient dynamic.Interface, targetN
 			continue
 		}
 
-		hpaNamespace := hpa.Namespace
-		hpaTargetName := hpa.Spec.ScaleTargetRef.Name
-		hpaTargetKind := hpa.Spec.ScaleTargetRef.Kind
-		hpaTargetAPIVersion := hpa.Spec.ScaleTargetRef.APIVersion
-
-		// Argo Rollouts are treated as Deployments for workload management purposes since they extend Kubernetes Deployment functionality.
-		if hpaTargetKind == RolloutKind && hpaTargetAPIVersion == "argoproj.io/v1alpha1" {
-			hpaTargetKind = DeploymentKind
-		}
-
-		if hpaTargetName != "" && hpaTargetKind != "" {
-			targetKey := GetWorkloadKey(hpaTargetKind, hpaNamespace, hpaTargetName)
-			if _, exists := workloadHpaCpuMap[targetKey]; exists {
-				workloadHpaCpuMap[targetKey] = true
-			} else {
-				logging.Errorf(ctx, "HPA target %s not found in workload map", targetKey)
-			}
-		}
+		markWorkloadHPA(ctx, hpa, workloadHpaCpuMap)
 	}
 
 	return nil
+}
+
+// CheckHPAOnMemory checks if workloads are horizontally autoscaled based on memory metrics
+func CheckHPAOnMemory(ctx context.Context, dynamicClient dynamic.Interface, targetNamespace string, workloadHpaMemoryMap map[string]bool) error {
+	hpaGVR := schema.GroupVersionResource{
+		Group:    "autoscaling",
+		Version:  "v2",
+		Resource: "horizontalpodautoscalers",
+	}
+
+	var hpaList *unstructured.UnstructuredList
+	var err error
+
+	if targetNamespace == "" {
+		hpaList, err = dynamicClient.Resource(hpaGVR).List(ctx, metav1.ListOptions{})
+	} else {
+		hpaList, err = dynamicClient.Resource(hpaGVR).Namespace(targetNamespace).List(ctx, metav1.ListOptions{})
+	}
+
+	if err != nil {
+		logging.Errorf(ctx, "Could not list HPAs: %v", err)
+		return fmt.Errorf("failed to list HPAs: %w", err)
+	}
+
+	for _, hpaUnstructured := range hpaList.Items {
+		var hpa autoscalingv2.HorizontalPodAutoscaler
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(hpaUnstructured.Object, &hpa)
+		if err != nil {
+			logging.Errorf(ctx, "Could not convert HPA %s/%s to structured object: %v",
+				hpaUnstructured.GetNamespace(), hpaUnstructured.GetName(), err)
+			continue
+		}
+
+		hasMemoryMetric := false
+		for _, metric := range hpa.Spec.Metrics {
+			if metric.Type == autoscalingv2.ResourceMetricSourceType &&
+				metric.Resource != nil &&
+				metric.Resource.Name == corev1.ResourceMemory {
+				hasMemoryMetric = true
+				break
+			}
+		}
+
+		if !hasMemoryMetric {
+			continue
+		}
+
+		markWorkloadHPA(ctx, hpa, workloadHpaMemoryMap)
+	}
+
+	return nil
+}
+
+func markWorkloadHPA(ctx context.Context, hpa autoscalingv2.HorizontalPodAutoscaler, workloadHpaMap map[string]bool) {
+	hpaNamespace := hpa.Namespace
+	hpaTargetName := hpa.Spec.ScaleTargetRef.Name
+	hpaTargetKind := hpa.Spec.ScaleTargetRef.Kind
+	hpaTargetAPIVersion := hpa.Spec.ScaleTargetRef.APIVersion
+
+	// Argo Rollouts are treated as Deployments for workload management purposes since they extend Kubernetes Deployment functionality.
+	if hpaTargetKind == RolloutKind && hpaTargetAPIVersion == "argoproj.io/v1alpha1" {
+		hpaTargetKind = DeploymentKind
+	}
+
+	if hpaTargetName != "" && hpaTargetKind != "" {
+		targetKey := GetWorkloadKey(hpaTargetKind, hpaNamespace, hpaTargetName)
+		if _, exists := workloadHpaMap[targetKey]; exists {
+			workloadHpaMap[targetKey] = true
+		} else {
+			logging.Errorf(ctx, "HPA target %s not found in workload map", targetKey)
+		}
+	}
 }
 
 func DetectWorkloadConstraints(ctx context.Context, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, workloadObj WorkloadObject, pdbCache map[string][]policyv1.PodDisruptionBudget) (*WorkloadConstraints, error) {
