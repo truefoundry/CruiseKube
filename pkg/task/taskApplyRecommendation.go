@@ -134,6 +134,8 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		overridesMap[override.WorkloadID] = &override
 	}
 
+	supportsMemoryReduction := utils.CheckIfClusterVersionAbove(ctx, a.kubeClient, 1, 34)
+
 	_, err = a.ApplyRecommendationsWithStrategy(
 		ctx,
 		nodeRecommendationMap,
@@ -141,6 +143,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		applystrategies.NewAdjustAmongstPodsDistributedStrategy(ctx),
 		applyChanges,
 		false,
+		supportsMemoryReduction,
 	)
 	if err != nil {
 		logging.Errorf(ctx, "Error applying recommendations: %v", err)
@@ -157,6 +160,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 	strategy utils.OptimizationStrategy,
 	applyChanges bool,
 	generateRecommendationOnly bool,
+	supportsMemoryReduction bool,
 ) ([]*RecommendationResult, error) {
 	logging.Infof(ctx, "Starting recommendation application using strategy: %s", strategy.GetName())
 	if !applyChanges {
@@ -252,7 +256,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 
 			if !a.config.RecommendationSettings.DisableMemoryApplication && !a.config.Metadata.SkipMemory {
-				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges)
+				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges, supportsMemoryReduction)
 				if skipped {
 					logging.Infof(ctx, "Skipping memory recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 				} else if err != nil {
@@ -289,6 +293,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	currentContainerResources corev1.ResourceRequirements,
 	rec utils.PodContainerRecommendation,
 	applyChanges bool,
+	supportsMemoryReduction bool,
 ) (bool, bool, error) {
 	containerStat, err := rec.PodInfo.Stats.GetContainerStats(rec.ContainerName)
 	if err != nil {
@@ -315,7 +320,6 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	currentMemoryLimitQuantity := currentContainerResources.Limits[corev1.ResourceMemory]
 	currentMemoryLimit := float64(currentMemoryLimitQuantity.Value()) / utils.BytesToMBDivisor
 
-	supportsMemoryReduction := utils.CheckIfClusterVersionAbove(ctx, a.kubeClient, 1, 34)
 	if !supportsMemoryReduction && recommendedMemoryLimit < currentMemoryLimit {
 		recommendedMemoryLimit = math.Ceil(currentMemoryLimit)
 	}

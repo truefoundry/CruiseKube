@@ -47,7 +47,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 		return nil, fmt.Errorf("error generating node recommendations: %w", err)
 	}
 
-	recommendationResults, err := recomTask.ApplyRecommendationsWithStrategy(ctx, nodeRecommendationMap, nil, applystrategies.NewAdjustAmongstPodsDistributedStrategy(ctx), false, true)
+	recommendationResults, err := recomTask.ApplyRecommendationsWithStrategy(ctx, nodeRecommendationMap, nil, applystrategies.NewAdjustAmongstPodsDistributedStrategy(ctx), false, true, false)
 	if err != nil {
 		return nil, fmt.Errorf("error applying recommendations: %w", err)
 	}
