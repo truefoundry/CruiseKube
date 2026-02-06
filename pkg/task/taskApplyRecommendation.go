@@ -315,17 +315,8 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	currentMemoryLimitQuantity := currentContainerResources.Limits[corev1.ResourceMemory]
 	currentMemoryLimit := float64(currentMemoryLimitQuantity.Value()) / utils.BytesToMBDivisor
 
-	if currentMemoryRequest == currentMemoryLimit {
-		// We are setting both limit and request to 2 * max memory usage to be safe. This is to avoid any issues with OOM kills.
-		recommendedMemoryRequest = utils.EnforceMinimumMemory(2 * max(containerStat.Memory7Day.Max, containerStat.MemoryStats.OOMMemory))
-		recommendedMemoryLimit = recommendedMemoryRequest
-		logging.Infof(ctx, "equal memory limit and request pod %s/%s memory limit updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryLimit, recommendedMemoryLimit)
-		if recommendedMemoryLimit < currentMemoryLimit {
-			// TODO: will be possible from 1.34
-			return false, true, fmt.Errorf("cannot decrease memory limit from %.1f MB to %.1f MB", currentMemoryLimit, recommendedMemoryLimit)
-		}
-	}
-	if recommendedMemoryLimit < currentMemoryLimit {
+	supportsMemoryReduction := utils.CheckIfClusterAbove134(ctx, a.kubeClient)
+	if !supportsMemoryReduction && recommendedMemoryLimit < currentMemoryLimit {
 		recommendedMemoryLimit = math.Ceil(currentMemoryLimit)
 	}
 	if currentMemoryLimit == 0 {
