@@ -512,7 +512,7 @@ func FetchPDBsForNamespaces(ctx context.Context, kubeClient *kubernetes.Clientse
 	for _, namespace := range namespaces {
 		pdbList, err := kubeClient.PolicyV1().PodDisruptionBudgets(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			logging.Errorf(ctx, "Error listing PodDisruptionBudgets for namespace %s: %v", namespace, err)
+			logging.Warnf(ctx, "Error listing PodDisruptionBudgets for namespace %s: %v", namespace, err)
 			continue
 		}
 		pdbCache[namespace] = pdbList.Items
