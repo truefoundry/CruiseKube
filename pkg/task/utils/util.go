@@ -22,10 +22,24 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Known GPU resource names (Prometheus uses nvidia_com_gpu / amd_com_gpu; K8s uses nvidia.com/gpu, amd.com/gpu).
-var gpuResourceNames = []corev1.ResourceName{
-	"nvidia.com/gpu",
-	"amd.com/gpu",
+// gpuResourceNameExact is the set of resource names that are always GPUs (exact match).
+var gpuResourceNameExact = map[corev1.ResourceName]struct{}{
+	"nvidia.com":            {},
+	"nvidia.com/gpu.shared": {},
+	"aws.amazon.com/neuron": {},
+	"google.com/tpu":        {},
+}
+
+// isGPUResourceName returns true if the resource name represents a GPU:
+// - exact: nvidia.com, nvidia.com/gpu.shared, aws.amazon.com/neuron, google.com/tpu
+// - suffix "/gpu" (e.g. nvidia.com/gpu, amd.com/gpu, intel.com/gpu)
+// - prefix "nvidia.com/mig" (NVIDIA MIG: nvidia.com/mig-*, nvidia.com/mig.*)
+func isGPUResourceName(name corev1.ResourceName) bool {
+	s := string(name)
+	if _, ok := gpuResourceNameExact[name]; ok {
+		return true
+	}
+	return strings.HasSuffix(s, "/gpu") || strings.HasPrefix(s, "nvidia.com/mig")
 }
 
 // WorkloadHasGPU returns true if any of the given container specs request or limit GPU resources.
@@ -41,11 +55,13 @@ func WorkloadHasGPU(containers ...[]corev1.Container) bool {
 }
 
 func containerHasGPU(c *corev1.Container) bool {
-	for _, name := range gpuResourceNames {
-		if q, ok := c.Resources.Requests[name]; ok && !q.IsZero() {
+	for name, q := range c.Resources.Requests {
+		if isGPUResourceName(name) && !q.IsZero() {
 			return true
 		}
-		if q, ok := c.Resources.Limits[name]; ok && !q.IsZero() {
+	}
+	for name, q := range c.Resources.Limits {
+		if isGPUResourceName(name) && !q.IsZero() {
 			return true
 		}
 	}
