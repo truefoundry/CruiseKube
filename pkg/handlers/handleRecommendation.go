@@ -108,8 +108,13 @@ func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, node
 	}
 
 	autoscalingOnCPU := "No"
-	if stat.IsHorizontallyAutoscaledOnCPU || stat.IsHorizontallyAutoscaledOnMem {
+	if stat.IsHorizontallyAutoscaledOnCPU {
 		autoscalingOnCPU = "Yes"
+	}
+
+	autoscalingOnMem := "No"
+	if stat.IsHorizontallyAutoscaledOnMem {
+		autoscalingOnMem = "Yes"
 	}
 
 	cpuUsage7Days := "N/A"
@@ -143,6 +148,7 @@ func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, node
 		SpikeRange:             spikeRange,
 		RequestGap:             requestGap,
 		AutoscalingOnCPU:       autoscalingOnCPU,
+		AutoscalingOnMem:       autoscalingOnMem,
 		BlockingKarpenter:      blockingKarpenter,
 		NodeName:               nodeName,
 		CurrentRequestedCPU:    math.Round(currentRequestedCPU*1000) / 1000,

@@ -42,8 +42,13 @@ func analyzeWorkload(stat utils.WorkloadStat) []types.WorkloadAnalysisItem {
 
 	// Determine autoscaling status
 	autoscalingOnCPU := NoValue
-	if stat.IsHorizontallyAutoscaledOnCPU || stat.IsHorizontallyAutoscaledOnMem {
+	if stat.IsHorizontallyAutoscaledOnCPU {
 		autoscalingOnCPU = YesValue
+	}
+
+	autoscalingOnMem := NoValue
+	if stat.IsHorizontallyAutoscaledOnMem {
+		autoscalingOnMem = YesValue
 	}
 
 	for _, container := range stat.ContainerStats {
@@ -74,6 +79,7 @@ func analyzeWorkload(stat utils.WorkloadStat) []types.WorkloadAnalysisItem {
 			SpikeRange:        spikeRange,
 			RequestGap:        requestGap,
 			AutoscalingOnCPU:  autoscalingOnCPU,
+			AutoscalingOnMem:  autoscalingOnMem,
 			BlockingKarpenter: blockingKarpenter,
 		})
 	}

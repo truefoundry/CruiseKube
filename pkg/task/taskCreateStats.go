@@ -281,19 +281,16 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	// Check if this workload is horizontally autoscaled on CPU and/or memory
 	hpaOnCPU := workloadHpaCpuMap != nil && workloadHpaCpuMap[workloadKey]
 	hpaOnMemory := workloadHpaMemoryMap != nil && workloadHpaMemoryMap[workloadKey]
-	if hpaOnCPU {
-		workloadStat.IsHorizontallyAutoscaledOnCPU = true
-	}
-	if hpaOnMemory {
-		workloadStat.IsHorizontallyAutoscaledOnMem = true
-	}
+	workloadStat.IsHorizontallyAutoscaledOnCPU = hpaOnCPU
+	workloadStat.IsHorizontallyAutoscaledOnMem = hpaOnMemory
 	excludedCodes := []types.ExcludedCode{}
 	if hpaOnCPU || hpaOnMemory {
-		if hpaOnCPU && hpaOnMemory {
+		switch {
+		case hpaOnCPU && hpaOnMemory:
 			excludedCodes = append(excludedCodes, types.ExcludedCodeCPUHPA, types.ExcludedCodeMemoryHPA)
-		} else if hpaOnCPU {
+		case hpaOnCPU:
 			excludedCodes = append(excludedCodes, types.ExcludedCodeCPUHPA)
-		} else {
+		case hpaOnMemory:
 			excludedCodes = append(excludedCodes, types.ExcludedCodeMemoryHPA)
 		}
 		workloadStat.Metadata = &types.WorkloadStatMetadata{
@@ -304,9 +301,16 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 
 	if utils.WorkloadHasGPU(containerSpecs, initContainerSpecs) {
 		logging.Infof(ctx, "Workload %s has GPU requests/limits, excluding from stats", workloadKey)
-		workloadStat.Metadata = &types.WorkloadStatMetadata{
-			Excluded:      true,
-			ExcludedCodes: append(excludedCodes, types.ExcludedCodeGPUWorkload),
+		excludedCodes = append(excludedCodes, types.ExcludedCodeGPUWorkload)
+		if workloadStat.Metadata != nil {
+			workloadStat.Metadata.ExcludedCodes = excludedCodes
+			workloadStat.Metadata.IsGPUWorkload = true
+		} else {
+			workloadStat.Metadata = &types.WorkloadStatMetadata{
+				Excluded:      true,
+				ExcludedCodes: excludedCodes,
+				IsGPUWorkload: true,
+			}
 		}
 	}
 
