@@ -102,19 +102,19 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 }
 
 func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, nodeName string, currentRequestedCPU, recommendedCPU, currentRequestedMemory, recommendedMemory float64) types.RecommendationAnalysisItem {
-	blockingKarpenter := "No"
+	blockingKarpenter := NoValue
 	if stat.Constraints != nil && stat.Constraints.Blocking {
-		blockingKarpenter = "Yes"
+		blockingKarpenter = YesValue
 	}
 
-	autoscalingOnCPU := "No"
+	autoscalingOnCPU := NoValue
 	if stat.IsHorizontallyAutoscaledOnCPU {
-		autoscalingOnCPU = "Yes"
+		autoscalingOnCPU = YesValue
 	}
 
-	autoscalingOnMem := "No"
+	autoscalingOnMem := NoValue
 	if stat.IsHorizontallyAutoscaledOnMem {
-		autoscalingOnMem = "Yes"
+		autoscalingOnMem = YesValue
 	}
 
 	cpuUsage7Days := "N/A"
