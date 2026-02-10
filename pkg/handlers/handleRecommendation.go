@@ -107,16 +107,6 @@ func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, node
 		blockingKarpenter = YesValue
 	}
 
-	autoscalingOnCPU := NoValue
-	if stat.IsHorizontallyAutoscaledOnCPU {
-		autoscalingOnCPU = YesValue
-	}
-
-	autoscalingOnMem := NoValue
-	if stat.IsHorizontallyAutoscaledOnMem {
-		autoscalingOnMem = YesValue
-	}
-
 	cpuUsage7Days := "N/A"
 	containerStat, err := stat.GetContainerStats(containerName)
 	if err == nil && containerStat.CPU7Day != nil {
@@ -147,8 +137,6 @@ func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, node
 		CPUUsage7Days:          cpuUsage7Days,
 		SpikeRange:             spikeRange,
 		RequestGap:             requestGap,
-		AutoscalingOnCPU:       autoscalingOnCPU,
-		AutoscalingOnMem:       autoscalingOnMem,
 		BlockingKarpenter:      blockingKarpenter,
 		NodeName:               nodeName,
 		CurrentRequestedCPU:    math.Round(currentRequestedCPU*1000) / 1000,

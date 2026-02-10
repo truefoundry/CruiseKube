@@ -40,17 +40,6 @@ func analyzeWorkload(stat utils.WorkloadStat) []types.WorkloadAnalysisItem {
 		blockingKarpenter = YesValue
 	}
 
-	// Determine autoscaling status
-	autoscalingOnCPU := NoValue
-	if stat.IsHorizontallyAutoscaledOnCPU {
-		autoscalingOnCPU = YesValue
-	}
-
-	autoscalingOnMem := NoValue
-	if stat.IsHorizontallyAutoscaledOnMem {
-		autoscalingOnMem = YesValue
-	}
-
 	for _, container := range stat.ContainerStats {
 		workloadName := stat.Name
 		workloadType := stat.Kind
@@ -78,8 +67,6 @@ func analyzeWorkload(stat utils.WorkloadStat) []types.WorkloadAnalysisItem {
 			CPUUsage7Days:     cpuUsage7Days,
 			SpikeRange:        spikeRange,
 			RequestGap:        requestGap,
-			AutoscalingOnCPU:  autoscalingOnCPU,
-			AutoscalingOnMem:  autoscalingOnMem,
 			BlockingKarpenter: blockingKarpenter,
 		})
 	}
