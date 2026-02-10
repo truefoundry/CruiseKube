@@ -92,6 +92,14 @@ func HandleClusterStats(c *gin.Context) {
 		})
 		return
 	}
+	// Do not send GPU workloads to frontend
+	filtered := make([]types.WorkloadStat, 0, len(statsResponse.Stats))
+	for i := range statsResponse.Stats {
+		if !statsResponse.Stats[i].IsGPUWorkload() {
+			filtered = append(filtered, statsResponse.Stats[i])
+		}
+	}
+	statsResponse.Stats = filtered
 	c.JSON(http.StatusOK, statsResponse)
 }
 

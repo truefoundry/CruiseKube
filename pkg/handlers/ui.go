@@ -31,6 +31,9 @@ func ListWorkloadsHandler(c *gin.Context) {
 
 	var workloads = make([]types.WorkloadOverrideInfo, 0)
 	for _, stat := range stats {
+		if stat.IsGPUWorkload() {
+			continue
+		}
 		workloadColumnId := strings.ReplaceAll(stat.WorkloadIdentifier, "/", ":")
 		overrides, err := storage.Stg.GetWorkloadOverrides(clusterID, workloadColumnId)
 		if err != nil {

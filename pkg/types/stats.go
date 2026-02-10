@@ -72,6 +72,11 @@ type WorkloadStat struct {
 	OriginalContainerResources []OriginalContainerResources `json:"original_container_resources"`
 }
 
+// IsGPUWorkload returns true if this workload stat is for a GPU workload (should not be sent to frontend).
+func (w *WorkloadStat) IsGPUWorkload() bool {
+	return w.Metadata != nil && w.Metadata.IsGPUWorkload
+}
+
 type ContainerStats struct {
 	ContainerName string        `json:"container_name"`
 	ContainerType ContainerType `json:"container_type"`

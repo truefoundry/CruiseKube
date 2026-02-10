@@ -89,6 +89,9 @@ func generateWorkloadAnalysisForCluster(clusterID string) ([]types.WorkloadAnaly
 
 	var analysis []types.WorkloadAnalysisItem
 	for _, stat := range statsFile.Stats {
+		if stat.IsGPUWorkload() {
+			continue
+		}
 		analysis = append(analysis, analyzeWorkload(stat)...)
 	}
 

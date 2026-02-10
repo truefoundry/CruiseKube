@@ -57,7 +57,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 
 	for _, result := range recommendationResults {
 		for _, rec := range result.PodContainerRecommendations {
-			if rec.PodInfo.Stats != nil {
+			if rec.PodInfo.Stats != nil && !rec.PodInfo.Stats.IsGPUWorkload() {
 				containerResource, err := rec.PodInfo.GetOriginalContainerResource(rec.ContainerName)
 				if err != nil {
 					logging.Errorf(ctx, "error getting container resource for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
@@ -75,7 +75,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 		}
 
 		for _, nonOptPod := range result.NonOptimizablePods {
-			if nonOptPod.PodInfo.Stats != nil {
+			if nonOptPod.PodInfo.Stats != nil && !nonOptPod.PodInfo.Stats.IsGPUWorkload() {
 				for _, containerResource := range nonOptPod.PodInfo.ContainerResources {
 					analysisItem := analyzeWorkloadStats(nonOptPod.PodInfo.Stats, nonOptPod.PodName, containerResource.Name, result.NodeName, containerResource.CPURequest, containerResource.CPURequest, containerResource.MemoryRequest, containerResource.MemoryRequest)
 					analysis = append(analysis, analysisItem)
