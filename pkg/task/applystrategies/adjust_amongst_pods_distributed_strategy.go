@@ -252,12 +252,12 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 	for _, metric := range containerMetrics {
 		var additionalCPU, additionalMemory float64
 
-		if totalRecommendedCPU > 0 {
+		if totalRecommendedCPU > 0 && totalRestCPU > 0 {
 			cpuRatio := metric.restCPU / totalRestCPU
 			additionalCPU = maxRestCPU * cpuRatio
 		}
 
-		if totalRecommendedMemory > 0 {
+		if totalRecommendedMemory > 0 && totalRestMemory > 0 {
 			memoryRatio := metric.restMemory / totalRestMemory
 			additionalMemory = maxRestMemory * memoryRatio
 		}
