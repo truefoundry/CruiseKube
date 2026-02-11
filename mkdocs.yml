@@ -196,8 +196,8 @@ extra:
 nav:
   - Home: index.md
   - Getting started:
-
       - Installation: src/gs-installation.md
+      - Cost Calculation: src/gs-cost-calculation.md
       - Configuration: 
         - Overview: src/config.md
         - Dashboard: src/config-dashboard.md
