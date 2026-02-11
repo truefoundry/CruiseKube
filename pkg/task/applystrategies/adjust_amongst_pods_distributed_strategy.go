@@ -201,13 +201,8 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 				recommendedMemory, restMemory := s.getRecommendedAndRestMemory(containerStat)
 
 				if pod.WorkloadKind == utils.DaemonSetKind {
-					containerResource, err := pod.GetContainerResource(containerStat.ContainerName)
-					if err != nil {
-						logging.Errorf(context.Background(), "Error getting container resource for container %s: %v", containerStat.ContainerName, err)
-						continue
-					}
-					currentCPU := containerResource.CPURequest
-					currentMemory := containerResource.MemoryRequest
+					currentCPU := currentResource.CPURequest
+					currentMemory := currentResource.MemoryRequest
 
 					if recommendedCPU > currentCPU {
 						// We don't want to increase the CPU request for daemonsets
