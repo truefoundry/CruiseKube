@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	CPUClampValue = 10
+	CPUClampValue = 20
 )
 
 type RecommendationResult struct {
@@ -313,7 +313,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	}
 	currentMemoryRequest := float64(currentMemoryRequestQuantity.Value()) / utils.BytesToMBDivisor
 	if math.Abs(currentMemoryRequest-containerResource.MemoryRequest) > utils.MinimumMemoryRecommendation {
-		logging.Infof(ctx, "pod %s/%s memory has changed too much from %.1f MB to %.1f MB, skipping applying memory recommendation", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
+		logging.Infof(ctx, "pod %s/%s memory has changed too much from %.1f MB to %.1f MB, skipping applying memory recommendation", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, rec.PodInfo.RequestedMemory)
 		return false, true, nil
 	}
 
