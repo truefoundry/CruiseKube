@@ -208,14 +208,14 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 					}
 					currentCPU := containerResource.CPURequest
 					currentMemory := containerResource.MemoryRequest
-	
+
 					if recommendedCPU > currentCPU {
 						// We don't want to increase the CPU request for daemonsets
 						// as they might end up in a state that not all daemonsets will fit in a single node
 						recommendedCPU = currentCPU
 					}
 					restCPU = 0
-	
+
 					if recommendedMemory > currentMemory {
 						recommendedMemory = currentMemory
 					}
