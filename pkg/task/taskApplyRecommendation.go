@@ -23,10 +23,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const (
-	CPUClampValue = 20
-)
-
 type RecommendationResult struct {
 	NodeName                    string
 	NodeInfo                    utils.NodeResourceInfo
@@ -383,8 +379,8 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 	currentCPULimit := float64(currentCPULimitQuantity.MilliValue()) / 1000.0
 
 	recommendedCPURequest := utils.EnforceMinimumCPU(rec.CPU)
-	if recommendedCPURequest > CPUClampValue {
-		recommendedCPURequest = CPUClampValue
+	if recommendedCPURequest > utils.CPUClampValue {
+		recommendedCPURequest = utils.CPUClampValue
 	}
 
 	// since i cannot remove cpu limit from a burstable pod, i will set the limit to the allocatable cpu

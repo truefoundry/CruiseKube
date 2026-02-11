@@ -253,6 +253,9 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		if containerStat.SimplePredictionsCPU != nil && containerStat.SimplePredictionsCPU.MaxValue > 0 {
 			recommendedCPU = containerStat.SimplePredictionsCPU.MaxValue
 		}
+		if recommendedCPU > utils.CPUClampValue {
+			recommendedCPU = utils.CPUClampValue
+		}
 
 		recommendedMemory := containerStat.MemoryStats.Max
 		if containerStat.MemoryStats.OOMMemory > 0 && containerStat.MemoryStats.OOMMemory > containerStat.MemoryStats.Max {
