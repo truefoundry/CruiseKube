@@ -70,7 +70,7 @@ func GetConfigHandler(c *gin.Context) {
 
 	applyRecommendationDryRun := true // default to dry run
 	if tc := cfg.GetTaskConfig(config.ApplyRecommendationKey); tc != nil && tc.Metadata != nil {
-		if v, ok := tc.Metadata["dryRun"]; ok {
+		if v, ok := tc.Metadata["dryrun"]; ok {
 			if b, ok := v.(bool); ok {
 				applyRecommendationDryRun = b
 			}
