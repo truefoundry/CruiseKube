@@ -19,7 +19,7 @@ Get started by following below steps:
 - **Kubernetes Cluster:** You should have a running Kubernetes cluster with at least Kubernetes 1.33. You can use any cloud-based or on-premises Kubernetes distribution.
 - **kubectl:** Installed and configured to interact with your Kubernetes cluster.
 - **Helm:** Installed for managing Kubernetes applications.
-- **Postgresql:** We require a postgresql database, you can pass your own, or enable it in CruiseKube helm chart, for CruiseKube managed postgresql.
+- **Postgresql:** We require a postgresql database, you can pass your own, or enable it in CruiseKube helm chart, for CruiseKube-managed postgresql.
 - **Prometheus:** You should have a prometheus installed in your cluster.
 ??? example "Installing Prometheus"
     We can setup a Prometheus instance if not already present.
@@ -44,10 +44,9 @@ Get started by following below steps:
 Install CruiseKube from the OCI registry:
 
 ```bash
-helm install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \ 
-  --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \ 
-  --set postgresql.enabled=true \ 
-
+helm install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \
+  --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
+  --set postgresql.enabled=true \
 ```
 
 - Pass your own prometheus URL if using an existing installation.
@@ -87,7 +86,7 @@ Read more about configuration in the [Configuration Dashboard](config-dashboard.
 
 ### **4. Apply Recommendations: Disable Dry-Run**
 
-By default, dry-run mode is enabled, which means recommendations are generated, but not applied. This is to prevent any unintended optimizations. 
+By default, dry-run mode is enabled, which means recommendations are generated, but not applied. This is to prevent any unintended optimizations.
 You will need to manually disable each dry-run based on your requirements. To do this, you will need to pass environment variables in the values file or pass those env variables while upgrading.
 
 Following flags needs to be set false to disable dry-run completely.
@@ -99,7 +98,7 @@ Following flags needs to be set false to disable dry-run completely.
 
 ```bash
 helm upgrade --install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \
---set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.prometheus.svc:9090" \
+--set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
 --set postgresql.enabled=true \
 --set cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false \
 --set cruisekubeController.env.CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_DRYRUN=false \ 
@@ -107,7 +106,7 @@ helm upgrade --install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --names
 --set cruisekubeWebhook.env.CRUISEKUBE_WEBHOOK_DRYRUN=false
 ```
 
-> You can check all the available environment variables in the [value.yaml file](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml#L88).
+> You can check all the available environment variables in the [values.yaml file](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml#L88).
 
 </br>
 
