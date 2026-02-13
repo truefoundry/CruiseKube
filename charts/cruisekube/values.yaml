@@ -25,7 +25,7 @@ cruisekubeController:
     ## @param cruisekubeController.image.imagePullPolicy CruiseKube Controller image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeController.image.tag CruiseKube Controller image tag (immutable tags are recommended)
-    tag: "cc0eeed7b0ccf817dbd72dc9f3f96a85aaf17406"
+    tag: "280e8bd344a9347910a2c3fe340a06ab4a85517d"
   ## @param cruisekubeController.imagePullSecrets [array] CruiseKube Controller image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeController.nameOverride String to partially override cruisekube.fullname
@@ -88,7 +88,7 @@ cruisekubeController:
   env:
     CRUISEKUBE_DEPENDENCIES_LOCAL_KUBECONFIGPATH: ""
     CRUISEKUBE_DEPENDENCIES_LOCAL_PROMETHEUSURL: "http://localhost:9090"
-    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: ""
+    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
     CRUISEKUBE_EXECUTIONMODE: "controller"
     CRUISEKUBE_CONTROLLER_TARGETNAMESPACE: ""
     CRUISEKUBE_CONTROLLER_TARGETCLUSTERID: ""
@@ -137,7 +137,7 @@ cruisekubeWebhook:
     ## @param cruisekubeWebhook.image.imagePullPolicy CruiseKube Webhook image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeWebhook.image.tag CruiseKube Webhook image tag (immutable tags are recommended)
-    tag: "cc0eeed7b0ccf817dbd72dc9f3f96a85aaf17406"
+    tag: "280e8bd344a9347910a2c3fe340a06ab4a85517d"
   ## @param cruisekubeWebhook.imagePullSecrets [array] CruiseKube Webhook image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeWebhook.nameOverride String to partially override cruisekube.fullname
@@ -242,10 +242,11 @@ cruisekubeWebhook:
   ## @param cruisekubeWebhook.env [object] Environment variables to configure CruiseKube Webhook
   env:
     CRUISEKUBE_WEBHOOK_DRYRUN: "true"
+    CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "true"
 ## @section PostgreSQL parameters
 postgresql:
   ## @param postgresql.enabled Switch to enable or disable the PostgreSQL helm chart
-  enabled: false
+  enabled: true
   primary:
     persistence:
       ## @param postgresql.primary.persistence.enabled Enable PostgreSQL Primary data persistence using PVC
@@ -275,7 +276,7 @@ cruisekubeFrontend:
     ## @param cruisekubeFrontend.image.imagePullPolicy CruiseKube Frontend image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeFrontend.image.tag CruiseKube Frontend image tag (immutable tags are recommended)
-    tag: "cc0eeed7b0ccf817dbd72dc9f3f96a85aaf17406"
+    tag: "280e8bd344a9347910a2c3fe340a06ab4a85517d"
   ## @param cruisekubeFrontend.imagePullSecrets [array] CruiseKube Frontend image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeFrontend.nameOverride String to partially override cruisekube.fullname

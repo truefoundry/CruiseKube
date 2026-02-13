@@ -100,7 +100,7 @@ CruiseKube is an intelligent Kubernetes resource optimization controller that au
 
 | Name                                           | Description                                                            | Value   |
 | ---------------------------------------------- | ---------------------------------------------------------------------- | ------- |
-| `postgresql.enabled`                           | Switch to enable or disable the PostgreSQL helm chart                  | `false` |
+| `postgresql.enabled`                           | Switch to enable or disable the PostgreSQL helm chart                  | `true`  |
 | `postgresql.primary.persistence.enabled`       | Enable PostgreSQL Primary data persistence using PVC                   | `true`  |
 | `postgresql.primary.persistence.size`          | PVC Storage Request for PostgreSQL volume                              | `2Gi`   |
 | `postgresql.primary.resources.limits.cpu`      | The resources limits (CPU) for the PostgreSQL Primary containers       | `500m`  |
