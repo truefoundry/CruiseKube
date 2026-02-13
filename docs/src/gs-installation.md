@@ -88,21 +88,26 @@ Read more about configuration in the [Configuration Dashboard](config-dashboard.
 ### **4. Apply Recommendations: Disable Dry-Run**
 
 By default, dry-run mode is enabled, which means recommendations are generated, but not applied. This is to prevent any unintended optimizations. 
-You will need to manually disable each dry-run based on your requirements. To do this, you will need to pass environment variables in the values file to the Helm chart or upgrade while setting those env variables.
+You will need to manually disable each dry-run based on your requirements. To do this, you will need to pass environment variables in the values file or pass those env variables while upgrading.
 
+Following flags needs to be set false to disable dry-run completely.
 
-1. **Configure prometheus for the Create Stats Task**
-    - By default the Create Stats task is enabled. But it needs access to prometheus.
-    - You need to configure prometheus URL in the env. This will be used by the stats creation task to fetch metrics. Set `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` to the URL of your Prometheus instance.
+  - cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
+  - cruisekubeController.env.CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_DRYRUN=false
+  - cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
+  - cruisekubeWebhook.env.CRUISEKUBE_WEBHOOK_DRYRUN=false
 
-2. **Disable Dry-Run**
-    - There are a few flags controlling the dry-run, which is seperate of controller, and admission webhook. There is a seperate flag for memory also. Following false needs to be set to disable all dry-run.
-      - `cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false` 
-      - `cruisekubeController.env.CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_DRYRUN=false`
-      - `cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false`
-      - `cruisekubeWebhook.env.CRUISEKUBE_WEBHOOK_DRYRUN=false`
+```
+helm upgrade --install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \
+--set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.prometheus.svc:9090" \
+--set postgresql.enabled=true \
+--set cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false \
+--set cruisekubeController.env.CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_DRYRUN=false \ 
+--set cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false \ 
+--set cruisekubeWebhook.env.CRUISEKUBE_WEBHOOK_DRYRUN=false
+```
 
-> You can access all the available environment variables in the [value.yaml file](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml#L88).
+> You can check all the available environment variables in the [value.yaml file](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml#L88).
 
 </br>
 
