@@ -19,9 +19,10 @@ Get started by following below steps:
 - **Kubernetes Cluster:** You should have a running Kubernetes cluster with at least Kubernetes 1.33. You can use any cloud-based or on-premises Kubernetes distribution.
 - **kubectl:** Installed and configured to interact with your Kubernetes cluster.
 - **Helm:** Installed for managing Kubernetes applications.
+- **Postgresql:** We require a postgresql database, you can pass your own, or enable it in CruiseKube helm chart, for CruiseKube managed postgresql.
 - **Prometheus:** You should have a prometheus installed in your cluster.
 ??? example "Installing Prometheus"
-    We will setup a sample prometheus to read metrics from the ingress controller.
+    We will setup a sample prometheus to read metrics from the ingress controller. Please not, if a Prometheus instance is already installed, 
 
     ```bash
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -41,8 +42,11 @@ Get started by following below steps:
 Install CruiseKube from the OCI registry:
 
 ```bash
-helm install ck-demo oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace
+helm install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \ 
+  --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
 ```
+
+Pass your own prometheus URL if using an existing installation. 
 
 > **Note:** You can customize the installation by providing your own `values.yaml` file with specific configurations. See the [configuration documentation](config.md) for available options.
 
@@ -73,7 +77,7 @@ You will need to manually enable each task based on your requirements. To do thi
 3. **Enable Apply Recommendation Task**
     - To enable this task, set the `CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_ENABLED` environment variable to `true` in your values file. Note this is currently in dry-run mode by default. So recommendations will only be generated but not applied.
 
-> Similarly, you can enable other tasks by checking the available environment variables in the [value.yaml file](https://github.com/truefoundry/cruiseKube/blob/2d187dbc5ed8275f747e1597b728e40b0d3f0a9e/charts/cruisekube/values.yaml#L101).
+> Similarly, you can enable other tasks by checking the available environment variables in the [value.yaml file](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml#L88).
 
 </br>
 
