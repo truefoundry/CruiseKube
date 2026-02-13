@@ -88,7 +88,7 @@ cruisekubeController:
   env:
     CRUISEKUBE_DEPENDENCIES_LOCAL_KUBECONFIGPATH: ""
     CRUISEKUBE_DEPENDENCIES_LOCAL_PROMETHEUSURL: "http://localhost:9090"
-    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: ""
+    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
     CRUISEKUBE_EXECUTIONMODE: "controller"
     CRUISEKUBE_CONTROLLER_TARGETNAMESPACE: ""
     CRUISEKUBE_CONTROLLER_TARGETCLUSTERID: ""
@@ -244,12 +244,13 @@ cruisekubeWebhook:
   ## @param cruisekubeWebhook.env [object] Environment variables to configure CruiseKube Webhook
   env:
     CRUISEKUBE_WEBHOOK_DRYRUN: "true"
+    CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "true"
 
 ## @section PostgreSQL parameters
 
 postgresql:
   ## @param postgresql.enabled Switch to enable or disable the PostgreSQL helm chart
-  enabled: false
+  enabled: true
   primary:
     persistence:
       ## @param postgresql.primary.persistence.enabled Enable PostgreSQL Primary data persistence using PVC
