@@ -469,6 +469,19 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 			})
 			continue
 		}
+
+		if podInfo.IsBestEffortPod() {
+			logging.Infof(ctx, "Skipping best effort pod %s/%s", podInfo.Namespace, podInfo.Name)
+			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
+				PodInfo:       podInfo,
+				PodName:       podInfo.Name,
+				PodNamespace:  podInfo.Namespace,
+				CurrentCPU:    podInfo.RequestedCPU,
+				CurrentMemory: podInfo.RequestedMemory,
+			})
+			continue
+		}
+
 		overrides, ok := overridesMap[podInfo.Stats.WorkloadIdentifier]
 		if ok && !overrides.Enabled {
 			logging.Infof(ctx, "cruisekube disabled for workload %s, skipping", podInfo.Stats.WorkloadIdentifier)
