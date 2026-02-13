@@ -97,7 +97,7 @@ Following flags needs to be set false to disable dry-run completely.
   - cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
   - cruisekubeWebhook.env.CRUISEKUBE_WEBHOOK_DRYRUN=false
 
-```
+```bash
 helm upgrade --install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \
 --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.prometheus.svc:9090" \
 --set postgresql.enabled=true \
