@@ -12,12 +12,12 @@ controller:
   writeAuthorizedClusters: []
   tasks:
     createStats:
-      enabled: false
+      enabled: true
       schedule: "15m"
       metadata:
         skipMemory: false
     applyRecommendation:
-      enabled: false
+      enabled: true
       schedule: "5m"
       metadata:
         dryRun: true
@@ -33,7 +33,7 @@ controller:
       enabled: false
       schedule: "60s"
     fetchMetrics:
-      enabled: false
+      enabled: true
       schedule: "1m"
     cleanupOOMEvent:
       enabled: false

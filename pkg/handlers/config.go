@@ -77,10 +77,16 @@ func GetConfigHandler(c *gin.Context) {
 		}
 	}
 
+	recommendationSettingsDryRun := cfg.RecommendationSettings.DisableMemoryApplication
+	webhookDryRun := cfg.Webhook.DryRun
+
+	// Dry run is false only when all three are false; if any is true, we're in dry run.
+	dryRun := recommendationSettingsDryRun || webhookDryRun || applyRecommendationDryRun
+
 	response := gin.H{
 		"url":                       prometheusURL,
 		"connected":                 connected,
-		"applyRecommendationDryRun": applyRecommendationDryRun,
+		"applyRecommendationDryRun": dryRun,
 	}
 	if connectionError != "" {
 		response["error"] = connectionError
