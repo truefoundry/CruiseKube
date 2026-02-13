@@ -44,7 +44,7 @@ type PodInfo struct {
 
 func (p *PodInfo) IsBestEffortPod() bool {
 	for _, container := range p.ContainerResources {
-		if container.CPURequest != 0 || container.CPULimit != 0 || container.MemoryRequest == 0 || container.MemoryLimit != 0 {
+		if container.CPURequest != 0 || container.CPULimit != 0 || container.MemoryRequest != 0 || container.MemoryLimit != 0 {
 			return false
 		}
 	}
