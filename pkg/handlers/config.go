@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
@@ -71,8 +72,13 @@ func GetConfigHandler(c *gin.Context) {
 	applyRecommendationDryRun := true // default to dry run
 	if tc := cfg.GetTaskConfig(config.ApplyRecommendationKey); tc != nil && tc.Metadata != nil {
 		if v, ok := tc.Metadata["dryrun"]; ok {
-			if b, ok := v.(bool); ok {
-				applyRecommendationDryRun = b
+			switch val := v.(type) {
+			case bool:
+				applyRecommendationDryRun = val
+			case string:
+				if b, err := strconv.ParseBool(val); err == nil {
+					applyRecommendationDryRun = b
+				}
 			}
 		}
 	}
