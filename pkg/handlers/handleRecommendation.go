@@ -47,7 +47,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 		return nil, fmt.Errorf("error generating node recommendations: %w", err)
 	}
 
-	recommendationResults, err := recomTask.ApplyRecommendationsWithStrategy(ctx, nodeRecommendationMap, nil, applystrategies.NewAdjustAmongstPodsDistributedStrategy(ctx), false, true)
+	recommendationResults, err := recomTask.ApplyRecommendationsWithStrategy(ctx, nodeRecommendationMap, nil, applystrategies.NewAdjustAmongstPodsDistributedStrategy(ctx), false, true, false)
 	if err != nil {
 		return nil, fmt.Errorf("error applying recommendations: %w", err)
 	}
@@ -57,7 +57,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 
 	for _, result := range recommendationResults {
 		for _, rec := range result.PodContainerRecommendations {
-			if rec.PodInfo.Stats != nil {
+			if rec.PodInfo.Stats != nil && !rec.PodInfo.Stats.IsGPUWorkload() {
 				containerResource, err := rec.PodInfo.GetOriginalContainerResource(rec.ContainerName)
 				if err != nil {
 					logging.Errorf(ctx, "error getting container resource for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
@@ -75,7 +75,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 		}
 
 		for _, nonOptPod := range result.NonOptimizablePods {
-			if nonOptPod.PodInfo.Stats != nil {
+			if nonOptPod.PodInfo.Stats != nil && !nonOptPod.PodInfo.Stats.IsGPUWorkload() {
 				for _, containerResource := range nonOptPod.PodInfo.ContainerResources {
 					analysisItem := analyzeWorkloadStats(nonOptPod.PodInfo.Stats, nonOptPod.PodName, containerResource.Name, result.NodeName, containerResource.CPURequest, containerResource.CPURequest, containerResource.MemoryRequest, containerResource.MemoryRequest)
 					analysis = append(analysis, analysisItem)
@@ -102,14 +102,9 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 }
 
 func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, nodeName string, currentRequestedCPU, recommendedCPU, currentRequestedMemory, recommendedMemory float64) types.RecommendationAnalysisItem {
-	blockingKarpenter := "No"
+	blockingKarpenter := NoValue
 	if stat.Constraints != nil && stat.Constraints.Blocking {
-		blockingKarpenter = "Yes"
-	}
-
-	autoscalingOnCPU := "No"
-	if stat.IsHorizontallyAutoscaledOnCPU {
-		autoscalingOnCPU = "Yes"
+		blockingKarpenter = YesValue
 	}
 
 	cpuUsage7Days := "N/A"
@@ -142,7 +137,6 @@ func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, node
 		CPUUsage7Days:          cpuUsage7Days,
 		SpikeRange:             spikeRange,
 		RequestGap:             requestGap,
-		AutoscalingOnCPU:       autoscalingOnCPU,
 		BlockingKarpenter:      blockingKarpenter,
 		NodeName:               nodeName,
 		CurrentRequestedCPU:    math.Round(currentRequestedCPU*1000) / 1000,

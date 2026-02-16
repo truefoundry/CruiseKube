@@ -22,6 +22,52 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// gpuResourceNameExact is the set of resource names that are always GPUs (exact match).
+var gpuResourceNameExact = map[corev1.ResourceName]struct{}{
+	"nvidia.com":            {},
+	"nvidia.com/gpu.shared": {},
+	"aws.amazon.com/neuron": {},
+	"google.com/tpu":        {},
+}
+
+// isGPUResourceName returns true if the resource name represents a GPU:
+// - exact: nvidia.com, nvidia.com/gpu.shared, aws.amazon.com/neuron, google.com/tpu
+// - suffix "/gpu" (e.g. nvidia.com/gpu, amd.com/gpu, intel.com/gpu)
+// - prefix "nvidia.com/mig" (NVIDIA MIG: nvidia.com/mig-*, nvidia.com/mig.*)
+func isGPUResourceName(name corev1.ResourceName) bool {
+	s := string(name)
+	if _, ok := gpuResourceNameExact[name]; ok {
+		return true
+	}
+	return strings.HasSuffix(s, "/gpu") || strings.HasPrefix(s, "nvidia.com/mig")
+}
+
+// WorkloadHasGPU returns true if any of the given container specs request or limit GPU resources.
+func WorkloadHasGPU(containers ...[]corev1.Container) bool {
+	for _, list := range containers {
+		for i := range list {
+			if containerHasGPU(&list[i]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func containerHasGPU(c *corev1.Container) bool {
+	for name, q := range c.Resources.Requests {
+		if isGPUResourceName(name) && !q.IsZero() {
+			return true
+		}
+	}
+	for name, q := range c.Resources.Limits {
+		if isGPUResourceName(name) && !q.IsZero() {
+			return true
+		}
+	}
+	return false
+}
+
 func updatePodResources(
 	ctx context.Context,
 	kubeClient *kubernetes.Clientset,
@@ -558,7 +604,7 @@ func GetPodKey(namespace, name string) string {
 	return fmt.Sprintf("%s:%s", namespace, name)
 }
 
-func CheckIfClusterAbove133(ctx context.Context, kubeClient *kubernetes.Clientset) bool {
+func CheckIfClusterVersionAbove(ctx context.Context, kubeClient *kubernetes.Clientset, targetMajor, targetMinor int) bool {
 	version, err := kubeClient.Discovery().ServerVersion()
 	if err != nil {
 		logging.Errorf(ctx, "[ApplyRecommendation] Error getting cluster version: %v", err)
@@ -585,13 +631,13 @@ func CheckIfClusterAbove133(ctx context.Context, kubeClient *kubernetes.Clientse
 		return false
 	}
 
-	if major > 1 || (major == 1 && minor >= 33) {
-		logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is above 1.33", version.GitVersion)
-		return true
+	isAbove := major > targetMajor || (major == targetMajor && minor >= targetMinor)
+	if isAbove {
+		logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is above %d.%d", version.GitVersion, targetMajor, targetMinor)
+	} else {
+		logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is not above %d.%d", version.GitVersion, targetMajor, targetMinor)
 	}
-
-	logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is not above 1.33", version.GitVersion)
-	return false
+	return isAbove
 }
 
 func GetWorkloadInfoFromPod(pod *corev1.Pod) *WorkloadInfo {

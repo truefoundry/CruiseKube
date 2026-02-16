@@ -42,12 +42,21 @@ type PodInfo struct {
 	ContainerResources     []*ContainerResources `json:"container_resources,omitempty"`
 }
 
-func (p *PodInfo) IsGuaranteedPod() bool {
+func (p *PodInfo) IsBestEffortPod() bool {
 	for _, container := range p.ContainerResources {
-		if container.CPULimit != container.CPURequest {
+		if container.CPURequest != 0 || container.CPULimit != 0 || container.MemoryRequest != 0 || container.MemoryLimit != 0 {
 			return false
 		}
-		if container.MemoryLimit != container.MemoryRequest {
+	}
+	return true
+}
+
+func (p *PodInfo) IsGuaranteedPod() bool {
+	for _, container := range p.ContainerResources {
+		if container.CPURequest > 0 && container.CPULimit != container.CPURequest {
+			return false
+		}
+		if container.MemoryRequest > 0 && container.MemoryLimit != container.MemoryRequest {
 			return false
 		}
 	}

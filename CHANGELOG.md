@@ -9,6 +9,41 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.1.10 (2026-02-12)
+
+## What's Changed
+* implement api to trigger a task manually by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/61
+* Hotfix for the helm index. by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/63
+* Hotfix - Update index.yaml for helm by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/64
+* add kuttl e2e tests for apply recommendations by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/59
+* feat: docs updates with comparison, limitations and other optimizations by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/65
+* update documentation on oom handling by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/66
+* cleanup older oom events in db by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/67
+* move manual task trigger api to dev api group by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/71
+* use dev api for apply recommendations e2e test by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/72
+* implement webhook e2e test by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/68
+* Enable task stats creation in values.yaml by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/76
+* Revise task enabling instructions and Prometheus config by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/77
+* Update platforms for Docker build to include arm64 by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/75
+* implement oom handling e2e tests by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/69
+* added logging for when error is being returned by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/78
+* enabling apply recommendation by default by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/79
+* feat: use container info from workload, instead of pod by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/73
+* update frontend by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/80
+* cleanup unused oom query by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/81
+* feat: Show only the workloads updated in last 1 day by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/82
+* fix original vs pod container info usage by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/86
+* update simple timeseries prediction max value calculation by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/84
+* allow memory reduction for k8s version >= 1.34 by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/87
+* feat: add demarcation metadata to stats by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/85
+* allow optimizing guaranteed pods by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/83
+* Relaxing cpu clamp value to 20 by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/89
+* Added handling for daemonset pods to not increase resources by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/90
+* fix: ignore if totalRestMemory is zero for a container by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/91
+* fix: update dry run fix by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/92
+
+
+
 ## v0.1.9 (2026-01-16)
 
 * feat: major oss ready changes by @ramantehlan in [#32](https://github.com/truefoundry/CruiseKube/pull/32)

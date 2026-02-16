@@ -18,7 +18,6 @@ type WorkloadAnalysisItem struct {
 	CPUUsage7Days     string        `json:"cpu_usage_7_days"`
 	SpikeRange        float64       `json:"spike_range"`
 	RequestGap        float64       `json:"request_gap"`
-	AutoscalingOnCPU  string        `json:"autoscaling_on_cpu"`
 	BlockingKarpenter string        `json:"blocking_karpenter"`
 }
 
@@ -40,7 +39,6 @@ type RecommendationAnalysisItem struct {
 	CPUUsage7Days          string  `json:"cpu_usage_7_days"`
 	SpikeRange             float64 `json:"spike_range"`
 	RequestGap             float64 `json:"request_gap"`
-	AutoscalingOnCPU       string  `json:"autoscaling_on_cpu"`
 	BlockingKarpenter      string  `json:"blocking_karpenter"`
 	NodeName               string  `json:"node_name"`
 	CurrentRequestedCPU    float64 `json:"current_requested_cpu"`

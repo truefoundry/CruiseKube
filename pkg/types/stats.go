@@ -16,6 +16,21 @@ type WorkloadConstraints struct {
 	ExcludedAnnotation       bool `json:"excluded_annotation"`
 }
 
+type ExcludedCode string
+
+const (
+	ExcludedCodeGPUWorkload ExcludedCode = "GPU_WORKLOAD"
+	ExcludedCodeMemoryHPA   ExcludedCode = "MEMORY_HPA"
+	ExcludedCodeCPUHPA      ExcludedCode = "CPU_HPA"
+)
+
+// WorkloadStatMetadata holds metadata about a workload stat (e.g. exclusion from recommendations).
+type WorkloadStatMetadata struct {
+	Excluded      bool           `json:"excluded"`
+	ExcludedCodes []ExcludedCode `json:"excluded_codes,omitempty"`
+	IsGPUWorkload bool           `json:"is_gpu_workload,omitempty"`
+}
+
 type EvictionRanking int
 
 const (
@@ -39,20 +54,27 @@ const (
 )
 
 type WorkloadStat struct {
-	WorkloadIdentifier            string               `json:"workload"`
-	Kind                          string               `json:"kind"`
-	Namespace                     string               `json:"namespace"`
-	Name                          string               `json:"name"`
-	CreationTime                  time.Time            `json:"creation_time"`
-	UpdatedAt                     time.Time            `json:"updated_at"`
-	ContinuousOptimization        bool                 `json:"continuous_optimization"`
-	IsHorizontallyAutoscaledOnCPU bool                 `json:"is_horizontally_autoscaled_on_cpu"`
-	Constraints                   *WorkloadConstraints `json:"constraints,omitempty"`
-	EvictionRanking               EvictionRanking      `json:"eviction_ranking"`
-	Replicas                      int32                `json:"replicas"`
+	WorkloadIdentifier            string                `json:"workload"`
+	Kind                          string                `json:"kind"`
+	Namespace                     string                `json:"namespace"`
+	Name                          string                `json:"name"`
+	CreationTime                  time.Time             `json:"creation_time"`
+	UpdatedAt                     time.Time             `json:"updated_at"`
+	ContinuousOptimization        bool                  `json:"continuous_optimization"`
+	IsHorizontallyAutoscaledOnCPU bool                  `json:"is_horizontally_autoscaled_on_cpu"`
+	IsHorizontallyAutoscaledOnMem bool                  `json:"is_horizontally_autoscaled_on_memory"`
+	Constraints                   *WorkloadConstraints  `json:"constraints,omitempty"`
+	EvictionRanking               EvictionRanking       `json:"eviction_ranking"`
+	Replicas                      int32                 `json:"replicas"`
+	Metadata                      *WorkloadStatMetadata `json:"metadata,omitempty"`
 
 	ContainerStats             []ContainerStats             `json:"container_stats"`
 	OriginalContainerResources []OriginalContainerResources `json:"original_container_resources"`
+}
+
+// IsGPUWorkload returns true if this workload stat is for a GPU workload (should not be sent to frontend).
+func (w *WorkloadStat) IsGPUWorkload() bool {
+	return w.Metadata != nil && w.Metadata.IsGPUWorkload
 }
 
 type ContainerStats struct {
