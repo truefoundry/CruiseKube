@@ -211,7 +211,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		recommendationResult.MaxRestMemory = result.MaxRestMemory
 	}
 
-	rows := a.buildPodRecommendationRows(recommendationResults)
+	rows := a.buildPodRecommendationRows(ctx, recommendationResults)
 	if err := a.storage.SavePodRecommendations(a.config.ClusterID, rows); err != nil {
 		logging.Errorf(ctx, "Error saving pod recommendations: %v", err)
 	}
@@ -460,7 +460,7 @@ func (a *ApplyRecommendationTask) computeRecommendedResourceValues(rec utils.Pod
 	return cpuRequest, memoryRequest, cpuLimit, memoryLimit
 }
 
-func (a *ApplyRecommendationTask) buildPodRecommendationRows(recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {
+func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context, recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {
 	var rows []types.PodResourceRecommendationRow
 	for _, res := range recommendationResults {
 		nodeName := res.NodeName
@@ -478,6 +478,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(recommendationResul
 			}
 			recJSON, err := json.Marshal(payload)
 			if err != nil {
+				logging.Errorf(ctx, "failed to marshal pod recommendation for %s/%s container %s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
 				continue
 			}
 			rows = append(rows, types.PodResourceRecommendationRow{
