@@ -17,7 +17,7 @@ controller:
       metadata:
         skipMemory: false
     applyRecommendation:
-      enabled: false
+      enabled: true
       schedule: "5m"
       metadata:
         dryRun: true

@@ -241,7 +241,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				continue
 			}
 
-			if rec.ToBeEvicted() {
+			if utils.ToBeEvicted(rec) {
 				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
 				logging.Infof(ctx, "Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				if applyChanges {
@@ -305,10 +305,6 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	applyChanges bool,
 	supportsMemoryReduction bool,
 ) (bool, bool, error) {
-	_, err := rec.PodInfo.Stats.GetContainerStats(rec.ContainerName)
-	if err != nil {
-		return false, true, fmt.Errorf("error getting container stats for pod %s/%s: %w", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
-	}
 	_, recommendedMemoryRequest, _, recommendedMemoryLimit := a.computeRecommendedResourceValues(rec, 0)
 
 	containerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
@@ -474,7 +470,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 				MemoryRequest: memoryRequest,
 				CPULimit:      cpuLimit,
 				MemoryLimit:   memoryLimit,
-				ToBeEvicted:   rec.ToBeEvicted(),
+				ToBeEvicted:   utils.ToBeEvicted(rec),
 			}
 			recJSON, err := json.Marshal(payload)
 			if err != nil {

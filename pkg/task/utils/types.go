@@ -105,10 +105,6 @@ type PodContainerRecommendation struct {
 	Evict         bool    `json:"evict"`
 }
 
-func (r PodContainerRecommendation) ToBeEvicted() bool {
-	return r.Evict || r.PodInfo.IsGuaranteedPod()
-}
-
 type NodeOptimizationData struct {
 	NodeName          string
 	AllocatableCPU    float64

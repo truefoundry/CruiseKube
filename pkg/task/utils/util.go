@@ -688,3 +688,7 @@ func GetPods(ctx context.Context, kubeClient *kubernetes.Clientset, namespace st
 	}
 	return pods, nil
 }
+
+func ToBeEvicted(r PodContainerRecommendation) bool {
+	return r.Evict || r.PodInfo.IsGuaranteedPod()
+}
