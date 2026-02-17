@@ -12,7 +12,7 @@ controller:
   writeAuthorizedClusters: []
   tasks:
     createStats:
-      enabled: true
+      enabled: false
       schedule: "15m"
       metadata:
         skipMemory: false

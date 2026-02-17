@@ -33,7 +33,6 @@ func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook
 		clusterGroup.GET("/config", handlers.GetConfigHandler)
 		clusterGroup.POST("/killswitch", handlers.KillswitchHandler)
 		clusterGroup.GET("/workloads", handlers.ListWorkloadsHandler)
-		clusterGroup.GET("/workloads/:workloadID/overrides", handlers.GetWorkloadOverridesHandler)
 		clusterGroup.POST("/workloads/:workloadID/overrides", handlers.UpdateWorkloadOverridesHandler)
 	}
 

@@ -53,12 +53,14 @@ func ListWorkloadsHandler(c *gin.Context) {
 
 		workloadExternalId := strings.ReplaceAll(stat.WorkloadIdentifier, "/", ":")
 		workload := types.WorkloadOverrideInfo{
-			WorkloadID:      workloadExternalId,
-			Name:            stat.Name,
-			Namespace:       stat.Namespace,
-			Kind:            stat.Kind,
-			EvictionRanking: evictionRanking,
-			Enabled:         enabled,
+			WorkloadID: workloadExternalId,
+			Name:       stat.Name,
+			Namespace:  stat.Namespace,
+			Kind:       stat.Kind,
+			Overrides: &types.WorkloadOverridesEffective{
+				EvictionRanking: evictionRanking,
+				Enabled:         enabled,
+			},
 		}
 		workloads = append(workloads, workload)
 	}
