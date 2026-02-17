@@ -463,7 +463,10 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 		allocatableCPU := res.NodeInfo.AllocatableCPU
 		for _, rec := range res.PodContainerRecommendations {
 			kind, namespace, name := rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName
-			workloadID := utils.GetWorkloadContainerKey(kind, namespace, name, rec.ContainerName)
+			if rec.PodInfo.Stats != nil {
+				kind, namespace, name = rec.PodInfo.Stats.Kind, rec.PodInfo.Stats.Namespace, rec.PodInfo.Stats.Name
+			}
+			workloadID := utils.GetWorkloadKey(kind, namespace, name)
 			cpuRequest, memoryRequest, cpuLimit, memoryLimit := a.computeRecommendedResourceValues(rec, allocatableCPU)
 			payload := types.PodResourceRecommendation{
 				CPURequest:    cpuRequest,
@@ -488,11 +491,14 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 		}
 		for _, nonOpt := range res.NonOptimizablePods {
 			kind, namespace, name := nonOpt.PodInfo.WorkloadKind, nonOpt.PodInfo.Namespace, nonOpt.PodInfo.WorkloadName
+			if nonOpt.PodInfo.Stats != nil {
+				kind, namespace, name = nonOpt.PodInfo.Stats.Kind, nonOpt.PodInfo.Stats.Namespace, nonOpt.PodInfo.Stats.Name
+			}
 			for _, cr := range nonOpt.PodInfo.ContainerResources {
 				if cr == nil {
 					continue
 				}
-				workloadID := utils.GetWorkloadContainerKey(kind, namespace, name, cr.Name)
+				workloadID := utils.GetWorkloadKey(kind, namespace, name)
 				rows = append(rows, types.PodResourceRecommendationRow{
 					WorkloadID:     workloadID,
 					NodeName:       nodeName,
