@@ -37,3 +37,20 @@ type OOMEvent struct {
 func (OOMEvent) TableName() string {
 	return "oom_events"
 }
+
+type PodResourceRecommendation struct {
+	ID            int64     `gorm:"column:id;primaryKey;autoIncrement"`
+	ClusterID     string    `gorm:"column:cluster_id;index"`
+	WorkloadID    string    `gorm:"column:workload_id;index"`
+	NodeName      string    `gorm:"column:node_name"`
+	Namespace     string    `gorm:"column:namespace"`
+	Pod           string    `gorm:"column:pod"`
+	Container     string    `gorm:"column:container"`
+	Recommendation string   `gorm:"column:recommendation"`
+	CreatedAt     time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt     time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+func (PodResourceRecommendation) TableName() string {
+	return "pod_resource_recommendations"
+}

@@ -84,9 +84,25 @@ uninstall-prom: ## Delete prometheus
 	@echo "Deleting prometheus..."
 	@helm delete prometheus -n monitoring
 
+POSTGRES_CONTAINER := cruisekube-postgres
+
+postgres-up: ## Start local postgres in docker
+	@docker start $(POSTGRES_CONTAINER) 2>/dev/null || docker run -d --name $(POSTGRES_CONTAINER) \
+		-p 5432:5432 \
+		-e POSTGRES_USER=cruisekube \
+		-e POSTGRES_PASSWORD=cruisekube \
+		-e POSTGRES_DB=cruisekube \
+		postgres:16-alpine
+
+postgres-down: ## Stop local postgres container
+	@docker stop $(POSTGRES_CONTAINER) 2>/dev/null || true
+	@docker rm $(POSTGRES_CONTAINER) 2>/dev/null || true
+
 .PHONY: index-helm
 index-helm: ## Index helm chart
 	helm dependency update ./charts/cruisekube
 	helm package charts/cruisekube -d docs/
 	helm repo index docs/ --url https://github.com/truefoundry/CruiseKube/releases/download/$(RELEASE-NAME)/ --merge ./docs/index.yaml 
 	rm -rf docs/cruisekube-*.tgz
+
+
