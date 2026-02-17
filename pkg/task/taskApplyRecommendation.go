@@ -213,7 +213,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 
 	rows := a.buildPodRecommendationRows(ctx, recommendationResults)
 	if err := a.storage.SavePodRecommendations(a.config.ClusterID, rows); err != nil {
-		logging.Errorf(ctx, "Error saving pod recommendations: %v", err)
+		return nil, fmt.Errorf("failed to save pod recommendations: %w", err)
 	}
 
 	for _, recommendationResult := range recommendationResults {
