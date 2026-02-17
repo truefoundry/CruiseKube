@@ -302,9 +302,9 @@ type PodResourceRecommendation struct {
 
 type PodResourceRecommendationRow struct {
 	WorkloadID     string
-	NodeName      string
-	Namespace     string
-	Pod           string
-	Container     string
+	NodeName       string
+	Namespace      string
+	Pod            string
+	Container      string
 	Recommendation string
 }

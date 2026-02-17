@@ -437,14 +437,14 @@ func (a *ApplyRecommendationTask) getFreshPodsOnNode(ctx context.Context, nodeNa
 	return podMap, nil
 }
 
-func (a *ApplyRecommendationTask) computeRecommendedResourceValues(rec utils.PodContainerRecommendation, allocatableCPU float64) (cpuRequest, memoryRequest, cpuLimit, memoryLimit float64) {
-	cpuRequest = utils.EnforceMinimumCPU(rec.CPU)
+func (a *ApplyRecommendationTask) computeRecommendedResourceValues(rec utils.PodContainerRecommendation, allocatableCPU float64) (float64, float64, float64, float64) {
+	cpuRequest := utils.EnforceMinimumCPU(rec.CPU)
 	if cpuRequest > utils.CPUClampValue {
 		cpuRequest = utils.CPUClampValue
 	}
-	memoryRequest = utils.EnforceMinimumMemory(rec.Memory)
-	cpuLimit = allocatableCPU
-	memoryLimit = memoryRequest * 2
+	memoryRequest := utils.EnforceMinimumMemory(rec.Memory)
+	cpuLimit := allocatableCPU
+	memoryLimit := memoryRequest * 2
 	if rec.PodInfo.Stats != nil {
 		if containerStat, err := rec.PodInfo.Stats.GetContainerStats(rec.ContainerName); err == nil {
 			var memMax, oom float64
@@ -476,13 +476,16 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(recommendationResul
 				MemoryLimit:   memoryLimit,
 				ToBeEvicted:   rec.ToBeEvicted(),
 			}
-			recJSON, _ := json.Marshal(payload)
+			recJSON, err := json.Marshal(payload)
+			if err != nil {
+				continue
+			}
 			rows = append(rows, types.PodResourceRecommendationRow{
 				WorkloadID:     workloadID,
-				NodeName:      nodeName,
-				Namespace:     rec.PodInfo.Namespace,
-				Pod:           rec.PodInfo.Name,
-				Container:     rec.ContainerName,
+				NodeName:       nodeName,
+				Namespace:      rec.PodInfo.Namespace,
+				Pod:            rec.PodInfo.Name,
+				Container:      rec.ContainerName,
 				Recommendation: string(recJSON),
 			})
 		}
@@ -495,10 +498,10 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(recommendationResul
 				workloadID := utils.GetWorkloadContainerKey(kind, namespace, name, cr.Name)
 				rows = append(rows, types.PodResourceRecommendationRow{
 					WorkloadID:     workloadID,
-					NodeName:      nodeName,
-					Namespace:     nonOpt.PodNamespace,
-					Pod:           nonOpt.PodName,
-					Container:     cr.Name,
+					NodeName:       nodeName,
+					Namespace:      nonOpt.PodNamespace,
+					Pod:            nonOpt.PodName,
+					Container:      cr.Name,
 					Recommendation: "",
 				})
 			}

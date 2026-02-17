@@ -408,12 +408,12 @@ func (s *GormDB) SavePodRecommendations(clusterID string, rows []types.PodResour
 	models := make([]PodResourceRecommendation, 0, len(rows))
 	for _, r := range rows {
 		models = append(models, PodResourceRecommendation{
-			ClusterID:     clusterID,
-			WorkloadID:    r.WorkloadID,
-			NodeName:      r.NodeName,
-			Namespace:     r.Namespace,
-			Pod:           r.Pod,
-			Container:     r.Container,
+			ClusterID:      clusterID,
+			WorkloadID:     r.WorkloadID,
+			NodeName:       r.NodeName,
+			Namespace:      r.Namespace,
+			Pod:            r.Pod,
+			Container:      r.Container,
 			Recommendation: r.Recommendation,
 		})
 	}
