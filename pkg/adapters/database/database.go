@@ -399,6 +399,9 @@ func (s *GormDB) DeleteOldOOMEvents(clusterID string, olderThan time.Time) (int6
 }
 
 func (s *GormDB) SavePodRecommendations(clusterID string, rows []types.PodResourceRecommendationRow) error {
+	if rows == nil {
+		return fmt.Errorf("rows cannot be nil")
+	}
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("cluster_id = ?", clusterID).Delete(&PodResourceRecommendation{}).Error; err != nil {
 			return fmt.Errorf("failed to delete pod recommendations for cluster: %w", err)

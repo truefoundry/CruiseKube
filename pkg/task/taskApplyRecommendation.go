@@ -461,7 +461,7 @@ func (a *ApplyRecommendationTask) computeRecommendedResourceValues(rec utils.Pod
 }
 
 func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context, recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {
-	var rows []types.PodResourceRecommendationRow
+	rows := make([]types.PodResourceRecommendationRow, 0)
 	for _, res := range recommendationResults {
 		nodeName := res.NodeName
 		allocatableCPU := res.NodeInfo.AllocatableCPU
