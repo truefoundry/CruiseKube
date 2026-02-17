@@ -7,10 +7,10 @@ type WorkloadOverridesEffective struct {
 }
 
 type WorkloadOverrideInfo struct {
-	WorkloadID string                     `json:"workload_id"`
-	Name       string                     `json:"name"`
-	Namespace  string                     `json:"namespace"`
-	Kind       string                     `json:"kind"`
+	WorkloadID string                      `json:"workload_id"`
+	Name       string                      `json:"name"`
+	Namespace  string                      `json:"namespace"`
+	Kind       string                      `json:"kind"`
 	Overrides  *WorkloadOverridesEffective `json:"overrides"`
 }
 
