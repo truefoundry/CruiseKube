@@ -466,7 +466,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(recommendationResul
 		nodeName := res.NodeName
 		allocatableCPU := res.NodeInfo.AllocatableCPU
 		for _, rec := range res.PodContainerRecommendations {
-			kind, namespace, name := rec.PodInfo.Stats.Kind, rec.PodInfo.Stats.Namespace, rec.PodInfo.Stats.Name
+			kind, namespace, name := rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName
 			workloadID := utils.GetWorkloadContainerKey(kind, namespace, name, rec.ContainerName)
 			cpuRequest, memoryRequest, cpuLimit, memoryLimit := a.computeRecommendedResourceValues(rec, allocatableCPU)
 			payload := types.PodResourceRecommendation{

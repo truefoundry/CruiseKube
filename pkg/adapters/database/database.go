@@ -399,26 +399,28 @@ func (s *GormDB) DeleteOldOOMEvents(clusterID string, olderThan time.Time) (int6
 }
 
 func (s *GormDB) SavePodRecommendations(clusterID string, rows []types.PodResourceRecommendationRow) error {
-	if err := s.db.Where("cluster_id = ?", clusterID).Delete(&PodResourceRecommendation{}).Error; err != nil {
-		return fmt.Errorf("failed to delete pod recommendations for cluster: %w", err)
-	}
-	if len(rows) == 0 {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("cluster_id = ?", clusterID).Delete(&PodResourceRecommendation{}).Error; err != nil {
+			return fmt.Errorf("failed to delete pod recommendations for cluster: %w", err)
+		}
+		if len(rows) == 0 {
+			return nil
+		}
+		models := make([]PodResourceRecommendation, 0, len(rows))
+		for _, r := range rows {
+			models = append(models, PodResourceRecommendation{
+				ClusterID:      clusterID,
+				WorkloadID:     r.WorkloadID,
+				NodeName:       r.NodeName,
+				Namespace:      r.Namespace,
+				Pod:            r.Pod,
+				Container:      r.Container,
+				Recommendation: r.Recommendation,
+			})
+		}
+		if err := tx.CreateInBatches(models, 100).Error; err != nil {
+			return fmt.Errorf("failed to insert pod recommendations: %w", err)
+		}
 		return nil
-	}
-	models := make([]PodResourceRecommendation, 0, len(rows))
-	for _, r := range rows {
-		models = append(models, PodResourceRecommendation{
-			ClusterID:      clusterID,
-			WorkloadID:     r.WorkloadID,
-			NodeName:       r.NodeName,
-			Namespace:      r.Namespace,
-			Pod:            r.Pod,
-			Container:      r.Container,
-			Recommendation: r.Recommendation,
-		})
-	}
-	if err := s.db.CreateInBatches(models, 100).Error; err != nil {
-		return fmt.Errorf("failed to insert pod recommendations: %w", err)
-	}
-	return nil
+	})
 }

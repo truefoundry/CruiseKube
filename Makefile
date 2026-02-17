@@ -86,6 +86,7 @@ uninstall-prom: ## Delete prometheus
 
 POSTGRES_CONTAINER := cruisekube-postgres
 
+.PHONY: postgres-up postgres-down
 postgres-up: ## Start local postgres in docker
 	@docker start $(POSTGRES_CONTAINER) 2>/dev/null || docker run -d --name $(POSTGRES_CONTAINER) \
 		-p 5432:5432 \

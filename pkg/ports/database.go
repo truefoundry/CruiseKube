@@ -37,5 +37,6 @@ type Database interface {
 	GetLatestOOMEventForContainer(clusterID, containerID, podName string) (*types.OOMEvent, error)
 	DeleteOldOOMEvents(clusterID string, olderThan time.Time) (int64, error)
 
+	// Pod Recommendations
 	SavePodRecommendations(clusterID string, rows []types.PodResourceRecommendationRow) error
 }
