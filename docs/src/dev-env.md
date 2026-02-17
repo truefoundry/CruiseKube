@@ -253,7 +253,7 @@ If you prefer to run CruiseKube inside the cluster instead of on your machine:
        --set cruisekubeWebhook.image.repository=cruisekube \
        --set cruisekubeWebhook.image.tag=latest \
        --set cruisekubeWebhook.image.pullPolicy=Never \
-       --set cruisekubeWebhook.webhook.statsURL.host="https://localhost:8080" \
+       --set cruisekubeWebhook.webhook.statsURL.host="http://localhost:8080" \
        --set postgresql.enabled=true \
        --set cruisekubeFrontend.enabled=false \
        --wait --timeout=60s
