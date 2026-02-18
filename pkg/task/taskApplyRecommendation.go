@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -14,6 +15,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/metrics"
+	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/task/applystrategies"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
@@ -57,9 +59,10 @@ type ApplyRecommendationTask struct {
 	kubeClient    *kubernetes.Clientset
 	dynamicClient dynamic.Interface
 	promClient    *prometheus.PrometheusProvider
+	storage       *storage.Storage
 }
 
-func NewApplyRecommendationTask(ctx context.Context, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, promClient *prometheus.PrometheusProvider, config *ApplyRecommendationTaskConfig, taskConfig *config.TaskConfig) *ApplyRecommendationTask {
+func NewApplyRecommendationTask(ctx context.Context, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, promClient *prometheus.PrometheusProvider, storage *storage.Storage, config *ApplyRecommendationTaskConfig, taskConfig *config.TaskConfig) *ApplyRecommendationTask {
 	var applyRecommendationMetadata ApplyRecommendationMetadata
 	if err := taskConfig.ConvertMetadataToStruct(&applyRecommendationMetadata); err != nil {
 		logging.Errorf(ctx, "Error converting metadata to struct: %v", err)
@@ -72,6 +75,7 @@ func NewApplyRecommendationTask(ctx context.Context, kubeClient *kubernetes.Clie
 		kubeClient:    kubeClient,
 		dynamicClient: dynamicClient,
 		promClient:    promClient,
+		storage:       storage,
 	}
 }
 
@@ -205,6 +209,17 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		recommendationResult.PodContainerRecommendations = result.PodContainerRecommendations
 		recommendationResult.MaxRestCPU = result.MaxRestCPU
 		recommendationResult.MaxRestMemory = result.MaxRestMemory
+	}
+
+	rows := a.buildPodRecommendationRows(ctx, recommendationResults)
+	if err := a.storage.SavePodRecommendations(a.config.ClusterID, rows); err != nil {
+		return nil, fmt.Errorf("failed to save pod recommendations: %w", err)
+	}
+
+	for _, recommendationResult := range recommendationResults {
+		nodeName := recommendationResult.NodeName
+		nodeInfo := recommendationResult.NodeInfo
+		result := recommendationResult.PodContainerRecommendations
 		if generateRecommendationOnly {
 			logging.Infof(ctx, "Skipping applying recommendations for node %s", nodeName)
 			continue
@@ -219,15 +234,14 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		podsToEvict := make(map[string]bool)
 		appliedRecommendations := make(map[string]utils.PodContainerRecommendation)
 
-		for _, rec := range result.PodContainerRecommendations {
-			// TODO: Can we skip getting fresh pods when dry run is enabled?
+		for _, rec := range result {
 			freshPod, found := podsOnNode[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]
 			if !found {
 				logging.Errorf(ctx, "Pod %s/%s not found on node %s", rec.PodInfo.Namespace, rec.PodInfo.Name, nodeName)
 				continue
 			}
 
-			if rec.Evict || rec.PodInfo.IsGuaranteedPod() {
+			if utils.ToBeEvicted(rec) {
 				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
 				logging.Infof(ctx, "Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				if applyChanges {
@@ -291,12 +305,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	applyChanges bool,
 	supportsMemoryReduction bool,
 ) (bool, bool, error) {
-	containerStat, err := rec.PodInfo.Stats.GetContainerStats(rec.ContainerName)
-	if err != nil {
-		return false, true, fmt.Errorf("error getting container stats for pod %s/%s: %w", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
-	}
-	recommendedMemoryRequest := utils.EnforceMinimumMemory(rec.Memory)
-	recommendedMemoryLimit := utils.EnforceMinimumMemory(max(containerStat.Memory7Day.Max, containerStat.MemoryStats.OOMMemory) * 2)
+	_, recommendedMemoryRequest, _, recommendedMemoryLimit := a.computeRecommendedResourceValues(rec, 0)
 
 	containerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
 	if err != nil {
@@ -378,13 +387,7 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 	currentCPULimitQuantity := currentContainerResources.Limits[corev1.ResourceCPU]
 	currentCPULimit := float64(currentCPULimitQuantity.MilliValue()) / 1000.0
 
-	recommendedCPURequest := utils.EnforceMinimumCPU(rec.CPU)
-	if recommendedCPURequest > utils.CPUClampValue {
-		recommendedCPURequest = utils.CPUClampValue
-	}
-
-	// since i cannot remove cpu limit from a burstable pod, i will set the limit to the allocatable cpu
-	recommendedCPULimit := allocatableCPU
+	recommendedCPURequest, _, recommendedCPULimit, _ := a.computeRecommendedResourceValues(rec, allocatableCPU)
 	if currentCPULimit == 0.0 {
 		recommendedCPULimit = 0.0
 	}
@@ -428,6 +431,86 @@ func (a *ApplyRecommendationTask) getFreshPodsOnNode(ctx context.Context, nodeNa
 		podMap[utils.GetPodKey(pod.Namespace, pod.Name)] = &pod
 	}
 	return podMap, nil
+}
+
+func (a *ApplyRecommendationTask) computeRecommendedResourceValues(rec utils.PodContainerRecommendation, allocatableCPU float64) (float64, float64, float64, float64) {
+	cpuRequest := utils.EnforceMinimumCPU(rec.CPU)
+	if cpuRequest > utils.CPUClampValue {
+		cpuRequest = utils.CPUClampValue
+	}
+	memoryRequest := utils.EnforceMinimumMemory(rec.Memory)
+	cpuLimit := allocatableCPU
+	memoryLimit := memoryRequest * 2
+	if rec.PodInfo.Stats != nil {
+		if containerStat, err := rec.PodInfo.Stats.GetContainerStats(rec.ContainerName); err == nil {
+			var memMax, oom float64
+			if containerStat.Memory7Day != nil {
+				memMax = containerStat.Memory7Day.Max
+			}
+			if containerStat.MemoryStats != nil {
+				oom = containerStat.MemoryStats.OOMMemory
+			}
+			memoryLimit = utils.EnforceMinimumMemory(max(memMax, oom) * 2)
+		}
+	}
+	return cpuRequest, memoryRequest, cpuLimit, memoryLimit
+}
+
+func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context, recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {
+	rows := make([]types.PodResourceRecommendationRow, 0)
+	for _, res := range recommendationResults {
+		nodeName := res.NodeName
+		allocatableCPU := res.NodeInfo.AllocatableCPU
+		for _, rec := range res.PodContainerRecommendations {
+			kind, namespace, name := rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName
+			if rec.PodInfo.Stats != nil {
+				kind, namespace, name = rec.PodInfo.Stats.Kind, rec.PodInfo.Stats.Namespace, rec.PodInfo.Stats.Name
+			}
+			workloadID := utils.GetWorkloadKey(kind, namespace, name)
+			cpuRequest, memoryRequest, cpuLimit, memoryLimit := a.computeRecommendedResourceValues(rec, allocatableCPU)
+			payload := types.PodResourceRecommendation{
+				CPURequest:    cpuRequest,
+				MemoryRequest: memoryRequest,
+				CPULimit:      cpuLimit,
+				MemoryLimit:   memoryLimit,
+				ToBeEvicted:   utils.ToBeEvicted(rec),
+			}
+			recJSON, err := json.Marshal(payload)
+			if err != nil {
+				logging.Errorf(ctx, "failed to marshal pod recommendation for %s/%s container %s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
+				continue
+			}
+			rows = append(rows, types.PodResourceRecommendationRow{
+				WorkloadID:     workloadID,
+				NodeName:       nodeName,
+				Namespace:      rec.PodInfo.Namespace,
+				Pod:            rec.PodInfo.Name,
+				Container:      rec.ContainerName,
+				Recommendation: string(recJSON),
+			})
+		}
+		for _, nonOpt := range res.NonOptimizablePods {
+			kind, namespace, name := nonOpt.PodInfo.WorkloadKind, nonOpt.PodInfo.Namespace, nonOpt.PodInfo.WorkloadName
+			if nonOpt.PodInfo.Stats != nil {
+				kind, namespace, name = nonOpt.PodInfo.Stats.Kind, nonOpt.PodInfo.Stats.Namespace, nonOpt.PodInfo.Stats.Name
+			}
+			for _, cr := range nonOpt.PodInfo.ContainerResources {
+				if cr == nil {
+					continue
+				}
+				workloadID := utils.GetWorkloadKey(kind, namespace, name)
+				rows = append(rows, types.PodResourceRecommendationRow{
+					WorkloadID:     workloadID,
+					NodeName:       nodeName,
+					Namespace:      nonOpt.PodNamespace,
+					Pod:            nonOpt.PodName,
+					Container:      cr.Name,
+					Recommendation: "",
+				})
+			}
+		}
+	}
+	return rows
 }
 
 func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx context.Context, allPodInfos []utils.PodInfo, overridesMap map[string]*types.WorkloadOverrideInfo) ([]utils.PodInfo, []utils.NonOptimizablePodInfo) {
@@ -483,7 +566,7 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 		}
 
 		overrides, ok := overridesMap[podInfo.Stats.WorkloadIdentifier]
-		if ok && !overrides.Enabled {
+		if ok && !overrides.EffectiveEnabled() {
 			logging.Infof(ctx, "cruisekube disabled for workload %s, skipping", podInfo.Stats.WorkloadIdentifier)
 			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
 				PodInfo:       podInfo,

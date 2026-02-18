@@ -291,3 +291,20 @@ type OOMEvent struct {
 	CreatedAt          time.Time `json:"created_at"`
 	UpdatedAt          time.Time `json:"updated_at"`
 }
+
+type PodResourceRecommendation struct {
+	CPURequest    float64 `json:"cpu_request"`
+	MemoryRequest float64 `json:"memory_request"`
+	CPULimit      float64 `json:"cpu_limit"`
+	MemoryLimit   float64 `json:"memory_limit"`
+	ToBeEvicted   bool    `json:"to_be_evicted"`
+}
+
+type PodResourceRecommendationRow struct {
+	WorkloadID     string
+	NodeName       string
+	Namespace      string
+	Pod            string
+	Container      string
+	Recommendation string
+}

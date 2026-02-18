@@ -93,8 +93,8 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 			evictionRanking = podInfo.Stats.EvictionRanking
 		}
 		overrides, ok := overridesMap[podInfo.Stats.WorkloadIdentifier]
-		if ok && overrides.EvictionRanking != 0 {
-			evictionRanking = overrides.EvictionRanking
+		if ok && overrides.EffectiveEvictionRanking() != 0 {
+			evictionRanking = overrides.EffectiveEvictionRanking()
 		}
 
 		podMetricsCache[podKey] = utils.PodMetrics{

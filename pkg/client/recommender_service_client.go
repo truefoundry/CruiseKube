@@ -255,13 +255,6 @@ func (c *RecommenderServiceClient) ListWorkloads(ctx context.Context, clusterID 
 	return result, err
 }
 
-func (c *RecommenderServiceClient) GetWorkloadOverrides(ctx context.Context, clusterID, workloadID string) (*types.Overrides, error) {
-	var result types.Overrides
-	endpoint := fmt.Sprintf("/api/v1/clusters/%s/workloads/%s/overrides", clusterID, workloadID)
-	err := c.makeRequest(ctx, "GET", endpoint, nil, &result)
-	return &result, err
-}
-
 func (c *RecommenderServiceClient) UpdateWorkloadOverrides(ctx context.Context, clusterID, workloadID string, overrides *types.Overrides) error {
 	endpoint := fmt.Sprintf("/api/v1/clusters/%s/workloads/%s/overrides", clusterID, workloadID)
 	return c.makeRequest(ctx, "POST", endpoint, overrides, nil)

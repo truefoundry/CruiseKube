@@ -69,12 +69,14 @@ func NewGormDB(db *gorm.DB) (*GormDB, error) {
 }
 
 func (s *GormDB) createTables() error {
-	// Use GORM's AutoMigrate for both new and existing tables
 	if err := s.db.AutoMigrate(&Stats{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate RowStats: %w", err)
 	}
 	if err := s.db.AutoMigrate(&OOMEvent{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate OOMEvent: %w", err)
+	}
+	if err := s.db.AutoMigrate(&PodResourceRecommendation{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate PodResourceRecommendation: %w", err)
 	}
 	return nil
 }
@@ -394,4 +396,38 @@ func (s *GormDB) DeleteOldOOMEvents(clusterID string, olderThan time.Time) (int6
 	}
 
 	return result.RowsAffected, nil
+}
+
+func (s *GormDB) SavePodRecommendations(clusterID string, rows []types.PodResourceRecommendationRow) error {
+	if rows == nil {
+		return fmt.Errorf("rows cannot be nil")
+	}
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("cluster_id = ?", clusterID).Delete(&PodResourceRecommendation{}).Error; err != nil {
+			return fmt.Errorf("failed to delete pod recommendations for cluster: %w", err)
+		}
+		if len(rows) == 0 {
+			return nil
+		}
+		models := make([]PodResourceRecommendation, 0, len(rows))
+		for _, r := range rows {
+			models = append(models, PodResourceRecommendation{
+				ClusterID:      clusterID,
+				WorkloadID:     r.WorkloadID,
+				NodeName:       r.NodeName,
+				Namespace:      r.Namespace,
+				Pod:            r.Pod,
+				Container:      r.Container,
+				Recommendation: r.Recommendation,
+			})
+		}
+		if err := tx.CreateInBatches(models, 100).Error; err != nil {
+			return fmt.Errorf("failed to insert pod recommendations: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to save pod recommendations: %w", err)
+	}
+	return nil
 }
