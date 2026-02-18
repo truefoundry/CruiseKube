@@ -18,18 +18,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const (
-	AnnotationPDBMaxUnavailable = "cruisekube.truefoundry.com/pdb/maxUnavailable"
-	AnnotationPDBMinAvailable   = "cruisekube.truefoundry.com/pdb/minAvailable"
-	AnnotationModified          = "cruisekube.truefoundry.com/modified"
-)
-
-var DoNotDisruptAnnotations = map[string]string{
-	"cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
-	"karpenter.sh/do-not-evict":                      "true",
-	"karpenter.sh/do-not-disrupt":                    "true",
-}
-
 type ReconcileState int
 
 const (
@@ -207,7 +195,7 @@ func (t *DisruptionForceTask) hasBlockingAnnotations(pod *corev1.Pod) bool {
 		return false
 	}
 
-	for annotationKey, expectedValue := range DoNotDisruptAnnotations {
+	for annotationKey, expectedValue := range utils.DoNotDisruptAnnotations {
 		if value, exists := pod.Annotations[annotationKey]; exists && value == expectedValue {
 			return true
 		}
@@ -225,19 +213,19 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 
 	switch state {
 	case StateFullyIn:
-		if pod.Annotations[AnnotationModified] != utils.TrueValue {
-			for key := range DoNotDisruptAnnotations {
+		if pod.Annotations[utils.AnnotationModified] != utils.TrueValue {
+			for key := range utils.DoNotDisruptAnnotations {
 				if _, exists := pod.Annotations[key]; exists {
 					delete(pod.Annotations, key)
 					modified = true
 				}
 			}
 			if modified {
-				pod.Annotations[AnnotationModified] = utils.TrueValue
+				pod.Annotations[utils.AnnotationModified] = utils.TrueValue
 			}
 		}
 	case StateLastIn, StateOut:
-		if pod.Annotations[AnnotationModified] == utils.TrueValue {
+		if pod.Annotations[utils.AnnotationModified] == utils.TrueValue {
 			workloadSpec, err := utils.GetWorkloadPodSpec(ctx, t.kubeClient, workloadInfo)
 			if err != nil {
 				logging.Errorf(ctx, "Failed to get workload spec for pod %s: %v", pod.Name, err)
@@ -245,14 +233,14 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 			}
 
 			if workloadSpec != nil && workloadSpec.Annotations != nil {
-				for key := range DoNotDisruptAnnotations {
+				for key := range utils.DoNotDisruptAnnotations {
 					if val, exists := workloadSpec.Annotations[key]; exists {
 						pod.Annotations[key] = val
 					}
 				}
 			}
 
-			delete(pod.Annotations, AnnotationModified)
+			delete(pod.Annotations, utils.AnnotationModified)
 			modified = true
 		}
 	}
@@ -277,35 +265,35 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 
 	switch state {
 	case StateFullyIn:
-		if pdb.Annotations[AnnotationModified] != utils.TrueValue {
+		if pdb.Annotations[utils.AnnotationModified] != utils.TrueValue {
 			if pdb.Spec.MaxUnavailable != nil {
-				pdb.Annotations[AnnotationPDBMaxUnavailable] = pdb.Spec.MaxUnavailable.String()
+				pdb.Annotations[utils.AnnotationPDBMaxUnavailable] = pdb.Spec.MaxUnavailable.String()
 			}
 			if pdb.Spec.MinAvailable != nil {
-				pdb.Annotations[AnnotationPDBMinAvailable] = pdb.Spec.MinAvailable.String()
+				pdb.Annotations[utils.AnnotationPDBMinAvailable] = pdb.Spec.MinAvailable.String()
 			}
 
 			maxUnavailable := intstr.FromString("100%")
 			minAvailable := intstr.FromInt32(0)
 			pdb.Spec.MaxUnavailable = &maxUnavailable
 			pdb.Spec.MinAvailable = &minAvailable
-			pdb.Annotations[AnnotationModified] = utils.TrueValue
+			pdb.Annotations[utils.AnnotationModified] = utils.TrueValue
 			modified = true
 		}
 	case StateLastIn, StateOut:
-		if pdb.Annotations[AnnotationModified] == utils.TrueValue {
-			if val, exists := pdb.Annotations[AnnotationPDBMaxUnavailable]; exists {
+		if pdb.Annotations[utils.AnnotationModified] == utils.TrueValue {
+			if val, exists := pdb.Annotations[utils.AnnotationPDBMaxUnavailable]; exists {
 				maxUnavailable := intstr.Parse(val)
 				pdb.Spec.MaxUnavailable = &maxUnavailable
 			}
-			if val, exists := pdb.Annotations[AnnotationPDBMinAvailable]; exists {
+			if val, exists := pdb.Annotations[utils.AnnotationPDBMinAvailable]; exists {
 				minAvailable := intstr.Parse(val)
 				pdb.Spec.MinAvailable = &minAvailable
 			}
 
-			delete(pdb.Annotations, AnnotationPDBMaxUnavailable)
-			delete(pdb.Annotations, AnnotationPDBMinAvailable)
-			delete(pdb.Annotations, AnnotationModified)
+			delete(pdb.Annotations, utils.AnnotationPDBMaxUnavailable)
+			delete(pdb.Annotations, utils.AnnotationPDBMinAvailable)
+			delete(pdb.Annotations, utils.AnnotationModified)
 			modified = true
 		}
 	}

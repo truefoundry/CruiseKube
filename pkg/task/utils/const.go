@@ -11,8 +11,22 @@ const (
 )
 
 const (
-	TrueValue = "true"
+	TrueValue  = "true"
+	FalseValue = "false"
 )
+
+const (
+	AnnotationModified          = "cruisekube.truefoundry.com/modified"
+	AnnotationPDBMaxUnavailable = "cruisekube.truefoundry.com/pdb/maxUnavailable"
+	AnnotationPDBMinAvailable   = "cruisekube.truefoundry.com/pdb/minAvailable"
+)
+
+var DoNotDisruptAnnotations = map[string]string{
+	"cluster-autoscaler.kubernetes.io/safe-to-evict": FalseValue,
+	"cruisekube.truefoundry.com/do-not-disrupt":      TrueValue,
+	"karpenter.sh/do-not-evict":                      TrueValue,
+	"karpenter.sh/do-not-disrupt":                    TrueValue,
+}
 
 const (
 	DeploymentKind  = "Deployment"
