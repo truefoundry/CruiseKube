@@ -7,6 +7,7 @@ const (
 	ContinuousOptimizationRatioThreshold = 3.0
 	ContinuousOptimizationDiffThreshold  = 0.001
 	BytesToMBDivisor                     = 1000_000
+	CPUClampValue                        = 20.0
 )
 
 const (

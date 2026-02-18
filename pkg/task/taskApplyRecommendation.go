@@ -23,10 +23,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const (
-	CPUClampValue = 10
-)
-
 type RecommendationResult struct {
 	NodeName                    string
 	NodeInfo                    utils.NodeResourceInfo
@@ -231,7 +227,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				continue
 			}
 
-			if rec.Evict {
+			if rec.Evict || rec.PodInfo.IsGuaranteedPod() {
 				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
 				logging.Infof(ctx, "Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				if applyChanges {
@@ -313,7 +309,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	}
 	currentMemoryRequest := float64(currentMemoryRequestQuantity.Value()) / utils.BytesToMBDivisor
 	if math.Abs(currentMemoryRequest-containerResource.MemoryRequest) > utils.MinimumMemoryRecommendation {
-		logging.Infof(ctx, "pod %s/%s memory has changed too much from %.1f MB to %.1f MB, skipping applying memory recommendation", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
+		logging.Infof(ctx, "pod %s/%s memory has changed too much from %.1f MB to %.1f MB, skipping applying memory recommendation", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, containerResource.MemoryRequest)
 		return false, true, nil
 	}
 
@@ -383,18 +379,14 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 	currentCPULimit := float64(currentCPULimitQuantity.MilliValue()) / 1000.0
 
 	recommendedCPURequest := utils.EnforceMinimumCPU(rec.CPU)
-	if recommendedCPURequest > CPUClampValue {
-		recommendedCPURequest = CPUClampValue
+	if recommendedCPURequest > utils.CPUClampValue {
+		recommendedCPURequest = utils.CPUClampValue
 	}
 
 	// since i cannot remove cpu limit from a burstable pod, i will set the limit to the allocatable cpu
 	recommendedCPULimit := allocatableCPU
 	if currentCPULimit == 0.0 {
 		recommendedCPULimit = 0.0
-	}
-	if rec.PodInfo.IsGuaranteedPod() {
-		logging.Infof(ctx, "pod %s/%s is a guaranteed pod, skipping any kind of cpu changes", rec.PodInfo.Namespace, rec.PodInfo.Name)
-		return true, nil
 	}
 
 	if math.Abs(recommendedCPURequest-currentCPURequest) >= 0.001 || math.Abs(recommendedCPULimit-currentCPULimit) >= 0.001 {
@@ -466,8 +458,8 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 			continue
 		}
 
-		if podInfo.IsGuaranteedPod() {
-			logging.Infof(ctx, "Pod %s/%s is a guaranteed pod, skipping", podInfo.Namespace, podInfo.Name)
+		if podInfo.IsGuaranteedPod() && !a.config.RecommendationSettings.OptimizeGuaranteedPods {
+			logging.Infof(ctx, "Skipping guaranteed pod %s/%s", podInfo.Namespace, podInfo.Name)
 			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
 				PodInfo:       podInfo,
 				PodName:       podInfo.Name,
@@ -477,6 +469,19 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 			})
 			continue
 		}
+
+		if podInfo.IsBestEffortPod() {
+			logging.Infof(ctx, "Skipping best effort pod %s/%s", podInfo.Namespace, podInfo.Name)
+			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
+				PodInfo:       podInfo,
+				PodName:       podInfo.Name,
+				PodNamespace:  podInfo.Namespace,
+				CurrentCPU:    podInfo.RequestedCPU,
+				CurrentMemory: podInfo.RequestedMemory,
+			})
+			continue
+		}
+
 		overrides, ok := overridesMap[podInfo.Stats.WorkloadIdentifier]
 		if ok && !overrides.Enabled {
 			logging.Infof(ctx, "cruisekube disabled for workload %s, skipping", podInfo.Stats.WorkloadIdentifier)

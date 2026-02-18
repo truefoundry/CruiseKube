@@ -200,6 +200,23 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 				}
 				recommendedMemory, restMemory := s.getRecommendedAndRestMemory(containerStat)
 
+				if pod.WorkloadKind == utils.DaemonSetKind {
+					currentCPU := currentResource.CPURequest
+					currentMemory := currentResource.MemoryRequest
+
+					if recommendedCPU > currentCPU {
+						// We don't want to increase the CPU request for daemonsets
+						// as they might end up in a state that not all daemonsets will fit in a single node
+						recommendedCPU = currentCPU
+					}
+					restCPU = 0
+
+					if recommendedMemory > currentMemory {
+						recommendedMemory = currentMemory
+					}
+					restMemory = 0
+				}
+
 				containerMetrics = append(containerMetrics, struct {
 					pod               utils.PodInfo
 					containerStats    utils.ContainerStats
@@ -235,12 +252,12 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 	for _, metric := range containerMetrics {
 		var additionalCPU, additionalMemory float64
 
-		if totalRecommendedCPU > 0 {
+		if totalRecommendedCPU > 0 && totalRestCPU > 0 {
 			cpuRatio := metric.restCPU / totalRestCPU
 			additionalCPU = maxRestCPU * cpuRatio
 		}
 
-		if totalRecommendedMemory > 0 {
+		if totalRecommendedMemory > 0 && totalRestMemory > 0 {
 			memoryRatio := metric.restMemory / totalRestMemory
 			additionalMemory = maxRestMemory * memoryRatio
 		}
