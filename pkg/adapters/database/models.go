@@ -4,19 +4,20 @@ import (
 	"time"
 )
 
-type Stats struct {
+// Workload is the DB row for a workload (stats payload + overrides) per cluster.
+type Workload struct {
 	ID          uint      `gorm:"column:id;primaryKey;autoIncrement"`
-	ClusterID   string    `gorm:"column:cluster_id;index;uniqueIndex:idx_stats_cluster_workload"`
-	WorkloadID  string    `gorm:"column:workload_id;index;uniqueIndex:idx_stats_cluster_workload"`
-	Stats       string    `gorm:"column:stats"`
+	ClusterID   string    `gorm:"column:cluster_id;index;uniqueIndex:idx_workloads_cluster_workload"`
+	WorkloadID  string    `gorm:"column:workload_id;index;uniqueIndex:idx_workloads_cluster_workload"`
+	Stats       string    `gorm:"column:stats"` // JSON payload of workload stats
 	GeneratedAt time.Time `gorm:"column:generated_at;index"`
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 	Overrides   string    `gorm:"column:overrides;default:'{}'"`
 }
 
-func (Stats) TableName() string {
-	return "stats"
+func (Workload) TableName() string {
+	return "workloads"
 }
 
 type OOMEvent struct {
