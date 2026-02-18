@@ -14,6 +14,7 @@ const (
 	ModifyEqualCPUResourcesKey = "modifyequalcpuresources"
 	NodeLoadMonitoringKey      = "nodeloadmonitoring"
 	CleanupOOMEventsKey        = "cleanupoomevent"
+	DisruptionForceKey         = "disruptionforce"
 )
 
 type Config struct {
@@ -25,6 +26,7 @@ type Config struct {
 	Webhook                WebhookConfig          `yaml:"webhook" mapstructure:"webhook"`
 	DB                     DatabaseConfig         `yaml:"db" mapstructure:"db"`
 	RecommendationSettings RecommendationSettings `yaml:"recommendationSettings" mapstructure:"recommendationSettings"`
+	DisruptionSettings     DisruptionSettings     `yaml:"disruptionSettings" mapstructure:"disruptionSettings"`
 	Telemetry              TelemetryConfig        `yaml:"telemetry" mapstructure:"telemetry"`
 	Metrics                MetricsConfig          `yaml:"metrics" mapstructure:"metrics"`
 	Custom                 map[string]interface{} `yaml:",inline" mapstructure:",remain"`
@@ -95,6 +97,11 @@ type RecommendationSettings struct {
 	MaxConcurrentQueries       int      `yaml:"maxConcurrentQueries" mapstructure:"maxConcurrentQueries"`
 	OOMCooldownMinutes         int      `yaml:"oomCooldownMinutes" mapstructure:"oomCooldownMinutes"`
 	OptimizeGuaranteedPods     bool     `yaml:"optimizeGuaranteedPods" mapstructure:"optimizeGuaranteedPods"`
+}
+
+type DisruptionSettings struct {
+	WindowCron            string `yaml:"windowCron" mapstructure:"windowCron"`
+	WindowDurationMinutes int    `yaml:"windowDurationMinutes" mapstructure:"windowDurationMinutes"`
 }
 
 type TelemetryConfig struct {

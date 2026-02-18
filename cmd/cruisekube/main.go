@@ -379,6 +379,20 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 			},
 			cleanupOOMEventsTaskConfig,
 		))
+
+		disruptionForceTaskConfig := cfg.GetTaskConfig(config.DisruptionForceKey)
+		clusterManager.AddTask(task.NewDisruptionForceTask(
+			ctx,
+			cluster.KubeClient,
+			&task.DisruptionForceTaskConfig{
+				Name:            ID + "_" + config.DisruptionForceKey,
+				Enabled:         disruptionForceTaskConfig.Enabled,
+				Schedule:        disruptionForceTaskConfig.Schedule,
+				ClusterID:       ID,
+				TargetNamespace: cfg.Controller.TargetNamespace,
+			},
+			cfg,
+		))
 	}
 
 	if err := clusterManager.ScheduleAllTasks(); err != nil {

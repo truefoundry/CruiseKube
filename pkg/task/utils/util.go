@@ -688,3 +688,28 @@ func GetPods(ctx context.Context, kubeClient *kubernetes.Clientset, namespace st
 	}
 	return pods, nil
 }
+
+func GetWorkloadPodSpec(ctx context.Context, kubeClient *kubernetes.Clientset, workloadInfo *WorkloadInfo) (*corev1.PodTemplateSpec, error) {
+	switch workloadInfo.Kind {
+	case DeploymentKind:
+		deployment, err := kubeClient.AppsV1().Deployments(workloadInfo.Namespace).Get(ctx, workloadInfo.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return &deployment.Spec.Template, nil
+	case StatefulSetKind:
+		statefulset, err := kubeClient.AppsV1().StatefulSets(workloadInfo.Namespace).Get(ctx, workloadInfo.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return &statefulset.Spec.Template, nil
+	case DaemonSetKind:
+		daemonset, err := kubeClient.AppsV1().DaemonSets(workloadInfo.Namespace).Get(ctx, workloadInfo.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		return &daemonset.Spec.Template, nil
+	default:
+		return nil, fmt.Errorf("unsupported workload kind: %s", workloadInfo.Kind)
+	}
+}

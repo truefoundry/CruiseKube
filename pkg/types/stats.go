@@ -41,8 +41,9 @@ const (
 )
 
 type Overrides struct {
-	EvictionRanking *EvictionRanking `json:"eviction_ranking"`
-	Enabled         *bool            `json:"enabled"`
+	EvictionRanking  *EvictionRanking `json:"eviction_ranking"`
+	Enabled          *bool            `json:"enabled"`
+	DisruptionWindow *string          `json:"disruption_window,omitempty"`
 }
 
 type ContainerType int
