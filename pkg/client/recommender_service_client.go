@@ -274,6 +274,15 @@ func (c *RecommenderServiceClient) WebhookGetWorkloadOverrides(ctx context.Conte
 	return &result, err
 }
 
+// WebhookMutatingPatch POSTs the given body to the controller's mutatingPatch endpoint and returns the response body (JSON patch array).
+// On non-2xx or error, returns an error. Caller should treat error as "return empty patches".
+func (c *RecommenderServiceClient) WebhookMutatingPatch(ctx context.Context, clusterID string, body interface{}) ([]byte, error) {
+	endpoint := fmt.Sprintf("/api/v1/clusters/%s/webhook/mutatingPatch", clusterID)
+	var result []byte
+	err := c.makeRequest(ctx, "POST", endpoint, body, &result)
+	return result, err
+}
+
 func (c *RecommenderServiceClient) SetHost(host string) {
 	c.host = strings.TrimSuffix(host, "/")
 }
