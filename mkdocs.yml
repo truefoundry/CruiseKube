@@ -197,7 +197,6 @@ nav:
   - Home: index.md
   - Getting started:
       - Installation: src/gs-installation.md
-
       - Configuration: 
         - Overview: src/config.md
         - Dashboard: src/config-dashboard.md
