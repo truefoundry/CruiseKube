@@ -87,7 +87,7 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	logging.Infof(ctx, "Running disruption force task")
 
 	now := time.Now()
-	state := t.getReconcileState(now)
+	state := t.getReconcileState(ctx, now)
 	logging.Infof(ctx, "Reconcile state: %v", state)
 
 	stats, err := t.storage.GetAllStatsForCluster(t.config.ClusterID)
@@ -164,10 +164,10 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	return nil
 }
 
-func (t *DisruptionForceTask) getReconcileState(now time.Time) ReconcileState {
+func (t *DisruptionForceTask) getReconcileState(ctx context.Context, now time.Time) ReconcileState {
 	schedule, err := t.cronParser.Parse(t.config.Schedule)
 	if err != nil {
-		logging.Errorf(context.Background(), "Failed to parse schedule: %v", err)
+		logging.Errorf(ctx, "Failed to parse schedule: %v", err)
 		return StateOut
 	}
 
@@ -223,8 +223,9 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 
 	modified := false
 
-	if state == StateFullyIn {
-		if pod.Annotations[AnnotationModified] != "true" {
+	switch state {
+	case StateFullyIn:
+		if pod.Annotations[AnnotationModified] != utils.TrueValue {
 			for key := range DoNotDisruptAnnotations {
 				if _, exists := pod.Annotations[key]; exists {
 					delete(pod.Annotations, key)
@@ -232,22 +233,21 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 				}
 			}
 			if modified {
-				pod.Annotations[AnnotationModified] = "true"
+				pod.Annotations[AnnotationModified] = utils.TrueValue
 			}
 		}
-	} else if state == StateLastIn || state == StateOut {
-		if pod.Annotations[AnnotationModified] == "true" {
+	case StateLastIn, StateOut:
+		if pod.Annotations[AnnotationModified] == utils.TrueValue {
 			workloadSpec, err := utils.GetWorkloadPodSpec(ctx, t.kubeClient, workloadInfo)
 			if err != nil {
 				logging.Errorf(ctx, "Failed to get workload spec for pod %s: %v", pod.Name, err)
-				return err
+				return fmt.Errorf("failed to get workload pod spec: %w", err)
 			}
 
 			if workloadSpec != nil && workloadSpec.Annotations != nil {
 				for key := range DoNotDisruptAnnotations {
 					if val, exists := workloadSpec.Annotations[key]; exists {
 						pod.Annotations[key] = val
-						modified = true
 					}
 				}
 			}
@@ -275,8 +275,9 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 
 	modified := false
 
-	if state == StateFullyIn {
-		if pdb.Annotations[AnnotationModified] != "true" {
+	switch state {
+	case StateFullyIn:
+		if pdb.Annotations[AnnotationModified] != utils.TrueValue {
 			if pdb.Spec.MaxUnavailable != nil {
 				pdb.Annotations[AnnotationPDBMaxUnavailable] = pdb.Spec.MaxUnavailable.String()
 			}
@@ -288,11 +289,11 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 			minAvailable := intstr.FromInt32(0)
 			pdb.Spec.MaxUnavailable = &maxUnavailable
 			pdb.Spec.MinAvailable = &minAvailable
-			pdb.Annotations[AnnotationModified] = "true"
+			pdb.Annotations[AnnotationModified] = utils.TrueValue
 			modified = true
 		}
-	} else if state == StateLastIn || state == StateOut {
-		if pdb.Annotations[AnnotationModified] == "true" {
+	case StateLastIn, StateOut:
+		if pdb.Annotations[AnnotationModified] == utils.TrueValue {
 			if val, exists := pdb.Annotations[AnnotationPDBMaxUnavailable]; exists {
 				maxUnavailable := intstr.Parse(val)
 				pdb.Spec.MaxUnavailable = &maxUnavailable

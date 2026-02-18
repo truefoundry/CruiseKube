@@ -694,19 +694,19 @@ func GetWorkloadPodSpec(ctx context.Context, kubeClient *kubernetes.Clientset, w
 	case DeploymentKind:
 		deployment, err := kubeClient.AppsV1().Deployments(workloadInfo.Namespace).Get(ctx, workloadInfo.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get deployment %s/%s: %w", workloadInfo.Namespace, workloadInfo.Name, err)
 		}
 		return &deployment.Spec.Template, nil
 	case StatefulSetKind:
 		statefulset, err := kubeClient.AppsV1().StatefulSets(workloadInfo.Namespace).Get(ctx, workloadInfo.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get statefulset %s/%s: %w", workloadInfo.Namespace, workloadInfo.Name, err)
 		}
 		return &statefulset.Spec.Template, nil
 	case DaemonSetKind:
 		daemonset, err := kubeClient.AppsV1().DaemonSets(workloadInfo.Namespace).Get(ctx, workloadInfo.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get daemonset %s/%s: %w", workloadInfo.Namespace, workloadInfo.Name, err)
 		}
 		return &daemonset.Spec.Template, nil
 	default:
