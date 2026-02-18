@@ -1,4 +1,4 @@
-controllerMode: in-cluster
+controllerMode: local
 dependencies:
   local:
     kubeconfigPath: ""
@@ -12,12 +12,12 @@ controller:
   writeAuthorizedClusters: []
   tasks:
     createStats:
-      enabled: true
+      enabled: false
       schedule: "15m"
       metadata:
         skipMemory: false
     applyRecommendation:
-      enabled: true
+      enabled: false
       schedule: "5m"
       metadata:
         dryRun: true
@@ -40,9 +40,6 @@ controller:
       schedule: "24h"
       metadata:
         retentionDays: 7
-    disruptionForce:
-      enabled: false
-      schedule: "5m"
 metrics:
   enabled: true
   port: "8081"   
@@ -58,17 +55,17 @@ webhook:
   statsURL:
     host: "http://localhost:8080"
     tfyClusterToken: "<cluster-token>"
-# db:
-#   type: sqlite
-#   database: "stats-data/cruisekube.db"
 db:
-  type: postgres
-  host: localhost
-  port: 5432
-  database: cruisekube
-  username: cruisekube
-  password: cruisekube
-  sslmode: disable
+  type: sqlite
+  database: "stats-data/cruisekube.db"
+# db:
+#   type: postgres
+#   host: localhost
+#   port: 5432
+#   database: cruisekube
+#   username: cruisekube
+#   password: cruisekube
+#   sslmode: disable
 recommendationSettings:
   newWorkloadThresholdHours: 1
   disableMemoryApplication: true
@@ -76,9 +73,6 @@ recommendationSettings:
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true
-disruptionSettings:
-  windowCron: "0 2 * * *"
-  windowDurationMinutes: 240
 telemetry:
   enabled: false
   exporterOTLPEndpoint: ""

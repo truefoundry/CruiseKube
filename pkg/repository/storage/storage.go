@@ -172,3 +172,10 @@ func (s *Storage) DeleteOldOOMEvents(clusterID string, retentionDays int) (int64
 	}
 	return rowsAffected, nil
 }
+
+func (s *Storage) SavePodRecommendations(clusterID string, rows []types.PodResourceRecommendationRow) error {
+	if err := s.DB.SavePodRecommendations(clusterID, rows); err != nil {
+		return fmt.Errorf("failed to save pod recommendations: %w", err)
+	}
+	return nil
+}

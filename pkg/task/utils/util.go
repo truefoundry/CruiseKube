@@ -711,5 +711,8 @@ func GetWorkloadPodSpec(ctx context.Context, kubeClient *kubernetes.Clientset, w
 		return &daemonset.Spec.Template, nil
 	default:
 		return nil, fmt.Errorf("unsupported workload kind: %s", workloadInfo.Kind)
-	}
+}
+
+func ToBeEvicted(r PodContainerRecommendation) bool {
+	return r.Evict || r.PodInfo.IsGuaranteedPod()
 }

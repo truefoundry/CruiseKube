@@ -323,6 +323,7 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 			cluster.KubeClient,
 			cluster.DynamicClient,
 			promClient,
+			storageRepo,
 			&task.ApplyRecommendationTaskConfig{
 				Name:                     ID + "_" + config.ApplyRecommendationKey,
 				Enabled:                  applyRecommendationTaskConfig.Enabled,

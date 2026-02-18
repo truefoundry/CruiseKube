@@ -1,12 +1,33 @@
 package types
 
-type WorkloadOverrideInfo struct {
-	WorkloadID      string          `json:"workload_id"`
-	Name            string          `json:"name"`
-	Namespace       string          `json:"namespace"`
-	Kind            string          `json:"kind"`
+// WorkloadOverridesEffective is the effective overrides for a workload (what the API returns under "overrides").
+type WorkloadOverridesEffective struct {
 	EvictionRanking EvictionRanking `json:"eviction_ranking"`
 	Enabled         bool            `json:"enabled"`
+}
+
+type WorkloadOverrideInfo struct {
+	WorkloadID string                      `json:"workload_id"`
+	Name       string                      `json:"name"`
+	Namespace  string                      `json:"namespace"`
+	Kind       string                      `json:"kind"`
+	Overrides  *WorkloadOverridesEffective `json:"overrides"`
+}
+
+// EffectiveEnabled returns the effective enabled flag (default true if Overrides is nil).
+func (w *WorkloadOverrideInfo) EffectiveEnabled() bool {
+	if w == nil || w.Overrides == nil {
+		return true
+	}
+	return w.Overrides.Enabled
+}
+
+// EffectiveEvictionRanking returns the effective eviction ranking (default EvictionRankingMedium if Overrides is nil).
+func (w *WorkloadOverrideInfo) EffectiveEvictionRanking() EvictionRanking {
+	if w == nil || w.Overrides == nil {
+		return EvictionRankingMedium
+	}
+	return w.Overrides.EvictionRanking
 }
 
 type WorkloadAnalysisItem struct {
