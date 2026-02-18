@@ -385,6 +385,7 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 		clusterManager.AddTask(task.NewDisruptionForceTask(
 			ctx,
 			cluster.KubeClient,
+			storageRepo,
 			&task.DisruptionForceTaskConfig{
 				Name:            ID + "_" + config.DisruptionForceKey,
 				Enabled:         disruptionForceTaskConfig.Enabled,

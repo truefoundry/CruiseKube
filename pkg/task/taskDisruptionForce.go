@@ -9,6 +9,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -23,10 +24,10 @@ const (
 	AnnotationModified          = "cruisekube.truefoundry.com/modified"
 )
 
-var DoNotDisruptAnnotations = []string{
-	"cluster-autoscaler.kubernetes.io/safe-to-evict",
-	"karpenter.sh/do-not-evict",
-	"karpenter.sh/do-not-disrupt",
+var DoNotDisruptAnnotations = map[string]string{
+	"cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
+	"karpenter.sh/do-not-evict":                      "true",
+	"karpenter.sh/do-not-disrupt":                    "true",
 }
 
 type ReconcileState int
@@ -47,14 +48,16 @@ type DisruptionForceTaskConfig struct {
 
 type DisruptionForceTask struct {
 	kubeClient *kubernetes.Clientset
+	storage    *storage.Storage
 	config     *DisruptionForceTaskConfig
 	appConfig  *config.Config
 	cronParser cron.Parser
 }
 
-func NewDisruptionForceTask(_ context.Context, kubeClient *kubernetes.Clientset, taskConfig *DisruptionForceTaskConfig, appConfig *config.Config) *DisruptionForceTask {
+func NewDisruptionForceTask(_ context.Context, kubeClient *kubernetes.Clientset, storage *storage.Storage, taskConfig *DisruptionForceTaskConfig, appConfig *config.Config) *DisruptionForceTask {
 	return &DisruptionForceTask{
 		kubeClient: kubeClient,
+		storage:    storage,
 		config:     taskConfig,
 		appConfig:  appConfig,
 		cronParser: cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow),
@@ -87,32 +90,61 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	state := t.getReconcileState(now)
 	logging.Infof(ctx, "Reconcile state: %v", state)
 
-	namespace := t.config.TargetNamespace
-	if namespace == "" {
-		namespace = metav1.NamespaceAll
+	stats, err := t.storage.GetAllStatsForCluster(t.config.ClusterID)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get workload stats: %v", err)
+		return fmt.Errorf("failed to get workload stats: %w", err)
 	}
 
-	pods, err := t.kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
-	if err != nil {
-		logging.Errorf(ctx, "Failed to list pods: %v", err)
-		return fmt.Errorf("failed to list pods: %w", err)
+	workloadsWithBlockingAnnotations := make([]utils.WorkloadInfo, 0)
+	for _, stat := range stats {
+		if stat.Constraints != nil && stat.Constraints.DoNotDisruptAnnotation {
+			workloadsWithBlockingAnnotations = append(workloadsWithBlockingAnnotations, utils.WorkloadInfo{
+				Kind:      stat.Kind,
+				Namespace: stat.Namespace,
+				Name:      stat.Name,
+			})
+		}
 	}
+
+	logging.Infof(ctx, "Total workloads with blocking annotations: %d", len(workloadsWithBlockingAnnotations))
 
 	reconciledPods := 0
-	for i := range pods.Items {
-		pod := &pods.Items[i]
-		workloadInfo := utils.GetWorkloadInfoFromPod(pod)
-		if workloadInfo == nil {
+	for _, workloadInfo := range workloadsWithBlockingAnnotations {
+		workloadObj, err := utils.GetWorkloadObject(ctx, t.kubeClient, workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
+		if err != nil {
+			logging.Errorf(ctx, "Failed to get workload %s/%s/%s: %v", workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name, err)
 			continue
 		}
-		if err := t.reconcilePod(ctx, pod, workloadInfo, state); err != nil {
-			logging.Errorf(ctx, "Failed to reconcile pod %s/%s: %v", pod.Namespace, pod.Name, err)
+
+		selector, err := workloadObj.GetSelector()
+		if err != nil {
+			logging.Errorf(ctx, "Failed to get selector for workload %s/%s/%s: %v", workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name, err)
 			continue
 		}
-		reconciledPods++
+
+		pods, err := utils.GetPods(ctx, t.kubeClient, workloadInfo.Namespace, selector)
+		if err != nil {
+			logging.Errorf(ctx, "Failed to list pods for workload %s/%s/%s: %v", workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name, err)
+			continue
+		}
+
+		for i := range pods.Items {
+			pod := &pods.Items[i]
+
+			if !t.hasBlockingAnnotations(pod) {
+				continue
+			}
+
+			if err := t.reconcilePod(ctx, pod, &workloadInfo, state); err != nil {
+				logging.Errorf(ctx, "Failed to reconcile pod %s/%s: %v", pod.Namespace, pod.Name, err)
+				continue
+			}
+			reconciledPods++
+		}
 	}
 
-	pdbs, err := t.kubeClient.PolicyV1().PodDisruptionBudgets(namespace).List(ctx, metav1.ListOptions{})
+	pdbs, err := t.kubeClient.PolicyV1().PodDisruptionBudgets("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		logging.Errorf(ctx, "Failed to list PDBs: %v", err)
 		return fmt.Errorf("failed to list PDBs: %w", err)
@@ -170,6 +202,20 @@ func (t *DisruptionForceTask) inEvictionWindow(tm time.Time) bool {
 	return nextCron.Before(tm)
 }
 
+func (t *DisruptionForceTask) hasBlockingAnnotations(pod *corev1.Pod) bool {
+	if pod.Annotations == nil {
+		return false
+	}
+
+	for annotationKey, expectedValue := range DoNotDisruptAnnotations {
+		if value, exists := pod.Annotations[annotationKey]; exists && value == expectedValue {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod, workloadInfo *utils.WorkloadInfo, state ReconcileState) error {
 	if pod.Annotations == nil {
 		pod.Annotations = make(map[string]string)
@@ -179,7 +225,7 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 
 	if state == StateFullyIn {
 		if pod.Annotations[AnnotationModified] != "true" {
-			for _, key := range DoNotDisruptAnnotations {
+			for key := range DoNotDisruptAnnotations {
 				if _, exists := pod.Annotations[key]; exists {
 					delete(pod.Annotations, key)
 					modified = true
@@ -198,7 +244,7 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 			}
 
 			if workloadSpec != nil && workloadSpec.Annotations != nil {
-				for _, key := range DoNotDisruptAnnotations {
+				for key := range DoNotDisruptAnnotations {
 					if val, exists := workloadSpec.Annotations[key]; exists {
 						pod.Annotations[key] = val
 						modified = true
