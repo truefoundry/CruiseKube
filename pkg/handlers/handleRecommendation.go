@@ -103,7 +103,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 
 func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, nodeName string, currentRequestedCPU, recommendedCPU, currentRequestedMemory, recommendedMemory float64) types.RecommendationAnalysisItem {
 	blockingKarpenter := NoValue
-	if stat.Constraints != nil && stat.Constraints.Blocking {
+	if stat.Constraints != nil && stat.Constraints.BlockingConsolidation {
 		blockingKarpenter = YesValue
 	}
 

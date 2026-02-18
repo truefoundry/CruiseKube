@@ -431,3 +431,22 @@ func (s *GormDB) SavePodRecommendations(clusterID string, rows []types.PodResour
 	}
 	return nil
 }
+
+func (s *GormDB) GetPodRecommendationsForCluster(clusterID string) ([]types.PodResourceRecommendationRow, error) {
+	var models []PodResourceRecommendation
+	if err := s.db.Where("cluster_id = ?", clusterID).Find(&models).Error; err != nil {
+		return nil, fmt.Errorf("failed to get pod recommendations for cluster: %w", err)
+	}
+	rows := make([]types.PodResourceRecommendationRow, 0, len(models))
+	for _, m := range models {
+		rows = append(rows, types.PodResourceRecommendationRow{
+			WorkloadID:     m.WorkloadID,
+			NodeName:       m.NodeName,
+			Namespace:      m.Namespace,
+			Pod:            m.Pod,
+			Container:      m.Container,
+			Recommendation: m.Recommendation,
+		})
+	}
+	return rows, nil
+}

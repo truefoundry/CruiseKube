@@ -36,7 +36,7 @@ func analyzeWorkload(stat utils.WorkloadStat) []types.WorkloadAnalysisItem {
 
 	// Determine if workload is blocking Karpenter
 	blockingKarpenter := NoValue
-	if stat.Constraints != nil && stat.Constraints.Blocking {
+	if stat.Constraints != nil && stat.Constraints.BlockingConsolidation {
 		blockingKarpenter = YesValue
 	}
 

@@ -6,7 +6,8 @@ import (
 )
 
 type WorkloadConstraints struct {
-	Blocking                 bool `json:"blocking"`
+	BlockingConsolidation bool `json:"blocking_consolidation"`
+
 	PDB                      bool `json:"pdb"`
 	DoNotDisruptAnnotation   bool `json:"do_not_disrupt_annotation"`
 	Volume                   bool `json:"volume"`
