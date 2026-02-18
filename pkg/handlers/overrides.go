@@ -8,40 +8,10 @@ import (
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
-	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 
 	"github.com/gin-gonic/gin"
 )
-
-func GetWorkloadOverridesHandler(c *gin.Context) {
-	clusterID := c.Param("clusterID")
-	workloadID := c.Param("workloadID")
-	overrides, err := storage.Stg.GetWorkloadOverrides(clusterID, workloadID)
-	if err != nil {
-		logging.Errorf(c.Request.Context(), "Failed to get workload overrides: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to get workload overrides: %v", err),
-		})
-		return
-	}
-
-	if overrides == nil {
-		overrides = &types.Overrides{
-			Enabled:         utils.PtrTo(true),
-			EvictionRanking: utils.PtrTo(types.EvictionRankingHigh),
-		}
-	}
-
-	c.Header("Content-Type", "application/json")
-	if err := json.NewEncoder(c.Writer).Encode(overrides); err != nil {
-		logging.Errorf(c.Request.Context(), "Failed to encode response: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to encode response: %v", err),
-		})
-		return
-	}
-}
 
 func UpdateWorkloadOverridesHandler(c *gin.Context) {
 	clusterID := c.Param("clusterID")
