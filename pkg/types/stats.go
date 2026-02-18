@@ -40,7 +40,9 @@ const (
 	EvictionRankingHigh     EvictionRanking = 4
 )
 
-// DisruptionWindow defines a time window (cron in UTC) during which disruptions are allowed or avoided.
+// DisruptionWindow defines a time window (bounded by UTC cron expressions) during which
+// workload disruptions (e.g. pod evictions) are permitted. Operations outside this window
+// will not be scheduled.
 type DisruptionWindow struct {
 	StartCron string `json:"start_cron"` // cron expression in UTC, e.g. "30 15 * * 1,2,3,4,5"
 	EndCron   string `json:"end_cron"`   // cron expression in UTC
