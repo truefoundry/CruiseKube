@@ -12,9 +12,11 @@ import (
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
+
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/metrics"
 	"github.com/truefoundry/cruisekube/pkg/types"
+	admissionv1 "k8s.io/api/admission/v1"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -63,6 +65,20 @@ type PrometheusProxyRequest struct {
 	QueryParams url.Values
 	Headers     map[string]string
 	Body        io.Reader
+}
+
+// MutatingPatchRequest is the request body for POST /api/v1/clusters/:clusterID/webhook/mutatingPatch.
+// Manifest is the complete incoming object; the controller handles Pod and PDB separately.
+type MutatingPatchRequest struct {
+	Manifest admissionv1.AdmissionReview `json:"review"`
+}
+
+// JSONPatchOp is a single RFC 6902 JSON Patch operation.
+// Value is optional and omitted when op is "remove".
+type JSONPatchOp struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 func NewRecommenderServiceClient(config ClientConfig) *RecommenderServiceClient {
@@ -276,9 +292,9 @@ func (c *RecommenderServiceClient) WebhookGetWorkloadOverrides(ctx context.Conte
 
 // WebhookMutatingPatch POSTs the given body to the controller's mutatingPatch endpoint and returns the response body (JSON patch array).
 // On non-2xx or error, returns an error. Caller should treat error as "return empty patches".
-func (c *RecommenderServiceClient) WebhookMutatingPatch(ctx context.Context, clusterID string, body interface{}) ([]byte, error) {
+func (c *RecommenderServiceClient) WebhookMutatingPatch(ctx context.Context, clusterID string, body interface{}) ([]JSONPatchOp, error) {
 	endpoint := fmt.Sprintf("/api/v1/clusters/%s/webhook/mutatingPatch", clusterID)
-	var result []byte
+	var result []JSONPatchOp
 	err := c.makeRequest(ctx, "POST", endpoint, body, &result)
 	return result, err
 }

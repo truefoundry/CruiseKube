@@ -29,44 +29,44 @@ func InitRecommenderServiceClient(cfg *config.Config) {
 func MutateHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
-	body, err := c.GetRawData()
-	if err != nil {
+	var review admissionv1.AdmissionReview
+	if body, err := c.GetRawData(); err != nil {
 		logging.Errorf(ctx, "Failed to read request body: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"error": "Failed to read request body",
 		})
 		return
-	}
-
-	var review admissionv1.AdmissionReview
-	if err := json.Unmarshal(body, &review); err != nil {
+	} else if err := json.Unmarshal(body, &review); err != nil {
 		logging.Errorf(ctx, "Failed to unmarshal admission review: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
+			"error": "Failed to unmarshal admission review",
 		})
 		return
 	}
 
 	logging.Infof(ctx, "Forwarding manifest to controller for cluster %s", clusterID)
-	mutatingPatchReq := MutatingPatchRequest{
+	mutatingPatchReq := client.MutatingPatchRequest{
 		Manifest: review,
 	}
-
 	patchBytes, err := recommenderServiceClient.WebhookMutatingPatch(ctx, clusterID, mutatingPatchReq)
 	if err != nil {
 		logging.Errorf(ctx, "Controller mutatingPatch not reachable or error: %v; returning empty patches", err)
-		patchBytes = []byte("[]")
+		patchBytes = []client.JSONPatchOp{}
 	}
-
 	patchType := admissionv1.PatchTypeJSONPatch
 	review.Response = &admissionv1.AdmissionResponse{
 		UID:       review.Request.UID,
 		Allowed:   true,
 		PatchType: &patchType,
-		Patch:     patchBytes,
 	}
-
-	logging.Infof(ctx, "Review response: %s", string(patchBytes))
+	patch, err := json.Marshal(patchBytes)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to marshal patchBytes: %v", err)
+		review.Response.Patch = nil
+	} else {
+		review.Response.Patch = patch
+	}
+	logging.Infof(ctx, "Review response: %s", string(patch))
 	c.JSON(http.StatusOK, review)
 }
 
