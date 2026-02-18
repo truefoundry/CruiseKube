@@ -20,7 +20,7 @@ In the real world, you pay for the instances you have provisioned, and the price
 
 ## Assumptions
 
--Base instance: `AWS c5a.xlarge` (4 vCPUs, 8 GB RAM).
+- Base instance: `AWS c5a.xlarge` (4 vCPUs, 8 GB RAM).
 - Node mix: half on-demand, half spot; no reserved instances.
 - Cost split: half the instance price is attributed to CPU, half to memory (network, storage, etc. are treated as included).
 - GPU instances are excluded from cost calculation and recommendations.
