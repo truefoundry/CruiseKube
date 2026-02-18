@@ -10,7 +10,7 @@ keywords:
   - dashboard pricing configuration
 ---
 
-CruiseKube's provides an estimate on the current cost and saving through CruiseKube. The calculations are right now done with number of constraints and assumptions. This document is to highlight those. 
+CruiseKube provides an estimate of the current cost and savings through its actions. The calculations are right now done with number of constraints and assumptions. This document is to highlight those. 
 
 Right now the cost monitoring is in beta, and we don't perform in-depth monitoring of resources for cost and saving. We don't keep a time-series record of the resources, which can increase the accuracy. We take a heuristic approach for this, documented below. 
 
