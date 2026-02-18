@@ -340,7 +340,8 @@ func aggregateRecommendationsByWorkload(parsedRecs []parsedPodRecommendation) ma
 	return out
 }
 
-func clusterRequestedFromStats(stats []types.WorkloadStat) (cpu float64, mem float64) {
+func clusterRequestedFromStats(stats []types.WorkloadStat) (float64, float64) {
+	var cpu, mem float64
 	for i := range stats {
 		replicas := float64(stats[i].Replicas)
 		if replicas <= 0 {
@@ -352,7 +353,8 @@ func clusterRequestedFromStats(stats []types.WorkloadStat) (cpu float64, mem flo
 	return cpu, mem
 }
 
-func clusterRecommendedFromRecs(parsedRecs []parsedPodRecommendation) (cpu float64, mem float64) {
+func clusterRecommendedFromRecs(parsedRecs []parsedPodRecommendation) (float64, float64) {
+	var cpu, mem float64
 	for _, p := range parsedRecs {
 		cpu += p.Rec.CPURequest
 		mem += p.Rec.MemoryRequest
@@ -360,7 +362,8 @@ func clusterRecommendedFromRecs(parsedRecs []parsedPodRecommendation) (cpu float
 	return cpu, mem
 }
 
-func fillWorkloadDetailsWithResources(stats []types.WorkloadStat, details []types.WorkloadDetail, recAgg map[string]workloadRecAgg, parsedRecs []parsedPodRecommendation) (clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64) {
+func fillWorkloadDetailsWithResources(stats []types.WorkloadStat, details []types.WorkloadDetail, recAgg map[string]workloadRecAgg, parsedRecs []parsedPodRecommendation) (float64, float64, float64, float64) {
+	var clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64
 	clusterReqCPU, clusterReqMem = clusterRequestedFromStats(stats)
 	clusterRecCPU, clusterRecMem = clusterRecommendedFromRecs(parsedRecs)
 	for i := range details {
