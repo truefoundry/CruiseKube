@@ -45,17 +45,28 @@ func GetWorkloadOverridesHandler(c *gin.Context) {
 
 func UpdateWorkloadOverridesHandler(c *gin.Context) {
 	clusterID := c.Param("clusterID")
-	workloadID := c.Param("workloadID")
-	var overrides *types.Overrides
-	if err := json.NewDecoder(c.Request.Body).Decode(&overrides); err != nil {
+	var req types.UpdateWorkloadOverridesRequest
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
 		logging.Errorf(c.Request.Context(), "Failed to decode request body: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": fmt.Sprintf("Invalid request body: %v", err),
 		})
 		return
 	}
+	if req.WorkloadID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "workload_id is required in request body",
+		})
+		return
+	}
+	if req.Overrides == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "overrides is required in request body",
+		})
+		return
+	}
 
-	if err := storage.Stg.UpdateWorkloadOverrides(clusterID, workloadID, overrides); err != nil {
+	if err := storage.Stg.UpdateWorkloadOverrides(clusterID, req.WorkloadID, req.Overrides); err != nil {
 		logging.Errorf(c.Request.Context(), "Failed to update workload overrides: %v", err)
 		if strings.Contains(err.Error(), "workload not found") {
 			c.JSON(http.StatusNotFound, gin.H{
@@ -75,8 +86,8 @@ func UpdateWorkloadOverridesHandler(c *gin.Context) {
 	response := map[string]interface{}{
 		"message":     "Workload overrides updated successfully",
 		"cluster_id":  clusterID,
-		"workload_id": workloadID,
-		"overrides":   overrides,
+		"workload_id": req.WorkloadID,
+		"overrides":   req.Overrides,
 	}
 
 	if err := json.NewEncoder(c.Writer).Encode(response); err != nil {
@@ -87,5 +98,5 @@ func UpdateWorkloadOverridesHandler(c *gin.Context) {
 		return
 	}
 
-	logging.Infof(c.Request.Context(), "Successfully updated overrides for workload %s in cluster %s", workloadID, clusterID)
+	logging.Infof(c.Request.Context(), "Successfully updated overrides for workload %s in cluster %s", req.WorkloadID, clusterID)
 }

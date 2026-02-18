@@ -42,12 +42,16 @@ func ListWorkloadsHandler(c *gin.Context) {
 
 		evictionRanking := stat.EvictionRanking
 		enabled := true
+		var disruptionWindows []types.DisruptionWindow
 		if overrides != nil {
 			if overrides.EvictionRanking != nil {
 				evictionRanking = *overrides.EvictionRanking
 			}
 			if overrides.Enabled != nil {
 				enabled = *overrides.Enabled
+			}
+			if len(overrides.DisruptionWindows) > 0 {
+				disruptionWindows = overrides.DisruptionWindows
 			}
 		}
 
@@ -58,8 +62,9 @@ func ListWorkloadsHandler(c *gin.Context) {
 			Namespace:  stat.Namespace,
 			Kind:       stat.Kind,
 			Overrides: &types.WorkloadOverridesEffective{
-				EvictionRanking: evictionRanking,
-				Enabled:         enabled,
+				EvictionRanking:   evictionRanking,
+				Enabled:           enabled,
+				DisruptionWindows: disruptionWindows,
 			},
 		}
 		workloads = append(workloads, workload)
