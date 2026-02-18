@@ -201,53 +201,13 @@ func (s *GormDB) GetStatsForClusterUpdatedSince(clusterID string, since time.Tim
 	return stats, nil
 }
 
-func (s *GormDB) GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCluster, error) {
+func (s *GormDB) GetWorkloadsInCluster(clusterID string, since time.Time) ([]*types.WorkloadInCluster, error) {
 	var rows []Workload
-	err := s.db.Where(&Workload{ClusterID: clusterID}).
-		Order("updated_at DESC").
-		Find(&rows).Error
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to query workloads for cluster: %w", err)
+	q := s.db.Where(&Workload{ClusterID: clusterID})
+	if !since.IsZero() {
+		q = q.Where("updated_at > ?", since)
 	}
-
-	out := make([]*types.WorkloadInCluster, 0, len(rows))
-	for _, row := range rows {
-		var stat types.WorkloadStat
-		if err := json.Unmarshal([]byte(row.Stats), &stat); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal stats for workload %s: %w", row.WorkloadID, err)
-		}
-		stat.UpdatedAt = row.UpdatedAt
-
-		var overrides *types.Overrides
-		if row.Overrides != "" && row.Overrides != "{}" {
-			var o types.Overrides
-			if err := json.Unmarshal([]byte(row.Overrides), &o); err != nil {
-				return nil, fmt.Errorf("failed to unmarshal overrides for workload %s: %w", row.WorkloadID, err)
-			}
-			overrides = &o
-		}
-
-		out = append(out, &types.WorkloadInCluster{
-			ClusterID:   clusterID,
-			WorkloadID:  row.WorkloadID,
-			Stat:        &stat,
-			Overrides:   overrides,
-			GeneratedAt: row.GeneratedAt,
-			CreatedAt:   row.CreatedAt,
-			UpdatedAt:   row.UpdatedAt,
-		})
-	}
-
-	return out, nil
-}
-
-func (s *GormDB) GetWorkloadsInClusterUpdatedSince(clusterID string, since time.Time) ([]*types.WorkloadInCluster, error) {
-	var rows []Workload
-	err := s.db.Where(&Workload{ClusterID: clusterID}).
-		Where("updated_at > ?", since).
-		Order("updated_at DESC").
-		Find(&rows).Error
+	err := q.Order("updated_at DESC").Find(&rows).Error
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query workloads for cluster: %w", err)

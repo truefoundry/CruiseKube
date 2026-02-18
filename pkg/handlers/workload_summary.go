@@ -191,7 +191,7 @@ func filterNonGPUWorkloads(workloads []*types.WorkloadInCluster) []*types.Worklo
 // getFilteredClusterWorkloads returns workloads for the cluster (single DB call), filtered to non-GPU and updated since lookback.
 func getFilteredClusterWorkloads(ctx context.Context, clusterID string) ([]*types.WorkloadInCluster, error) {
 	since := time.Now().Add(-StatsAPIDataLookbackWindow)
-	workloads, err := storage.Stg.GetWorkloadsInClusterUpdatedSince(clusterID, since)
+	workloads, err := storage.Stg.GetWorkloadsInCluster(clusterID, since)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
 		return nil, fmt.Errorf("get workloads for cluster %s: %w", clusterID, err)
