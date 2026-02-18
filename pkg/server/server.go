@@ -33,7 +33,7 @@ func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook
 		clusterGroup.GET("/config", handlers.GetConfigHandler)
 		clusterGroup.POST("/killswitch", handlers.KillswitchHandler)
 		clusterGroup.GET("/workloads", handlers.ListWorkloadsHandler)
-		clusterGroup.POST("/workload-cruise-config", handlers.UpdateWorkloadOverridesHandler)
+		clusterGroup.POST("/workloads/:workloadID/overrides", handlers.UpdateWorkloadOverridesHandler)
 	}
 
 	if enableDevAPIs {

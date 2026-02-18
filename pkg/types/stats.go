@@ -52,12 +52,6 @@ type Overrides struct {
 	DisruptionWindows []DisruptionWindow `json:"disruption_windows,omitempty"`
 }
 
-// UpdateWorkloadOverridesRequest is the body for POST /workload-cruise-config
-type UpdateWorkloadOverridesRequest struct {
-	WorkloadID string     `json:"workload_id"`
-	Overrides  *Overrides `json:"overrides"`
-}
-
 type ContainerType int
 
 const (
