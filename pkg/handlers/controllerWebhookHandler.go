@@ -67,8 +67,8 @@ func HandleMutatingPatch(c *gin.Context) {
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
-	k8sGE133 := clients.KubeClient != nil && utils.CheckIfClusterVersionAbove(ctx, clients.KubeClient, 1, 33)
-	k8sMemoryGE134 := clients.KubeClient != nil && utils.CheckIfClusterVersionAbove(ctx, clients.KubeClient, 1, 34)
+	k8sGE133 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 33)
+	k8sMemoryGE134 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 34)
 
 	workloadInfo := utils.GetWorkloadInfoFromPod(&pod)
 	if workloadInfo == nil {

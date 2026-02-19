@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
@@ -602,42 +601,6 @@ func ExtractWorkloadFromReplicaSet(replicaSetName string) (string, bool) {
 
 func GetPodKey(namespace, name string) string {
 	return fmt.Sprintf("%s:%s", namespace, name)
-}
-
-func CheckIfClusterVersionAbove(ctx context.Context, kubeClient *kubernetes.Clientset, targetMajor, targetMinor int) bool {
-	version, err := kubeClient.Discovery().ServerVersion()
-	if err != nil {
-		logging.Errorf(ctx, "[ApplyRecommendation] Error getting cluster version: %v", err)
-		return false
-	}
-
-	gitVersion := strings.TrimPrefix(version.GitVersion, "v")
-
-	versionParts := strings.Split(gitVersion, ".")
-	if len(versionParts) < 2 {
-		logging.Errorf(ctx, "[ApplyRecommendation] Invalid version format: %s", version.GitVersion)
-		return false
-	}
-
-	major, err := strconv.Atoi(versionParts[0])
-	if err != nil {
-		logging.Errorf(ctx, "[ApplyRecommendation] Error parsing major version: %v", err)
-		return false
-	}
-
-	minor, err := strconv.Atoi(versionParts[1])
-	if err != nil {
-		logging.Errorf(ctx, "[ApplyRecommendation] Error parsing minor version: %v", err)
-		return false
-	}
-
-	isAbove := major > targetMajor || (major == targetMajor && minor >= targetMinor)
-	if isAbove {
-		logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is above %d.%d", version.GitVersion, targetMajor, targetMinor)
-	} else {
-		logging.Infof(ctx, "[ApplyRecommendation] Cluster version %s is not above %d.%d", version.GitVersion, targetMajor, targetMinor)
-	}
-	return isAbove
 }
 
 func GetWorkloadInfoFromPod(pod *corev1.Pod) *WorkloadInfo {
