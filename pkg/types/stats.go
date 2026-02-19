@@ -55,6 +55,74 @@ type Overrides struct {
 	DisruptionWindows []DisruptionWindow `json:"disruption_windows,omitempty"`
 }
 
+// WorkloadInCluster is a workload row as returned from the DB: stat + overrides in one object.
+// Use GetWorkloadsInCluster for a single DB call, then use methods to access stat, overrides, or effective overrides with defaults.
+type WorkloadInCluster struct {
+	ClusterID   string
+	WorkloadID  string
+	Stat        *WorkloadStat
+	Overrides   *Overrides
+	GeneratedAt time.Time // when the stat payload was generated
+	CreatedAt   time.Time // when the workload row was first created in DB
+	UpdatedAt   time.Time // when the workload row was last updated in DB
+}
+
+// GetStat returns the workload stat (never nil when loaded from GetWorkloadsInCluster).
+func (w *WorkloadInCluster) GetStat() *WorkloadStat {
+	if w == nil {
+		return nil
+	}
+	return w.Stat
+}
+
+// GetOverrides returns the raw overrides from DB (may be nil if none set).
+func (w *WorkloadInCluster) GetOverrides() *Overrides {
+	if w == nil {
+		return nil
+	}
+	return w.Overrides
+}
+
+// OverridesWithDefaults returns effective overrides by merging DB overrides with defaults from stat.
+// Defaults: Enabled=true, EvictionRanking=stat.EvictionRanking (or EvictionRankingMedium), DisruptionWindows=nil.
+func (w *WorkloadInCluster) OverridesWithDefaults() *WorkloadOverridesEffective {
+	if w == nil {
+		return &WorkloadOverridesEffective{Enabled: true, EvictionRanking: EvictionRankingMedium}
+	}
+	evictionRanking := EvictionRankingMedium
+	if w.Stat != nil {
+		evictionRanking = w.Stat.EvictionRanking
+	}
+	enabled := true
+	var disruptionWindows []DisruptionWindow
+	if w.Overrides != nil {
+		if w.Overrides.EvictionRanking != nil {
+			evictionRanking = *w.Overrides.EvictionRanking
+		}
+		if w.Overrides.Enabled != nil {
+			enabled = *w.Overrides.Enabled
+		}
+		if len(w.Overrides.DisruptionWindows) > 0 {
+			disruptionWindows = w.Overrides.DisruptionWindows
+		}
+	}
+	return &WorkloadOverridesEffective{
+		EvictionRanking:   evictionRanking,
+		Enabled:           enabled,
+		DisruptionWindows: disruptionWindows,
+	}
+}
+
+// EffectiveEnabled returns the effective enabled flag (default true if no overrides set).
+func (w *WorkloadInCluster) EffectiveEnabled() bool {
+	return w.OverridesWithDefaults().Enabled
+}
+
+// EffectiveEvictionRanking returns the effective eviction ranking (default from stat or EvictionRankingMedium).
+func (w *WorkloadInCluster) EffectiveEvictionRanking() EvictionRanking {
+	return w.OverridesWithDefaults().EvictionRanking
+}
+
 type ContainerType int
 
 const (

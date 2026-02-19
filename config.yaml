@@ -40,6 +40,9 @@ controller:
       schedule: "24h"
       metadata:
         retentionDays: 7
+    disruptionForce:
+      enabled: false
+      schedule: "5m"
 metrics:
   enabled: true
   port: "8081"   
@@ -73,6 +76,9 @@ recommendationSettings:
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true
+disruptionSettings:
+  windowStartCron: "0 0 * * *"
+  windowEndCron: "0 3 * * *"
 telemetry:
   enabled: false
   exporterOTLPEndpoint: ""

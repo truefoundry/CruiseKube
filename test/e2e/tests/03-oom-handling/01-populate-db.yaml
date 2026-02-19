@@ -6,8 +6,8 @@ metadata:
   namespace: cruisekube-system
 data:
   populate.sql: |
-    DELETE FROM stats WHERE cluster_id = 'default' AND workload_id = 'Deployment:test-oom:stress-deployment';
-    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, overrides)
+    DELETE FROM workloads WHERE cluster_id = 'default' AND workload_id = 'Deployment:test-oom:stress-deployment';
+    INSERT INTO workloads (cluster_id, workload_id, stats, generated_at, overrides)
     VALUES (
         'default',
         'Deployment:test-oom:stress-deployment',
@@ -74,7 +74,7 @@ data:
         '{}'
     );
 
-    SELECT workload_id FROM stats WHERE workload_id = 'Deployment:test-oom:stress-deployment';
+    SELECT workload_id FROM workloads WHERE workload_id = 'Deployment:test-oom:stress-deployment';
 ---
 apiVersion: batch/v1
 kind: Job

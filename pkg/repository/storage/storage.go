@@ -53,7 +53,7 @@ func (s *Storage) ReadClusterStatsUpdatedSince(clusterID string, target *types.S
 }
 
 func (s *Storage) ClusterStatsExists(clusterID string) (bool, error) {
-	exists, err := s.DB.HasStatForCluster(clusterID)
+	exists, err := s.DB.HasCluster(clusterID)
 	if err != nil {
 		return false, fmt.Errorf("failed to check cluster stats existence: %w", err)
 	}
@@ -69,7 +69,7 @@ func (s *Storage) HasRecentStats(clusterID, workloadID string, withinMinutes int
 }
 
 func (s *Storage) UpdateWorkloadOverrides(clusterID, workloadID string, overrides *types.Overrides) error {
-	exists, err := s.DB.HasStatForWorkload(clusterID, workloadID)
+	exists, err := s.DB.HasWorkloadForCluster(clusterID, workloadID)
 	if err != nil {
 		return fmt.Errorf("failed to get stats record: %w", err)
 	}
@@ -96,6 +96,17 @@ func (s *Storage) GetAllStatsForCluster(clusterID string) ([]types.WorkloadStat,
 		return nil, fmt.Errorf("failed to get stats for cluster: %w", err)
 	}
 	return stats, nil
+}
+
+// GetWorkloadsInCluster returns workloads for a cluster (stat + overrides) in a single DB call.
+// If since is non-zero, only workloads updated after since are returned.
+// Use methods on each WorkloadInCluster to get Stat, Overrides, or OverridesWithDefaults().
+func (s *Storage) GetWorkloadsInCluster(clusterID string, since time.Time) ([]*types.WorkloadInCluster, error) {
+	workloads, err := s.DB.GetWorkloadsInCluster(clusterID, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workloads for cluster: %w", err)
+	}
+	return workloads, nil
 }
 
 func (s *Storage) GetAllStatsForClusterUpdatedSince(clusterID string, since time.Time) ([]types.WorkloadStat, error) {

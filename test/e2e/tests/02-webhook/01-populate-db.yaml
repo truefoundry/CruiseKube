@@ -6,7 +6,7 @@ metadata:
   namespace: cruisekube-system
 data:
   populate.sql: |
-    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
+    INSERT INTO workloads (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
         'default',
         'Deployment:test-webhook:redis-deployment',
@@ -75,7 +75,7 @@ data:
         '{}'
     );
 
-    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
+    INSERT INTO workloads (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
         'default',
         'Deployment:test-webhook:memcached-deployment',
@@ -144,7 +144,7 @@ data:
         '{}'
     );
 
-    SELECT workload_id FROM stats WHERE workload_id LIKE '%test-webhook%';
+    SELECT workload_id FROM workloads WHERE workload_id LIKE '%test-webhook%';
 ---
 apiVersion: batch/v1
 kind: Job

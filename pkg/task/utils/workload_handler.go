@@ -599,34 +599,11 @@ func checkDoNotDisruptAnnotation(podTemplate *corev1.PodTemplateSpec) bool {
 		return false
 	}
 
-	// Check cluster-autoscaler.kubernetes.io/safe-to-evict=false (prevents eviction)
-	if value, exists := podTemplate.Annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]; exists {
-		if strings.ToLower(value) == "false" {
+	for annotationKey, expectedValue := range GetDoNotDisruptAnnotations() {
+		if value, exists := podTemplate.Annotations[annotationKey]; exists && strings.ToLower(value) == expectedValue {
 			return true
 		}
 	}
-
-	// Check cruisekube.truefoundry.com/do-not-disrupt=true (prevents disruption)
-	if value, exists := podTemplate.Annotations["cruisekube.truefoundry.com/do-not-disrupt"]; exists {
-		if strings.ToLower(value) == TrueValue {
-			return true
-		}
-	}
-
-	// Check karpenter.sh/do-not-evict=true (prevents eviction)
-	if value, exists := podTemplate.Annotations["karpenter.sh/do-not-evict"]; exists {
-		if strings.ToLower(value) == TrueValue {
-			return true
-		}
-	}
-
-	// Check karpenter.sh/do-not-disrupt=true (prevents disruption)
-	if value, exists := podTemplate.Annotations["karpenter.sh/do-not-disrupt"]; exists {
-		if strings.ToLower(value) == TrueValue {
-			return true
-		}
-	}
-
 	return false
 }
 
