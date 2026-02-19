@@ -10,17 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/robfig/cron/v3"
 	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
+
+	"github.com/gin-gonic/gin"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
-	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 var (
@@ -34,70 +32,67 @@ func MutateHandler(c *gin.Context) {
 	body, err := c.GetRawData()
 	if err != nil {
 		logging.Errorf(ctx, "Failed to read request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
 	var review admissionv1.AdmissionReview
 	if err := json.Unmarshal(body, &review); err != nil {
 		logging.Errorf(ctx, "Failed to unmarshal admission review: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
 	req := review.Request
+	var pod corev1.Pod
+	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
+		logging.Errorf(ctx, "Failed to unmarshal pod object: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	logging.Infof(ctx, "Processing pod: %s/%s", req.Namespace, getPodName(&pod))
+
 	cfg := config.GetConfigFromGinContext(c)
+	allowed := true
 	var patches []map[string]any
 
-	if req.Kind.Kind == "Pod" {
-		var pod corev1.Pod
-		if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
-			logging.Errorf(ctx, "Failed to unmarshal pod: %v", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+	if shouldProcessPod(ctx, &pod, req.Namespace, cfg.RecommendationSettings.ApplyBlacklistedNamespaces) {
+		patches, err = adjustResources(ctx, &pod, clusterID, cfg)
+		if err != nil {
+			logging.Errorf(ctx, "Failed to adjust resources: %v", err)
 		}
-
-		logging.Infof(ctx, "Processing pod: %s/%s", req.Namespace, getPodName(&pod))
-
-		if shouldProcessPod(ctx, &pod, req.Namespace, cfg.RecommendationSettings.ApplyBlacklistedNamespaces) {
-			resourcePatches, err := adjustResources(ctx, &pod, clusterID, cfg)
-			if err != nil {
-				logging.Errorf(ctx, "Failed to adjust resources: %v", err)
-			}
-			patches = append(patches, resourcePatches...)
-		}
-
-		disruptionPatches := applyPodDisruptionPatches(ctx, &pod, clusterID, cfg)
-		patches = append(patches, disruptionPatches...)
-
-	} else if req.Kind.Kind == "PodDisruptionBudget" {
-		var pdb policyv1.PodDisruptionBudget
-		if err := json.Unmarshal(req.Object.Raw, &pdb); err != nil {
-			logging.Errorf(ctx, "Failed to unmarshal PDB: %v", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		logging.Infof(ctx, "Processing PDB: %s/%s", pdb.Namespace, pdb.Name)
-		patches = applyPDBDisruptionPatches(ctx, &pdb, cfg)
+	} else {
+		logging.Infof(ctx, "Skipping pod %s/%s", req.Namespace, getPodName(&pod))
+		return
 	}
 
 	patchBytes, err := json.Marshal(patches)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to marshal patches: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
 	patchType := admissionv1.PatchTypeJSONPatch
 	reviewResponse := &admissionv1.AdmissionResponse{
 		UID:       req.UID,
-		Allowed:   true,
+		Allowed:   allowed,
 		PatchType: &patchType,
 		Patch:     patchBytes,
 	}
 
 	review.Response = reviewResponse
+	logging.Infof(ctx, "Review response for pod %s/%s: %v", req.Namespace, getPodName(&pod), string(patchBytes))
+
 	c.JSON(http.StatusOK, review)
 }
 
@@ -115,7 +110,7 @@ func shouldProcessPod(ctx context.Context, pod *corev1.Pod, namespace string, ap
 			return false
 		}
 	}
-	if pod.Annotations[utils.ExcludedAnnotation] == utils.TrueValue {
+	if pod.Annotations[utils.ExcludedAnnotation] == "true" {
 		logging.Infof(ctx, "Skipping pod with excluded annotation: %s/%s", namespace, podName)
 		return false
 	}
@@ -197,8 +192,8 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		return []map[string]any{}, nil
 	}
 
-	if workloadStat.IsHorizontallyAutoscaledOnCPU || workloadStat.IsHorizontallyAutoscaledOnMem {
-		logging.Infof(ctx, "Workload %s is horizontally autoscaled on CPU/Memory, skipping", workloadID)
+	if workloadStat.IsHorizontallyAutoscaledOnCPU {
+		logging.Infof(ctx, "Workload %s is horizontally autoscaled on CPU, skipping", workloadID)
 		return []map[string]any{}, nil
 	}
 
@@ -257,9 +252,6 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		recommendedCPU := containerStat.CPUStats.Max
 		if containerStat.SimplePredictionsCPU != nil && containerStat.SimplePredictionsCPU.MaxValue > 0 {
 			recommendedCPU = containerStat.SimplePredictionsCPU.MaxValue
-		}
-		if recommendedCPU > utils.CPUClampValue {
-			recommendedCPU = utils.CPUClampValue
 		}
 
 		recommendedMemory := containerStat.MemoryStats.Max
@@ -367,119 +359,4 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 	}
 
 	return patches, nil
-}
-
-func applyPodDisruptionPatches(ctx context.Context, pod *corev1.Pod, clusterID string, cfg *config.Config) []map[string]any {
-	now := time.Now()
-	if !inEvictionWindow(now, cfg) {
-		return []map[string]any{}
-	}
-
-	if pod.Annotations == nil {
-		return []map[string]any{}
-	}
-
-	var patches []map[string]any
-	modified := false
-
-	for annotationKey, expectedValue := range utils.DoNotDisruptAnnotations {
-		if val, exists := pod.Annotations[annotationKey]; exists && val == expectedValue {
-			patches = append(patches, map[string]any{
-				"op":   "remove",
-				"path": "/metadata/annotations/" + escapeJSONPointer(annotationKey),
-			})
-			modified = true
-			logging.Infof(ctx, "Removing blocking annotation %s=%s from pod %s/%s during eviction window",
-				annotationKey, expectedValue, pod.Namespace, getPodName(pod))
-		}
-	}
-
-	if modified {
-		patches = append(patches, map[string]any{
-			"op":    "add",
-			"path":  "/metadata/annotations/" + escapeJSONPointer(utils.AnnotationModified),
-			"value": utils.TrueValue,
-		})
-	}
-
-	return patches
-}
-
-func applyPDBDisruptionPatches(ctx context.Context, pdb *policyv1.PodDisruptionBudget, cfg *config.Config) []map[string]any {
-	now := time.Now()
-	if !inEvictionWindow(now, cfg) {
-		return []map[string]any{}
-	}
-
-	logging.Infof(ctx, "Applying PDB disruption patches for %s/%s during eviction window", pdb.Namespace, pdb.Name)
-
-	var patches []map[string]any
-	if pdb.Annotations == nil {
-		patches = append(patches, map[string]any{
-			"op":    "add",
-			"path":  "/metadata/annotations",
-			"value": map[string]string{},
-		})
-	}
-
-	if pdb.Spec.MaxUnavailable != nil {
-		patches = append(patches, map[string]any{
-			"op":    "add",
-			"path":  "/metadata/annotations/" + escapeJSONPointer(utils.AnnotationPDBMaxUnavailable),
-			"value": pdb.Spec.MaxUnavailable.String(),
-		})
-	}
-	if pdb.Spec.MinAvailable != nil {
-		patches = append(patches, map[string]any{
-			"op":    "add",
-			"path":  "/metadata/annotations/" + escapeJSONPointer(utils.AnnotationPDBMinAvailable),
-			"value": pdb.Spec.MinAvailable.String(),
-		})
-	}
-
-	maxUnavailable := intstr.FromString("100%")
-	minAvailable := intstr.FromInt(0)
-
-	patches = append(patches, map[string]any{
-		"op":    "replace",
-		"path":  "/spec/maxUnavailable",
-		"value": maxUnavailable,
-	})
-	patches = append(patches, map[string]any{
-		"op":    "replace",
-		"path":  "/spec/minAvailable",
-		"value": minAvailable,
-	})
-	patches = append(patches, map[string]any{
-		"op":    "add",
-		"path":  "/metadata/annotations/" + escapeJSONPointer(utils.AnnotationModified),
-		"value": utils.TrueValue,
-	})
-
-	return patches
-}
-
-func inEvictionWindow(tm time.Time, cfg *config.Config) bool {
-	cronExpr := cfg.DisruptionSettings.WindowCron
-	durationMinutes := cfg.DisruptionSettings.WindowDurationMinutes
-
-	if cronExpr == "" || durationMinutes <= 0 {
-		return false
-	}
-
-	cronParser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
-	schedule, err := cronParser.Parse(cronExpr)
-	if err != nil {
-		return false
-	}
-
-	prevTime := tm.Add(-time.Duration(durationMinutes) * time.Minute)
-	nextCron := schedule.Next(prevTime)
-	return nextCron.Before(tm)
-}
-
-func escapeJSONPointer(s string) string {
-	s = strings.ReplaceAll(s, "~", "~0")
-	s = strings.ReplaceAll(s, "/", "~1")
-	return s
 }
