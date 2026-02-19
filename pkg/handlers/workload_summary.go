@@ -347,19 +347,6 @@ func clusterRequestedFromWorkloads(workloads []*types.WorkloadInCluster) (float6
 	return cpu, mem
 }
 
-func clusterRequestedFromStats(stats []types.WorkloadStat) (float64, float64) {
-	var cpu, mem float64
-	for i := range stats {
-		replicas := float64(stats[i].Replicas)
-		if replicas <= 0 {
-			replicas = 1
-		}
-		cpu += stats[i].CalculateTotalCPURequest() * replicas
-		mem += stats[i].CalculateTotalMemoryRequest() * replicas
-	}
-	return cpu, mem
-}
-
 func clusterRecommendedFromRecs(parsedRecs []parsedPodRecommendation) (float64, float64) {
 	var cpu, mem float64
 	for _, p := range parsedRecs {
