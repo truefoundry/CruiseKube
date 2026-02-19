@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/client"
@@ -67,8 +66,6 @@ func HandleMutatingPatch(c *gin.Context) {
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
-	k8sGE133 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 33)
-	k8sMemoryGE134 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 34)
 
 	workloadInfo := utils.GetWorkloadInfoFromPod(&pod)
 	if workloadInfo == nil {
@@ -78,21 +75,12 @@ func HandleMutatingPatch(c *gin.Context) {
 	}
 
 	workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-	workloadID := strings.ReplaceAll(workloadKey, "/", ":")
 
-	var statsResponse types.StatsResponse
-	if err := storage.Stg.ReadClusterStats(clusterID, &statsResponse); err != nil {
-		logging.Errorf(ctx, "Failed to load cluster stats for %s: %v", clusterID, err)
+	stat, err := storage.Stg.GetStatForWorkload(clusterID, workloadKey)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadKey, err)
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
-	}
-
-	var stat *types.WorkloadStat
-	for i := range statsResponse.Stats {
-		if statsResponse.Stats[i].WorkloadIdentifier == workloadKey {
-			stat = &statsResponse.Stats[i]
-			break
-		}
 	}
 	if stat == nil {
 		logging.Infof(ctx, "No stats for workload %s, skipping", workloadKey)
@@ -100,11 +88,12 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	overrides, _ := storage.Stg.GetWorkloadOverrides(clusterID, workloadID)
-	overrideInfo := buildWorkloadOverrideInfo(workloadID, stat, overrides)
+	overrides, _ := storage.Stg.GetWorkloadOverrides(clusterID, workloadKey)
+	overrideInfo := buildWorkloadOverrideInfo(workloadKey, stat, overrides)
 
 	podInfo := utils.BuildPodInfoFromPod(&pod, workloadInfo, stat)
-
+	k8sGE133 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 33)
+	k8sMemoryGE134 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 34)
 	input := utils.ApplyCheckInput{
 		DryRun:                     dryRun || cfg.Webhook.DryRun,
 		ApplyBlacklistedNamespaces: cfg.RecommendationSettings.ApplyBlacklistedNamespaces,

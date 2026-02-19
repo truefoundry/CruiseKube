@@ -106,7 +106,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		return nil
 	}
 
-	if !utils.CheckIfClusterVersionAbove(ctx, a.kubeClient, 1, 33) {
+	if !utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 33) {
 		applyChanges = false
 		logging.Infof(ctx, "Cluster version is not above 1.33, running in dry run mode")
 	}
@@ -134,7 +134,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		overridesMap[override.WorkloadID] = &override
 	}
 
-	supportsMemoryReduction := utils.CheckIfClusterVersionAbove(ctx, a.kubeClient, 1, 34)
+	supportsMemoryReduction := utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 34)
 
 	_, err = a.ApplyRecommendationsWithStrategy(
 		ctx,

@@ -42,6 +42,16 @@ func (s *Storage) ReadClusterStats(clusterID string, target *types.StatsResponse
 	return nil
 }
 
+// GetStatForWorkload returns a single workload stat for the cluster and workload, or nil if not found.
+// workloadID is the colon-separated identifier (e.g. Deployment:namespace:name).
+func (s *Storage) GetStatForWorkload(clusterID, workloadID string) (*types.WorkloadStat, error) {
+	stat, err := s.DB.GetStatForWorkload(clusterID, workloadID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get stat for workload %s: %w", workloadID, err)
+	}
+	return stat, nil
+}
+
 func (s *Storage) ReadClusterStatsUpdatedSince(clusterID string, target *types.StatsResponse, since time.Time) error {
 	stats, err := s.DB.GetStatsForClusterUpdatedSince(clusterID, since)
 	if err != nil {
