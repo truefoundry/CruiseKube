@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -179,47 +178,38 @@ func getClusterResourcesFromPrometheus(ctx context.Context, c *gin.Context, clus
 	return out
 }
 
-func filterNonGPUStats(stats []types.WorkloadStat) []types.WorkloadStat {
-	out := make([]types.WorkloadStat, 0, len(stats))
-	for i := range stats {
-		if !stats[i].IsGPUWorkload() {
-			out = append(out, stats[i])
+func filterNonGPUWorkloads(workloads []*types.WorkloadInCluster) []*types.WorkloadInCluster {
+	out := make([]*types.WorkloadInCluster, 0, len(workloads))
+	for _, w := range workloads {
+		if w.GetStat() != nil && !w.GetStat().IsGPUWorkload() {
+			out = append(out, w)
 		}
 	}
 	return out
 }
 
-func getFilteredClusterStats(ctx context.Context, clusterID string) ([]types.WorkloadStat, error) {
-	var statsResponse types.StatsResponse
+// getFilteredClusterWorkloads returns workloads for the cluster (single DB call), filtered to non-GPU and updated since lookback.
+func getFilteredClusterWorkloads(ctx context.Context, clusterID string) ([]*types.WorkloadInCluster, error) {
 	since := time.Now().Add(-StatsAPIDataLookbackWindow)
-	if err := storage.Stg.ReadClusterStatsUpdatedSince(clusterID, &statsResponse, since); err != nil {
-		logging.Errorf(ctx, "Failed to read cluster stats for %s: %v", clusterID, err)
-		return nil, fmt.Errorf("read cluster stats for %s: %w", clusterID, err)
+	workloads, err := storage.Stg.GetWorkloadsInCluster(clusterID, since)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
+		return nil, fmt.Errorf("get workloads for cluster %s: %w", clusterID, err)
 	}
-	return filterNonGPUStats(statsResponse.Stats), nil
+	return filterNonGPUWorkloads(workloads), nil
 }
 
-func getWorkloadDetails(ctx context.Context, clusterID string, stats []types.WorkloadStat) ([]types.WorkloadDetail, error) {
-	details := make([]types.WorkloadDetail, 0, len(stats))
-	for _, stat := range stats {
-		workloadColumnId := strings.ReplaceAll(stat.WorkloadIdentifier, "/", ":")
-		overrides, err := storage.Stg.GetWorkloadOverrides(clusterID, workloadColumnId)
-		if err != nil {
-			logging.Errorf(ctx, "Failed to get overrides for workload %s: %v", workloadColumnId, err)
-			return nil, fmt.Errorf("get overrides for workload %s: %w", workloadColumnId, err)
+// getWorkloadDetailsFromWorkloads builds detail list from workloads (caller must pass workloads with non-nil Stat for 1:1 alignment).
+func getWorkloadDetailsFromWorkloads(workloads []*types.WorkloadInCluster) []types.WorkloadDetail {
+	details := make([]types.WorkloadDetail, 0, len(workloads))
+	for _, w := range workloads {
+		stat := w.GetStat()
+		if stat == nil {
+			continue
 		}
-		evictionRanking := stat.EvictionRanking
-		enabled := true
-		if overrides != nil {
-			if overrides.EvictionRanking != nil {
-				evictionRanking = *overrides.EvictionRanking
-			}
-			if overrides.Enabled != nil {
-				enabled = *overrides.Enabled
-			}
-		}
+		effective := w.OverridesWithDefaults()
 		priority := "medium"
-		switch evictionRanking {
+		switch effective.EvictionRanking {
 		case types.EvictionRankingDisabled:
 			priority = "non-evictable"
 		case types.EvictionRankingLow:
@@ -230,7 +220,7 @@ func getWorkloadDetails(ctx context.Context, clusterID string, stats []types.Wor
 			priority = "high"
 		}
 		mode := "recommend-only"
-		if enabled {
+		if effective.Enabled {
 			mode = "enabled"
 		}
 		var constraints types.WorkloadSummaryConstraints
@@ -247,7 +237,7 @@ func getWorkloadDetails(ctx context.Context, clusterID string, stats []types.Wor
 			}
 		}
 		details = append(details, types.WorkloadDetail{
-			WorkloadID:  workloadColumnId,
+			WorkloadID:  w.WorkloadID,
 			Kind:        stat.Kind,
 			Namespace:   stat.Namespace,
 			Name:        stat.Name,
@@ -261,7 +251,7 @@ func getWorkloadDetails(ctx context.Context, clusterID string, stats []types.Wor
 			},
 		})
 	}
-	return details, nil
+	return details
 }
 
 type parsedPodRecommendation struct {
@@ -340,15 +330,19 @@ func aggregateRecommendationsByWorkload(parsedRecs []parsedPodRecommendation) ma
 	return out
 }
 
-func clusterRequestedFromStats(stats []types.WorkloadStat) (float64, float64) {
+func clusterRequestedFromWorkloads(workloads []*types.WorkloadInCluster) (float64, float64) {
 	var cpu, mem float64
-	for i := range stats {
-		replicas := float64(stats[i].Replicas)
+	for _, w := range workloads {
+		s := w.GetStat()
+		if s == nil {
+			continue
+		}
+		replicas := float64(s.Replicas)
 		if replicas <= 0 {
 			replicas = 1
 		}
-		cpu += stats[i].CalculateTotalCPURequest() * replicas
-		mem += stats[i].CalculateTotalMemoryRequest() * replicas
+		cpu += s.CalculateTotalCPURequest() * replicas
+		mem += s.CalculateTotalMemoryRequest() * replicas
 	}
 	return cpu, mem
 }
@@ -362,12 +356,23 @@ func clusterRecommendedFromRecs(parsedRecs []parsedPodRecommendation) (float64, 
 	return cpu, mem
 }
 
-func fillWorkloadDetailsWithResources(stats []types.WorkloadStat, details []types.WorkloadDetail, recAgg map[string]workloadRecAgg, parsedRecs []parsedPodRecommendation) (float64, float64, float64, float64) {
+func fillWorkloadDetailsWithResources(workloads []*types.WorkloadInCluster, details []types.WorkloadDetail, recAgg map[string]workloadRecAgg, parsedRecs []parsedPodRecommendation) (float64, float64, float64, float64) {
 	var clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64
-	clusterReqCPU, clusterReqMem = clusterRequestedFromStats(stats)
+	clusterReqCPU, clusterReqMem = clusterRequestedFromWorkloads(workloads)
 	clusterRecCPU, clusterRecMem = clusterRecommendedFromRecs(parsedRecs)
+	byID := make(map[string]*types.WorkloadInCluster, len(workloads))
+	for _, w := range workloads {
+		byID[w.WorkloadID] = w
+	}
 	for i := range details {
-		stat := stats[i]
+		w := byID[details[i].WorkloadID]
+		if w == nil {
+			continue
+		}
+		stat := w.GetStat()
+		if stat == nil {
+			continue
+		}
 		currentCPU := stat.CalculateTotalCPURequest()
 		currentMem := stat.CalculateTotalMemoryRequest()
 		agg := recAgg[details[i].WorkloadID]
@@ -423,23 +428,19 @@ func fillWorkloadDetailsDollars(details []types.WorkloadDetail, recAgg map[strin
 func WorkloadSummaryHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
-	stats, err := getFilteredClusterStats(ctx, clusterID)
+	workloads, err := getFilteredClusterWorkloads(ctx, clusterID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	details, err := getWorkloadDetails(ctx, clusterID, stats)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	details := getWorkloadDetailsFromWorkloads(workloads)
 	parsedRecs, err := getPodRecommendationsForCluster(ctx, clusterID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	recAgg := aggregateRecommendationsByWorkload(parsedRecs)
-	clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem := fillWorkloadDetailsWithResources(stats, details, recAgg, parsedRecs)
+	clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem := fillWorkloadDetailsWithResources(workloads, details, recAgg, parsedRecs)
 	fillWorkloadDetailsDollars(details, recAgg)
 	clusterRes := getClusterResourcesFromPrometheus(ctx, c, clusterID)
 	reqAllocRatioCpu := 1.0

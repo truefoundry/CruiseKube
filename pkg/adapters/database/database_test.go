@@ -51,8 +51,8 @@ func testStorage(t *testing.T, storage ports.Database) {
 		t.Fatalf("Failed to upsert stat: %v", err)
 	}
 
-	// Test HasStatForWorkload
-	exists, err := storage.HasStatForWorkload(clusterID, workloadID)
+	// Test HasWorkloadForCluster
+	exists, err := storage.HasWorkloadForCluster(clusterID, workloadID)
 	if err != nil {
 		t.Fatalf("Failed to check if stat exists: %v", err)
 	}
@@ -81,14 +81,14 @@ func testStorage(t *testing.T, storage ports.Database) {
 		t.Errorf("Expected kind Deployment, got %s", retrievedStat.Kind)
 	}
 
-	// Test DeleteStatForWorkload
-	err = storage.DeleteStatForWorkload(clusterID, workloadID)
+	// Test DeleteWorkload
+	err = storage.DeleteWorkload(clusterID, workloadID)
 	if err != nil {
 		t.Fatalf("Failed to delete stat: %v", err)
 	}
 
 	// Verify deletion
-	exists, err = storage.HasStatForWorkload(clusterID, workloadID)
+	exists, err = storage.HasWorkloadForCluster(clusterID, workloadID)
 	if err != nil {
 		t.Fatalf("Failed to check if stat exists after deletion: %v", err)
 	}

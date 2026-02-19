@@ -6,7 +6,7 @@ metadata:
   namespace: cruisekube-system
 data:
   populate.sql: |
-    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
+    INSERT INTO workloads (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
         'default',
         'Deployment:test-workloads:nginx-deployment',
@@ -76,7 +76,7 @@ data:
     )
     ON CONFLICT DO NOTHING;
 
-    INSERT INTO stats (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
+    INSERT INTO workloads (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
         'default',
         'Deployment:test-workloads:busybox-deployment',
@@ -146,7 +146,7 @@ data:
     )
     ON CONFLICT DO NOTHING;
 
-    SELECT cluster_id, workload_id, generated_at FROM stats;
+    SELECT cluster_id, workload_id, generated_at FROM workloads;
 ---
 apiVersion: batch/v1
 kind: Job
