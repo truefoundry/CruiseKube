@@ -198,3 +198,11 @@ func (s *Storage) GetPodRecommendationsForCluster(clusterID string) ([]types.Pod
 	}
 	return rows, nil
 }
+
+func (s *Storage) GetPodRecommendationsForWorkload(clusterID, workloadID string) ([]types.PodResourceRecommendationRow, error) {
+	rows, err := s.DB.GetPodRecommendationsForWorkload(clusterID, workloadID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pod recommendations for workload: %w", err)
+	}
+	return rows, nil
+}

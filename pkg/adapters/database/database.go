@@ -498,3 +498,22 @@ func (s *GormDB) GetPodRecommendationsForCluster(clusterID string) ([]types.PodR
 	}
 	return rows, nil
 }
+
+func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) ([]types.PodResourceRecommendationRow, error) {
+	var models []PodResourceRecommendation
+	if err := s.db.Where("cluster_id = ? AND workload_id = ?", clusterID, workloadID).Find(&models).Error; err != nil {
+		return nil, fmt.Errorf("failed to get pod recommendations for workload: %w", err)
+	}
+	rows := make([]types.PodResourceRecommendationRow, 0, len(models))
+	for _, m := range models {
+		rows = append(rows, types.PodResourceRecommendationRow{
+			WorkloadID:     m.WorkloadID,
+			NodeName:       m.NodeName,
+			Namespace:      m.Namespace,
+			Pod:            m.Pod,
+			Container:      m.Container,
+			Recommendation: m.Recommendation,
+		})
+	}
+	return rows, nil
+}

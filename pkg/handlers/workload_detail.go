@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
-	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
@@ -60,38 +59,31 @@ func HandleWorkloadDetail(c *gin.Context) {
 		}
 	}
 
-	workloadType := ""
-	if stat != nil {
-		workloadType = stat.Kind
-	}
-
-	// 2. Get pod recommendations from pod_resource_recommendations table
-	recRows, err := storage.Stg.GetPodRecommendationsForCluster(clusterID)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to get pod recommendations for cluster %s: %v", clusterID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to get pod recommendations for %s: %v", clusterID, err),
+	// Workload must exist in DB (workloads table) to serve detail
+	if stat == nil {
+		logging.Errorf(ctx, "Workload %s/%s not found", namespace, workloadName)
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "workload not found",
 		})
 		return
 	}
 
-	// Filter rows for this workload: by workloadID if we found it, else by parsing WorkloadID (namespace + name)
-	var rows []types.PodResourceRecommendationRow
-	for _, row := range recRows {
-		if workloadID != "" {
-			if row.WorkloadID != workloadID {
-				continue
-			}
-		} else {
-			_, rowNs, rowName, ok := utils.ParseWorkloadKey(row.WorkloadID)
-			if !ok || rowNs != namespace || rowName != workloadName {
-				continue
-			}
-		}
-		rows = append(rows, row)
+	workloadType := stat.Kind
+
+	// 2. Get pod recommendations for this workload
+	rows, err := storage.Stg.GetPodRecommendationsForWorkload(clusterID, workloadID)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get pod recommendations for workload %s: %v", workloadID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": fmt.Sprintf("Failed to get pod recommendations for workload: %v", err),
+		})
+		return
 	}
 
 	resp := types.WorkloadDetailResponse{
+		Cluster:      clusterID,
+		Namespace:    namespace,
+		Workload:     workloadName,
 		Type:         workloadType,
 		PotentialCpu: 0,
 		PotentialMem: 0,
@@ -109,22 +101,25 @@ func HandleWorkloadDetail(c *gin.Context) {
 		var rec types.PodResourceRecommendation
 		if row.Recommendation != "" {
 			if err := json.Unmarshal([]byte(row.Recommendation), &rec); err != nil {
+				logging.Errorf(ctx, "Failed to unmarshal recommendation for pod %s container %s: %v", row.Pod, row.Container, err)
 				continue
 			}
 		}
 		cpuRec := rec.CPURequest
 		memRec := rec.MemoryRequest
-		cpuReq := cpuRec
-		memReq := memRec
-		if stat != nil {
-			if orig, err := stat.GetOriginalContainerResource(row.Container); err == nil {
-				cpuReq = orig.CPURequest
-				memReq = orig.MemoryRequest
-				if row.Recommendation == "" {
-					cpuRec = cpuReq
-					memRec = memReq
-				}
-			}
+		orig, err := stat.GetOriginalContainerResource(row.Container)
+		if err != nil {
+			logging.Errorf(ctx, "Original resource not found for pod %s container %s: %v", row.Pod, row.Container, err)
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": fmt.Sprintf("original resource not found for container %s in pod %s", row.Container, row.Pod),
+			})
+			return
+		}
+		cpuReq := orig.CPURequest
+		memReq := orig.MemoryRequest
+		if row.Recommendation == "" {
+			cpuRec = cpuReq
+			memRec = memReq
 		}
 		parsed = append(parsed, rowWithValues{row: row, rec: rec, cpuReq: cpuReq, memReq: memReq, cpuRec: cpuRec, memRec: memRec})
 	}

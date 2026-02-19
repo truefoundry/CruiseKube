@@ -86,6 +86,9 @@ type RecommendationAnalysisResponse struct {
 // WorkloadDetailResponse is the response for GET /clusters/:clusterID/workloads/:namespace/:workloadName/detail.
 // It aggregates cluster stats (type) and recommendation analysis (potential CPU/Mem, pods, containers) for a single workload.
 type WorkloadDetailResponse struct {
+	Cluster      string      `json:"cluster"`
+	Namespace    string      `json:"namespace"`
+	Workload     string      `json:"workload"`
 	Type         string      `json:"type"`
 	PotentialCpu float64     `json:"potentialCpu"`
 	PotentialMem float64     `json:"potentialMem"`
