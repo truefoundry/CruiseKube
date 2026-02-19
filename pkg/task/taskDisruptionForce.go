@@ -82,7 +82,13 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	logging.Infof(ctx, "Running disruption force task")
 
 	now := time.Now()
-	state := t.getReconcileState(ctx, now)
+
+	scheduleDuration, err := time.ParseDuration(t.config.Schedule)
+	if err != nil {
+		return fmt.Errorf("failed to parse task schedule %q: %w", t.config.Schedule, err)
+	}
+
+	state := t.getReconcileState(ctx, now, scheduleDuration)
 	logging.Infof(ctx, "Reconcile state: %v", state)
 
 	workloads, err := t.storage.GetWorkloadsInCluster(t.config.ClusterID, time.Time{})
@@ -103,7 +109,7 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 		effectiveState := state
 		if overrides := w.GetOverrides(); overrides != nil && len(overrides.DisruptionWindows) > 0 {
 			logging.Infof(ctx, "Workload %s/%s/%s has %d per-workload disruption window(s), computing overridden state", stat.Kind, stat.Namespace, stat.Name, len(overrides.DisruptionWindows))
-			effectiveState = t.computeStateFromWindows(ctx, now, overrides.DisruptionWindows)
+			effectiveState = t.computeStateFromWindows(ctx, now, scheduleDuration, overrides.DisruptionWindows)
 		}
 
 		workloadInfo := utils.WorkloadInfo{Kind: stat.Kind, Namespace: stat.Namespace, Name: stat.Name}
@@ -170,24 +176,18 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	return nil
 }
 
-func (t *DisruptionForceTask) getReconcileState(ctx context.Context, now time.Time) ReconcileState {
+func (t *DisruptionForceTask) getReconcileState(ctx context.Context, now time.Time, scheduleDuration time.Duration) ReconcileState {
 	startCron := t.appConfig.DisruptionSettings.WindowStartCron
 	endCron := t.appConfig.DisruptionSettings.WindowEndCron
 	if startCron == "" || endCron == "" {
 		logging.Warnf(ctx, "Disruption window crons not configured (windowStartCron=%q, windowEndCron=%q)", startCron, endCron)
 		return StateOut
 	}
-	return t.computeReconcileState(ctx, now, startCron, endCron)
+	return t.computeReconcileState(ctx, now, scheduleDuration, startCron, endCron)
 }
 
-func (t *DisruptionForceTask) computeReconcileState(ctx context.Context, now time.Time, startCron, endCron string) ReconcileState {
-	duration, err := time.ParseDuration(t.config.Schedule)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to parse schedule duration %q: %v", t.config.Schedule, err)
-		return StateOut
-	}
-
-	nextRun := now.Add(duration)
+func (t *DisruptionForceTask) computeReconcileState(ctx context.Context, now time.Time, scheduleDuration time.Duration, startCron, endCron string) ReconcileState {
+	nextRun := now.Add(scheduleDuration)
 	if t.inEvictionWindow(ctx, startCron, endCron, now) {
 		if t.inEvictionWindow(ctx, startCron, endCron, nextRun) {
 			return StateIn
@@ -197,13 +197,8 @@ func (t *DisruptionForceTask) computeReconcileState(ctx context.Context, now tim
 	return StateOut
 }
 
-func (t *DisruptionForceTask) computeStateFromWindows(ctx context.Context, now time.Time, windows []types.DisruptionWindow) ReconcileState {
-	duration, err := time.ParseDuration(t.config.Schedule)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to parse schedule duration %q: %v", t.config.Schedule, err)
-		return StateOut
-	}
-	nextRun := now.Add(duration)
+func (t *DisruptionForceTask) computeStateFromWindows(ctx context.Context, now time.Time, scheduleDuration time.Duration, windows []types.DisruptionWindow) ReconcileState {
+	nextRun := now.Add(scheduleDuration)
 
 	inNow, inNext := false, false
 	for _, w := range windows {
