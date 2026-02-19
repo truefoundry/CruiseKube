@@ -108,8 +108,8 @@ func HandleMutatingPatch(c *gin.Context) {
 	input := utils.ApplyCheckInput{
 		DryRun:                     dryRun || cfg.Webhook.DryRun,
 		ApplyBlacklistedNamespaces: cfg.RecommendationSettings.ApplyBlacklistedNamespaces,
-		ExcludedPodPrefixes:         ExcludedPodPrefixes,
-		K8sVersionGE133:             k8sGE133,
+		ExcludedPodPrefixes:        ExcludedPodPrefixes,
+		K8sVersionGE133:            k8sGE133,
 		K8sMemoryGE134:             k8sMemoryGE134,
 		OptimizeGuaranteedPods:     cfg.RecommendationSettings.OptimizeGuaranteedPods,
 		DisableMemoryApplication:   cfg.RecommendationSettings.DisableMemoryApplication,

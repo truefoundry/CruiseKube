@@ -14,16 +14,16 @@ import (
 // ApplyCheckInput holds all inputs for deciding whether to apply recommendations to a pod.
 // Used by both the apply-recommendation task and the admission webhook.
 type ApplyCheckInput struct {
-	DryRun                      bool
-	ApplyBlacklistedNamespaces  []string
-	ExcludedPodPrefixes         []string
-	K8sVersionGE133             bool
-	K8sMemoryGE134              bool
-	OptimizeGuaranteedPods      bool
-	DisableMemoryApplication    bool
-	NewWorkloadThresholdHours   int
-	SkipMemory                  bool // task metadata skip memory (e.g. when cluster < 1.34)
-	PodExcludedByAnnotation     bool // when true, treat as excluded (from pod.Annotations or workload constraints)
+	DryRun                     bool
+	ApplyBlacklistedNamespaces []string
+	ExcludedPodPrefixes        []string
+	K8sVersionGE133            bool
+	K8sMemoryGE134             bool
+	OptimizeGuaranteedPods     bool
+	DisableMemoryApplication   bool
+	NewWorkloadThresholdHours  int
+	SkipMemory                 bool // task metadata skip memory (e.g. when cluster < 1.34)
+	PodExcludedByAnnotation    bool // when true, treat as excluded (from pod.Annotations or workload constraints)
 }
 
 // ShouldApplyRecommendationToPod returns true if recommendations should be applied to this pod.
