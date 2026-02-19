@@ -34,8 +34,6 @@ func HandleWorkloadDetail(c *gin.Context) {
 	namespace := c.Param("namespace")
 	workloadName := c.Param("workloadName")
 
-	c.Header("Content-Type", "application/json")
-
 	since := time.Now().Add(-StatsAPIDataLookbackWindow)
 
 	// 1. Get workload (type + current container requests) from workloads table
