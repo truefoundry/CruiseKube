@@ -599,7 +599,7 @@ func checkDoNotDisruptAnnotation(podTemplate *corev1.PodTemplateSpec) bool {
 		return false
 	}
 
-	for annotationKey, expectedValue := range DoNotDisruptAnnotations {
+	for annotationKey, expectedValue := range GetDoNotDisruptAnnotations() {
 		if value, exists := podTemplate.Annotations[annotationKey]; exists && strings.ToLower(value) == expectedValue {
 			return true
 		}

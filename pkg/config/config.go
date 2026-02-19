@@ -100,8 +100,8 @@ type RecommendationSettings struct {
 }
 
 type DisruptionSettings struct {
-	WindowCron            string `yaml:"windowCron" mapstructure:"windowCron"`
-	WindowDurationMinutes int    `yaml:"windowDurationMinutes" mapstructure:"windowDurationMinutes"`
+	WindowStartCron string `yaml:"windowStartCron" mapstructure:"windowStartCron"`
+	WindowEndCron   string `yaml:"windowEndCron" mapstructure:"windowEndCron"`
 }
 
 type TelemetryConfig struct {

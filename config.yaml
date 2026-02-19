@@ -77,8 +77,8 @@ recommendationSettings:
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true
 disruptionSettings:
-  windowCron: "0 2 * * *"
-  windowDurationMinutes: 240
+  windowStartCron: "0 0 * * *"
+  windowEndCron: "0 3 * * *"
 telemetry:
   enabled: false
   exporterOTLPEndpoint: ""

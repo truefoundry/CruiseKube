@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -21,17 +22,18 @@ import (
 type ReconcileState int
 
 const (
-	StateFullyIn ReconcileState = iota + 1
-	StateLastIn                 // about to be out in the next run
+	StateIn          ReconcileState = iota + 1
+	StateAboutToExit                // currently in, about to be out in the next run
 	StateOut
 )
 
 type DisruptionForceTaskConfig struct {
-	Name            string
-	Enabled         bool
-	Schedule        string
-	ClusterID       string
-	TargetNamespace string
+	Name                     string
+	Enabled                  bool
+	Schedule                 string
+	ClusterID                string
+	TargetNamespace          string
+	IsClusterWriteAuthorized bool
 }
 
 type DisruptionForceTask struct {
@@ -71,6 +73,11 @@ func (t *DisruptionForceTask) IsEnabled() bool {
 func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	ctx = contextutils.WithTask(ctx, t.config.Name)
 	ctx = contextutils.WithCluster(ctx, t.config.ClusterID)
+
+	if !t.config.IsClusterWriteAuthorized {
+		logging.Infof(ctx, "Cluster %s is not write authorized, skipping DisruptionForceTask", t.config.ClusterID)
+		return nil
+	}
 
 	logging.Infof(ctx, "Running disruption force task")
 
@@ -124,11 +131,14 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 				continue
 			}
 
-			if err := t.reconcilePod(ctx, pod, &workloadInfo, state); err != nil {
+			modified, err := t.reconcilePod(ctx, pod, &workloadInfo, state)
+			if err != nil {
 				logging.Errorf(ctx, "Failed to reconcile pod %s/%s: %v", pod.Namespace, pod.Name, err)
 				continue
 			}
-			reconciledPods++
+			if modified {
+				reconciledPods++
+			}
 		}
 	}
 
@@ -141,53 +151,69 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	reconciledPDBs := 0
 	for i := range pdbs.Items {
 		pdb := &pdbs.Items[i]
-		if err := t.reconcilePDB(ctx, pdb, state); err != nil {
+		modified, err := t.reconcilePDB(ctx, pdb, state)
+		if err != nil {
 			logging.Errorf(ctx, "Failed to reconcile PDB %s/%s: %v", pdb.Namespace, pdb.Name, err)
 			continue
 		}
-		reconciledPDBs++
+		if modified {
+			reconciledPDBs++
+		}
 	}
 
-	logging.Infof(ctx, "Disruption force task completed: reconciled %d pods, %d PDBs", reconciledPods, reconciledPDBs)
+	logging.Infof(ctx, "Disruption force task completed: reconciled %d pods, %d PDBs modified", reconciledPods, reconciledPDBs)
 	return nil
 }
 
 func (t *DisruptionForceTask) getReconcileState(ctx context.Context, now time.Time) ReconcileState {
-	schedule, err := t.cronParser.Parse(t.config.Schedule)
+	duration, err := time.ParseDuration(t.config.Schedule)
 	if err != nil {
-		logging.Errorf(ctx, "Failed to parse schedule: %v", err)
+		logging.Errorf(ctx, "Failed to parse duration %q: %v", t.config.Schedule, err)
 		return StateOut
 	}
 
-	nextRun := schedule.Next(now)
-	inNow := t.inEvictionWindow(now)
-	inNext := t.inEvictionWindow(nextRun)
+	nextRun := now.Add(duration)
+	inNow := t.inEvictionWindow(ctx, now)
+	inNext := t.inEvictionWindow(ctx, nextRun)
 
 	if inNow {
 		if inNext {
-			return StateFullyIn
+			return StateIn
 		}
-		return StateLastIn
+		return StateAboutToExit
 	}
 	return StateOut
 }
 
-func (t *DisruptionForceTask) inEvictionWindow(tm time.Time) bool {
-	cronExpr := t.appConfig.DisruptionSettings.WindowCron
-	durationMinutes := t.appConfig.DisruptionSettings.WindowDurationMinutes
+// inEvictionWindow reports whether tm falls inside the configured disruption window.
+// It uses the same stateless algorithm as KEDA's cron scaler: if the next end-cron
+// fires before the next start-cron (relative to tm), we are inside the window.
+func (t *DisruptionForceTask) inEvictionWindow(ctx context.Context, tm time.Time) bool {
+	startCronExpr := t.appConfig.DisruptionSettings.WindowStartCron
+	endCronExpr := t.appConfig.DisruptionSettings.WindowEndCron
 
-	if cronExpr == "" || durationMinutes <= 0 {
+	if startCronExpr == "" || endCronExpr == "" {
 		return false
 	}
 
-	schedule, err := t.cronParser.Parse(cronExpr)
+	startSchedule, err := t.cronParser.Parse(startCronExpr)
 	if err != nil {
+		logging.Errorf(ctx, "Failed to parse disruption window start cron %q: %v", startCronExpr, err)
 		return false
 	}
 
-	prevTime := tm.Add(-time.Duration(durationMinutes) * time.Minute)
-	nextCron := schedule.Next(prevTime)
-	return nextCron.Before(tm)
+	endSchedule, err := t.cronParser.Parse(endCronExpr)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to parse disruption window end cron %q: %v", endCronExpr, err)
+		return false
+	}
+
+	nextStart := startSchedule.Next(tm)
+	nextEnd := endSchedule.Next(tm)
+
+	// Inside the window: the end fires before the next start.
+	// Outside the window: the start fires before the next end.
+	return nextEnd.Before(nextStart)
 }
 
 func (t *DisruptionForceTask) hasBlockingAnnotations(pod *corev1.Pod) bool {
@@ -195,8 +221,8 @@ func (t *DisruptionForceTask) hasBlockingAnnotations(pod *corev1.Pod) bool {
 		return false
 	}
 
-	for annotationKey, expectedValue := range utils.DoNotDisruptAnnotations {
-		if value, exists := pod.Annotations[annotationKey]; exists && value == expectedValue {
+	for annotationKey, expectedValue := range utils.GetDoNotDisruptAnnotations() {
+		if value, exists := pod.Annotations[annotationKey]; exists && strings.EqualFold(value, expectedValue) {
 			return true
 		}
 	}
@@ -204,7 +230,7 @@ func (t *DisruptionForceTask) hasBlockingAnnotations(pod *corev1.Pod) bool {
 	return false
 }
 
-func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod, workloadInfo *utils.WorkloadInfo, state ReconcileState) error {
+func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod, workloadInfo *utils.WorkloadInfo, state ReconcileState) (bool, error) {
 	if pod.Annotations == nil {
 		pod.Annotations = make(map[string]string)
 	}
@@ -212,9 +238,9 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 	modified := false
 
 	switch state {
-	case StateFullyIn:
+	case StateIn:
 		if pod.Annotations[utils.AnnotationModified] != utils.TrueValue {
-			for key := range utils.DoNotDisruptAnnotations {
+			for key := range utils.GetDoNotDisruptAnnotations() {
 				if _, exists := pod.Annotations[key]; exists {
 					delete(pod.Annotations, key)
 					modified = true
@@ -224,16 +250,16 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 				pod.Annotations[utils.AnnotationModified] = utils.TrueValue
 			}
 		}
-	case StateLastIn, StateOut:
+	case StateAboutToExit, StateOut:
 		if pod.Annotations[utils.AnnotationModified] == utils.TrueValue {
 			workloadSpec, err := utils.GetWorkloadPodSpec(ctx, t.kubeClient, workloadInfo)
 			if err != nil {
 				logging.Errorf(ctx, "Failed to get workload spec for pod %s: %v", pod.Name, err)
-				return fmt.Errorf("failed to get workload pod spec: %w", err)
+				return false, fmt.Errorf("failed to get workload pod spec: %w", err)
 			}
 
 			if workloadSpec != nil && workloadSpec.Annotations != nil {
-				for key := range utils.DoNotDisruptAnnotations {
+				for key := range utils.GetDoNotDisruptAnnotations() {
 					if val, exists := workloadSpec.Annotations[key]; exists {
 						pod.Annotations[key] = val
 					}
@@ -248,15 +274,15 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 	if modified {
 		_, err := t.kubeClient.CoreV1().Pods(pod.Namespace).Update(ctx, pod, metav1.UpdateOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to update pod: %w", err)
+			return false, fmt.Errorf("failed to update pod: %w", err)
 		}
 		logging.Infof(ctx, "Updated pod %s/%s", pod.Namespace, pod.Name)
 	}
 
-	return nil
+	return modified, nil
 }
 
-func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.PodDisruptionBudget, state ReconcileState) error {
+func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.PodDisruptionBudget, state ReconcileState) (bool, error) {
 	if pdb.Annotations == nil {
 		pdb.Annotations = make(map[string]string)
 	}
@@ -264,7 +290,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 	modified := false
 
 	switch state {
-	case StateFullyIn:
+	case StateIn:
 		if pdb.Annotations[utils.AnnotationModified] != utils.TrueValue {
 			if pdb.Spec.MaxUnavailable != nil {
 				pdb.Annotations[utils.AnnotationPDBMaxUnavailable] = pdb.Spec.MaxUnavailable.String()
@@ -280,7 +306,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 			pdb.Annotations[utils.AnnotationModified] = utils.TrueValue
 			modified = true
 		}
-	case StateLastIn, StateOut:
+	case StateAboutToExit, StateOut:
 		if pdb.Annotations[utils.AnnotationModified] == utils.TrueValue {
 			if val, exists := pdb.Annotations[utils.AnnotationPDBMaxUnavailable]; exists {
 				maxUnavailable := intstr.Parse(val)
@@ -301,10 +327,10 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 	if modified {
 		_, err := t.kubeClient.PolicyV1().PodDisruptionBudgets(pdb.Namespace).Update(ctx, pdb, metav1.UpdateOptions{})
 		if err != nil {
-			return fmt.Errorf("failed to update PDB: %w", err)
+			return false, fmt.Errorf("failed to update PDB: %w", err)
 		}
 		logging.Infof(ctx, "Updated PDB %s/%s", pdb.Namespace, pdb.Name)
 	}
 
-	return nil
+	return modified, nil
 }

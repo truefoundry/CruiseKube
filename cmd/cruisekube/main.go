@@ -387,11 +387,12 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 			cluster.KubeClient,
 			storageRepo,
 			&task.DisruptionForceTaskConfig{
-				Name:            ID + "_" + config.DisruptionForceKey,
-				Enabled:         disruptionForceTaskConfig.Enabled,
-				Schedule:        disruptionForceTaskConfig.Schedule,
-				ClusterID:       ID,
-				TargetNamespace: cfg.Controller.TargetNamespace,
+				Name:                     ID + "_" + config.DisruptionForceKey,
+				Enabled:                  disruptionForceTaskConfig.Enabled,
+				Schedule:                 disruptionForceTaskConfig.Schedule,
+				ClusterID:                ID,
+				TargetNamespace:          cfg.Controller.TargetNamespace,
+				IsClusterWriteAuthorized: cfg.IsClusterWriteAuthorized(ID),
 			},
 			cfg,
 		))

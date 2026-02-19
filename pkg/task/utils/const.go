@@ -21,10 +21,18 @@ const (
 	AnnotationPDBMinAvailable   = "cruisekube.truefoundry.com/pdb/minAvailable"
 )
 
-var DoNotDisruptAnnotations = map[string]string{
+var doNotDisruptAnnotations = map[string]string{
 	"cluster-autoscaler.kubernetes.io/safe-to-evict": FalseValue,
 	"karpenter.sh/do-not-evict":                      TrueValue,
 	"karpenter.sh/do-not-disrupt":                    TrueValue,
+}
+
+func GetDoNotDisruptAnnotations() map[string]string {
+	result := make(map[string]string, len(doNotDisruptAnnotations))
+	for k, v := range doNotDisruptAnnotations {
+		result[k] = v
+	}
+	return result
 }
 
 const (
