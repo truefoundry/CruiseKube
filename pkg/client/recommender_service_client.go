@@ -67,7 +67,7 @@ type PrometheusProxyRequest struct {
 	Body        io.Reader
 }
 
-// MutatingPatchRequest is the request body for POST /api/v1/clusters/:clusterID/webhook/mutatingPatch.
+// MutatingPatchRequest is the request body for muatating patch
 // Manifest is the complete incoming object; the controller handles Pod and PDB separately.
 type MutatingPatchRequest struct {
 	Manifest admissionv1.AdmissionReview `json:"review"`
@@ -276,24 +276,10 @@ func (c *RecommenderServiceClient) UpdateWorkloadOverrides(ctx context.Context, 
 	return c.makeRequest(ctx, "POST", endpoint, overrides, nil)
 }
 
-func (c *RecommenderServiceClient) WebhookGetClusterStats(ctx context.Context, clusterID string) (*types.StatsResponse, error) {
-	var result types.StatsResponse
-	endpoint := fmt.Sprintf("/api/v1/webhook/clusters/%s/stats", clusterID)
-	err := c.makeRequest(ctx, "GET", endpoint, nil, &result)
-	return &result, err
-}
-
-func (c *RecommenderServiceClient) WebhookGetWorkloadOverrides(ctx context.Context, clusterID, workloadID string) (*types.Overrides, error) {
-	var result types.Overrides
-	endpoint := fmt.Sprintf("/api/v1/webhook/clusters/%s/workloads/%s/overrides", clusterID, workloadID)
-	err := c.makeRequest(ctx, "GET", endpoint, nil, &result)
-	return &result, err
-}
-
 // WebhookMutatingPatch POSTs the given body to the controller's mutatingPatch endpoint and returns the response body (JSON patch array).
 // On non-2xx or error, returns an error. Caller should treat error as "return empty patches".
 func (c *RecommenderServiceClient) WebhookMutatingPatch(ctx context.Context, clusterID string, body interface{}) ([]JSONPatchOp, error) {
-	endpoint := fmt.Sprintf("/api/v1/clusters/%s/webhook/mutatingPatch", clusterID)
+	endpoint := fmt.Sprintf("/api/v1/webhook/clusters/%s/mutate", clusterID)
 	var result []JSONPatchOp
 	err := c.makeRequest(ctx, "POST", endpoint, body, &result)
 	return result, err

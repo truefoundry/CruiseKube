@@ -45,7 +45,7 @@ func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook
 
 	webhookGroup := apiV1Group.Group("/webhook/clusters/:clusterID", authWebhook, ensureClusterExists)
 	{
-		webhookGroup.GET("/mutatingPatch", handlers.HandleMutatingPatch)
+		webhookGroup.POST("/mutate", handlers.HandleMutatingPatch)
 	}
 
 	return r
