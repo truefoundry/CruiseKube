@@ -179,3 +179,11 @@ func (s *Storage) SavePodRecommendations(clusterID string, rows []types.PodResou
 	}
 	return nil
 }
+
+func (s *Storage) GetPodRecommendationsForCluster(clusterID string) ([]types.PodResourceRecommendationRow, error) {
+	rows, err := s.DB.GetPodRecommendationsForCluster(clusterID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pod recommendations for cluster: %w", err)
+	}
+	return rows, nil
+}

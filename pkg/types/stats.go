@@ -6,7 +6,8 @@ import (
 )
 
 type WorkloadConstraints struct {
-	Blocking                 bool `json:"blocking"`
+	BlockingConsolidation bool `json:"blocking_consolidation"`
+
 	PDB                      bool `json:"pdb"`
 	DoNotDisruptAnnotation   bool `json:"do_not_disrupt_annotation"`
 	Volume                   bool `json:"volume"`
@@ -40,9 +41,18 @@ const (
 	EvictionRankingHigh     EvictionRanking = 4
 )
 
+// DisruptionWindow defines a time window (bounded by UTC cron expressions) during which
+// workload disruptions (e.g. pod evictions) are permitted. Operations outside this window
+// will not be scheduled.
+type DisruptionWindow struct {
+	StartCron string `json:"start_cron"` // cron expression in UTC, e.g. "30 15 * * 1,2,3,4,5"
+	EndCron   string `json:"end_cron"`   // cron expression in UTC
+}
+
 type Overrides struct {
-	EvictionRanking *EvictionRanking `json:"eviction_ranking"`
-	Enabled         *bool            `json:"enabled"`
+	EvictionRanking   *EvictionRanking   `json:"eviction_ranking"`
+	Enabled           *bool              `json:"enabled"`
+	DisruptionWindows []DisruptionWindow `json:"disruption_windows,omitempty"`
 }
 
 type ContainerType int
