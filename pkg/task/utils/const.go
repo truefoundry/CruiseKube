@@ -23,7 +23,6 @@ const (
 
 var DoNotDisruptAnnotations = map[string]string{
 	"cluster-autoscaler.kubernetes.io/safe-to-evict": FalseValue,
-	"cruisekube.truefoundry.com/do-not-disrupt":      TrueValue,
 	"karpenter.sh/do-not-evict":                      TrueValue,
 	"karpenter.sh/do-not-disrupt":                    TrueValue,
 }
