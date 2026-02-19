@@ -122,7 +122,7 @@ func HandleMutatingPatch(c *gin.Context) {
 	}
 
 	// No node at admission time; use a large default for CPU limit.
-	allocatableCPU := 1000.0
+	allocatableCPU := float64(0)
 	patches := buildPodPatches(&pod, recommendations, allocatableCPU, k8sMemoryGE134, !cfg.RecommendationSettings.DisableMemoryApplication)
 	c.JSON(http.StatusOK, patches)
 }
