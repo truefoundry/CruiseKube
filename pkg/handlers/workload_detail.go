@@ -80,14 +80,27 @@ func HandleWorkloadDetail(c *gin.Context) {
 		return
 	}
 
+	// Workload-level current request/limit (one pod template: request from stat helpers, limit summed over containers)
+	currentCpuReq := stat.CalculateTotalCPURequest()
+	currentMemReq := stat.CalculateTotalMemoryRequest()
+	var currentCpuLimit, currentMemLimit float64
+	for _, r := range stat.OriginalContainerResources {
+		currentCpuLimit += r.CPULimit
+		currentMemLimit += r.MemoryLimit
+	}
+
 	resp := types.WorkloadDetailResponse{
-		Cluster:      clusterID,
-		Namespace:    namespace,
-		Workload:     workloadName,
-		Type:         workloadType,
-		PotentialCpu: 0,
-		PotentialMem: 0,
-		Pods:         []types.PodDetail{},
+		Cluster:             clusterID,
+		Namespace:           namespace,
+		Workload:            workloadName,
+		Type:                workloadType,
+		CurrentCpuRequest:   math.Round(currentCpuReq*1000) / 1000,
+		CurrentCpuLimit:     math.Round(currentCpuLimit*1000) / 1000,
+		CurrentMemRequest:   math.Round(currentMemReq),
+		CurrentMemLimit:     math.Round(currentMemLimit),
+		PotentialCpuSavings: 0,
+		PotentialMemSavings: 0,
+		Pods:                []types.PodDetail{},
 	}
 
 	if len(rows) == 0 {
@@ -109,11 +122,8 @@ func HandleWorkloadDetail(c *gin.Context) {
 		memRec := rec.MemoryRequest
 		orig, err := stat.GetOriginalContainerResource(row.Container)
 		if err != nil {
-			logging.Errorf(ctx, "Original resource not found for pod %s container %s: %v", row.Pod, row.Container, err)
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": fmt.Sprintf("original resource not found for container %s in pod %s", row.Container, row.Pod),
-			})
-			return
+			logging.Infof(ctx, "Original resource not found for pod %s container %s: %v", row.Pod, row.Container, err)
+			continue
 		}
 		cpuReq := orig.CPURequest
 		memReq := orig.MemoryRequest
@@ -130,8 +140,8 @@ func HandleWorkloadDetail(c *gin.Context) {
 		totalCpuDiff += p.cpuReq - p.cpuRec
 		totalMemDiff += p.memReq - p.memRec
 	}
-	resp.PotentialCpu = math.Round(-totalCpuDiff*1000) / 1000
-	resp.PotentialMem = math.Round(-totalMemDiff)
+	resp.PotentialCpuSavings = math.Round(totalCpuDiff*1000) / 1000
+	resp.PotentialMemSavings = math.Round(totalMemDiff)
 
 	// 5. Build pods: unique pod names (sorted), nodeName, containers
 	podMap := make(map[string]*types.PodDetail)
@@ -161,7 +171,10 @@ func HandleWorkloadDetail(c *gin.Context) {
 				break
 			}
 		}
-		if !hasContainer {
+		if hasContainer {
+			logging.Warnf(ctx, "workload_detail dedup: duplicate container row for pod %s container %s (skipping); values from upstream buildPodRecommendationRows/SavePodRecommendations: cpuReq=%.4f cpuRec=%.4f memReq=%.1f memRec=%.1f",
+				row.Pod, row.Container, p.cpuReq, p.cpuRec, p.memReq, p.memRec)
+		} else {
 			// Apply same rounding as recommendation-analysis API (analyzeWorkloadStats) so values match previous response
 			cpuReqRounded := math.Round(p.cpuReq*1000) / 1000
 			cpuRecRounded := math.Round(p.cpuRec*1000) / 1000

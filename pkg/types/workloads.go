@@ -86,27 +86,31 @@ type RecommendationAnalysisResponse struct {
 // WorkloadDetailResponse is the response for GET /clusters/:clusterID/workloads/:namespace/:workloadName/detail.
 // It aggregates cluster stats (type) and recommendation analysis (potential CPU/Mem, pods, containers) for a single workload.
 type WorkloadDetailResponse struct {
-	Cluster      string      `json:"cluster"`
-	Namespace    string      `json:"namespace"`
-	Workload     string      `json:"workload"`
-	Type         string      `json:"type"`
-	PotentialCpu float64     `json:"potentialCpu"`
-	PotentialMem float64     `json:"potentialMem"`
-	Pods         []PodDetail `json:"pods"`
+	Cluster             string      `json:"cluster"`
+	Namespace           string      `json:"namespace"`
+	Workload            string      `json:"workload"`
+	Type                string      `json:"type"`
+	CurrentCpuRequest   float64     `json:"current_cpu_request"`
+	CurrentCpuLimit     float64     `json:"current_cpu_limit"`
+	CurrentMemRequest   float64     `json:"current_mem_request"`
+	CurrentMemLimit     float64     `json:"current_mem_limit"`
+	PotentialCpuSavings float64     `json:"potential_cpu_savings"`
+	PotentialMemSavings float64     `json:"potential_mem_savings"`
+	Pods                []PodDetail `json:"pods"`
 }
 
 // PodDetail holds pod-level details for the workload detail API.
 type PodDetail struct {
-	PodName    string            `json:"podName"`
-	NodeName   *string           `json:"nodeName"`
+	PodName    string            `json:"pod_name"`
+	NodeName   *string           `json:"node_name"`
 	Containers []ContainerDetail `json:"containers"`
 }
 
 // ContainerDetail holds container request/recommendation for the workload detail API.
 type ContainerDetail struct {
-	Container     string  `json:"container"`
-	CpuRequest    float64 `json:"cpuRequest"`
-	CpuRecRequest float64 `json:"cpuRecRequest"`
-	MemRequest    float64 `json:"memRequest"`
-	MemRecRequest float64 `json:"memRecRequest"`
+	Container     string  `json:"container_name"`
+	CpuRequest    float64 `json:"cpu_request"`
+	CpuRecRequest float64 `json:"cpu_rec_request"`
+	MemRequest    float64 `json:"mem_request"`
+	MemRecRequest float64 `json:"mem_rec_request"`
 }
