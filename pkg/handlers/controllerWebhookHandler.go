@@ -37,7 +37,7 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	review := req.Manifest
+	review := req.Review
 	if review.Request == nil {
 		logging.Warnf(ctx, "Admission review has no request")
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})

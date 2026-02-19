@@ -70,7 +70,7 @@ type PrometheusProxyRequest struct {
 // MutatingPatchRequest is the request body for mutating patch
 // Manifest is the complete incoming object; the controller handles Pod and PDB separately.
 type MutatingPatchRequest struct {
-	Manifest admissionv1.AdmissionReview `json:"review"`
+	Review admissionv1.AdmissionReview `json:"review"`
 }
 
 // JSONPatchOp is a single RFC 6902 JSON Patch operation.

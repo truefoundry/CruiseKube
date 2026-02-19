@@ -72,4 +72,5 @@ reload-images: ## Reload images into kind and restart deployments
 	@docker save $(CONTROLLER_IMAGE) | docker exec -i $(CLUSTER_NAME)-control-plane ctr -n k8s.io images import -
 	@echo "Restarting cruisekube controller deployment..."
 	@kubectl rollout restart deployment cruisekube-controller -n $(NAMESPACE)
+	@kubectl rollout restart deployment cruisekube-webhook -n $(NAMESPACE)
 	@echo "Images reloaded and deployment restarted."

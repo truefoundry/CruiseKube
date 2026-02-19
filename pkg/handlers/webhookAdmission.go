@@ -46,7 +46,7 @@ func MutateHandler(c *gin.Context) {
 
 	logging.Infof(ctx, "Forwarding manifest to controller for cluster %s", clusterID)
 	mutatingPatchReq := client.MutatingPatchRequest{
-		Manifest: review,
+		Review: review,
 	}
 	patchBytes, err := recommenderServiceClient.WebhookMutatingPatch(ctx, clusterID, mutatingPatchReq)
 	if err != nil {
@@ -67,10 +67,12 @@ func MutateHandler(c *gin.Context) {
 		review.Response.Patch = patch
 	}
 	logging.Infof(ctx, "Review response: %s", string(patch))
-	// Return only the response; do not echo the original request.
+
+	//Return only the response; do not echo the original request.
 	responseReview := admissionv1.AdmissionReview{
 		TypeMeta: review.TypeMeta,
 		Response: review.Response,
 	}
+	logging.Infof(ctx, "Review response: %s", string(review.Response.Patch))
 	c.JSON(http.StatusOK, responseReview)
 }
