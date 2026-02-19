@@ -2,8 +2,9 @@ package types
 
 // WorkloadOverridesEffective is the effective overrides for a workload (what the API returns under "overrides").
 type WorkloadOverridesEffective struct {
-	EvictionRanking EvictionRanking `json:"eviction_ranking"`
-	Enabled         bool            `json:"enabled"`
+	EvictionRanking   EvictionRanking    `json:"eviction_ranking"`
+	Enabled           bool               `json:"enabled"`
+	DisruptionWindows []DisruptionWindow `json:"disruption_windows,omitempty"`
 }
 
 type WorkloadOverrideInfo struct {

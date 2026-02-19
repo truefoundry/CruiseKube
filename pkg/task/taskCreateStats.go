@@ -386,9 +386,14 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 		workloadStat.Replicas = int32(workloadMetrics.MedianReplicas)
 	}
 
-	if workloadInfo.Kind == "StatefulSet" || workloadStat.Replicas == 1 {
+	switch {
+	case workloadStat.Constraints != nil && workloadStat.Constraints.DoNotDisruptAnnotation:
+		workloadStat.EvictionRanking = types.EvictionRankingDisabled
+
+	case workloadInfo.Kind == "StatefulSet" || workloadStat.Replicas == 1:
 		workloadStat.EvictionRanking = types.EvictionRankingMedium
-	} else {
+
+	default:
 		workloadStat.EvictionRanking = types.EvictionRankingHigh
 	}
 

@@ -473,7 +473,7 @@ func markWorkloadHPA(ctx context.Context, hpa autoscalingv2.HorizontalPodAutosca
 func DetectWorkloadConstraints(ctx context.Context, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, workloadObj WorkloadObject, pdbCache map[string][]policyv1.PodDisruptionBudget) (*WorkloadConstraints, error) {
 	constraints := &WorkloadConstraints{}
 	if _, ok := workloadObj.(DaemonSetWrapper); ok {
-		constraints.Blocking = false
+		constraints.BlockingConsolidation = false
 		return constraints, nil
 	}
 
@@ -494,14 +494,9 @@ func DetectWorkloadConstraints(ctx context.Context, kubeClient *kubernetes.Clien
 		constraints.ExcludedAnnotation = checkExcludedAnnotation(podTemplate)
 	}
 
-	constraints.Blocking =
+	constraints.BlockingConsolidation =
 		constraints.PDB ||
-			constraints.DoNotDisruptAnnotation ||
-			constraints.Volume ||
-			constraints.Affinity ||
-			// constraints.TopologySpreadConstraint ||
-			constraints.PodAntiAffinity ||
-			constraints.ExcludedAnnotation
+			constraints.DoNotDisruptAnnotation
 
 	return constraints, nil
 }
