@@ -127,7 +127,8 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 		for i := range pods.Items {
 			pod := &pods.Items[i]
 
-			if !t.hasBlockingAnnotations(pod) {
+			hasModifiedMarker := pod.Annotations != nil && pod.Annotations[utils.AnnotationModified] == utils.TrueValue
+			if !t.hasBlockingAnnotations(pod) && !hasModifiedMarker {
 				continue
 			}
 
