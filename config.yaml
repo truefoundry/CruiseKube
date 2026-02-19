@@ -41,7 +41,7 @@ controller:
       metadata:
         retentionDays: 7
     disruptionForce:
-      enabled: false
+      enabled: true
       schedule: "5m"
 metrics:
   enabled: true
