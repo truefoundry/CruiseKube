@@ -190,6 +190,7 @@ func (t *DisruptionForceTask) inEvictionWindow(ctx context.Context, tm time.Time
 	endCronExpr := t.appConfig.DisruptionSettings.WindowEndCron
 
 	if startCronExpr == "" || endCronExpr == "" {
+		logging.Warnf(ctx, "Disruption window start or end cron is empty, skipping disruption force task")
 		return false
 	}
 
