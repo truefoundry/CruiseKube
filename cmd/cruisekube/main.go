@@ -391,7 +391,6 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 				Enabled:                  disruptionForceTaskConfig.Enabled,
 				Schedule:                 disruptionForceTaskConfig.Schedule,
 				ClusterID:                ID,
-				TargetNamespace:          cfg.Controller.TargetNamespace,
 				IsClusterWriteAuthorized: cfg.IsClusterWriteAuthorized(ID),
 			},
 			cfg,

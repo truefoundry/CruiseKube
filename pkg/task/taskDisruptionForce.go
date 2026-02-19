@@ -32,7 +32,6 @@ type DisruptionForceTaskConfig struct {
 	Enabled                  bool
 	Schedule                 string
 	ClusterID                string
-	TargetNamespace          string
 	IsClusterWriteAuthorized bool
 }
 
