@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -57,11 +58,11 @@ func isVersionAtLeast(major, minor, targetMajor, targetMinor int) bool {
 	return major > targetMajor || (major == targetMajor && minor >= targetMinor)
 }
 
-func fetchServerVersion(ctx context.Context, kubeClient *kubernetes.Clientset) (major, minor int, err error) {
+func fetchServerVersion(ctx context.Context, kubeClient *kubernetes.Clientset) (int, int, error) {
 	version, err := kubeClient.Discovery().ServerVersion()
 	if err != nil {
 		logging.Errorf(ctx, "[version cache] Error getting cluster version: %v", err)
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("get server version: %w", err)
 	}
 	gitVersion := strings.TrimPrefix(version.GitVersion, "v")
 	parts := strings.Split(gitVersion, ".")
@@ -69,15 +70,15 @@ func fetchServerVersion(ctx context.Context, kubeClient *kubernetes.Clientset) (
 		logging.Errorf(ctx, "[version cache] Invalid version format: %s", version.GitVersion)
 		return 0, 0, errors.New("invalid version format")
 	}
-	major, err = strconv.Atoi(parts[0])
+	major, err := strconv.Atoi(parts[0])
 	if err != nil {
 		logging.Errorf(ctx, "[version cache] Error parsing major version: %v", err)
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("parse major version %q: %w", parts[0], err)
 	}
-	minor, err = strconv.Atoi(parts[1])
+	minor, err := strconv.Atoi(parts[1])
 	if err != nil {
 		logging.Errorf(ctx, "[version cache] Error parsing minor version: %v", err)
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("parse minor version %q: %w", parts[1], err)
 	}
 	return major, minor, nil
 }
