@@ -185,9 +185,6 @@ func (t *DisruptionForceTask) getReconcileState(ctx context.Context, now time.Ti
 	return StateOut
 }
 
-// inEvictionWindow reports whether tm falls inside the configured disruption window.
-// It uses the same stateless algorithm as KEDA's cron scaler: if the next end-cron
-// fires before the next start-cron (relative to tm), we are inside the window.
 func (t *DisruptionForceTask) inEvictionWindow(ctx context.Context, tm time.Time) bool {
 	startCronExpr := t.appConfig.DisruptionSettings.WindowStartCron
 	endCronExpr := t.appConfig.DisruptionSettings.WindowEndCron
@@ -211,9 +208,7 @@ func (t *DisruptionForceTask) inEvictionWindow(ctx context.Context, tm time.Time
 	nextStart := startSchedule.Next(tm)
 	nextEnd := endSchedule.Next(tm)
 
-	// Inside the window: the end fires before the next start.
-	// Outside the window: the start fires before the next end.
-	return nextEnd.Before(nextStart)
+	return nextEnd.Before(nextStart) || nextEnd.Equal(nextStart)
 }
 
 func (t *DisruptionForceTask) hasBlockingAnnotations(pod *corev1.Pod) bool {
