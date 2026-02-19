@@ -1,20 +1,32 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
+	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
+type rowWithValues struct {
+	row    types.PodResourceRecommendationRow
+	rec    types.PodResourceRecommendation
+	cpuReq float64
+	memReq float64
+	cpuRec float64
+	memRec float64
+}
+
 // HandleWorkloadDetail returns pod-level details for a single workload in one response,
-// so the frontend Workload Detail page can use a single call instead of cluster-stats + recommendation-analysis.
+// using data from the database: workloads table (type, current requests) and
+// pod_resource_recommendations table (recommended values, pod/container list).
 // GET /api/v1/clusters/:clusterID/workloads/:namespace/:workloadName/detail
 func HandleWorkloadDetail(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -24,112 +36,154 @@ func HandleWorkloadDetail(c *gin.Context) {
 
 	c.Header("Content-Type", "application/json")
 
-	// 1. Get workload type (kind) from cluster stats
-	var statsResponse types.StatsResponse
 	since := time.Now().Add(-StatsAPIDataLookbackWindow)
-	if err := storage.Stg.ReadClusterStatsUpdatedSince(clusterID, &statsResponse, since); err != nil {
-		logging.Errorf(ctx, "Failed to read cluster stats for %s: %v", clusterID, err)
+
+	// 1. Get workload (type + current container requests) from workloads table
+	workloads, err := storage.Stg.GetWorkloadsInCluster(clusterID, since)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to read cluster stats for %s: %v", clusterID, err),
+			"error": fmt.Sprintf("Failed to get workloads for %s: %v", clusterID, err),
 		})
 		return
 	}
 
-	workloadType := ""
-	for i := range statsResponse.Stats {
-		s := &statsResponse.Stats[i]
-		if s.IsGPUWorkload() {
+	var workloadID string
+	var stat *types.WorkloadStat
+	for _, w := range workloads {
+		s := w.GetStat()
+		if s == nil || s.IsGPUWorkload() {
 			continue
 		}
 		if s.Namespace == namespace && s.Name == workloadName {
-			workloadType = s.Kind
+			workloadID = w.WorkloadID
+			stat = s
 			break
 		}
 	}
 
-	// 2. Get recommendation analysis for the cluster
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
-	analysisResponse, err := generateRecommendationAnalysisForCluster(ctx, clusterID, mgr)
+	workloadType := ""
+	if stat != nil {
+		workloadType = stat.Kind
+	}
+
+	// 2. Get pod recommendations from pod_resource_recommendations table
+	recRows, err := storage.Stg.GetPodRecommendationsForCluster(clusterID)
 	if err != nil {
-		logging.Errorf(ctx, "Failed to generate recommendation analysis for cluster %s: %v", clusterID, err)
+		logging.Errorf(ctx, "Failed to get pod recommendations for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to generate recommendation analysis for %s: %v", clusterID, err),
+			"error": fmt.Sprintf("Failed to get pod recommendations for %s: %v", clusterID, err),
 		})
 		return
 	}
 
-	// 3. Filter analysis items for this workload
-	var items []types.RecommendationAnalysisItem
-	for i := range analysisResponse.Analysis {
-		item := &analysisResponse.Analysis[i]
-		if item.WorkloadNamespace == namespace && item.WorkloadName == workloadName {
-			items = append(items, *item)
+	// Filter rows for this workload: by workloadID if we found it, else by parsing WorkloadID (namespace + name)
+	var rows []types.PodResourceRecommendationRow
+	for _, row := range recRows {
+		if workloadID != "" {
+			if row.WorkloadID != workloadID {
+				continue
+			}
+		} else {
+			_, rowNs, rowName, ok := utils.ParseWorkloadKey(row.WorkloadID)
+			if !ok || rowNs != namespace || rowName != workloadName {
+				continue
+			}
 		}
+		rows = append(rows, row)
 	}
 
-	// 4. Build response: potentialCpu, potentialMem, pods
 	resp := types.WorkloadDetailResponse{
 		Type:         workloadType,
 		PotentialCpu: 0,
 		PotentialMem: 0,
-		Pods:         nil,
+		Pods:         []types.PodDetail{},
 	}
 
-	if len(items) == 0 {
-		resp.Pods = []types.PodDetail{}
+	if len(rows) == 0 {
 		c.JSON(http.StatusOK, resp)
 		return
 	}
 
-	var totalCpuDiff, totalMemDiff float64
-	for i := range items {
-		totalCpuDiff += items[i].CurrentRequestedCPU - items[i].RecommendedCPU
-		totalMemDiff += items[i].CurrentRequestedMemory - items[i].RecommendedMemory
+	// 3. Build per-row: current (from stat) and recommended (from row.Recommendation JSON)
+	var parsed []rowWithValues
+	for _, row := range rows {
+		var rec types.PodResourceRecommendation
+		if row.Recommendation != "" {
+			if err := json.Unmarshal([]byte(row.Recommendation), &rec); err != nil {
+				continue
+			}
+		}
+		cpuRec := rec.CPURequest
+		memRec := rec.MemoryRequest
+		cpuReq := cpuRec
+		memReq := memRec
+		if stat != nil {
+			if orig, err := stat.GetOriginalContainerResource(row.Container); err == nil {
+				cpuReq = orig.CPURequest
+				memReq = orig.MemoryRequest
+				if row.Recommendation == "" {
+					cpuRec = cpuReq
+					memRec = memReq
+				}
+			}
+		}
+		parsed = append(parsed, rowWithValues{row: row, rec: rec, cpuReq: cpuReq, memReq: memReq, cpuRec: cpuRec, memRec: memRec})
 	}
-	resp.PotentialCpu = -totalCpuDiff
-	resp.PotentialMem = -totalMemDiff
 
-	// 5. Build pods: unique pod names (sorted), with nodeName and containers
+	// 4. potentialCpu / potentialMem
+	var totalCpuDiff, totalMemDiff float64
+	for _, p := range parsed {
+		totalCpuDiff += p.cpuReq - p.cpuRec
+		totalMemDiff += p.memReq - p.memRec
+	}
+	resp.PotentialCpu = math.Round(-totalCpuDiff*1000) / 1000
+	resp.PotentialMem = math.Round(-totalMemDiff)
+
+	// 5. Build pods: unique pod names (sorted), nodeName, containers
 	podMap := make(map[string]*types.PodDetail)
-	for i := range items {
-		item := &items[i]
-		pod, ok := podMap[item.PodName]
+	for _, p := range parsed {
+		row := p.row
+		pod, ok := podMap[row.Pod]
 		if !ok {
 			var nodeName *string
-			if item.NodeName != "" {
-				nodeName = &item.NodeName
+			if row.NodeName != "" {
+				nodeName = &row.NodeName
 			}
 			pod = &types.PodDetail{
-				PodName:    item.PodName,
+				PodName:    row.Pod,
 				NodeName:   nodeName,
 				Containers: nil,
 			}
-			podMap[item.PodName] = pod
+			podMap[row.Pod] = pod
 		}
-		if pod.NodeName == nil && item.NodeName != "" {
-			n := item.NodeName
+		if pod.NodeName == nil && row.NodeName != "" {
+			n := row.NodeName
 			pod.NodeName = &n
 		}
-		// One entry per container; deduplicate by container name
 		hasContainer := false
 		for _, co := range pod.Containers {
-			if co.Container == item.ContainerName {
+			if co.Container == row.Container {
 				hasContainer = true
 				break
 			}
 		}
 		if !hasContainer {
+			// Apply same rounding as recommendation-analysis API (analyzeWorkloadStats) so values match previous response
+			cpuReqRounded := math.Round(p.cpuReq*1000) / 1000
+			cpuRecRounded := math.Round(p.cpuRec*1000) / 1000
+			memReqRounded := math.Round(p.memReq)
+			memRecRounded := math.Round(p.memRec)
 			pod.Containers = append(pod.Containers, types.ContainerDetail{
-				Container:     item.ContainerName,
-				CpuRequest:    item.CurrentRequestedCPU,
-				CpuRecRequest: item.RecommendedCPU,
-				MemRequest:    item.CurrentRequestedMemory,
-				MemRecRequest: item.RecommendedMemory,
+				Container:     row.Container,
+				CpuRequest:    cpuReqRounded,
+				CpuRecRequest: cpuRecRounded,
+				MemRequest:    memReqRounded,
+				MemRecRequest: memRecRounded,
 			})
 		}
 	}
 
-	// Sort pod names and build slice
 	podNames := make([]string, 0, len(podMap))
 	for name := range podMap {
 		podNames = append(podNames, name)
