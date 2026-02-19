@@ -35,7 +35,7 @@ func ShouldApplyRecommendationToPod(
 	override *types.WorkloadOverrideInfo,
 	input ApplyCheckInput,
 	podForExclusion *corev1.Pod,
-) (apply bool, reason string) {
+) (bool, string) {
 	if input.DryRun {
 		return false, "dry run is on"
 	}
@@ -104,14 +104,14 @@ func getPodNameForPrefix(pod *corev1.Pod) string {
 
 // ComputeRecommendedResourceValues returns recommended CPU request, memory request, CPU limit, memory limit
 // for a container recommendation. allocatableCPU is used for CPU limit (e.g. node allocatable or a default).
-func ComputeRecommendedResourceValues(rec PodContainerRecommendation, allocatableCPU float64) (cpuRequest, memoryRequest, cpuLimit, memoryLimit float64) {
-	cpuRequest = EnforceMinimumCPU(rec.CPU)
+func ComputeRecommendedResourceValues(rec PodContainerRecommendation, allocatableCPU float64) (float64, float64, float64, float64) {
+	cpuRequest := EnforceMinimumCPU(rec.CPU)
 	if cpuRequest > CPUClampValue {
 		cpuRequest = CPUClampValue
 	}
-	memoryRequest = EnforceMinimumMemory(rec.Memory)
-	cpuLimit = allocatableCPU
-	memoryLimit = memoryRequest * 2
+	memoryRequest := EnforceMinimumMemory(rec.Memory)
+	cpuLimit := allocatableCPU
+	memoryLimit := memoryRequest * 2
 	if rec.PodInfo.Stats != nil {
 		if containerStat, err := rec.PodInfo.Stats.GetContainerStats(rec.ContainerName); err == nil {
 			var memMax, oom float64
