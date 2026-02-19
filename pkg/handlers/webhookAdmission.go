@@ -192,8 +192,8 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		return []map[string]any{}, nil
 	}
 
-	if workloadStat.IsHorizontallyAutoscaledOnCPU {
-		logging.Infof(ctx, "Workload %s is horizontally autoscaled on CPU, skipping", workloadID)
+	if workloadStat.IsHorizontallyAutoscaledOnCPU || workloadStat.IsHorizontallyAutoscaledOnMem {
+		logging.Infof(ctx, "Workload %s is horizontally autoscaled on CPU/Memory, skipping", workloadID)
 		return []map[string]any{}, nil
 	}
 
@@ -252,6 +252,9 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		recommendedCPU := containerStat.CPUStats.Max
 		if containerStat.SimplePredictionsCPU != nil && containerStat.SimplePredictionsCPU.MaxValue > 0 {
 			recommendedCPU = containerStat.SimplePredictionsCPU.MaxValue
+		}
+		if recommendedCPU > utils.CPUClampValue {
+			recommendedCPU = utils.CPUClampValue
 		}
 
 		recommendedMemory := containerStat.MemoryStats.Max
