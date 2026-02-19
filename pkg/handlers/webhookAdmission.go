@@ -171,8 +171,8 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		return []map[string]any{}, nil
 	}
 
-	if workloadOverrides.Enabled != nil && !*workloadOverrides.Enabled {
-		logging.Infof(ctx, "Workload %s is disabled via overrides, skipping", workloadID)
+	if workloadOverrides.Enabled == nil || !*workloadOverrides.Enabled {
+		logging.Infof(ctx, "Workload %s is not enabled for apply mode (recommend-only by default), skipping", workloadID)
 		return []map[string]any{}, nil
 	}
 
