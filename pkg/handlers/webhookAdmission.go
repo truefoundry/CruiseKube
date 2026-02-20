@@ -43,6 +43,11 @@ func MutateHandler(c *gin.Context) {
 		})
 		return
 	}
+	if review.Request == nil {
+		logging.Warnf(ctx, "Admission review has no request")
+		c.JSON(http.StatusOK, []client.JSONPatchOp{})
+		return
+	}
 
 	logging.Infof(ctx, "Forwarding manifest to controller for cluster %s", clusterID)
 	mutatingPatchReq := client.MutatingPatchRequest{
@@ -66,7 +71,6 @@ func MutateHandler(c *gin.Context) {
 	} else {
 		review.Response.Patch = patch
 	}
-	logging.Infof(ctx, "Review response: %s", string(patch))
 
 	//Return only the response; do not echo the original request.
 	responseReview := admissionv1.AdmissionReview{

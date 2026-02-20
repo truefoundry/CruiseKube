@@ -74,3 +74,15 @@ reload-images: ## Reload images into kind and restart deployments
 	@kubectl rollout restart deployment cruisekube-controller -n $(NAMESPACE)
 	@kubectl rollout restart deployment cruisekube-webhook -n $(NAMESPACE)
 	@echo "Images reloaded and deployment restarted."
+
+ick: install-ck
+
+install-ck: ## Update helm chart
+	@kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@cd ../../charts/cruisekube && helm dependency build
+	@helm upgrade --wait --timeout $(TIMEOUT) --install --create-namespace cruisekube ../../charts/cruisekube -n $(NAMESPACE) -f ./manifest/global/values-cruisekube.yaml
+
+uick: uninstall-ck
+uninstall-ck: ## Delete cruisekube
+	@echo "Deleting cruisekube..."
+	@helm delete cruisekube -n cruisekube-system
