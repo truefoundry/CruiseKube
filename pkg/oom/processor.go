@@ -136,8 +136,8 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 		workloadOverrides, err := p.storage.GetWorkloadOverrides(p.clusterID, workloadID)
 		if err != nil {
 			logging.Warnf(ctx, "Failed to fetch workload overrides for %s, proceeding with eviction: %v", workloadID, err)
-		} else if workloadOverrides.Enabled != nil && !*workloadOverrides.Enabled {
-			logging.Infof(ctx, "Workload %s is disabled via overrides, skipping eviction", workloadID)
+		} else if workloadOverrides.Enabled == nil || !*workloadOverrides.Enabled {
+			logging.Infof(ctx, "Workload %s is not enabled for apply mode (recommend-only by default), skipping eviction", workloadID)
 			return
 		}
 	}

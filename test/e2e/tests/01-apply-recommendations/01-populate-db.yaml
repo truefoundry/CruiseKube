@@ -72,7 +72,7 @@ data:
         NOW() - INTERVAL '1 hour',
         NOW(),
         NOW(),
-        '{}'
+        '{"enabled": true}'
     )
     ON CONFLICT DO NOTHING;
 
@@ -142,7 +142,7 @@ data:
         NOW() - INTERVAL '1 hour',
         NOW(),
         NOW(),
-        '{}'
+        '{"enabled": true}'
     )
     ON CONFLICT DO NOTHING;
 

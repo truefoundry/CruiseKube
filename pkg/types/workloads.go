@@ -15,10 +15,10 @@ type WorkloadOverrideInfo struct {
 	Overrides  *WorkloadOverridesEffective `json:"overrides"`
 }
 
-// EffectiveEnabled returns the effective enabled flag (default true if Overrides is nil).
+// EffectiveEnabled returns the effective enabled flag (default false if Overrides is nil).
 func (w *WorkloadOverrideInfo) EffectiveEnabled() bool {
 	if w == nil || w.Overrides == nil {
-		return true
+		return false
 	}
 	return w.Overrides.Enabled
 }
