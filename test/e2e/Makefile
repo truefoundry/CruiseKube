@@ -86,3 +86,11 @@ uick: uninstall-ck
 uninstall-ck: ## Delete cruisekube
 	@echo "Deleting cruisekube..."
 	@helm delete cruisekube -n cruisekube-system
+
+reset-namespace: 
+	@echo "Deleting namespace..."
+	@kubectl delete namespace $(NAMESPACE)
+	@kubectl delete namespace test-webhook
+	@kubectl delete namespace test-workloads
+
+reset: uninstall-ck reset-namespace install-ck

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
-
+	"golang.org/x/sync/singleflight"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -22,13 +22,20 @@ type versionCacheEntry struct {
 	expiresAt time.Time
 }
 
+// versionResult holds the result of a singleflight fetch for use by callers.
+type versionResult struct {
+	major int
+	minor int
+}
+
 var (
-	versionCache   = make(map[string]versionCacheEntry)
-	versionCacheMu sync.Mutex
+	versionCache      = make(map[string]versionCacheEntry)
+	versionCacheMu    sync.Mutex
+	versionFetchGroup singleflight.Group
 )
 
 // CheckIfClusterVersionAbove returns true if the cluster server version is >= targetMajor.targetMinor.
-// Results are cached per clusterID with a TTL (default 10 minutes) to avoid repeated Discovery().ServerVersion() calls.
+// Results are cached per clusterID with a TTL (default 24 hours) to avoid repeated Discovery().ServerVersion() calls.
 // Safe for concurrent use.
 func CheckIfClusterVersionAbove(ctx context.Context, clusterID string, kubeClient *kubernetes.Clientset, targetMajor, targetMinor int) bool {
 	if kubeClient == nil {
@@ -42,16 +49,21 @@ func CheckIfClusterVersionAbove(ctx context.Context, clusterID string, kubeClien
 	}
 	versionCacheMu.Unlock()
 
-	major, minor, err := fetchServerVersion(ctx, kubeClient)
+	v, err, _ := versionFetchGroup.Do(clusterID, func() (interface{}, error) {
+		major, minor, err := fetchServerVersion(ctx, kubeClient)
+		if err != nil {
+			return nil, err
+		}
+		versionCacheMu.Lock()
+		versionCache[clusterID] = versionCacheEntry{major: major, minor: minor, expiresAt: time.Now().Add(defaultVersionCacheTTL)}
+		versionCacheMu.Unlock()
+		return &versionResult{major: major, minor: minor}, nil
+	})
 	if err != nil {
 		return false
 	}
-
-	versionCacheMu.Lock()
-	versionCache[clusterID] = versionCacheEntry{major: major, minor: minor, expiresAt: time.Now().Add(defaultVersionCacheTTL)}
-	versionCacheMu.Unlock()
-
-	return isVersionAtLeast(major, minor, targetMajor, targetMinor)
+	res := v.(*versionResult)
+	return isVersionAtLeast(res.major, res.minor, targetMajor, targetMinor)
 }
 
 func isVersionAtLeast(major, minor, targetMajor, targetMinor int) bool {

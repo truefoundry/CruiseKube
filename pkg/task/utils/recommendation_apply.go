@@ -46,7 +46,7 @@ func ShouldApplyRecommendationToPod(
 
 	podNameForPrefix := podInfo.Name
 	if podForExclusion != nil {
-		podNameForPrefix = getPodNameForPrefix(podForExclusion)
+		podNameForPrefix = GetPodName(podForExclusion)
 	}
 	for _, prefix := range input.ExcludedPodPrefixes {
 		if strings.HasPrefix(podNameForPrefix, prefix) {
@@ -92,8 +92,8 @@ func ShouldApplyRecommendationToPod(
 	return true, ""
 }
 
-// getPodNameForPrefix returns the pod name or generateName for prefix checks.
-func getPodNameForPrefix(pod *corev1.Pod) string {
+// GetPodName returns the pod name or generateName for prefix checks and logging.
+func GetPodName(pod *corev1.Pod) string {
 	if pod.Name != "" {
 		return pod.Name
 	}

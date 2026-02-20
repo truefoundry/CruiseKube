@@ -251,7 +251,7 @@ func (s *GormDB) GetStatForWorkload(clusterID, workloadID string) (*types.Worklo
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("workload stat not found for cluster %s, workload %s", clusterID, workloadID)
+			return nil, fmt.Errorf("workload stat not found for cluster %s, workload %s: %w", clusterID, workloadID, err)
 		}
 		return nil, fmt.Errorf("failed to query workload stat: %w", err)
 	}

@@ -47,6 +47,9 @@ func (s *Storage) ReadClusterStats(clusterID string, target *types.StatsResponse
 func (s *Storage) GetStatForWorkload(clusterID, workloadID string) (*types.WorkloadStat, error) {
 	stat, err := s.DB.GetStatForWorkload(clusterID, workloadID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get stat for workload %s: %w", workloadID, err)
 	}
 	return stat, nil

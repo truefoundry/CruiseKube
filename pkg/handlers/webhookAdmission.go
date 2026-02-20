@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/config"
@@ -16,14 +17,15 @@ import (
 // Adding this to avoid creating a new client for each request
 // NIT: we can find a better way to do this in the future
 var recommenderServiceClient *client.RecommenderServiceClient
+var initOnce sync.Once
 
 func InitRecommenderServiceClient(cfg *config.Config) {
-	if recommenderServiceClient == nil {
+	initOnce.Do(func() {
 		recommenderServiceClient = client.NewRecommenderServiceClientWithClusterToken(
 			cfg.Webhook.StatsURL.Host,
 			cfg.Webhook.StatsURL.TfyClusterToken,
 		)
-	}
+	})
 }
 
 func MutateHandler(c *gin.Context) {
@@ -57,18 +59,21 @@ func MutateHandler(c *gin.Context) {
 	if err != nil {
 		logging.Errorf(ctx, "Controller mutatingPatch not reachable or error: %v; returning empty patches", err)
 		patchBytes = []client.JSONPatchOp{}
+	} else if len(patchBytes) == 0 {
+		patchBytes = []client.JSONPatchOp{}
 	}
-	patchType := admissionv1.PatchTypeJSONPatch
+
 	review.Response = &admissionv1.AdmissionResponse{
-		UID:       review.Request.UID,
-		Allowed:   true,
-		PatchType: &patchType,
+		UID:     review.Request.UID,
+		Allowed: true,
 	}
 	patch, err := json.Marshal(patchBytes)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to marshal patchBytes: %v", err)
 		review.Response.Patch = nil
 	} else {
+		patchType := admissionv1.PatchTypeJSONPatch
+		review.Response.PatchType = &patchType
 		review.Response.Patch = patch
 	}
 

@@ -69,7 +69,7 @@ func HandleMutatingPatch(c *gin.Context) {
 
 	workloadInfo := utils.GetWorkloadInfoFromPod(&pod)
 	if workloadInfo == nil {
-		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, getPodName(&pod))
+		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, utils.GetPodName(&pod))
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}

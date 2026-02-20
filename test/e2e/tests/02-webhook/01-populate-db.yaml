@@ -63,7 +63,7 @@ data:
               "name": "redis",
               "type": 3,
               "cpu_request": 0.1,
-              "cpu_limit": 0.2,
+              "cpu_limit": 0.6,
               "memory_request": 64.0,
               "memory_limit": 128.0
             }
@@ -132,7 +132,7 @@ data:
               "name": "memcached",
               "type": 3,
               "cpu_request": 0.05,
-              "cpu_limit": 0.1,
+              "cpu_limit": 0.3,
               "memory_request": 32.0,
               "memory_limit": 64.0
             }
