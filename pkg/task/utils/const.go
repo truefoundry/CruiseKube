@@ -17,8 +17,8 @@ const (
 
 const (
 	AnnotationModified          = "cruisekube.truefoundry.com/modified"
-	AnnotationPDBMaxUnavailable = "cruisekube.truefoundry.com/pdb/maxUnavailable"
-	AnnotationPDBMinAvailable   = "cruisekube.truefoundry.com/pdb/minAvailable"
+	AnnotationPDBMaxUnavailable = "cruisekube.truefoundry.com/pdb.maxUnavailable"
+	AnnotationPDBMinAvailable   = "cruisekube.truefoundry.com/pdb.minAvailable"
 )
 
 var doNotDisruptAnnotations = map[string]string{
