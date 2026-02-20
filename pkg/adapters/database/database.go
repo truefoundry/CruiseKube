@@ -83,6 +83,9 @@ func (s *GormDB) createTables() error {
 	if err := s.db.AutoMigrate(&PodResourceRecommendation{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate PodResourceRecommendation: %w", err)
 	}
+	if err := s.db.AutoMigrate(&Settings{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate Settings: %w", err)
+	}
 	return nil
 }
 
@@ -516,4 +519,53 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 		})
 	}
 	return rows, nil
+}
+
+func (s *GormDB) GetSettings(clusterID string) (*types.AppSettings, error) {
+	var row Settings
+	err := s.db.Where("cluster_id = ?", clusterID).First(&row).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get settings for cluster %s: %w", clusterID, err)
+	}
+	return &types.AppSettings{
+		CPUPricePerCorePerHour:    row.CPUPricePerCorePerHour,
+		MemoryPricePerGbPerHour:   row.MemoryPricePerGbPerHour,
+		DisruptionWindowStartCron: row.DisruptionWindowStartCron,
+		DisruptionWindowEndCron:   row.DisruptionWindowEndCron,
+		DisruptionWindowEnabled:   row.DisruptionWindowEnabled,
+	}, nil
+}
+
+func (s *GormDB) UpdateSettings(clusterID string, settings *types.AppSettings) error {
+	var existing Settings
+	result := s.db.Where("cluster_id = ?", clusterID).First(&existing)
+	if result.Error != nil {
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("failed to look up settings for cluster %s: %w", clusterID, result.Error)
+		}
+		row := Settings{
+			ClusterID:                 clusterID,
+			CPUPricePerCorePerHour:    settings.CPUPricePerCorePerHour,
+			MemoryPricePerGbPerHour:   settings.MemoryPricePerGbPerHour,
+			DisruptionWindowStartCron: settings.DisruptionWindowStartCron,
+			DisruptionWindowEndCron:   settings.DisruptionWindowEndCron,
+			DisruptionWindowEnabled:   settings.DisruptionWindowEnabled,
+		}
+		if err := s.db.Create(&row).Error; err != nil {
+			return fmt.Errorf("failed to create settings for cluster %s: %w", clusterID, err)
+		}
+		return nil
+	}
+	existing.CPUPricePerCorePerHour = settings.CPUPricePerCorePerHour
+	existing.MemoryPricePerGbPerHour = settings.MemoryPricePerGbPerHour
+	existing.DisruptionWindowStartCron = settings.DisruptionWindowStartCron
+	existing.DisruptionWindowEndCron = settings.DisruptionWindowEndCron
+	existing.DisruptionWindowEnabled = settings.DisruptionWindowEnabled
+	if err := s.db.Save(&existing).Error; err != nil {
+		return fmt.Errorf("failed to update settings for cluster %s: %w", clusterID, err)
+	}
+	return nil
 }

@@ -206,3 +206,18 @@ func (s *Storage) GetPodRecommendationsForWorkload(clusterID, workloadID string)
 	}
 	return rows, nil
 }
+
+func (s *Storage) GetSettings(clusterID string) (*types.AppSettings, error) {
+	settings, err := s.DB.GetSettings(clusterID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get settings: %w", err)
+	}
+	return settings, nil
+}
+
+func (s *Storage) UpdateSettings(clusterID string, settings *types.AppSettings) error {
+	if err := s.DB.UpdateSettings(clusterID, settings); err != nil {
+		return fmt.Errorf("failed to upsert settings: %w", err)
+	}
+	return nil
+}

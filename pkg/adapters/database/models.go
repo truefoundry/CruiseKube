@@ -55,3 +55,19 @@ type PodResourceRecommendation struct {
 func (PodResourceRecommendation) TableName() string {
 	return "pod_resource_recommendations"
 }
+
+type Settings struct {
+	ID                        uint      `gorm:"column:id;primaryKey;autoIncrement"`
+	ClusterID                 string    `gorm:"column:cluster_id;uniqueIndex"`
+	CPUPricePerCorePerHour    float64   `gorm:"column:cpu_price_per_core_per_hour"`
+	MemoryPricePerGbPerHour   float64   `gorm:"column:memory_price_per_gb_per_hour"`
+	DisruptionWindowStartCron string    `gorm:"column:disruption_window_start_cron"`
+	DisruptionWindowEndCron   string    `gorm:"column:disruption_window_end_cron"`
+	DisruptionWindowEnabled   bool      `gorm:"column:disruption_window_enabled"`
+	CreatedAt                 time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt                 time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+func (Settings) TableName() string {
+	return "settings"
+}

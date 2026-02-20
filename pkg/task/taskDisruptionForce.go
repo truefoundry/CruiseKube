@@ -79,6 +79,14 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 		return nil
 	}
 
+	settings, err := t.storage.GetSettings(t.config.ClusterID)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to read cluster settings, continuing with config defaults: %v", err)
+	} else if settings != nil && !settings.DisruptionWindowEnabled {
+		logging.Infof(ctx, "Global disruption window is disabled via cluster settings, skipping")
+		return nil
+	}
+
 	logging.Infof(ctx, "Running disruption force task")
 
 	now := time.Now()
@@ -179,6 +187,19 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 func (t *DisruptionForceTask) getReconcileState(ctx context.Context, now time.Time, scheduleDuration time.Duration) ReconcileState {
 	startCron := t.appConfig.DisruptionSettings.WindowStartCron
 	endCron := t.appConfig.DisruptionSettings.WindowEndCron
+
+	settings, err := t.storage.GetSettings(t.config.ClusterID)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to read cluster settings, falling back to config values: %v", err)
+	} else if settings != nil {
+		if settings.DisruptionWindowStartCron != "" {
+			startCron = settings.DisruptionWindowStartCron
+		}
+		if settings.DisruptionWindowEndCron != "" {
+			endCron = settings.DisruptionWindowEndCron
+		}
+	}
+
 	if startCron == "" || endCron == "" {
 		logging.Warnf(ctx, "Disruption window crons not configured (windowStartCron=%q, windowEndCron=%q)", startCron, endCron)
 		return StateOut
