@@ -34,6 +34,7 @@ func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook
 		clusterGroup.POST("/killswitch", handlers.KillswitchHandler)
 		clusterGroup.GET("/workloads", handlers.ListWorkloadsHandler)
 		clusterGroup.GET("/workloads/summary", handlers.WorkloadSummaryHandler)
+		clusterGroup.GET("/workloads/:namespace/:workloadName/detail", handlers.HandleWorkloadDetail)
 		clusterGroup.POST("/workloads/:workloadID/overrides", handlers.UpdateWorkloadOverridesHandler)
 	}
 

@@ -41,7 +41,7 @@ func ListWorkloadsHandler(c *gin.Context) {
 		}
 
 		evictionRanking := stat.EvictionRanking
-		enabled := true
+		enabled := false
 		var disruptionWindows []types.DisruptionWindow
 		if overrides != nil {
 			if overrides.EvictionRanking != nil {

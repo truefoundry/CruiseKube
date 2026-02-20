@@ -15,10 +15,10 @@ type WorkloadOverrideInfo struct {
 	Overrides  *WorkloadOverridesEffective `json:"overrides"`
 }
 
-// EffectiveEnabled returns the effective enabled flag (default true if Overrides is nil).
+// EffectiveEnabled returns the effective enabled flag (default false if Overrides is nil).
 func (w *WorkloadOverrideInfo) EffectiveEnabled() bool {
 	if w == nil || w.Overrides == nil {
-		return true
+		return false
 	}
 	return w.Overrides.Enabled
 }
@@ -81,4 +81,36 @@ type RecommendationSummary struct {
 type RecommendationAnalysisResponse struct {
 	Analysis []RecommendationAnalysisItem `json:"analysis"`
 	Summary  RecommendationSummary        `json:"summary"`
+}
+
+// WorkloadDetailResponse is the response for GET /clusters/:clusterID/workloads/:namespace/:workloadName/detail.
+// It aggregates cluster stats (type) and recommendation analysis (potential CPU/Mem, pods, containers) for a single workload.
+type WorkloadDetailResponse struct {
+	Cluster             string      `json:"cluster"`
+	Namespace           string      `json:"namespace"`
+	Workload            string      `json:"workload"`
+	Type                string      `json:"type"`
+	CurrentCpuRequest   float64     `json:"current_cpu_request"`
+	CurrentCpuLimit     float64     `json:"current_cpu_limit"`
+	CurrentMemRequest   float64     `json:"current_mem_request"`
+	CurrentMemLimit     float64     `json:"current_mem_limit"`
+	PotentialCpuSavings float64     `json:"potential_cpu_savings"`
+	PotentialMemSavings float64     `json:"potential_mem_savings"`
+	Pods                []PodDetail `json:"pods"`
+}
+
+// PodDetail holds pod-level details for the workload detail API.
+type PodDetail struct {
+	PodName    string            `json:"pod_name"`
+	NodeName   *string           `json:"node_name"`
+	Containers []ContainerDetail `json:"containers"`
+}
+
+// ContainerDetail holds container request/recommendation for the workload detail API.
+type ContainerDetail struct {
+	Container     string  `json:"container_name"`
+	CpuRequest    float64 `json:"cpu_request"`
+	CpuRecRequest float64 `json:"cpu_rec_request"`
+	MemRequest    float64 `json:"mem_request"`
+	MemRecRequest float64 `json:"mem_rec_request"`
 }

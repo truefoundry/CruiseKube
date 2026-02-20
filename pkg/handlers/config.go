@@ -69,7 +69,7 @@ func GetConfigHandler(c *gin.Context) {
 		logging.Errorf(ctx, "Prometheus client not available for cluster %s", clusterID)
 	}
 
-	applyRecommendationDryRun := true // default to dry run
+	applyRecommendationDryRun := false
 	if tc := cfg.GetTaskConfig(config.ApplyRecommendationKey); tc != nil && tc.Metadata != nil {
 		if v, ok := tc.Metadata["dryrun"]; ok {
 			switch val := v.(type) {

@@ -20,7 +20,7 @@ controller:
       enabled: true
       schedule: "5m"
       metadata:
-        dryRun: true
+        dryRun: false
         skipMemory: false
         nodeStatsURL:
           host: "http://localhost:8080"
@@ -51,7 +51,7 @@ server:
 webhook:
   port: "8443"
   certsDir: "/tmp/webhook-certs"
-  dryRun: true
+  dryRun: false
   statsURL:
     host: "http://localhost:8080"
     tfyClusterToken: "<cluster-token>"
@@ -68,7 +68,7 @@ db:
 #   sslmode: disable
 recommendationSettings:
   newWorkloadThresholdHours: 1
-  disableMemoryApplication: true
+  disableMemoryApplication: false
   applyBlacklistedNamespaces: []
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5

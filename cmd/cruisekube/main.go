@@ -58,7 +58,7 @@ func main() {
 	rootCmd.PersistentFlags().String("db-file-path", "", "Database file path")
 
 	// Apply recommendation flag
-	rootCmd.PersistentFlags().Bool("apply-recommendation-dry-run", true, "Apply recommendation dry run")
+	rootCmd.PersistentFlags().Bool("apply-recommendation-dry-run", false, "Apply recommendation dry run")
 
 	// Bind flags to viper
 	ctx := context.Background()

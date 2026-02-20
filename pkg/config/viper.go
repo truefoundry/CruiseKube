@@ -25,7 +25,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("controller.tasks.applyRecommendation.enabled", true)
 	v.SetDefault("controller.tasks.applyRecommendation.schedule", "5m")
 	v.SetDefault("controller.tasks.applyRecommendation.nodeStatsURL.host", "localhost:8080")
-	v.SetDefault("controller.tasks.applyRecommendation.dryRun", true)
+	v.SetDefault("controller.tasks.applyRecommendation.dryRun", false)
 	v.SetDefault("controller.tasks.applyRecommendation.overridesURL.host", "localhost:8080")
 	v.SetDefault("recommendationSettings.maxConcurrentQueries", 5)
 	v.SetDefault("recommendationSettings.oomCooldownMinutes", 5)
