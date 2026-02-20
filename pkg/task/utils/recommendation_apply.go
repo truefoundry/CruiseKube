@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -76,8 +77,8 @@ func ShouldApplyRecommendationToPod(
 		return false, "best effort pod"
 	}
 
-	if override != nil && !override.EffectiveEnabled() {
-		return false, "cruisekube disabled for workload via override"
+	if override == nil || !override.EffectiveEnabled() {
+		return false, fmt.Sprintf("cruisekube not enabled for workload %s (no override or recommend-only mode), skipping apply", podInfo.Stats.WorkloadIdentifier)
 	}
 
 	if podInfo.Stats.CreationTime.After(time.Now().Add(-1 * time.Hour * time.Duration(input.NewWorkloadThresholdHours))) {
