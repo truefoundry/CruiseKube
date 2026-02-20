@@ -71,7 +71,7 @@ data:
           ]
         }',
         NOW() - INTERVAL '1 hour',
-        '{}'
+        '{"enabled": true}'
     );
 
     SELECT workload_id FROM workloads WHERE workload_id = 'Deployment:test-oom:stress-deployment';
