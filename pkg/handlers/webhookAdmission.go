@@ -72,7 +72,7 @@ func MutateHandler(c *gin.Context) {
 		review.Response.Patch = patch
 	}
 
-	//Return only the response; do not echo the original request.
+	// Return only the response; do not echo the original request.
 	responseReview := admissionv1.AdmissionReview{
 		TypeMeta: review.TypeMeta,
 		Response: review.Response,
