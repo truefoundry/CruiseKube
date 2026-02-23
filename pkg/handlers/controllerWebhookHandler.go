@@ -45,7 +45,8 @@ func HandleMutatingPatch(c *gin.Context) {
 	}
 
 	// Only mutate Pods
-	if review.Request.Kind.Kind != "Pod" || review.Request.Resource.Resource != "pods" {
+	if review.Request.Kind.Kind != "Pod" {
+		logging.Warnf(ctx, "Admission review request is not a Pod, skipping")
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
