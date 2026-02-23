@@ -201,13 +201,11 @@ func (s *GormDB) GetStatsForClusterUpdatedSince(clusterID string, since time.Tim
 	return stats, nil
 }
 
-func (s *GormDB) GetWorkloadsInCluster(clusterID string, since time.Time) ([]*types.WorkloadInCluster, error) {
+func (s *GormDB) GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCluster, error) {
 	var rows []Workload
-	q := s.db.Where(&Workload{ClusterID: clusterID})
-	if !since.IsZero() {
-		q = q.Where("updated_at > ?", since)
-	}
-	err := q.Order("updated_at DESC").Find(&rows).Error
+	err := s.db.Where(&Workload{ClusterID: clusterID}).
+		Order("updated_at DESC").
+		Find(&rows).Error
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query workloads for cluster: %w", err)
