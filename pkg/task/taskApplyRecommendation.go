@@ -136,7 +136,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 
 	supportsMemoryReduction := utils.CheckIfClusterVersionAbove(ctx, a.kubeClient, 1, 34)
 
-	_, err = a.ApplyRecommendationsWithStrategy(
+	recommendationResults, err := a.ApplyRecommendationsWithStrategy(
 		ctx,
 		nodeRecommendationMap,
 		overridesMap,
@@ -147,6 +147,11 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	)
 	if err != nil {
 		logging.Errorf(ctx, "Error applying recommendations: %v", err)
+		return err
+	}
+
+	if err := a.buildAndSaveNodeSnapshot(ctx, recommendationResults); err != nil {
+		logging.Errorf(ctx, "Error saving node snapshot: %v", err)
 		return err
 	}
 
@@ -454,6 +459,58 @@ func (a *ApplyRecommendationTask) computeRecommendedResourceValues(rec utils.Pod
 		}
 	}
 	return cpuRequest, memoryRequest, cpuLimit, memoryLimit
+}
+
+// buildAndSaveNodeSnapshot aggregates cluster-level CPU/Memory metrics from recommendationResults
+// and persists one row to the node_snapshots table (timestamp in GMT).
+// Current = total allocatable/requested; WorkloadRequested = user's original manifest; RecommendedRequested = our recommendation.
+func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, recommendationResults []*RecommendationResult) error {
+	var currentAllocatableCPU, currentAllocatableMemory float64
+	var currentRequestedCPU, currentRequestedMemory float64
+	var workloadRequestedCPU, workloadRequestedMemory float64
+	var recommendedRequestedCPU, recommendedRequestedMemory float64
+
+	for _, res := range recommendationResults {
+		ni := res.NodeInfo
+		currentAllocatableCPU += ni.AllocatableCPU
+		currentAllocatableMemory += ni.AllocatableMemory
+		currentRequestedCPU += ni.RequestedCPU
+		currentRequestedMemory += ni.RequestedMemory
+
+		for _, rec := range res.PodContainerRecommendations {
+			recommendedRequestedCPU += rec.CPU
+			recommendedRequestedMemory += rec.Memory
+			cr, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
+			if err != nil {
+				logging.Warnf(ctx, "snapshot: skip workload requested for %s/%s container %s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
+				continue
+			}
+			workloadRequestedCPU += cr.CPURequest
+			workloadRequestedMemory += cr.MemoryRequest
+		}
+	}
+
+	cpu := types.NodeSnapshotResourceMetrics{
+		CurrentAllocatable:    currentAllocatableCPU,
+		CurrentRequested:      currentRequestedCPU,
+		WorkloadRequested:     workloadRequestedCPU,
+		RecommendedRequested:  recommendedRequestedCPU,
+	}
+	memory := types.NodeSnapshotResourceMetrics{
+		CurrentAllocatable:    currentAllocatableMemory,
+		CurrentRequested:      currentRequestedMemory,
+		WorkloadRequested:     workloadRequestedMemory,
+		RecommendedRequested:  recommendedRequestedMemory,
+	}
+
+	snapshot := &types.NodeSnapshotPayload{
+		ClusterID: a.config.ClusterID,
+		Timestamp: time.Now().UTC(),
+		CPU:       cpu,
+		Memory:    memory,
+		MetaData:  "",
+	}
+	return a.storage.InsertNodeSnapshot(snapshot)
 }
 
 func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context, recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {
