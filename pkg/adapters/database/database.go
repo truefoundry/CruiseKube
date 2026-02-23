@@ -307,6 +307,19 @@ func (s *GormDB) DeleteWorkload(clusterID, workloadID string) error {
 	return nil
 }
 
+func (s *GormDB) DeleteWorkloadsNotInCluster(clusterID string, keepIDs []string) (int, error) {
+	var result *gorm.DB
+	if len(keepIDs) == 0 {
+		result = s.db.Where("cluster_id = ?", clusterID).Delete(&Workload{})
+	} else {
+		result = s.db.Where("cluster_id = ? AND workload_id NOT IN ?", clusterID, keepIDs).Delete(&Workload{})
+	}
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to bulk delete stale workloads: %w", result.Error)
+	}
+	return int(result.RowsAffected), nil
+}
+
 func (s *GormDB) UpdateStatOverridesForWorkload(clusterID, workloadID string, overrides *types.Overrides) error {
 	overridesJSON, err := json.Marshal(overrides)
 	if err != nil {

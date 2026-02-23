@@ -26,6 +26,7 @@ type Database interface {
 	// Delete
 	DeleteWorkloadsForCluster(clusterID string) error
 	DeleteWorkload(clusterID, workloadID string) error
+	DeleteWorkloadsNotInCluster(clusterID string, keepIDs []string) (int, error)
 
 	// Update
 	UpdateStatOverridesForWorkload(clusterID, workloadID string, overrides *types.Overrides) error
