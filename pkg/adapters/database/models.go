@@ -4,6 +4,18 @@ import (
 	"time"
 )
 
+type Cluster struct {
+	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
+	ClusterID string    `gorm:"column:cluster_id;uniqueIndex"`
+	Settings  string    `gorm:"column:settings;type:text;default:'{}'"`
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+func (Cluster) TableName() string {
+	return "clusters"
+}
+
 // Workload is the DB row for a workload (stats payload + overrides) per cluster.
 type Workload struct {
 	ID          uint      `gorm:"column:id;primaryKey;autoIncrement"`
@@ -14,6 +26,7 @@ type Workload struct {
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 	Overrides   string    `gorm:"column:overrides;default:'{}'"`
+	Cluster     *Cluster  `gorm:"foreignKey:ClusterID;references:ClusterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 func (Workload) TableName() string {
@@ -54,16 +67,4 @@ type PodResourceRecommendation struct {
 
 func (PodResourceRecommendation) TableName() string {
 	return "pod_resource_recommendations"
-}
-
-type Cluster struct {
-	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
-	ClusterID string    `gorm:"column:cluster_id;uniqueIndex"`
-	Settings  string    `gorm:"column:settings;type:text;default:'{}'"`
-	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
-}
-
-func (Cluster) TableName() string {
-	return "clusters"
 }

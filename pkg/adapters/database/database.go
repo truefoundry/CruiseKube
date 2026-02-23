@@ -74,6 +74,9 @@ func (s *GormDB) createTables() error {
 			return fmt.Errorf("failed to rename stats table to workloads: %w", err)
 		}
 	}
+	if err := s.db.AutoMigrate(&Cluster{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate Cluster: %w", err)
+	}
 	if err := s.db.AutoMigrate(&Workload{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate workloads: %w", err)
 	}
@@ -82,9 +85,6 @@ func (s *GormDB) createTables() error {
 	}
 	if err := s.db.AutoMigrate(&PodResourceRecommendation{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate PodResourceRecommendation: %w", err)
-	}
-	if err := s.db.AutoMigrate(&Cluster{}); err != nil {
-		return fmt.Errorf("failed to auto-migrate Cluster: %w", err)
 	}
 	return nil
 }
@@ -101,7 +101,23 @@ func (s *GormDB) Close() error {
 	return nil
 }
 
+func (s *GormDB) ensureCluster(clusterID string) error {
+	row := Cluster{ClusterID: clusterID, Settings: "{}"}
+	err := s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "cluster_id"}},
+		DoNothing: true, // never overwrite existing settings
+	}).Create(&row).Error
+	if err != nil {
+		return fmt.Errorf("failed to ensure cluster row for %s: %w", clusterID, err)
+	}
+	return nil
+}
+
 func (s *GormDB) UpsertStat(clusterID, workloadID string, stat types.WorkloadStat, generatedAt time.Time) error {
+	if err := s.ensureCluster(clusterID); err != nil {
+		return err
+	}
+
 	statsJSON, err := json.Marshal(stat)
 	if err != nil {
 		return fmt.Errorf("failed to marshal stats: %w", err)
