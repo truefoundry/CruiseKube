@@ -526,7 +526,7 @@ func (s *GormDB) GetSettings(clusterID string) (*types.AppSettings, error) {
 	err := s.db.Where("cluster_id = ?", clusterID).First(&row).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, nil //nolint:nilnil
 		}
 		return nil, fmt.Errorf("failed to get settings for cluster %s: %w", clusterID, err)
 	}
