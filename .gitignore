@@ -55,3 +55,4 @@ pkg/adapters/database/models_test.go
 site
 temp/
 cmd/cruisekube/__debug*
+.vscode/
