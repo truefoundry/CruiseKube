@@ -63,7 +63,7 @@ func HandleMutatingPatch(c *gin.Context) {
 
 	workloadInfo := utils.GetWorkloadInfoFromPod(&pod)
 	if workloadInfo == nil {
-		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, utils.GetPodName(&pod))
+		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, pod.Name)
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
@@ -113,7 +113,6 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	// No node at admission time; use a large default for CPU limit.
 	allocatableCPU := float64(0)
 	patches := buildPodPatches(&pod, recommendations, allocatableCPU, k8sMemoryGE134, !cfg.RecommendationSettings.DisableMemoryApplication)
 	c.JSON(http.StatusOK, patches)
@@ -177,7 +176,7 @@ func buildPodPatches(
 		if !ok {
 			continue
 		}
-		cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(rec, allocatableCPU)
+		cpuRequest, memoryRequest, _, memoryLimit := utils.ComputeRecommendedResourceValues(rec, allocatableCPU)
 
 		basePath := fmt.Sprintf("/spec/containers/%d/resources", idx)
 
@@ -194,10 +193,9 @@ func buildPodPatches(
 		cpuRequestStr := formatCPU(cpuRequest)
 		patches = appendPatchOp(patches, container.Resources.Requests != nil && hasCPURequest(container), basePath+"/requests/cpu", cpuRequestStr)
 
-		// CPU limit: 0 means no limit (omit). Otherwise replace/add.
-		if cpuLimit > 0 {
-			cpuLimitStr := formatCPU(cpuLimit)
-			patches = appendPatchOp(patches, container.Resources.Limits != nil && hasCPULimit(container), basePath+"/limits/cpu", cpuLimitStr)
+		if container.Resources.Limits != nil && hasCPULimit(container) {
+			// Remove the CPU limit so the container can use allocatable CPU (RFC 6902 "remove" op).
+			patches = append(patches, client.JSONPatchOp{Op: "remove", Path: basePath + "/limits/cpu"})
 		}
 
 		if applyMemory {
@@ -221,7 +219,7 @@ func buildPodPatches(
 	return patches
 }
 
-func appendPatchOp(patches []client.JSONPatchOp, hasExisting bool, path, value string) []client.JSONPatchOp {
+func appendPatchOp(patches []client.JSONPatchOp, hasExisting bool, path string, value interface{}) []client.JSONPatchOp {
 	op := "add"
 	if hasExisting {
 		op = "replace"

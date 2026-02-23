@@ -305,7 +305,9 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	applyChanges bool,
 	supportsMemoryReduction bool,
 ) (bool, bool, error) {
-	_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(rec, 0)
+	// We use to set the max limit
+	allocatableCPU := 0.0
+	_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(rec, allocatableCPU)
 
 	containerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
 	if err != nil {

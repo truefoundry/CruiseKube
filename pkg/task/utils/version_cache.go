@@ -7,19 +7,15 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"golang.org/x/sync/singleflight"
 	"k8s.io/client-go/kubernetes"
 )
 
-const defaultVersionCacheTTL = 24 * time.Hour
-
 type versionCacheEntry struct {
-	major     int
-	minor     int
-	expiresAt time.Time
+	major int
+	minor int
 }
 
 // versionResult holds the result of a singleflight fetch for use by callers.
@@ -29,34 +25,28 @@ type versionResult struct {
 }
 
 var (
-	versionCache      = make(map[string]versionCacheEntry)
-	versionCacheMu    sync.Mutex
+	versionCache      sync.Map
 	versionFetchGroup singleflight.Group
 )
 
 // CheckIfClusterVersionAbove returns true if the cluster server version is >= targetMajor.targetMinor.
-// Results are cached per clusterID with a TTL (default 24 hours) to avoid repeated Discovery().ServerVersion() calls.
+// Results are cached per clusterID (no expiration) to avoid repeated Discovery().ServerVersion() calls.
 // Safe for concurrent use.
 func CheckIfClusterVersionAbove(ctx context.Context, clusterID string, kubeClient *kubernetes.Clientset, targetMajor, targetMinor int) bool {
 	if kubeClient == nil {
 		return false
 	}
-	versionCacheMu.Lock()
-	entry, ok := versionCache[clusterID]
-	if ok && time.Now().Before(entry.expiresAt) {
-		versionCacheMu.Unlock()
+	if v, ok := versionCache.Load(clusterID); ok {
+		entry := v.(versionCacheEntry)
 		return isVersionAtLeast(entry.major, entry.minor, targetMajor, targetMinor)
 	}
-	versionCacheMu.Unlock()
 
 	v, err, _ := versionFetchGroup.Do(clusterID, func() (interface{}, error) {
 		major, minor, err := fetchServerVersion(ctx, kubeClient)
 		if err != nil {
 			return nil, err
 		}
-		versionCacheMu.Lock()
-		versionCache[clusterID] = versionCacheEntry{major: major, minor: minor, expiresAt: time.Now().Add(defaultVersionCacheTTL)}
-		versionCacheMu.Unlock()
+		versionCache.Store(clusterID, versionCacheEntry{major: major, minor: minor})
 		return &versionResult{major: major, minor: minor}, nil
 	})
 	if err != nil {

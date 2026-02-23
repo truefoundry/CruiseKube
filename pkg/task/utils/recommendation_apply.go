@@ -76,17 +76,6 @@ func ShouldApplyRecommendationToPod(
 	return true, ""
 }
 
-// GetPodName returns the pod name or generateName for prefix checks and logging.
-func GetPodName(pod *corev1.Pod) string {
-	if pod.Name != "" {
-		return pod.Name
-	}
-	if pod.GenerateName != "" {
-		return pod.GenerateName
-	}
-	return "unknown"
-}
-
 // ComputeRecommendedResourceValues returns recommended CPU request, memory request, CPU limit, memory limit
 // for a container recommendation. allocatableCPU is used for CPU limit (e.g. node allocatable or a default).
 func ComputeRecommendedResourceValues(rec PodContainerRecommendation, allocatableCPU float64) (float64, float64, float64, float64) {
@@ -95,6 +84,7 @@ func ComputeRecommendedResourceValues(rec PodContainerRecommendation, allocatabl
 		cpuRequest = CPUClampValue
 	}
 	memoryRequest := EnforceMinimumMemory(rec.Memory)
+	// We add allocatableCPU as the default cpu limit, as if a pod is running, we CAN'T remove the cpu limit.
 	cpuLimit := allocatableCPU
 	memoryLimit := memoryRequest * 2
 	if rec.PodInfo.Stats != nil {
@@ -103,7 +93,7 @@ func ComputeRecommendedResourceValues(rec PodContainerRecommendation, allocatabl
 			if containerStat.Memory7Day != nil {
 				memMax = containerStat.Memory7Day.Max
 			}
-			if containerStat.MemoryStats != nil {
+			if containerStat.MemoryStats != nil && containerStat.MemoryStats.OOMMemory > 0 {
 				oom = containerStat.MemoryStats.OOMMemory
 			}
 			memoryLimit = EnforceMinimumMemory(max(memMax, oom) * 2)
