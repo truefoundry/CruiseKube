@@ -32,7 +32,7 @@ CruiseKube operates its own control loop, and when combined with other controlle
 
 Key limitations:
 
-* Workloads using CPU-based HPA are completely skipped by CruiseKube
+* Workloads using CPU or memory based HPA are completely skipped by CruiseKube
 * For other HPA modes, CruiseKube and HPA may influence the same workloads indirectly
 * Competing control loops can lead to oscillations or delayed convergence
 * Resource changes and replica scaling may interact in unexpected ways
