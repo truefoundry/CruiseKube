@@ -341,46 +341,6 @@ func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
 	return podInfosClone
 }
 
-// ComputeSinglePodRecommendations returns per-container CPU/memory recommendations for a single pod
-// without eviction or node-level distribution. Used by the admission webhook.
-func ComputeSinglePodRecommendations(podInfo utils.PodInfo) ([]utils.PodContainerRecommendation, error) {
-	s := &AdjustAmongstPodsDistributedStrategy{}
-	out := make([]utils.PodContainerRecommendation, 0)
-	if podInfo.Stats == nil || podInfo.Stats.ContainerStats == nil {
-		return out, nil
-	}
-	for _, containerStat := range podInfo.Stats.ContainerStats {
-		if containerStat.ContainerType == types.InitContainer {
-			continue
-		}
-		recommendedCPU, _, err := s.calculateForSpecificPercentile(podInfo, containerStat)
-		if err != nil {
-			return nil, err
-		}
-		recommendedMemory, _ := s.getRecommendedAndRestMemory(containerStat)
-		if podInfo.WorkloadKind == utils.DaemonSetKind {
-			containerResource, err := podInfo.GetContainerResource(containerStat.ContainerName)
-			if err != nil {
-				continue
-			}
-			if recommendedCPU > containerResource.CPURequest {
-				recommendedCPU = containerResource.CPURequest
-			}
-			if recommendedMemory > containerResource.MemoryRequest {
-				recommendedMemory = containerResource.MemoryRequest
-			}
-		}
-		out = append(out, utils.PodContainerRecommendation{
-			PodInfo:       podInfo,
-			ContainerName: containerStat.ContainerName,
-			CPU:           recommendedCPU,
-			Memory:        recommendedMemory,
-			Evict:         false,
-		})
-	}
-	return out, nil
-}
-
 func (s *AdjustAmongstPodsDistributedStrategy) getPmax(containerRec utils.ContainerStats) (float64, error) {
 	if containerRec.SimplePredictionsCPU != nil {
 		return containerRec.SimplePredictionsCPU.MaxValue, nil

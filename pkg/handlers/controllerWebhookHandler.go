@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -13,11 +14,11 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
-	"github.com/truefoundry/cruisekube/pkg/task/applystrategies"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func HandleMutatingPatch(c *gin.Context) {
@@ -106,15 +107,14 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	recommendations, err := applystrategies.ComputeSinglePodRecommendations(podInfo)
+	// allocatableCPU := float64(0)
+	//patches := buildPodPatches(&pod, recommendations, allocatableCPU, k8sMemoryGE134, !cfg.RecommendationSettings.DisableMemoryApplication)
+	patches, err := adjustResources(ctx, &pod, clusterID, cfg)
 	if err != nil {
-		logging.Errorf(ctx, "Failed to compute recommendations for pod %s/%s: %v", pod.Namespace, getPodName(&pod), err)
+		logging.Errorf(ctx, "Failed to adjust resources for pod %s/%s: %v", pod.Namespace, getPodName(&pod), err)
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
-
-	allocatableCPU := float64(0)
-	patches := buildPodPatches(&pod, recommendations, allocatableCPU, k8sMemoryGE134, !cfg.RecommendationSettings.DisableMemoryApplication)
 	c.JSON(http.StatusOK, patches)
 }
 
@@ -157,113 +157,189 @@ func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, over
 	}
 }
 
-// buildPodPatches builds RFC 6902 JSON patch operations for the pod from recommendations.
-func buildPodPatches(
-	pod *corev1.Pod,
-	recommendations []utils.PodContainerRecommendation,
-	allocatableCPU float64,
-	supportsMemoryReduction bool,
-	applyMemory bool,
-) []client.JSONPatchOp {
-	var patches []client.JSONPatchOp
-	containerIndexByName := make(map[string]int)
-	for i, c := range pod.Spec.Containers {
-		containerIndexByName[c.Name] = i
+//nolint:unparam // error return is part of the interface contract even though currently always nil
+func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg *config.Config) ([]map[string]any, error) {
+	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
+	if workloadInfo == nil {
+		logging.Warnf(ctx, "Could not determine workload for pod %s/%s, allowing without adjustment", pod.Namespace, getPodName(pod))
+		return []map[string]any{}, nil
 	}
 
-	for _, rec := range recommendations {
-		idx, ok := containerIndexByName[rec.ContainerName]
-		if !ok {
-			continue
+	logging.Infof(ctx, "Pod %s/%s belongs to workload: %s", pod.Namespace, getPodName(pod), utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
+
+	workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
+	workloadStat, err := storage.Stg.GetStatForWorkload(clusterID, workloadID)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
+		return []map[string]any{}, nil
+	}
+
+	containers := make([]corev1.Container, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
+	containers = append(containers, pod.Spec.Containers...)
+	containers = append(containers, pod.Spec.InitContainers...)
+	var patches []map[string]any
+	for i, container := range containers {
+		containerPath := fmt.Sprintf("/spec/containers/%d", i)
+		if i >= len(pod.Spec.Containers) {
+			containerPath = fmt.Sprintf("/spec/initContainers/%d", i-len(pod.Spec.Containers))
 		}
-		cpuRequest, memoryRequest, _, memoryLimit := utils.ComputeRecommendedResourceValues(rec, allocatableCPU)
 
-		basePath := fmt.Sprintf("/spec/containers/%d/resources", idx)
-
-		// Ensure resources block exists
-		container := &pod.Spec.Containers[idx]
 		if container.Resources.Requests == nil {
-			patches = append(patches, client.JSONPatchOp{Op: "add", Path: basePath + "/requests", Value: map[string]interface{}{}})
+			patches = append(patches, map[string]any{
+				"op":    "add",
+				"path":  containerPath + "/resources/requests",
+				"value": map[string]string{},
+			})
 		}
 		if container.Resources.Limits == nil {
-			patches = append(patches, client.JSONPatchOp{Op: "add", Path: basePath + "/limits", Value: map[string]interface{}{}})
+			patches = append(patches, map[string]any{
+				"op":    "add",
+				"path":  containerPath + "/resources/limits",
+				"value": map[string]string{},
+			})
 		}
 
-		// CPU request (replace or add)
-		cpuRequestStr := formatCPU(cpuRequest)
-		patches = appendPatchOp(patches, container.Resources.Requests != nil && hasCPURequest(container), basePath+"/requests/cpu", cpuRequestStr)
-
-		if container.Resources.Limits != nil && hasCPULimit(container) {
-			// Remove the CPU limit so the container can use allocatable CPU (RFC 6902 "remove" op).
-			patches = append(patches, client.JSONPatchOp{Op: "remove", Path: basePath + "/limits/cpu"})
+		if container.Resources.Limits != nil {
+			if _, exists := container.Resources.Limits[corev1.ResourceCPU]; exists {
+				patches = append(patches, map[string]any{
+					"op":   "remove",
+					"path": containerPath + "/resources/limits/cpu",
+				})
+			}
 		}
 
-		if applyMemory {
-			memoryRequestMB := int64(math.Round(memoryRequest))
-			memoryRequestStr := fmt.Sprintf("%dM", memoryRequestMB)
-			patches = appendPatchOp(patches, container.Resources.Requests != nil && hasMemoryRequest(container), basePath+"/requests/memory", memoryRequestStr)
+		var containerStat *utils.ContainerStats
+		for _, stat := range workloadStat.ContainerStats {
+			if stat.ContainerName == container.Name {
+				containerStat = &stat
+				break
+			}
+		}
 
-			if !supportsMemoryReduction && container.Resources.Limits != nil {
-				if currentMemLimit := getContainerMemoryLimitMB(container); currentMemLimit > 0 && memoryLimit < float64(currentMemLimit) {
-					memoryLimit = float64(currentMemLimit)
+		if containerStat == nil || containerStat.CPUStats == nil || containerStat.MemoryStats == nil || containerStat.SimplePredictionsCPU == nil || containerStat.SimplePredictionsMemory == nil {
+			logging.Infof(ctx, "No stat found for container: %s in workload: %s/%s/%s", container.Name, workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
+			continue
+		}
+
+		recommendedCPU := containerStat.CPUStats.Max
+		if containerStat.SimplePredictionsCPU != nil && containerStat.SimplePredictionsCPU.MaxValue > 0 {
+			recommendedCPU = containerStat.SimplePredictionsCPU.MaxValue
+		}
+		if recommendedCPU > utils.CPUClampValue {
+			recommendedCPU = utils.CPUClampValue
+		}
+
+		recommendedMemory := containerStat.MemoryStats.Max
+		if containerStat.MemoryStats.OOMMemory > 0 && containerStat.MemoryStats.OOMMemory > containerStat.MemoryStats.Max {
+			recommendedMemory = containerStat.MemoryStats.OOMMemory
+		} else if containerStat.SimplePredictionsMemory != nil && containerStat.SimplePredictionsMemory.MaxValue > 0 {
+			recommendedMemory = containerStat.SimplePredictionsMemory.MaxValue
+		}
+
+		recommendedMemoryLimit := 2 * recommendedMemory
+		if containerStat.Memory7Day != nil && containerStat.Memory7Day.Max > 0 {
+			recommendedMemoryLimit = math.Max(2*containerStat.Memory7Day.Max, max(2*containerStat.MemoryStats.OOMMemory, recommendedMemoryLimit))
+		}
+
+		recommendedMemoryLimitBytes := int64(math.Max(recommendedMemoryLimit, 512) * utils.BytesToMBDivisor)
+
+		logging.Infof(ctx, "Container %s - Recommended CPU: %s (max: %f)", container.Name, cpuCoresToMillicores(recommendedCPU), containerStat.CPUStats.Max)
+		logging.Infof(ctx, "Container %s - Recommended Memory: %s", container.Name, memoryBytesToMB(int64(recommendedMemory*utils.BytesToMBDivisor)))
+
+		var currentCPURequest resource.Quantity
+		var currentMemoryRequest resource.Quantity
+		var currentMemoryLimit resource.Quantity
+
+		if container.Resources.Requests != nil {
+			currentCPURequest = container.Resources.Requests[corev1.ResourceCPU]
+			currentMemoryRequest = container.Resources.Requests[corev1.ResourceMemory]
+		}
+
+		if container.Resources.Limits != nil {
+			currentMemoryLimit = container.Resources.Limits[corev1.ResourceMemory]
+		}
+
+		// CPU
+		currentCPUMillicores := currentCPURequest.MilliValue()
+		recommendedCPUMillicores := math.Max(float64(recommendedCPU*1000), 1)
+
+		if currentCPUMillicores > 0 {
+			if workloadInfo.Kind != utils.DaemonSetKind {
+				patches = append(patches, map[string]any{
+					"op":    "replace",
+					"path":  containerPath + "/resources/requests/cpu",
+					"value": fmt.Sprintf("%dm", int64(recommendedCPUMillicores)),
+				})
+				logging.Infof(ctx, "Adjusted CPU for container %s from %dm to %dm", container.Name, currentCPUMillicores, int64(recommendedCPUMillicores))
+			}
+		}
+
+		// Memory
+		currentMemoryBytes := currentMemoryRequest.Value()
+		recommendedMemoryBytes := int64(recommendedMemory * utils.BytesToMBDivisor)
+		thresholdBytes := float64(16 * utils.BytesToMBDivisor)
+
+		if !cfg.RecommendationSettings.DisableMemoryApplication && currentMemoryBytes > 0 && math.Abs(float64(recommendedMemoryBytes-currentMemoryBytes)) > thresholdBytes {
+			if workloadInfo.Kind == utils.DaemonSetKind {
+				if currentMemoryLimit.Value() > 0 {
+					currentMemoryLimitBytes := currentMemoryLimit.Value()
+					finalMemoryLimitBytes := math.Max(float64(currentMemoryLimitBytes), math.Max(float64(recommendedMemoryLimitBytes), 16*utils.BytesToMBDivisor))
+
+					patches = append(patches, map[string]any{
+						"op":    "replace",
+						"path":  containerPath + "/resources/limits/memory",
+						"value": memoryBytesToMB(int64(finalMemoryLimitBytes)),
+					})
+
+					logging.Infof(ctx, "Adjusted Memory limit only for DaemonSet container %s to %s (request unchanged: %dMB)", container.Name, memoryBytesToMB(int64(finalMemoryLimitBytes)), currentMemoryRequest.Value()/utils.BytesToMBDivisor)
 				}
+			} else {
+				if currentMemoryRequest.Value() > 0 {
+					patches = append(patches, map[string]any{
+						"op":    "replace",
+						"path":  containerPath + "/resources/requests/memory",
+						"value": memoryBytesToMB(recommendedMemoryBytes),
+					})
+				} else {
+					patches = append(patches, map[string]any{
+						"op":    "add",
+						"path":  containerPath + "/resources/requests/memory",
+						"value": memoryBytesToMB(recommendedMemoryBytes),
+					})
+				}
+				if currentMemoryLimit.Value() > 0 {
+					patches = append(patches, map[string]any{
+						"op":    "replace",
+						"path":  containerPath + "/resources/limits/memory",
+						"value": memoryBytesToMB(recommendedMemoryLimitBytes),
+					})
+				} else {
+					patches = append(patches, map[string]any{
+						"op":    "add",
+						"path":  containerPath + "/resources/limits/memory",
+						"value": memoryBytesToMB(recommendedMemoryLimitBytes),
+					})
+				}
+
+				logging.Infof(ctx, "Adjusted Memory for container %s from %dMB to %dMB", container.Name, currentMemoryRequest.Value()/utils.BytesToMBDivisor, recommendedMemoryBytes/utils.BytesToMBDivisor)
 			}
-			if memoryLimit > 0 {
-				memoryLimitMB := int64(math.Round(memoryLimit))
-				memoryLimitStr := fmt.Sprintf("%dM", memoryLimitMB)
-				patches = appendPatchOp(patches, container.Resources.Limits != nil && hasMemoryLimit(container), basePath+"/limits/memory", memoryLimitStr)
-			}
+		} else if cfg.RecommendationSettings.DisableMemoryApplication {
+			logging.Infof(ctx, "Skipping memory recommendation application for container %s since memory recommendationapplication is disabled", container.Name)
 		}
 	}
 
-	return patches
+	if cfg.Webhook.DryRun {
+		logging.Infof(ctx, "Dry run mode enabled, skipping applying patches")
+		return []map[string]any{}, nil
+	}
+
+	return patches, nil
 }
 
-func appendPatchOp(patches []client.JSONPatchOp, hasExisting bool, path string, value interface{}) []client.JSONPatchOp {
-	op := "add"
-	if hasExisting {
-		op = "replace"
-	}
-	return append(patches, client.JSONPatchOp{Op: op, Path: path, Value: value})
+func memoryBytesToMB(memoryBytes int64) string {
+	return fmt.Sprintf("%dM", memoryBytes/(utils.BytesToMBDivisor))
 }
 
-func formatCPU(cpu float64) string {
-	return fmt.Sprintf("%dm", int64(cpu*1000))
-}
-
-func hasCPURequest(c *corev1.Container) bool {
-	if c.Resources.Requests == nil {
-		return false
-	}
-	q, ok := c.Resources.Requests[corev1.ResourceCPU]
-	return ok && !q.IsZero()
-}
-func hasCPULimit(c *corev1.Container) bool {
-	if c.Resources.Limits == nil {
-		return false
-	}
-	q, ok := c.Resources.Limits[corev1.ResourceCPU]
-	return ok && !q.IsZero()
-}
-func hasMemoryRequest(c *corev1.Container) bool {
-	if c.Resources.Requests == nil {
-		return false
-	}
-	q, ok := c.Resources.Requests[corev1.ResourceMemory]
-	return ok && !q.IsZero()
-}
-func hasMemoryLimit(c *corev1.Container) bool {
-	if c.Resources.Limits == nil {
-		return false
-	}
-	q, ok := c.Resources.Limits[corev1.ResourceMemory]
-	return ok && !q.IsZero()
-}
-
-func getContainerMemoryLimitMB(c *corev1.Container) int64 {
-	if c.Resources.Limits == nil {
-		return 0
-	}
-	q := c.Resources.Limits[corev1.ResourceMemory]
-	return q.Value() / utils.BytesToMBDivisor
+func cpuCoresToMillicores(cpuCores float64) string {
+	return fmt.Sprintf("%dm", int64(cpuCores*1000))
 }
