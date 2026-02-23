@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/types"
@@ -15,9 +14,7 @@ import (
 // ApplyCheckInput holds all inputs for deciding whether to apply recommendations to a pod.
 // Used by both the apply-recommendation task and the admission webhook.
 type ApplyCheckInput struct {
-	DryRun                     bool
 	ApplyBlacklistedNamespaces []string
-	ExcludedPodPrefixes        []string
 	K8sVersionGE133            bool
 	K8sMemoryGE134             bool
 	OptimizeGuaranteedPods     bool
@@ -37,21 +34,8 @@ func ShouldApplyRecommendationToPod(
 	input ApplyCheckInput,
 	podForExclusion *corev1.Pod,
 ) (bool, string) {
-	if input.DryRun {
-		return false, "dry run is on"
-	}
 	if len(input.ApplyBlacklistedNamespaces) > 0 && slices.Contains(input.ApplyBlacklistedNamespaces, podInfo.Namespace) {
 		return false, "namespace is blacklisted"
-	}
-
-	podNameForPrefix := podInfo.Name
-	if podForExclusion != nil {
-		podNameForPrefix = GetPodName(podForExclusion)
-	}
-	for _, prefix := range input.ExcludedPodPrefixes {
-		if strings.HasPrefix(podNameForPrefix, prefix) {
-			return false, "pod prefix is excluded"
-		}
 	}
 
 	excludedByAnnotation := input.PodExcludedByAnnotation

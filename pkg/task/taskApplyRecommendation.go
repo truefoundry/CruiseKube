@@ -495,9 +495,7 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 	nonOptimizablePods := make([]utils.NonOptimizablePodInfo, 0)
 
 	input := utils.ApplyCheckInput{
-		DryRun:                     a.config.Metadata.DryRun,
 		ApplyBlacklistedNamespaces: a.config.RecommendationSettings.ApplyBlacklistedNamespaces,
-		ExcludedPodPrefixes:        nil,  // task does not use prefix exclusion; workload constraints used via podInfo.Stats
 		K8sVersionGE133:            true, // caller sets applyChanges=false when cluster < 1.33
 		K8sMemoryGE134:             true, // caller uses supportsMemoryReduction separately
 		OptimizeGuaranteedPods:     a.config.RecommendationSettings.OptimizeGuaranteedPods,

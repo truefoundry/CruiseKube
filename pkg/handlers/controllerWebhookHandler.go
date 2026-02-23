@@ -20,12 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-var (
-	// ExcludedPodPrefixes is a list of pod name prefixes that are excluded from recommendation application.
-	// TODO: load from database/config later.
-	ExcludedPodPrefixes = []string{}
-)
-
 func HandleMutatingPatch(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
@@ -58,7 +52,6 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	dryRun := review.Request.DryRun != nil && *review.Request.DryRun
 	cfg := config.GetConfigFromGinContext(c)
 	mgr := c.MustGet("clusterManager").(cluster.Manager)
 	clients, err := mgr.GetClusterClients(clusterID)
@@ -96,9 +89,7 @@ func HandleMutatingPatch(c *gin.Context) {
 	k8sGE133 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 33)
 	k8sMemoryGE134 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 34)
 	input := utils.ApplyCheckInput{
-		DryRun:                     dryRun || cfg.Webhook.DryRun,
 		ApplyBlacklistedNamespaces: cfg.RecommendationSettings.ApplyBlacklistedNamespaces,
-		ExcludedPodPrefixes:        ExcludedPodPrefixes,
 		K8sVersionGE133:            k8sGE133,
 		K8sMemoryGE134:             k8sMemoryGE134,
 		OptimizeGuaranteedPods:     cfg.RecommendationSettings.OptimizeGuaranteedPods,
