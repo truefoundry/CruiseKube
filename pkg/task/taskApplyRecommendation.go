@@ -491,16 +491,16 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 	}
 
 	cpu := types.NodeSnapshotResourceMetrics{
-		CurrentAllocatable:    currentAllocatableCPU,
-		CurrentRequested:      currentRequestedCPU,
-		WorkloadRequested:     workloadRequestedCPU,
-		RecommendedRequested:  recommendedRequestedCPU,
+		CurrentAllocatable:   currentAllocatableCPU,
+		CurrentRequested:     currentRequestedCPU,
+		WorkloadRequested:    workloadRequestedCPU,
+		RecommendedRequested: recommendedRequestedCPU,
 	}
 	memory := types.NodeSnapshotResourceMetrics{
-		CurrentAllocatable:    currentAllocatableMemory,
-		CurrentRequested:      currentRequestedMemory,
-		WorkloadRequested:     workloadRequestedMemory,
-		RecommendedRequested:  recommendedRequestedMemory,
+		CurrentAllocatable:   currentAllocatableMemory,
+		CurrentRequested:     currentRequestedMemory,
+		WorkloadRequested:    workloadRequestedMemory,
+		RecommendedRequested: recommendedRequestedMemory,
 	}
 
 	snapshot := &types.NodeSnapshotPayload{

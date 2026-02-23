@@ -61,8 +61,8 @@ type NodeSnapshot struct {
 	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
 	ClusterID string    `gorm:"column:cluster_id;index"`
 	Timestamp time.Time `gorm:"column:timestamp;index"`
-	CPU       string    `gorm:"column:cpu"`     // JSON of NodeSnapshotResourceMetrics
-	Memory    string    `gorm:"column:memory"`  // JSON of NodeSnapshotResourceMetrics
+	CPU       string    `gorm:"column:cpu"`      // JSON of NodeSnapshotResourceMetrics
+	Memory    string    `gorm:"column:memory"`   // JSON of NodeSnapshotResourceMetrics
 	MetaData  string    `gorm:"column:metadata"` // optional JSON
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime;index"`

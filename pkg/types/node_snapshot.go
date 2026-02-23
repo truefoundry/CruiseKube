@@ -13,9 +13,9 @@ type NodeSnapshotResourceMetrics struct {
 
 // NodeSnapshotPayload is the in-memory payload for a single snapshot row (cluster-level, one per run).
 type NodeSnapshotPayload struct {
-	ClusterID   string
-	Timestamp   time.Time
-	CPU         NodeSnapshotResourceMetrics
-	Memory      NodeSnapshotResourceMetrics
-	MetaData    string // optional JSON; empty means no metadata
+	ClusterID string
+	Timestamp time.Time
+	CPU       NodeSnapshotResourceMetrics
+	Memory    NodeSnapshotResourceMetrics
+	MetaData  string // optional JSON; empty means no metadata
 }
