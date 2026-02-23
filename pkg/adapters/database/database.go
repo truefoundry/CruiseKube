@@ -532,7 +532,7 @@ func (s *GormDB) GetSettings(clusterID string) (*types.AppSettings, error) {
 	}
 	return &types.AppSettings{
 		CPUPricePerCorePerHour:    row.CPUPricePerCorePerHour,
-		MemoryPricePerGbPerHour:   row.MemoryPricePerGbPerHour,
+		MemoryPricePerGBPerHour:   row.MemoryPricePerGBPerHour,
 		DisruptionWindowStartCron: row.DisruptionWindowStartCron,
 		DisruptionWindowEndCron:   row.DisruptionWindowEndCron,
 		DisruptionWindowEnabled:   row.DisruptionWindowEnabled,
@@ -540,32 +540,27 @@ func (s *GormDB) GetSettings(clusterID string) (*types.AppSettings, error) {
 }
 
 func (s *GormDB) UpdateSettings(clusterID string, settings *types.AppSettings) error {
-	var existing Settings
-	result := s.db.Where("cluster_id = ?", clusterID).First(&existing)
-	if result.Error != nil {
-		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("failed to look up settings for cluster %s: %w", clusterID, result.Error)
-		}
-		row := Settings{
-			ClusterID:                 clusterID,
-			CPUPricePerCorePerHour:    settings.CPUPricePerCorePerHour,
-			MemoryPricePerGbPerHour:   settings.MemoryPricePerGbPerHour,
-			DisruptionWindowStartCron: settings.DisruptionWindowStartCron,
-			DisruptionWindowEndCron:   settings.DisruptionWindowEndCron,
-			DisruptionWindowEnabled:   settings.DisruptionWindowEnabled,
-		}
-		if err := s.db.Create(&row).Error; err != nil {
-			return fmt.Errorf("failed to create settings for cluster %s: %w", clusterID, err)
-		}
-		return nil
+	row := Settings{
+		ClusterID:                 clusterID,
+		CPUPricePerCorePerHour:    settings.CPUPricePerCorePerHour,
+		MemoryPricePerGBPerHour:   settings.MemoryPricePerGBPerHour,
+		DisruptionWindowStartCron: settings.DisruptionWindowStartCron,
+		DisruptionWindowEndCron:   settings.DisruptionWindowEndCron,
+		DisruptionWindowEnabled:   settings.DisruptionWindowEnabled,
 	}
-	existing.CPUPricePerCorePerHour = settings.CPUPricePerCorePerHour
-	existing.MemoryPricePerGbPerHour = settings.MemoryPricePerGbPerHour
-	existing.DisruptionWindowStartCron = settings.DisruptionWindowStartCron
-	existing.DisruptionWindowEndCron = settings.DisruptionWindowEndCron
-	existing.DisruptionWindowEnabled = settings.DisruptionWindowEnabled
-	if err := s.db.Save(&existing).Error; err != nil {
-		return fmt.Errorf("failed to update settings for cluster %s: %w", clusterID, err)
+	err := s.db.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "cluster_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"cpu_price_per_core_per_hour",
+			"memory_price_per_gb_per_hour",
+			"disruption_window_start_cron",
+			"disruption_window_end_cron",
+			"disruption_window_enabled",
+			"updated_at",
+		}),
+	}).Create(&row).Error
+	if err != nil {
+		return fmt.Errorf("failed to upsert settings for cluster %s: %w", clusterID, err)
 	}
 	return nil
 }

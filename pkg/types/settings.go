@@ -1,9 +1,9 @@
 package types
 
 type AppSettings struct {
-	CPUPricePerCorePerHour    float64 `json:"cpuPricePerCorePerHour"`
-	MemoryPricePerGbPerHour   float64 `json:"memoryPricePerGbPerHour"`
-	DisruptionWindowStartCron string  `json:"disruptionWindowStartCron"`
-	DisruptionWindowEndCron   string  `json:"disruptionWindowEndCron"`
-	DisruptionWindowEnabled   bool    `json:"disruptionWindowEnabled"`
+	CPUPricePerCorePerHour    *float64 `json:"cpuPricePerCorePerHour,omitempty"`
+	MemoryPricePerGBPerHour   *float64 `json:"memoryPricePerGbPerHour,omitempty"`
+	DisruptionWindowStartCron string   `json:"disruptionWindowStartCron,omitempty"`
+	DisruptionWindowEndCron   string   `json:"disruptionWindowEndCron,omitempty"`
+	DisruptionWindowEnabled   *bool    `json:"disruptionWindowEnabled,omitempty"`
 }

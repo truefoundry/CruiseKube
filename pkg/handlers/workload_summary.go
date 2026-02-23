@@ -27,7 +27,7 @@ type workloadPricing struct {
 	MemPerGbPerHour   float64
 }
 
-func getEffectivePricing(clusterID string) workloadPricing {
+func getEffectivePricing(ctx context.Context, clusterID string) workloadPricing {
 	p := workloadPricing{
 		CPUPerCorePerHour: defaultCPUPricePerCorePerHour,
 		MemPerGbPerHour:   defaultMemoryPricePerGbPerHour,
@@ -36,14 +36,18 @@ func getEffectivePricing(clusterID string) workloadPricing {
 		return p
 	}
 	settings, err := storage.Stg.GetSettings(clusterID)
-	if err != nil || settings == nil {
+	if err != nil {
+		logging.Warnf(ctx, "Failed to get settings for cluster %s, using defaults: %v", clusterID, err)
 		return p
 	}
-	if settings.CPUPricePerCorePerHour > 0 {
-		p.CPUPerCorePerHour = settings.CPUPricePerCorePerHour
+	if settings == nil {
+		return p
 	}
-	if settings.MemoryPricePerGbPerHour > 0 {
-		p.MemPerGbPerHour = settings.MemoryPricePerGbPerHour
+	if settings.CPUPricePerCorePerHour != nil {
+		p.CPUPerCorePerHour = *settings.CPUPricePerCorePerHour
+	}
+	if settings.MemoryPricePerGBPerHour != nil {
+		p.MemPerGbPerHour = *settings.MemoryPricePerGBPerHour
 	}
 	return p
 }
@@ -467,7 +471,7 @@ func WorkloadSummaryHandler(c *gin.Context) {
 	}
 	recAgg := aggregateRecommendationsByWorkload(parsedRecs)
 	clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem := fillWorkloadDetailsWithResources(workloads, details, recAgg, parsedRecs)
-	p := getEffectivePricing(clusterID)
+	p := getEffectivePricing(ctx, clusterID)
 	fillWorkloadDetailsDollars(details, recAgg, p)
 	clusterRes := getClusterResourcesFromPrometheus(ctx, c, clusterID)
 	reqAllocRatioCpu := 1.0
