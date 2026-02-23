@@ -43,11 +43,11 @@ func getEffectivePricing(ctx context.Context, clusterID string) workloadPricing 
 	if settings == nil {
 		return p
 	}
-	if settings.CPUPricePerCorePerHour != nil {
-		p.CPUPerCorePerHour = *settings.CPUPricePerCorePerHour
+	if settings.CPUPricePerCorePerHour > 0 {
+		p.CPUPerCorePerHour = settings.CPUPricePerCorePerHour
 	}
-	if settings.MemoryPricePerGBPerHour != nil {
-		p.MemPerGbPerHour = *settings.MemoryPricePerGBPerHour
+	if settings.MemoryPricePerGBPerHour > 0 {
+		p.MemPerGbPerHour = settings.MemoryPricePerGBPerHour
 	}
 	return p
 }

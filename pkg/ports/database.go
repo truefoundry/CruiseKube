@@ -44,6 +44,6 @@ type Database interface {
 	GetPodRecommendationsForWorkload(clusterID, workloadID string) ([]types.PodResourceRecommendationRow, error)
 
 	// Settings
-	GetSettings(clusterID string) (*types.AppSettings, error)
-	UpdateSettings(clusterID string, settings *types.AppSettings) error
+	GetSettings(clusterID string) (*types.ClusterSettings, error)
+	UpdateSettings(clusterID string, settings *types.ClusterSettings) error
 }

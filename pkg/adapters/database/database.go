@@ -83,8 +83,8 @@ func (s *GormDB) createTables() error {
 	if err := s.db.AutoMigrate(&PodResourceRecommendation{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate PodResourceRecommendation: %w", err)
 	}
-	if err := s.db.AutoMigrate(&Settings{}); err != nil {
-		return fmt.Errorf("failed to auto-migrate Settings: %w", err)
+	if err := s.db.AutoMigrate(&Cluster{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate Cluster: %w", err)
 	}
 	return nil
 }
@@ -521,43 +521,34 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 	return rows, nil
 }
 
-func (s *GormDB) GetSettings(clusterID string) (*types.AppSettings, error) {
-	var row Settings
+func (s *GormDB) GetSettings(clusterID string) (*types.ClusterSettings, error) {
+	var row Cluster
 	err := s.db.Where("cluster_id = ?", clusterID).First(&row).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil //nolint:nilnil
+			return nil, nil //nolint:nilnil // nil means no settings row yet; callers use application defaults
 		}
 		return nil, fmt.Errorf("failed to get settings for cluster %s: %w", clusterID, err)
 	}
-	return &types.AppSettings{
-		CPUPricePerCorePerHour:    row.CPUPricePerCorePerHour,
-		MemoryPricePerGBPerHour:   row.MemoryPricePerGBPerHour,
-		DisruptionWindowStartCron: row.DisruptionWindowStartCron,
-		DisruptionWindowEndCron:   row.DisruptionWindowEndCron,
-		DisruptionWindowEnabled:   row.DisruptionWindowEnabled,
-	}, nil
+	var settings types.ClusterSettings
+	if err := json.Unmarshal([]byte(row.Settings), &settings); err != nil {
+		return nil, fmt.Errorf("failed to parse settings JSON for cluster %s: %w", clusterID, err)
+	}
+	return &settings, nil
 }
 
-func (s *GormDB) UpdateSettings(clusterID string, settings *types.AppSettings) error {
-	row := Settings{
-		ClusterID:                 clusterID,
-		CPUPricePerCorePerHour:    settings.CPUPricePerCorePerHour,
-		MemoryPricePerGBPerHour:   settings.MemoryPricePerGBPerHour,
-		DisruptionWindowStartCron: settings.DisruptionWindowStartCron,
-		DisruptionWindowEndCron:   settings.DisruptionWindowEndCron,
-		DisruptionWindowEnabled:   settings.DisruptionWindowEnabled,
+func (s *GormDB) UpdateSettings(clusterID string, settings *types.ClusterSettings) error {
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to serialize settings for cluster %s: %w", clusterID, err)
 	}
-	err := s.db.Clauses(clause.OnConflict{
-		Columns: []clause.Column{{Name: "cluster_id"}},
-		DoUpdates: clause.AssignmentColumns([]string{
-			"cpu_price_per_core_per_hour",
-			"memory_price_per_gb_per_hour",
-			"disruption_window_start_cron",
-			"disruption_window_end_cron",
-			"disruption_window_enabled",
-			"updated_at",
-		}),
+	row := Cluster{
+		ClusterID: clusterID,
+		Settings:  string(data),
+	}
+	err = s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "cluster_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"settings", "updated_at"}),
 	}).Create(&row).Error
 	if err != nil {
 		return fmt.Errorf("failed to upsert settings for cluster %s: %w", clusterID, err)

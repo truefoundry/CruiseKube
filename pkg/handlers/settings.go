@@ -13,18 +13,18 @@ import (
 
 var settingsCronParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
 
-func validateSettingsCrons(settings *types.AppSettings) error {
-	for _, expr := range []struct {
-		field, value string
-	}{
-		{"disruptionWindowStartCron", settings.DisruptionWindowStartCron},
-		{"disruptionWindowEndCron", settings.DisruptionWindowEndCron},
-	} {
-		if expr.value == "" {
-			continue
-		}
-		if _, err := settingsCronParser.Parse(expr.value); err != nil {
-			return fmt.Errorf("invalid %s %q: %w", expr.field, expr.value, err)
+func validateSettingsCrons(settings *types.ClusterSettings) error {
+	for i, w := range settings.DisruptionWindows {
+		for _, expr := range []struct{ field, value string }{
+			{fmt.Sprintf("disruptionWindows[%d].startCron", i), w.StartCron},
+			{fmt.Sprintf("disruptionWindows[%d].endCron", i), w.EndCron},
+		} {
+			if expr.value == "" {
+				return fmt.Errorf("%s is required", expr.field)
+			}
+			if _, err := settingsCronParser.Parse(expr.value); err != nil {
+				return fmt.Errorf("invalid %s %q: %w", expr.field, expr.value, err)
+			}
 		}
 	}
 	return nil
@@ -42,11 +42,9 @@ func GetSettingsHandler(c *gin.Context) {
 	}
 
 	if settings == nil {
-		cpuDefault := float64(defaultCPUPricePerCorePerHour)
-		memDefault := float64(defaultMemoryPricePerGbPerHour)
-		settings = &types.AppSettings{
-			CPUPricePerCorePerHour:  &cpuDefault,
-			MemoryPricePerGBPerHour: &memDefault,
+		settings = &types.ClusterSettings{
+			CPUPricePerCorePerHour:  defaultCPUPricePerCorePerHour,
+			MemoryPricePerGBPerHour: defaultMemoryPricePerGbPerHour,
 		}
 	}
 
@@ -57,7 +55,7 @@ func UpdateSettingsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
-	var settings types.AppSettings
+	var settings types.ClusterSettings
 	if err := c.ShouldBindJSON(&settings); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
