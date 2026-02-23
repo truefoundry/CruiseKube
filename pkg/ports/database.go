@@ -18,8 +18,6 @@ type Database interface {
 
 	// Get
 	GetStatsForCluster(clusterID string) ([]types.WorkloadStat, error)
-	GetStatsForClusterUpdatedSince(clusterID string, since time.Time) ([]types.WorkloadStat, error)
-	// GetWorkloadsInCluster returns all workloads for a cluster.
 	GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCluster, error)
 	GetStatForWorkload(clusterID, workloadID string) (*types.WorkloadStat, error)
 	GetStatCountForCluster(clusterID string) (int, error)
