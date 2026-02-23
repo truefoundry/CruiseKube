@@ -98,15 +98,34 @@ func (s *Storage) GetAllStatsForCluster(clusterID string) ([]types.WorkloadStat,
 	return stats, nil
 }
 
-// GetWorkloadsInCluster returns workloads for a cluster (stat + overrides) in a single DB call.
-// If since is non-zero, only workloads updated after since are returned.
+// GetWorkloadsInCluster returns all workloads for a cluster (stat + overrides) in a single DB call.
 // Use methods on each WorkloadInCluster to get Stat, Overrides, or OverridesWithDefaults().
-func (s *Storage) GetWorkloadsInCluster(clusterID string, since time.Time) ([]*types.WorkloadInCluster, error) {
-	workloads, err := s.DB.GetWorkloadsInCluster(clusterID, since)
+func (s *Storage) GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCluster, error) {
+	workloads, err := s.DB.GetWorkloadsInCluster(clusterID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workloads for cluster: %w", err)
 	}
 	return workloads, nil
+}
+
+// DeleteStaleWorkloads removes workloads from the DB that are no longer present in the cluster.
+// liveWorkloadIDs is the complete set of workload keys currently observed in the cluster.
+func (s *Storage) DeleteStaleWorkloads(clusterID string, currentWorkloadIds map[string]struct{}) (int, error) {
+	dbWorkloads, err := s.DB.GetWorkloadsInCluster(clusterID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to list workloads for stale check: %w", err)
+	}
+
+	deleted := 0
+	for _, w := range dbWorkloads {
+		if _, exists := currentWorkloadIds[w.WorkloadID]; !exists {
+			if err := s.DB.DeleteWorkload(clusterID, w.WorkloadID); err != nil {
+				return deleted, fmt.Errorf("failed to delete stale workload %s: %w", w.WorkloadID, err)
+			}
+			deleted++
+		}
+	}
+	return deleted, nil
 }
 
 func (s *Storage) GetAllStatsForClusterUpdatedSince(clusterID string, since time.Time) ([]types.WorkloadStat, error) {

@@ -92,6 +92,16 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to list workloads: %w", err)
 	}
 
+	currentWorkloadIds := make(map[string]struct{}, len(workloadList))
+	for _, w := range workloadList {
+		currentWorkloadIds[utils.GetWorkloadKey(w.Kind, w.Namespace, w.Name)] = struct{}{}
+	}
+	if deleted, err := c.storage.DeleteStaleWorkloads(c.config.ClusterID, currentWorkloadIds); err != nil {
+		logging.Errorf(ctx, "Error deleting stale workloads: %v", err)
+	} else if deleted > 0 {
+		logging.Infof(ctx, "Deleted %d stale workloads from DB", deleted)
+	}
+
 	isPSIEnabled := c.isPSIEnabled(ctx)
 	logging.Infof(ctx, "PSI is enabled: %v", isPSIEnabled)
 
