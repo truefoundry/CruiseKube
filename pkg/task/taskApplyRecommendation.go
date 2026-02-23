@@ -510,7 +510,10 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 		Memory:    memory,
 		MetaData:  "",
 	}
-	return a.storage.InsertNodeSnapshot(snapshot)
+	if err := a.storage.InsertNodeSnapshot(snapshot); err != nil {
+		return fmt.Errorf("insert node snapshot: %w", err)
+	}
+	return nil
 }
 
 func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context, recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {
