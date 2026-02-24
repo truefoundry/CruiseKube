@@ -286,6 +286,15 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 			ExcludedAnnotation:       stat.Constraints.ExcludedAnnotation,
 		}
 	}
+	disruptionSchedule := make([]types.DisruptionScheduleWindow, 0, len(effective.DisruptionWindows))
+	if len(effective.DisruptionWindows) > 0 {
+		for _, wdw := range effective.DisruptionWindows {
+			disruptionSchedule = append(disruptionSchedule, types.DisruptionScheduleWindow{
+				WindowStartCron: wdw.StartCron,
+				WindowEndCron:   wdw.EndCron,
+			})
+		}
+	}
 	return types.WorkloadDetail{
 		WorkloadID:  w.WorkloadID,
 		Kind:        stat.Kind,
@@ -297,7 +306,7 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 		Config: types.WorkloadConfig{
 			Priority:           priority,
 			CruiseEnabled:      effective.Enabled,
-			DisruptionSchedule: []types.DisruptionScheduleWindow{},
+			DisruptionSchedule: disruptionSchedule,
 		},
 	}
 }
