@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
 	"github.com/truefoundry/cruisekube/pkg/client"

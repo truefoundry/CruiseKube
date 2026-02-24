@@ -55,16 +55,6 @@ func (s *Storage) GetStatForWorkload(clusterID, workloadID string) (*types.Workl
 	return stat, nil
 }
 
-func (s *Storage) ReadClusterStatsUpdatedSince(clusterID string, target *types.StatsResponse, since time.Time) error {
-	stats, err := s.DB.GetStatsForClusterUpdatedSince(clusterID, since)
-	if err != nil {
-		return fmt.Errorf("failed to read cluster stats: %w", err)
-	}
-
-	target.Stats = stats
-	return nil
-}
-
 func (s *Storage) ClusterStatsExists(clusterID string) (bool, error) {
 	exists, err := s.DB.HasCluster(clusterID)
 	if err != nil {
