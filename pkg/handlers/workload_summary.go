@@ -8,11 +8,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
+	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
@@ -21,138 +20,6 @@ const (
 	defaultMemoryPricePerGbPerHour = 0.00725
 	defaultHoursPerMonth           = 720
 )
-
-var prometheusClusterQueries = struct {
-	CPUUtilised, CPURequested, CPUAllocatable          string
-	MemoryUtilised, MemoryRequested, MemoryAllocatable string
-}{
-	CPUUtilised: `round(
-      sum(
-        sum by (node) (
-          rate(node_cpu_seconds_total{job="node-exporter", mode=~"user|system"}[1m])
-        )
-        unless max by (node) (
-          max_over_time(kube_node_status_allocatable{
-            job="kube-state-metrics",
-            resource=~"nvidia_com_gpu|amd_com_gpu"
-          }[7d:]) > 0
-        )
-      ),
-      0.001
-    )`,
-	CPURequested: `round(
-      sum(
-        sum by (node) (
-          (
-            (
-              sum by (namespace, pod) (kube_pod_container_resource_requests{job="kube-state-metrics", container!="", resource="cpu"})
-            )
-            unless on (namespace, pod)
-            (
-              sum by (namespace, pod) (kube_pod_container_resource_requests{job="kube-state-metrics", container!="", resource=~"nvidia_com_gpu|amd_com_gpu"})
-            )
-          )
-          * on (namespace, pod) group_left
-            sum by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"})
-        )
-        unless on (node)
-        (
-          max by (node) (
-            max_over_time(
-              kube_node_status_allocatable{job="kube-state-metrics", resource=~"nvidia_com_gpu|amd_com_gpu"}[7d:]
-            )
-          )
-          >
-          0
-        )
-      ),
-      0.001
-    )`,
-	CPUAllocatable: `round(
-      sum(
-        sum by (node) (kube_node_status_allocatable{job="kube-state-metrics", resource="cpu"})
-        unless (
-          sum by (node) (
-            kube_node_spec_taint{job="kube-state-metrics", key="nvidia.com/gpu"}
-          )
-        )
-        unless on (node) (
-          kube_node_labels{job="kube-state-metrics", accelerator="nvidia"}
-        )
-      ),
-      0.001
-    )`,
-	MemoryUtilised: `round(
-      sum(
-        sum by (node) (
-          node_memory_MemTotal_bytes{job="node-exporter"} - (node_memory_MemFree_bytes{job="node-exporter"} + node_memory_Buffers_bytes{job="node-exporter"} + node_memory_Cached_bytes{job="node-exporter"})
-        )
-        unless
-        max by (node) (
-          max_over_time(kube_node_status_allocatable{job="kube-state-metrics", resource=~"nvidia_com_gpu|amd_com_gpu"}[7d:])
-        ) > 0
-      )
-      / 1000000000,
-      0.001
-    )`,
-	MemoryRequested: `round(
-      sum(
-        sum by (node) (
-          (
-            (
-              sum by (namespace, pod) (kube_pod_container_resource_requests{job="kube-state-metrics", container!="", resource="memory"})
-            )
-            unless on (namespace, pod)
-            (
-              sum by (namespace, pod) (kube_pod_container_resource_requests{job="kube-state-metrics", container!="", resource=~"nvidia_com_gpu|amd_com_gpu"})
-            )
-          )
-          * on (namespace, pod) group_left
-            sum by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"})
-        )
-        unless on (node)
-        (
-          max by (node) (
-            max_over_time(
-              kube_node_status_allocatable{job="kube-state-metrics", resource=~"nvidia_com_gpu|amd_com_gpu"}[7d:]
-            )
-          )
-          >
-          0
-        )
-      ) / 1000000000,
-      0.001
-    )`,
-	MemoryAllocatable: `round(
-      sum(
-        sum by (node) (kube_node_status_allocatable{job="kube-state-metrics", resource="memory"})
-        unless (
-          sum by (node) (kube_node_spec_taint{job="kube-state-metrics", key="nvidia.com/gpu"})
-        )
-        unless on (node) (
-          kube_node_labels{job="kube-state-metrics", accelerator="nvidia"}
-        )
-      ) / 1000000000,
-      0.001
-    )`,
-}
-
-func queryPrometheusScalar(ctx context.Context, client v1.API, q string) float64 {
-	if client == nil {
-		return 0
-	}
-	result, _, err := client.Query(ctx, q, time.Now())
-	if err != nil || result == nil {
-		return 0
-	}
-	if v, ok := result.(model.Vector); ok && len(v) > 0 {
-		return float64(v[0].Value)
-	}
-	if s, ok := result.(*model.Scalar); ok {
-		return float64(s.Value)
-	}
-	return 0
-}
 
 func getClusterResourcesFromPrometheus(ctx context.Context, c *gin.Context, clusterID string) types.ClusterResourcesDTO {
 	out := types.ClusterResourcesDTO{
@@ -168,13 +35,12 @@ func getClusterResourcesFromPrometheus(ctx context.Context, c *gin.Context, clus
 		return out
 	}
 	pc := clients.PrometheusClient
-	q := prometheusClusterQueries
-	out.CPU.Utilised = queryPrometheusScalar(ctx, pc, q.CPUUtilised)
-	out.CPU.Requested = queryPrometheusScalar(ctx, pc, q.CPURequested)
-	out.CPU.Allocatable = queryPrometheusScalar(ctx, pc, q.CPUAllocatable)
-	out.Memory.Utilised = queryPrometheusScalar(ctx, pc, q.MemoryUtilised)
-	out.Memory.Requested = queryPrometheusScalar(ctx, pc, q.MemoryRequested)
-	out.Memory.Allocatable = queryPrometheusScalar(ctx, pc, q.MemoryAllocatable)
+	out.CPU.Utilised = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterCPUUtilizationExpression())
+	out.CPU.Requested = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterCPURequestExpression())
+	out.CPU.Allocatable = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterCPUAllocatableExpression())
+	out.Memory.Utilised = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterMemoryUtilizationExpression())
+	out.Memory.Requested = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterMemoryRequestExpression())
+	out.Memory.Allocatable = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterMemoryAllocatableExpression())
 	return out
 }
 

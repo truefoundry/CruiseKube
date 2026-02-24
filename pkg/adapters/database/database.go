@@ -534,11 +534,13 @@ func (s *GormDB) InsertNodeSnapshot(snapshot *types.NodeSnapshotPayload) error {
 		return fmt.Errorf("failed to marshal Memory metrics: %w", err)
 	}
 	row := NodeSnapshot{
-		ClusterID: snapshot.ClusterID,
-		Timestamp: snapshot.Timestamp,
-		CPU:       string(cpuJSON),
-		Memory:    string(memoryJSON),
-		MetaData:  snapshot.MetaData,
+		ClusterID:       snapshot.ClusterID,
+		Timestamp:       snapshot.Timestamp,
+		CPU:             string(cpuJSON),
+		Memory:          string(memoryJSON),
+		NodeCount:       snapshot.NodeCount,
+		RunningPodCount: snapshot.RunningPodCount,
+		MetaData:        snapshot.MetaData,
 	}
 	if err := s.db.Create(&row).Error; err != nil {
 		return fmt.Errorf("failed to insert node snapshot: %w", err)

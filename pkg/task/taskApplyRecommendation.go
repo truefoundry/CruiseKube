@@ -471,6 +471,10 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 	var workloadRequestedCPU, workloadRequestedMemory float64
 	var recommendedRequestedCPU, recommendedRequestedMemory float64
 
+	currentUtilizedCPU = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterCPUUtilizationExpression())
+	currentUtilizedMemory = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterMemoryUtilizationExpression()) / utils.BytesToMBDivisor
+
+	podKeys := make(map[string]struct{})
 	for _, res := range recommendationResults {
 		ni := res.NodeInfo
 		currentAllocatableCPU += ni.AllocatableCPU
@@ -479,6 +483,7 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 		currentRequestedMemory += ni.RequestedMemory
 
 		for _, rec := range res.PodContainerRecommendations {
+			podKeys[rec.PodInfo.Namespace+"/"+rec.PodInfo.Name] = struct{}{}
 			recommendedRequestedCPU += rec.CPU
 			recommendedRequestedMemory += rec.Memory
 			cr, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
@@ -488,40 +493,37 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 			}
 			workloadRequestedCPU += cr.CPURequest
 			workloadRequestedMemory += cr.MemoryRequest
-			if rec.PodInfo.Stats != nil {
-				if containerStat, err := rec.PodInfo.Stats.GetContainerStats(rec.ContainerName); err == nil {
-					if containerStat.CPU7Day != nil {
-						currentUtilizedCPU += containerStat.CPU7Day.Max
-					}
-					if containerStat.Memory7Day != nil {
-						currentUtilizedMemory += containerStat.Memory7Day.Max
-					}
-				}
-			}
 		}
 	}
 
 	cpu := types.NodeSnapshotResourceMetrics{
-		CurrentAllocatable:    currentAllocatableCPU,
-		CurrentRequested:      currentRequestedCPU,
-		CurrentUtilized:       currentUtilizedCPU,
-		WorkloadRequested:     workloadRequestedCPU,
-		RecommendedRequested:  recommendedRequestedCPU,
+		CurrentAllocatable:   currentAllocatableCPU,
+		CurrentRequested:     currentRequestedCPU,
+		CurrentUtilized:      currentUtilizedCPU,
+		WorkloadRequested:    workloadRequestedCPU,
+		RecommendedRequested: recommendedRequestedCPU,
 	}
 	memory := types.NodeSnapshotResourceMetrics{
-		CurrentAllocatable:    currentAllocatableMemory,
-		CurrentRequested:      currentRequestedMemory,
-		CurrentUtilized:       currentUtilizedMemory,
-		WorkloadRequested:     workloadRequestedMemory,
-		RecommendedRequested:  recommendedRequestedMemory,
+		CurrentAllocatable:   currentAllocatableMemory,
+		CurrentRequested:     currentRequestedMemory,
+		CurrentUtilized:      currentUtilizedMemory,
+		WorkloadRequested:    workloadRequestedMemory,
+		RecommendedRequested: recommendedRequestedMemory,
+	}
+
+	if currentUtilizedCPU == 0 || currentUtilizedMemory == 0 {
+		logging.Warnf(ctx, "snapshot: no CPU/Memory utilization found from prometheus, skipping snapshot")
+		return nil
 	}
 
 	snapshot := &types.NodeSnapshotPayload{
-		ClusterID: a.config.ClusterID,
-		Timestamp: time.Now().UTC(),
-		CPU:       cpu,
-		Memory:    memory,
-		MetaData:  "",
+		ClusterID:       a.config.ClusterID,
+		Timestamp:       time.Now().UTC(),
+		CPU:             cpu,
+		Memory:          memory,
+		NodeCount:       len(recommendationResults),
+		RunningPodCount: len(podKeys),
+		MetaData:        "",
 	}
 	if err := a.storage.InsertNodeSnapshot(snapshot); err != nil {
 		return fmt.Errorf("insert node snapshot: %w", err)
