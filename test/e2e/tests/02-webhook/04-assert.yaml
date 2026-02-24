@@ -3,7 +3,6 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
 timeout: 60
 ---
-# Original redis: 100m CPU, 64Mi memory, 128Mi limit
 apiVersion: v1
 kind: Pod
 metadata:
@@ -22,7 +21,6 @@ spec:
 status:
   phase: Running
 ---
-# Original memcached: 50m CPU, 32Mi memory, 64Mi limit  
 apiVersion: v1
 kind: Pod
 metadata:

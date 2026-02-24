@@ -12,7 +12,7 @@ controller:
   writeAuthorizedClusters: []
   tasks:
     createStats:
-      enabled: false
+      enabled: true
       schedule: "15m"
       metadata:
         skipMemory: false
@@ -40,6 +40,9 @@ controller:
       schedule: "24h"
       metadata:
         retentionDays: 7
+    disruptionForce:
+      enabled: true
+      schedule: "5m"
 metrics:
   enabled: true
   port: "8081"   

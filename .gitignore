@@ -17,7 +17,6 @@ go.work.sum
 vendor/
 
 # IDE and editor files
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -52,5 +51,7 @@ analysis/__pycache__/
 config-local.yaml
 config-local-oss.yaml
 charts/cruisekube/charts
-pkg/adapters/database/models_test.go
 site
+temp/
+cmd/cruisekube/__debug*
+.vscode/

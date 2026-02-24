@@ -85,10 +85,8 @@ func (w *WorkloadInCluster) GetOverrides() *Overrides {
 
 // OverridesWithDefaults returns effective overrides by merging DB overrides with defaults from stat.
 // Defaults: Enabled=false, EvictionRanking=stat.EvictionRanking (or EvictionRankingMedium), DisruptionWindows=nil.
+// Caller must not invoke on a nil WorkloadInCluster.
 func (w *WorkloadInCluster) OverridesWithDefaults() *WorkloadOverridesEffective {
-	if w == nil {
-		return &WorkloadOverridesEffective{Enabled: false, EvictionRanking: EvictionRankingMedium}
-	}
 	evictionRanking := EvictionRankingMedium
 	if w.Stat != nil {
 		evictionRanking = w.Stat.EvictionRanking

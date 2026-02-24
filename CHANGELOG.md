@@ -9,9 +9,34 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+### Breaking Changes
+
+* Rename stats table to workloads and modify corresponding functions to load workloads instead of stats by @innoavator in https://github.com/truefoundry/CruiseKube/pull/112
+
+
+### What's Changed
+* release v0.1.11-rc.2 by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/99
+* Improved development docs by @innoavator in https://github.com/truefoundry/CruiseKube/pull/103
+* Removed the extra overrides API and combined it with the workloads api by @innoavator in https://github.com/truefoundry/CruiseKube/pull/105
+* store recommendations to db on every run by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/106
+* feat: add cost calculation by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/88
+* updating frontend to latest main by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/108
+* set eviction ranking to disabled if workload has a do-not-disrupt ann… by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/102
+* Added disruption window support by @innoavator in https://github.com/truefoundry/CruiseKube/pull/111
+* consolidating workloads summary call by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/110
+* implement disruption force task by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/107
+* implement workload level disruption window override by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/115
+* disable dry run by default and set default mode to recommend only by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/116
+* feat: add workload details api by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/117
+* fix pdb annotation labels in task disruption force by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/118
+
+## New Contributors
+* @innoavator made their first contribution in https://github.com/truefoundry/CruiseKube/pull/103
+
+
 ## v0.1.10 (2026-02-12)
 
-## What's Changed
+### What's Changed
 * implement api to trigger a task manually by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/61
 * Hotfix for the helm index. by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/63
 * Hotfix - Update index.yaml for helm by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/64
