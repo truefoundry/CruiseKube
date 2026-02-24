@@ -343,27 +343,27 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 
 // fillWorkloadDetailDollars sets dollar savings and expenditure on a single WorkloadDetail from aggregated recommendations.
 // d.CPU.Current and d.Memory.Current are expected to be totals (per-pod request * number of pods).
-func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg) {
+func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p workloadPricing) {
 	totalCurrentCPU := d.CPU.Current
 	totalCurrentMem := d.Memory.Current
 	totalRecCPU := agg.TotalCPU
 	totalRecMem := agg.TotalMem
 	cpuSavings := 0.0
 	if totalCurrentCPU > totalRecCPU {
-		cpuSavings = (totalCurrentCPU - totalRecCPU) * defaultCPUPricePerCorePerHour * defaultHoursPerMonth
+		cpuSavings = (totalCurrentCPU - totalRecCPU) * p.CPUPerCorePerHour * defaultHoursPerMonth
 	}
 	memSavings := 0.0
 	if totalCurrentMem > totalRecMem {
-		memSavings = (totalCurrentMem - totalRecMem) / 1024 * defaultMemoryPricePerGbPerHour * defaultHoursPerMonth
+		memSavings = (totalCurrentMem - totalRecMem) / 1024 * p.MemPerGbPerHour * defaultHoursPerMonth
 	}
 	d.DollarSavingsPerMonth = int(cpuSavings + memSavings)
 	cpuExpenditure := 0.0
 	if totalRecCPU > totalCurrentCPU {
-		cpuExpenditure = (totalRecCPU - totalCurrentCPU) * defaultCPUPricePerCorePerHour * defaultHoursPerMonth
+		cpuExpenditure = (totalRecCPU - totalCurrentCPU) * p.CPUPerCorePerHour * defaultHoursPerMonth
 	}
 	memExpenditure := 0.0
 	if totalRecMem > totalCurrentMem {
-		memExpenditure = (totalRecMem - totalCurrentMem) / 1024 * defaultMemoryPricePerGbPerHour * defaultHoursPerMonth
+		memExpenditure = (totalRecMem - totalCurrentMem) / 1024 * p.MemPerGbPerHour * defaultHoursPerMonth
 	}
 	d.DollarExpenditurePerMonth = int(cpuExpenditure + memExpenditure)
 }
@@ -371,16 +371,15 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg) {
 // getWorkloadsData fetches non-GPU workloads and pod recommendations for a cluster, then for each workload
 // filters recommendations by workload ID, computes total CPU, memory, cost, and attaches everything to
 // WorkloadDetail. Returns details and cluster-level requested/recommended CPU and memory.
-func getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDetail, float64, float64, float64, float64, error) {
-	var details []types.WorkloadDetail
+func getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDetail, map[string]workloadRecAgg, float64, float64, float64, float64, error) {
 	var clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64
 	workloads, err := getNonGPUClusterWorkloads(ctx, clusterID)
 	if err != nil {
-		return nil, 0, 0, 0, 0, err
+		return nil, nil, 0, 0, 0, 0, err
 	}
 	parsedRecs, err := getPodRecommendationsForCluster(ctx, clusterID)
 	if err != nil {
-		return nil, 0, 0, 0, 0, err
+		return nil, nil, 0, 0, 0, 0, err
 	}
 	// Index recommendations by workload ID for fast lookup
 	recsByWorkload := make(map[string][]parsedPodRecommendation)
@@ -388,15 +387,16 @@ func getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDe
 		recsByWorkload[p.WorkloadID] = append(recsByWorkload[p.WorkloadID], p)
 	}
 
-	details = make([]types.WorkloadDetail, 0, len(workloads))
+	details := make([]types.WorkloadDetail, 0, len(workloads))
+	recAgg := make(map[string]workloadRecAgg, len(workloads))
 	for _, w := range workloads {
 		stat := w.GetStat()
 		if stat == nil {
 			continue
 		}
 		detail := buildWorkloadDetail(w, stat)
-		podsRecsForWorkload := recsByWorkload[w.WorkloadID]
-		agg := aggregateRecsForWorkload(podsRecsForWorkload)
+		agg := aggregateRecsForWorkload(recsByWorkload[w.WorkloadID])
+		recAgg[w.WorkloadID] = agg
 
 		workloadPodCPURequest := stat.CalculateTotalCPURequest()
 		workloadTotalMemoryRequest := stat.CalculateTotalMemoryRequest()
@@ -429,59 +429,25 @@ func getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDe
 				Min: agg.MemMin, Max: agg.MemMax, Change: memChange,
 			},
 		}
-		fillWorkloadDetailDollars(&detail, agg)
 		details = append(details, detail)
 	}
-  
-	return details, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, nil
-}
 
-func fillWorkloadDetailsDollars(details []types.WorkloadDetail, recAgg map[string]workloadRecAgg, p workloadPricing) {
-	for i := range details {
-		d := &details[i]
-		agg := recAgg[d.WorkloadID]
-		podsCount := float64(d.PodsCount)
-		if podsCount <= 0 {
-			podsCount = 1
-		}
-		totalCurrentCPU := d.CPU.Current * podsCount
-		totalCurrentMem := d.Memory.Current * podsCount
-		totalRecCPU := agg.TotalCPU
-		totalRecMem := agg.TotalMem
-		cpuSavings := 0.0
-		if totalCurrentCPU > totalRecCPU {
-			cpuSavings = (totalCurrentCPU - totalRecCPU) * p.CPUPerCorePerHour * defaultHoursPerMonth
-		}
-		memSavings := 0.0
-		if totalCurrentMem > totalRecMem {
-			memSavings = (totalCurrentMem - totalRecMem) / 1024 * p.MemPerGbPerHour * defaultHoursPerMonth
-		}
-		d.DollarSavingsPerMonth = int(cpuSavings + memSavings)
-		cpuExpenditure := 0.0
-		if totalRecCPU > totalCurrentCPU {
-			cpuExpenditure = (totalRecCPU - totalCurrentCPU) * p.CPUPerCorePerHour * defaultHoursPerMonth
-		}
-		memExpenditure := 0.0
-		if totalRecMem > totalCurrentMem {
-			memExpenditure = (totalRecMem - totalCurrentMem) / 1024 * p.MemPerGbPerHour * defaultHoursPerMonth
-		}
-		d.DollarExpenditurePerMonth = int(cpuExpenditure + memExpenditure)
-	}
+	return details, recAgg, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, nil
 }
 
 func WorkloadSummaryHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
-	details, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := getWorkloadsData(ctx, clusterID)
+	details, recAgg, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := getWorkloadsData(ctx, clusterID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-  
-	recAgg := aggregateRecommendationsByWorkload(parsedRecs)
-	clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem := fillWorkloadDetailsWithResources(workloads, details, recAgg, parsedRecs)
+
 	p := getEffectivePricing(ctx, clusterID)
-	fillWorkloadDetailsDollars(details, recAgg, p)
+	for i := range details {
+		fillWorkloadDetailDollars(&details[i], recAgg[details[i].WorkloadID], p)
+	}
 
 	clusterRes := getClusterResourcesFromPrometheus(ctx, c, clusterID)
 	reqAllocRatioCpu := 1.0
