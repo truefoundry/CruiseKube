@@ -77,6 +77,18 @@ func (s *GormDB) createTables() error {
 	if err := s.db.AutoMigrate(&Cluster{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate Cluster: %w", err)
 	}
+
+	if s.db.Migrator().HasTable("workloads") {
+		if err := s.db.Exec(`
+			INSERT INTO clusters (cluster_id, settings, created_at, updated_at)
+			SELECT DISTINCT cluster_id, '{}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+			FROM workloads
+			WHERE cluster_id NOT IN (SELECT cluster_id FROM clusters)
+		`).Error; err != nil {
+			return fmt.Errorf("failed to back-fill clusters from workloads: %w", err)
+		}
+	}
+
 	if err := s.db.AutoMigrate(&Workload{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate workloads: %w", err)
 	}
