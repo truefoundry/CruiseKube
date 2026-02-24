@@ -2,11 +2,12 @@ package types
 
 import "time"
 
-// NodeSnapshotResourceMetrics holds the four metrics for CPU or Memory in a node snapshot.
+// NodeSnapshotResourceMetrics holds the metrics for CPU or Memory in a node snapshot.
 // Current = cluster totals; WorkloadRequested = user's original manifest request; RecommendedRequested = our recommendation.
 type NodeSnapshotResourceMetrics struct {
 	CurrentAllocatable   float64 `json:"current_allocatable"`   // total allocatable
 	CurrentRequested     float64 `json:"current_requested"`     // total requested
+	CurrentUtilized      float64 `json:"current_utilized"`      // total utilized (from usage stats)
 	WorkloadRequested    float64 `json:"workload_requested"`    // total CPU/memory user set in original manifest
 	RecommendedRequested float64 `json:"recommended_requested"` // total we recommend should be requested
 }

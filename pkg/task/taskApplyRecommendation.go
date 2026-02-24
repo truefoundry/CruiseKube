@@ -467,6 +467,7 @@ func (a *ApplyRecommendationTask) computeRecommendedResourceValues(rec utils.Pod
 func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, recommendationResults []*RecommendationResult) error {
 	var currentAllocatableCPU, currentAllocatableMemory float64
 	var currentRequestedCPU, currentRequestedMemory float64
+	var currentUtilizedCPU, currentUtilizedMemory float64
 	var workloadRequestedCPU, workloadRequestedMemory float64
 	var recommendedRequestedCPU, recommendedRequestedMemory float64
 
@@ -487,20 +488,32 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 			}
 			workloadRequestedCPU += cr.CPURequest
 			workloadRequestedMemory += cr.MemoryRequest
+			if rec.PodInfo.Stats != nil {
+				if containerStat, err := rec.PodInfo.Stats.GetContainerStats(rec.ContainerName); err == nil {
+					if containerStat.CPU7Day != nil {
+						currentUtilizedCPU += containerStat.CPU7Day.Max
+					}
+					if containerStat.Memory7Day != nil {
+						currentUtilizedMemory += containerStat.Memory7Day.Max
+					}
+				}
+			}
 		}
 	}
 
 	cpu := types.NodeSnapshotResourceMetrics{
-		CurrentAllocatable:   currentAllocatableCPU,
-		CurrentRequested:     currentRequestedCPU,
-		WorkloadRequested:    workloadRequestedCPU,
-		RecommendedRequested: recommendedRequestedCPU,
+		CurrentAllocatable:    currentAllocatableCPU,
+		CurrentRequested:      currentRequestedCPU,
+		CurrentUtilized:       currentUtilizedCPU,
+		WorkloadRequested:     workloadRequestedCPU,
+		RecommendedRequested:  recommendedRequestedCPU,
 	}
 	memory := types.NodeSnapshotResourceMetrics{
-		CurrentAllocatable:   currentAllocatableMemory,
-		CurrentRequested:     currentRequestedMemory,
-		WorkloadRequested:    workloadRequestedMemory,
-		RecommendedRequested: recommendedRequestedMemory,
+		CurrentAllocatable:    currentAllocatableMemory,
+		CurrentRequested:      currentRequestedMemory,
+		CurrentUtilized:       currentUtilizedMemory,
+		WorkloadRequested:     workloadRequestedMemory,
+		RecommendedRequested:  recommendedRequestedMemory,
 	}
 
 	snapshot := &types.NodeSnapshotPayload{
