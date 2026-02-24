@@ -58,7 +58,7 @@ func HandleWorkloadDetail(c *gin.Context) {
 
 	// Workload must exist in DB (workloads table) to serve detail
 	if stat == nil {
-		logging.Warnf(ctx, "Workload %s/%s not found", namespace, workloadName)
+		logging.Errorf(ctx, "Workload %s/%s not found", namespace, workloadName)
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "workload not found",
 		})
