@@ -513,9 +513,7 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 				override = o
 			}
 		}
-		if podInfo.Stats.Constraints.ExcludedAnnotation {
-			input.PodExcludedByAnnotation = true
-		}
+
 		apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, override, input, nil)
 		if !apply {
 			logging.Infof(ctx, "Skipping pod %s/%s: %s", podInfo.Namespace, podInfo.Name, reason)
