@@ -79,15 +79,6 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 		return nil
 	}
 
-	settings, err := t.storage.GetSettings(t.config.ClusterID)
-	if err != nil {
-		logging.Warnf(ctx, "Failed to read cluster settings, continuing with config defaults: %v", err)
-		settings = nil
-	} else if settings != nil && !settings.DisruptionWindowEnabled {
-		logging.Infof(ctx, "Global disruption window is disabled via cluster settings, skipping")
-		return nil
-	}
-
 	logging.Infof(ctx, "Running disruption force task")
 
 	now := time.Now()
@@ -97,7 +88,7 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to parse task schedule %q: %w", t.config.Schedule, err)
 	}
 
-	state := t.getReconcileState(ctx, settings, now, scheduleDuration)
+	state := t.getReconcileState(ctx, now, scheduleDuration)
 	logging.Infof(ctx, "Reconcile state: %v", state)
 
 	workloads, err := t.storage.GetWorkloadsInCluster(t.config.ClusterID)
@@ -185,12 +176,7 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	return nil
 }
 
-func (t *DisruptionForceTask) getReconcileState(ctx context.Context, settings *types.ClusterSettings, now time.Time, scheduleDuration time.Duration) ReconcileState {
-	if settings != nil && len(settings.DisruptionWindows) > 0 {
-		logging.Infof(ctx, "Using %d disruption window(s) from cluster settings", len(settings.DisruptionWindows))
-		return t.computeStateFromWindows(ctx, now, scheduleDuration, settings.DisruptionWindows)
-	}
-
+func (t *DisruptionForceTask) getReconcileState(ctx context.Context, now time.Time, scheduleDuration time.Duration) ReconcileState {
 	startCron := t.appConfig.DisruptionSettings.WindowStartCron
 	endCron := t.appConfig.DisruptionSettings.WindowEndCron
 	if startCron == "" || endCron == "" {
