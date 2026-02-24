@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/robfig/cron/v3"
+	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -302,6 +303,39 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 			return false, fmt.Errorf("failed to update pod: %w", err)
 		}
 		logging.Infof(ctx, "Updated pod %s/%s", pod.Namespace, pod.Name)
+		if audit.Stg != nil {
+			if state == StateIn {
+				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
+					Type:      types.EventTypeNormal,
+					Automated: true,
+					Category:  types.EventCategoryDisruptionOverride,
+					Source:    "DisruptionForce",
+					Target:    fmt.Sprintf("%s/%s", pod.Namespace, pod.Name),
+					Message:   "DND annotations removed for disruption window",
+					MetaData: types.AuditMetaData{
+						Namespace: pod.Namespace,
+						Kind:      workloadInfo.Kind,
+						Name:      workloadInfo.Name,
+						Extras:    map[string]string{"pod": pod.Name},
+					},
+				})
+			} else {
+				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
+					Type:      types.EventTypeNormal,
+					Automated: true,
+					Category:  types.EventCategoryResourceReverted,
+					Source:    "DisruptionForce",
+					Target:    fmt.Sprintf("%s/%s", pod.Namespace, pod.Name),
+					Message:   "DND annotations restored after disruption window",
+					MetaData: types.AuditMetaData{
+						Namespace: pod.Namespace,
+						Kind:      workloadInfo.Kind,
+						Name:      workloadInfo.Name,
+						Extras:    map[string]string{"pod": pod.Name},
+					},
+				})
+			}
+		}
 	}
 
 	return modified, nil
@@ -355,6 +389,37 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 			return false, fmt.Errorf("failed to update PDB: %w", err)
 		}
 		logging.Infof(ctx, "Updated PDB %s/%s", pdb.Namespace, pdb.Name)
+		if audit.Stg != nil {
+			if state == StateIn {
+				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
+					Type:      types.EventTypeNormal,
+					Automated: true,
+					Category:  types.EventCategoryDisruptionOverride,
+					Source:    "DisruptionForce",
+					Target:    fmt.Sprintf("%s/%s", pdb.Namespace, pdb.Name),
+					Message:   "PDB relaxed for disruption window",
+					MetaData: types.AuditMetaData{
+						Namespace: pdb.Namespace,
+						Kind:      "PodDisruptionBudget",
+						Name:      pdb.Name,
+					},
+				})
+			} else {
+				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
+					Type:      types.EventTypeNormal,
+					Automated: true,
+					Category:  types.EventCategoryResourceReverted,
+					Source:    "DisruptionForce",
+					Target:    fmt.Sprintf("%s/%s", pdb.Namespace, pdb.Name),
+					Message:   "PDB restored after disruption window",
+					MetaData: types.AuditMetaData{
+						Namespace: pdb.Namespace,
+						Kind:      "PodDisruptionBudget",
+						Name:      pdb.Name,
+					},
+				})
+			}
+		}
 	}
 
 	return modified, nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
@@ -50,10 +51,21 @@ func KillswitchHandler(c *gin.Context) {
 		response.DeletedMutatingWebhook = false
 	} else {
 		response.DeletedMutatingWebhook = true
+		if !dryRun && audit.Stg != nil {
+			audit.Stg.Record(ctx, clusterID, types.AuditEvent{
+				Type:      types.EventTypeNormal,
+				Automated: false,
+				Category:  types.EventCategoryConfigChange,
+				Source:    "Killswitch",
+				Target:    fmt.Sprintf("cruisekube-resource-adjuster-%s", clusterID),
+				Message:   "MutatingWebhookConfiguration deleted by user (killswitch)",
+				MetaData:  types.AuditMetaData{},
+			})
+		}
 	}
 
 	// Step 2: kill pods with adjusted resources
-	podsAnalyzed, podsKilled, killedPods, errors := analyzeAndKillPods(ctx, clients.KubeClient, dryRun)
+	podsAnalyzed, podsKilled, killedPods, errors := analyzeAndKillPods(ctx, clients.KubeClient, clusterID, dryRun)
 	response.PodsAnalyzed = podsAnalyzed
 	response.PodsKilled = podsKilled
 	response.KilledPods = append(response.KilledPods, killedPods...)
@@ -95,7 +107,7 @@ func deleteMutatingWebhookConfiguration(ctx context.Context, kubeClient *kuberne
 	return nil
 }
 
-func analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, dryRun bool) (int, int, []string, []string) {
+func analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, clusterID string, dryRun bool) (int, int, []string, []string) {
 	var errors []string
 	var killedPods []string
 	podsAnalyzed := 0
@@ -146,6 +158,22 @@ func analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, d
 				killedPodName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
 				killedPods = append(killedPods, killedPodName)
 				logging.Infof(ctx, "Killed pod %s (reason: %s)", killedPodName, reason)
+				if !dryRun && audit.Stg != nil {
+					audit.Stg.Record(ctx, clusterID, types.AuditEvent{
+						Type:      types.EventTypeNormal,
+						Automated: false,
+						Category:  types.EventCategoryEviction,
+						Source:    "Killswitch",
+						Target:    killedPodName,
+						Message:   "Pod killed by user (killswitch): " + reason,
+						MetaData: types.AuditMetaData{
+							Namespace: pod.Namespace,
+							Kind:      workloadInfo.Kind,
+							Name:      workloadInfo.Name,
+							Extras:    map[string]string{"pod": pod.Name, "reason": reason},
+						},
+					})
+				}
 			} else {
 				errors = append(errors, fmt.Sprintf("Failed to kill pod %s/%s: %s", pod.Namespace, pod.Name, evictErr))
 			}

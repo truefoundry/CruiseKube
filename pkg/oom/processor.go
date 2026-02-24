@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
@@ -82,6 +83,22 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 			remainingCooldown := cooldownDuration - timeSinceLastOOM
 			logging.Infof(ctx, "OOM cooldown active for pod %s/%s (container %s): last OOM was %.1f minutes ago, skipping eviction (%.1f minutes remaining)",
 				oomInfo.Namespace, oomInfo.PodName, oomInfo.ContainerID, timeSinceLastOOM.Minutes(), remainingCooldown.Minutes())
+			if audit.Stg != nil {
+				audit.Stg.Record(ctx, p.clusterID, types.AuditEvent{
+					Type:      types.EventTypeNormal,
+					Automated: true,
+					Category:  types.EventCategoryRecommendationSkipped,
+					Source:    "OOM",
+					Target:    oomInfo.Namespace + "/" + oomInfo.PodName,
+					Message:   "OOM eviction skipped: cooldown active",
+					MetaData: types.AuditMetaData{
+						Namespace: oomInfo.Namespace,
+						Kind:      kind,
+						Name:      workloadName,
+						Extras:    map[string]string{"pod": oomInfo.PodName, "container": containerName},
+					},
+				})
+			}
 			return
 		}
 	}
@@ -108,6 +125,22 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 
 	if err := p.storage.UpdateOOMMemoryForContainer(p.clusterID, workloadID, containerName, oomInfo.LastObservedMemory); err != nil {
 		logging.Warnf(ctx, "Failed to update OOM memory in stats for %s: %v, skipping eviction", oomInfo.ContainerID, err)
+		if audit.Stg != nil {
+			audit.Stg.Record(ctx, p.clusterID, types.AuditEvent{
+				Type:      types.EventTypeWarning,
+				Automated: true,
+				Category:  types.EventCategoryRecommendationSkipped,
+				Source:    "OOM",
+				Target:    oomInfo.Namespace + "/" + oomInfo.PodName,
+				Message:   "OOM eviction skipped: failed to update OOM memory in stats",
+				MetaData: types.AuditMetaData{
+					Namespace: oomInfo.Namespace,
+					Kind:      kind,
+					Name:      workloadName,
+					Extras:    map[string]string{"pod": oomInfo.PodName, "container": containerName, "error": err.Error()},
+				},
+			})
+		}
 		return
 	}
 	logging.Infof(ctx, "Updated OOM memory in stats for workload=%s, container=%s: %d bytes",
@@ -115,6 +148,22 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 
 	if p.cfg.RecommendationSettings.DisableMemoryApplication {
 		logging.Infof(ctx, "Memory application is disabled in configuration, skipping eviction for pod %s/%s", oomInfo.Namespace, oomInfo.PodName)
+		if audit.Stg != nil {
+			audit.Stg.Record(ctx, p.clusterID, types.AuditEvent{
+				Type:      types.EventTypeNormal,
+				Automated: true,
+				Category:  types.EventCategoryRecommendationSkipped,
+				Source:    "OOM",
+				Target:    oomInfo.Namespace + "/" + oomInfo.PodName,
+				Message:   "OOM eviction skipped: memory application disabled in configuration",
+				MetaData: types.AuditMetaData{
+					Namespace: oomInfo.Namespace,
+					Kind:      kind,
+					Name:      workloadName,
+					Extras:    map[string]string{"pod": oomInfo.PodName, "container": containerName},
+				},
+			})
+		}
 		return
 	}
 
@@ -126,6 +175,22 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 
 	if utils.PodExcludedByAnnotation(pod) {
 		logging.Infof(ctx, "Pod %s/%s has cruisekube excluded annotation, skipping eviction", oomInfo.Namespace, oomInfo.PodName)
+		if audit.Stg != nil {
+			audit.Stg.Record(ctx, p.clusterID, types.AuditEvent{
+				Type:      types.EventTypeNormal,
+				Automated: true,
+				Category:  types.EventCategoryRecommendationSkipped,
+				Source:    "OOM",
+				Target:    oomInfo.Namespace + "/" + oomInfo.PodName,
+				Message:   "OOM eviction skipped: pod has cruisekube excluded annotation",
+				MetaData: types.AuditMetaData{
+					Namespace: oomInfo.Namespace,
+					Kind:      kind,
+					Name:      workloadName,
+					Extras:    map[string]string{"pod": oomInfo.PodName, "container": containerName},
+				},
+			})
+		}
 		return
 	}
 
@@ -138,6 +203,22 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 			logging.Warnf(ctx, "Failed to fetch workload overrides for %s, proceeding with eviction: %v", workloadID, err)
 		} else if workloadOverrides.Enabled == nil || !*workloadOverrides.Enabled {
 			logging.Infof(ctx, "Workload %s is not enabled for apply mode (recommend-only by default), skipping eviction", workloadID)
+			if audit.Stg != nil {
+				audit.Stg.Record(ctx, p.clusterID, types.AuditEvent{
+					Type:      types.EventTypeNormal,
+					Automated: true,
+					Category:  types.EventCategoryRecommendationSkipped,
+					Source:    "OOM",
+					Target:    oomInfo.Namespace + "/" + oomInfo.PodName,
+					Message:   "OOM eviction skipped: workload not enabled for apply mode",
+					MetaData: types.AuditMetaData{
+						Namespace: oomInfo.Namespace,
+						Kind:      workloadInfo.Kind,
+						Name:      workloadInfo.Name,
+						Extras:    map[string]string{"pod": oomInfo.PodName, "container": containerName, "workload_id": workloadID},
+					},
+				})
+			}
 			return
 		}
 	}
@@ -150,4 +231,20 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	}
 
 	logging.Infof(ctx, "Successfully evicted pod %s/%s after OOM. New pod will be created with updated memory recommendations via webhook", oomInfo.Namespace, oomInfo.PodName)
+	if audit.Stg != nil {
+		audit.Stg.Record(ctx, p.clusterID, types.AuditEvent{
+			Type:      types.EventTypeNormal,
+			Automated: true,
+			Category:  types.EventCategoryEviction,
+			Source:    "OOM",
+			Target:    oomInfo.Namespace + "/" + oomInfo.PodName,
+			Message:   "Pod evicted after OOM; new pod will receive updated memory via webhook",
+			MetaData: types.AuditMetaData{
+				Namespace: oomInfo.Namespace,
+				Kind:      kind,
+				Name:      workloadName,
+				Extras:    map[string]string{"pod": oomInfo.PodName, "container": containerName, "node": oomInfo.NodeName},
+			},
+		})
+	}
 }

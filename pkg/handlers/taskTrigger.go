@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/types"
 	"go.opentelemetry.io/otel/attribute"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
@@ -44,6 +46,18 @@ func HandleTaskTrigger(c *gin.Context) {
 	}
 
 	logging.Infof(ctx, "Manual trigger - executing task '%s'", taskName)
+
+	if audit.Stg != nil {
+		audit.Stg.Record(ctx, clusterID, types.AuditEvent{
+			Type:      types.EventTypeNormal,
+			Automated: false,
+			Category:  types.EventCategorySystemEvent,
+			Source:    "TaskTrigger",
+			Target:    taskName,
+			Message:   fmt.Sprintf("Manual task trigger: %s by %s", taskName, c.ClientIP()),
+			MetaData:  types.AuditMetaData{Extras: map[string]string{"task": taskName, "client_ip": c.ClientIP()}},
+		})
+	}
 
 	startedAt := time.Now()
 

@@ -83,6 +83,9 @@ func (s *GormDB) createTables() error {
 	if err := s.db.AutoMigrate(&PodResourceRecommendation{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate PodResourceRecommendation: %w", err)
 	}
+	if err := s.db.AutoMigrate(&AuditEventRow{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate AuditEventRow: %w", err)
+	}
 	return nil
 }
 
@@ -502,4 +505,33 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 		})
 	}
 	return rows, nil
+}
+
+func (s *GormDB) InsertAuditEvent(clusterID string, event types.AuditEvent) error {
+	metaExtras := "{}"
+	if len(event.MetaData.Extras) > 0 {
+		b, err := json.Marshal(event.MetaData.Extras)
+		if err != nil {
+			return fmt.Errorf("failed to marshal audit metadata extras: %w", err)
+		}
+		metaExtras = string(b)
+	}
+	row := AuditEventRow{
+		ClusterID:  clusterID,
+		Timestamp:  event.Timestamp.UTC(),
+		Type:       string(event.Type),
+		Automated:  event.Automated,
+		Category:   string(event.Category),
+		Source:     event.Source,
+		Target:     event.Target,
+		Message:    event.Message,
+		Namespace:  event.MetaData.Namespace,
+		Kind:       event.MetaData.Kind,
+		Name:       event.MetaData.Name,
+		MetaExtras: metaExtras,
+	}
+	if err := s.db.Create(&row).Error; err != nil {
+		return fmt.Errorf("failed to insert audit event: %w", err)
+	}
+	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"math"
 
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
+	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
@@ -245,6 +246,26 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				logging.Infof(ctx, "Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				if applyChanges {
 					utils.EvictPod(ctx, a.kubeClient, freshPod)
+					if audit.Stg != nil {
+						workloadID := ""
+						if rec.PodInfo.Stats != nil {
+							workloadID = rec.PodInfo.Stats.WorkloadIdentifier
+						}
+						audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
+							Type:      types.EventTypeNormal,
+							Automated: true,
+							Category:  types.EventCategoryEviction,
+							Source:    "ApplyRecommendation",
+							Target:    fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name),
+							Message:   "Pod evicted for resource optimization",
+							MetaData: types.AuditMetaData{
+								Namespace: rec.PodInfo.Namespace,
+								Kind:      "Pod",
+								Name:      rec.PodInfo.Name,
+								Extras:    map[string]string{"workload_id": workloadID, "node": nodeName},
+							},
+						})
+					}
 				}
 				continue
 			}
@@ -262,6 +283,22 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 			if applied {
 				appliedRecommendations[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = rec
+				if audit.Stg != nil && rec.PodInfo.Stats != nil {
+					audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
+						Type:      types.EventTypeNormal,
+						Automated: true,
+						Category:  types.EventCategoryResourceApplied,
+						Source:    "ApplyRecommendation.CPU",
+						Target:    fmt.Sprintf("%s/%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
+						Message:   "CPU recommendation applied",
+						MetaData: types.AuditMetaData{
+							Namespace: rec.PodInfo.Namespace,
+							Kind:      rec.PodInfo.Stats.Kind,
+							Name:      rec.PodInfo.Stats.Name,
+							Extras:    map[string]string{"pod": rec.PodInfo.Name, "container": rec.ContainerName},
+						},
+					})
+				}
 			}
 
 			if !a.config.RecommendationSettings.DisableMemoryApplication && !a.config.Metadata.SkipMemory {
@@ -274,6 +311,22 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 
 				if applied {
 					appliedRecommendations[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = rec
+					if audit.Stg != nil && rec.PodInfo.Stats != nil {
+						audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
+							Type:      types.EventTypeNormal,
+							Automated: true,
+							Category:  types.EventCategoryResourceApplied,
+							Source:    "ApplyRecommendation.Memory",
+							Target:    fmt.Sprintf("%s/%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
+							Message:   "Memory recommendation applied",
+							MetaData: types.AuditMetaData{
+								Namespace: rec.PodInfo.Namespace,
+								Kind:      rec.PodInfo.Stats.Kind,
+								Name:      rec.PodInfo.Stats.Name,
+								Extras:    map[string]string{"pod": rec.PodInfo.Name, "container": rec.ContainerName},
+							},
+						})
+					}
 				}
 			} else {
 				logging.Infof(ctx, "Skipping memory recommendation application for pod since memory recommendationapplication is disabled: %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
@@ -319,7 +372,24 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	}
 	currentMemoryRequest := float64(currentMemoryRequestQuantity.Value()) / utils.BytesToMBDivisor
 	if math.Abs(currentMemoryRequest-containerResource.MemoryRequest) > utils.MinimumMemoryRecommendation {
-		logging.Infof(ctx, "pod %s/%s memory has changed too much from %.1f MB to %.1f MB, skipping applying memory recommendation", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, containerResource.MemoryRequest)
+		msg := fmt.Sprintf("memory changed too much from %.1f MB to %.1f MB", currentMemoryRequest, containerResource.MemoryRequest)
+		logging.Infof(ctx, "pod %s/%s %s, skipping applying memory recommendation", rec.PodInfo.Namespace, rec.PodInfo.Name, msg)
+		if audit.Stg != nil && rec.PodInfo.Stats != nil {
+			audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
+				Type:      types.EventTypeNormal,
+				Automated: true,
+				Category:  types.EventCategoryRecommendationSkipped,
+				Source:    "ApplyRecommendation.Memory",
+				Target:    fmt.Sprintf("%s/%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
+				Message:   msg,
+				MetaData: types.AuditMetaData{
+					Namespace: rec.PodInfo.Namespace,
+					Kind:      rec.PodInfo.Stats.Kind,
+					Name:      rec.PodInfo.Stats.Name,
+					Extras:    map[string]string{"pod": rec.PodInfo.Name, "container": rec.ContainerName},
+				},
+			})
+		}
 		return false, true, nil
 	}
 
@@ -381,7 +451,24 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 		return false, fmt.Errorf("error getting container resource for pod %s/%s: %w", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 	}
 	if math.Abs(currentCPURequest-containerResource.CPURequest) > utils.MinimumCPURecommendation {
-		logging.Infof(ctx, "pod %s/%s cpu has changed too much from %.1f to %.1f, skipping applying cpu recommendation", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, containerResource.CPURequest)
+		msg := fmt.Sprintf("cpu changed too much from %.1f to %.1f", currentCPURequest, containerResource.CPURequest)
+		logging.Infof(ctx, "pod %s/%s %s, skipping applying cpu recommendation", rec.PodInfo.Namespace, rec.PodInfo.Name, msg)
+		if audit.Stg != nil && rec.PodInfo.Stats != nil {
+			audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
+				Type:      types.EventTypeNormal,
+				Automated: true,
+				Category:  types.EventCategoryRecommendationSkipped,
+				Source:    "ApplyRecommendation.CPU",
+				Target:    fmt.Sprintf("%s/%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
+				Message:   msg,
+				MetaData: types.AuditMetaData{
+					Namespace: rec.PodInfo.Namespace,
+					Kind:      rec.PodInfo.Stats.Kind,
+					Name:      rec.PodInfo.Stats.Name,
+					Extras:    map[string]string{"pod": rec.PodInfo.Name, "container": rec.ContainerName},
+				},
+			})
+		}
 		return false, nil
 	}
 
@@ -517,6 +604,22 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 		apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, override, input, nil)
 		if !apply {
 			logging.Infof(ctx, "Skipping pod %s/%s: %s", podInfo.Namespace, podInfo.Name, reason)
+			if audit.Stg != nil && podInfo.Stats != nil {
+				audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
+					Type:      types.EventTypeNormal,
+					Automated: true,
+					Category:  types.EventCategoryRecommendationSkipped,
+					Source:    "ApplyRecommendation",
+					Target:    fmt.Sprintf("%s/%s", podInfo.Namespace, podInfo.Name),
+					Message:   reason,
+					MetaData: types.AuditMetaData{
+						Namespace: podInfo.Namespace,
+						Kind:      podInfo.Stats.Kind,
+						Name:      podInfo.Stats.Name,
+						Extras:    map[string]string{"pod": podInfo.Name, "workload_id": podInfo.Stats.WorkloadIdentifier},
+					},
+				})
+			}
 			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
 				PodInfo:       podInfo,
 				PodName:       podInfo.Name,

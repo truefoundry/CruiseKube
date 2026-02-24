@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/config"
@@ -104,6 +105,22 @@ func HandleMutatingPatch(c *gin.Context) {
 	apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overrideInfo, input, &pod)
 	if !apply {
 		logging.Infof(ctx, "Skipping recommendation for pod %s/%s: %s", pod.Namespace, getPodName(&pod), reason)
+		if audit.Stg != nil {
+			audit.Stg.Record(ctx, clusterID, types.AuditEvent{
+				Type:      types.EventTypeNormal,
+				Automated: true,
+				Category:  types.EventCategoryRecommendationSkipped,
+				Source:    "AdmissionWebhook",
+				Target:    fmt.Sprintf("%s/%s", pod.Namespace, getPodName(&pod)),
+				Message:   reason,
+				MetaData: types.AuditMetaData{
+					Namespace: pod.Namespace,
+					Kind:      workloadInfo.Kind,
+					Name:      workloadInfo.Name,
+					Extras:    map[string]string{"pod": getPodName(&pod), "workload_id": workloadKey},
+				},
+			})
+		}
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
@@ -113,6 +130,22 @@ func HandleMutatingPatch(c *gin.Context) {
 		logging.Errorf(ctx, "Failed to adjust resources for pod %s/%s: %v", pod.Namespace, getPodName(&pod), err)
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
+	}
+	if len(patches) > 0 && audit.Stg != nil {
+		audit.Stg.Record(ctx, clusterID, types.AuditEvent{
+			Type:      types.EventTypeNormal,
+			Automated: true,
+			Category:  types.EventCategoryWebhookMutation,
+			Source:    "AdmissionWebhook",
+			Target:    fmt.Sprintf("%s/%s", pod.Namespace, getPodName(&pod)),
+			Message:   "Pod mutated with resource recommendations",
+			MetaData: types.AuditMetaData{
+				Namespace: pod.Namespace,
+				Kind:      workloadInfo.Kind,
+				Name:      workloadInfo.Name,
+				Extras:    map[string]string{"pod": getPodName(&pod), "workload_id": workloadKey, "patch_count": fmt.Sprintf("%d", len(patches))},
+			},
+		})
 	}
 	c.JSON(http.StatusOK, patches)
 }

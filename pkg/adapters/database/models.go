@@ -55,3 +55,25 @@ type PodResourceRecommendation struct {
 func (PodResourceRecommendation) TableName() string {
 	return "pod_resource_recommendations"
 }
+
+// AuditEventRow is the DB row for an audit event (one table with cluster_id index for per-cluster logical partitioning).
+type AuditEventRow struct {
+	ID         uint      `gorm:"column:id;primaryKey;autoIncrement"`
+	ClusterID  string    `gorm:"column:cluster_id;index;not null"`
+	Timestamp  time.Time `gorm:"column:timestamp;index;not null"`
+	Type       string    `gorm:"column:type;not null"`
+	Automated  bool      `gorm:"column:automated;not null"`
+	Category   string    `gorm:"column:category;index;not null"`
+	Source     string    `gorm:"column:source;not null"`
+	Target     string    `gorm:"column:target"`
+	Message    string    `gorm:"column:message;not null"`
+	Namespace  string    `gorm:"column:namespace"`
+	Kind       string    `gorm:"column:kind"`
+	Name       string    `gorm:"column:name"`
+	MetaExtras string    `gorm:"column:meta_extras;default:'{}'"`
+	CreatedAt  time.Time `gorm:"column:created_at;autoCreateTime"`
+}
+
+func (AuditEventRow) TableName() string {
+	return "audit_events"
+}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/truefoundry/cruisekube/pkg/adapters/database"
 	"github.com/truefoundry/cruisekube/pkg/adapters/kube"
+	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/config"
@@ -183,6 +184,8 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 	}
 	logging.Infof(ctx, "Storage Repo initialized")
 	storage.Stg = storageRepo
+
+	audit.Stg = audit.NewAudit(databaseAdapter, audit.Options{})
 
 	////////
 	// Initialize Modes
