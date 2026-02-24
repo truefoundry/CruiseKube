@@ -187,7 +187,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		}
 		recommendationResults = append(recommendationResults, recommendationResult)
 
-		optimizablePods, nonOptimizablePods := a.segregateOptimizableNonOptimizablePods(ctx, nodeInfo.Pods, overridesMap)
+		optimizablePods, nonOptimizablePods := a.segregateOptimizableNonOptimizablePods(ctx, nodeInfo.Pods)
 		recommendationResult.NonOptimizablePods = nonOptimizablePods
 
 		metrics.ClusterNonOptimizablePodsCount.WithLabelValues(a.config.ClusterID, nodeName).Set(float64(len(nonOptimizablePods)))
@@ -246,10 +246,17 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				continue
 			}
 
+			isCruiseModeEnabled := false
+			if rec.PodInfo.Stats != nil {
+				if o, ok := overridesMap[rec.PodInfo.Stats.WorkloadIdentifier]; ok {
+					isCruiseModeEnabled = o.EffectiveEnabled()
+				}
+			}
+
 			if utils.ToBeEvicted(rec) {
 				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
 				logging.Infof(ctx, "Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
-				if applyChanges {
+				if applyChanges && isCruiseModeEnabled {
 					utils.EvictPod(ctx, a.kubeClient, freshPod)
 				}
 				continue
@@ -262,7 +269,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				}
 			}
 
-			applied, err := a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges, nodeInfo.AllocatableCPU)
+			applied, err := a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges && isCruiseModeEnabled, nodeInfo.AllocatableCPU)
 			if err != nil {
 				logging.Errorf(ctx, "Error applying CPU recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 			}
@@ -271,7 +278,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 
 			if !a.config.RecommendationSettings.DisableMemoryApplication && !a.config.Metadata.SkipMemory {
-				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges, supportsMemoryReduction)
+				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges && isCruiseModeEnabled, supportsMemoryReduction)
 				if skipped {
 					logging.Infof(ctx, "Skipping memory recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 				} else if err != nil {
@@ -451,7 +458,7 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 	var recommendedRequestedCPU, recommendedRequestedMemory float64
 
 	currentUtilizedCPU = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterCPUUtilizationExpression())
-	currentUtilizedMemory = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterMemoryUtilizationExpression()) / utils.BytesToMBDivisor
+	currentUtilizedMemory = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterMemoryUtilizationExpression())
 
 	podKeys := make(map[string]struct{})
 	for _, res := range recommendationResults {
@@ -483,15 +490,20 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 		RecommendedRequested: recommendedRequestedCPU,
 	}
 	memory := types.NodeSnapshotResourceMetrics{
-		CurrentAllocatable:   currentAllocatableMemory,
-		CurrentRequested:     currentRequestedMemory,
+		CurrentAllocatable:   currentAllocatableMemory / 1000.0,
+		CurrentRequested:     currentRequestedMemory / 1000.0,
 		CurrentUtilized:      currentUtilizedMemory,
-		WorkloadRequested:    workloadRequestedMemory,
-		RecommendedRequested: recommendedRequestedMemory,
+		WorkloadRequested:    workloadRequestedMemory / 1000.0,
+		RecommendedRequested: recommendedRequestedMemory / 1000.0,
 	}
 
 	if currentUtilizedCPU == 0 || currentUtilizedMemory == 0 {
 		logging.Warnf(ctx, "snapshot: no CPU/Memory utilization found from prometheus, skipping snapshot")
+		return nil
+	}
+
+	if len(podKeys) == 0 {
+		logging.Warnf(ctx, "snapshot: no pods were recommended, skipping snapshot")
 		return nil
 	}
 
@@ -567,7 +579,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 	return rows
 }
 
-func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx context.Context, allPodInfos []utils.PodInfo, overridesMap map[string]*types.WorkloadOverrideInfo) ([]utils.PodInfo, []utils.NonOptimizablePodInfo) {
+func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx context.Context, allPodInfos []utils.PodInfo) ([]utils.PodInfo, []utils.NonOptimizablePodInfo) {
 	optimizablePods := make([]utils.PodInfo, 0)
 	nonOptimizablePods := make([]utils.NonOptimizablePodInfo, 0)
 
@@ -583,14 +595,7 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 	}
 
 	for _, podInfo := range allPodInfos {
-		var override *types.WorkloadOverrideInfo
-		if podInfo.Stats != nil {
-			if o, ok := overridesMap[podInfo.Stats.WorkloadIdentifier]; ok {
-				override = o
-			}
-		}
-
-		apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, override, input, nil)
+		apply, reason := utils.ShouldGenerateRecommendation(ctx, &podInfo, input, nil)
 		if !apply {
 			logging.Infof(ctx, "Skipping pod %s/%s: %s", podInfo.Namespace, podInfo.Name, reason)
 			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
