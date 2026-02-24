@@ -91,7 +91,7 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	state := t.getReconcileState(ctx, now, scheduleDuration)
 	logging.Infof(ctx, "Reconcile state: %v", state)
 
-	workloads, err := t.storage.GetWorkloadsInCluster(t.config.ClusterID, time.Time{})
+	workloads, err := t.storage.GetWorkloadsInCluster(t.config.ClusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get workloads: %v", err)
 		return fmt.Errorf("failed to get workloads: %w", err)

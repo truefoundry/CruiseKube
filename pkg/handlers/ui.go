@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
@@ -18,9 +17,7 @@ func ListWorkloadsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 	logging.Infof(ctx, "Listing workloads for cluster %s", clusterID)
-	// Only return workloads with data updated in the last 24 hours
-	since := time.Now().Add(-StatsAPIDataLookbackWindow)
-	stats, err := storage.Stg.GetAllStatsForClusterUpdatedSince(clusterID, since)
+	stats, err := storage.Stg.GetAllStatsForCluster(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get stats for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{

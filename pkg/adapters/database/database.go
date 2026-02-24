@@ -176,38 +176,11 @@ func (s *GormDB) GetStatsForCluster(clusterID string) ([]types.WorkloadStat, err
 	return stats, nil
 }
 
-func (s *GormDB) GetStatsForClusterUpdatedSince(clusterID string, since time.Time) ([]types.WorkloadStat, error) {
+func (s *GormDB) GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCluster, error) {
 	var rows []Workload
 	err := s.db.Where(&Workload{ClusterID: clusterID}).
-		Where("updated_at > ?", since).
 		Order("updated_at DESC").
 		Find(&rows).Error
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to query cluster stats: %w", err)
-	}
-
-	var stats []types.WorkloadStat
-	for _, row := range rows {
-		var stat types.WorkloadStat
-		if err := json.Unmarshal([]byte(row.Stats), &stat); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal stats: %w", err)
-		}
-
-		stat.UpdatedAt = row.UpdatedAt
-		stats = append(stats, stat)
-	}
-
-	return stats, nil
-}
-
-func (s *GormDB) GetWorkloadsInCluster(clusterID string, since time.Time) ([]*types.WorkloadInCluster, error) {
-	var rows []Workload
-	q := s.db.Where(&Workload{ClusterID: clusterID})
-	if !since.IsZero() {
-		q = q.Where("updated_at > ?", since)
-	}
-	err := q.Order("updated_at DESC").Find(&rows).Error
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query workloads for cluster: %w", err)
@@ -332,6 +305,19 @@ func (s *GormDB) DeleteWorkload(clusterID, workloadID string) error {
 	}
 
 	return nil
+}
+
+func (s *GormDB) DeleteWorkloadsNotInCluster(clusterID string, keepIDs []string) (int, error) {
+	var result *gorm.DB
+	if len(keepIDs) == 0 {
+		result = s.db.Where("cluster_id = ?", clusterID).Delete(&Workload{})
+	} else {
+		result = s.db.Where("cluster_id = ? AND workload_id NOT IN ?", clusterID, keepIDs).Delete(&Workload{})
+	}
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to bulk delete stale workloads: %w", result.Error)
+	}
+	return int(result.RowsAffected), nil
 }
 
 func (s *GormDB) UpdateStatOverridesForWorkload(clusterID, workloadID string, overrides *types.Overrides) error {
