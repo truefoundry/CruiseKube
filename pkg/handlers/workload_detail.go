@@ -6,7 +6,6 @@ import (
 	"math"
 	"net/http"
 	"sort"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -33,10 +32,8 @@ func HandleWorkloadDetail(c *gin.Context) {
 	namespace := c.Param("namespace")
 	workloadName := c.Param("workloadName")
 
-	since := time.Now().Add(-StatsAPIDataLookbackWindow)
-
 	// 1. Get workload (type + current container requests) from workloads table
-	workloads, err := storage.Stg.GetWorkloadsInCluster(clusterID, since)
+	workloads, err := storage.Stg.GetWorkloadsInCluster(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{

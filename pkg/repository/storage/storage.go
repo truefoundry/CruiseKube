@@ -42,16 +42,6 @@ func (s *Storage) ReadClusterStats(clusterID string, target *types.StatsResponse
 	return nil
 }
 
-func (s *Storage) ReadClusterStatsUpdatedSince(clusterID string, target *types.StatsResponse, since time.Time) error {
-	stats, err := s.DB.GetStatsForClusterUpdatedSince(clusterID, since)
-	if err != nil {
-		return fmt.Errorf("failed to read cluster stats: %w", err)
-	}
-
-	target.Stats = stats
-	return nil
-}
-
 func (s *Storage) ClusterStatsExists(clusterID string) (bool, error) {
 	exists, err := s.DB.HasCluster(clusterID)
 	if err != nil {
@@ -98,23 +88,28 @@ func (s *Storage) GetAllStatsForCluster(clusterID string) ([]types.WorkloadStat,
 	return stats, nil
 }
 
-// GetWorkloadsInCluster returns workloads for a cluster (stat + overrides) in a single DB call.
-// If since is non-zero, only workloads updated after since are returned.
+// GetWorkloadsInCluster returns all workloads for a cluster (stat + overrides) in a single DB call.
 // Use methods on each WorkloadInCluster to get Stat, Overrides, or OverridesWithDefaults().
-func (s *Storage) GetWorkloadsInCluster(clusterID string, since time.Time) ([]*types.WorkloadInCluster, error) {
-	workloads, err := s.DB.GetWorkloadsInCluster(clusterID, since)
+func (s *Storage) GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCluster, error) {
+	workloads, err := s.DB.GetWorkloadsInCluster(clusterID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workloads for cluster: %w", err)
 	}
 	return workloads, nil
 }
 
-func (s *Storage) GetAllStatsForClusterUpdatedSince(clusterID string, since time.Time) ([]types.WorkloadStat, error) {
-	stats, err := s.DB.GetStatsForClusterUpdatedSince(clusterID, since)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get stats for cluster: %w", err)
+// DeleteStaleWorkloads removes workloads from the DB that are no longer present in the cluster.
+// currentWorkloadIds is the complete set of workload keys currently observed in the cluster.
+func (s *Storage) DeleteStaleWorkloads(clusterID string, currentWorkloadIds map[string]struct{}) (int, error) {
+	keepIDs := make([]string, 0, len(currentWorkloadIds))
+	for id := range currentWorkloadIds {
+		keepIDs = append(keepIDs, id)
 	}
-	return stats, nil
+	deleted, err := s.DB.DeleteWorkloadsNotInCluster(clusterID, keepIDs)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete stale workloads: %w", err)
+	}
+	return deleted, nil
 }
 
 // OOM Event Methods

@@ -18,9 +18,7 @@ type Database interface {
 
 	// Get
 	GetStatsForCluster(clusterID string) ([]types.WorkloadStat, error)
-	GetStatsForClusterUpdatedSince(clusterID string, since time.Time) ([]types.WorkloadStat, error)
-	// GetWorkloadsInCluster returns workloads for a cluster. If since is non-zero, only workloads updated after since are returned.
-	GetWorkloadsInCluster(clusterID string, since time.Time) ([]*types.WorkloadInCluster, error)
+	GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCluster, error)
 	GetStatForWorkload(clusterID, workloadID string) (*types.WorkloadStat, error)
 	GetStatCountForCluster(clusterID string) (int, error)
 	GetStatOverridesForWorkload(clusterID, workloadID string) (*types.Overrides, error)
@@ -28,6 +26,7 @@ type Database interface {
 	// Delete
 	DeleteWorkloadsForCluster(clusterID string) error
 	DeleteWorkload(clusterID, workloadID string) error
+	DeleteWorkloadsNotInCluster(clusterID string, keepIDs []string) (int, error)
 
 	// Update
 	UpdateStatOverridesForWorkload(clusterID, workloadID string, overrides *types.Overrides) error
