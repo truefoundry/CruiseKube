@@ -75,7 +75,7 @@ func ShouldApplyRecommendationToPod(
 
 // ComputeRecommendedResourceValues returns recommended CPU request, memory request, CPU limit, memory limit
 // for a container recommendation. allocatableCPU is used for CPU limit (e.g. node allocatable or a default).
-func ComputeRecommendedResourceValues(rec PodContainerRecommendation, allocatableCPU float64) (float64, float64, float64, float64) {
+func ComputeRecommendedResourceValues(ctx context.Context, rec PodContainerRecommendation, allocatableCPU float64) (float64, float64, float64, float64) {
 	cpuRequest := EnforceMinimumCPU(rec.CPU)
 	if cpuRequest > CPUClampValue {
 		cpuRequest = CPUClampValue
@@ -96,7 +96,7 @@ func ComputeRecommendedResourceValues(rec PodContainerRecommendation, allocatabl
 			memoryLimit = EnforceMinimumMemory(max(memMax, oom) * 2)
 		}
 	} else {
-		logging.Warnf(context.Background(), "No stats for container %s", rec.ContainerName)
+		logging.Warnf(ctx, "No stats for container %s", rec.ContainerName)
 	}
 	return cpuRequest, memoryRequest, cpuLimit, memoryLimit
 }

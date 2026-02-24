@@ -306,7 +306,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 ) (bool, bool, error) {
 	// We use to set the max limit
 	allocatableCPU := 0.0
-	_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(rec, allocatableCPU)
+	_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
 
 	containerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
 	if err != nil {
@@ -388,7 +388,7 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 	currentCPULimitQuantity := currentContainerResources.Limits[corev1.ResourceCPU]
 	currentCPULimit := float64(currentCPULimitQuantity.MilliValue()) / 1000.0
 
-	recommendedCPURequest, _, recommendedCPULimit, _ := utils.ComputeRecommendedResourceValues(rec, allocatableCPU)
+	recommendedCPURequest, _, recommendedCPULimit, _ := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
 	if currentCPULimit == 0.0 {
 		recommendedCPULimit = 0.0
 	}
@@ -445,7 +445,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 				kind, namespace, name = rec.PodInfo.Stats.Kind, rec.PodInfo.Stats.Namespace, rec.PodInfo.Stats.Name
 			}
 			workloadID := utils.GetWorkloadKey(kind, namespace, name)
-			cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(rec, allocatableCPU)
+			cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
 			payload := types.PodResourceRecommendation{
 				CPURequest:    cpuRequest,
 				MemoryRequest: memoryRequest,
