@@ -232,6 +232,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 
 		podsToEvict := make(map[string]bool)
 		appliedRecommendations := make(map[string]utils.PodContainerRecommendation)
+		headroomPatchedPods := make(map[string]bool)
 
 		for _, rec := range result {
 			freshPod, found := podsOnNode[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]
@@ -247,6 +248,19 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					utils.EvictPod(ctx, a.kubeClient, freshPod)
 				}
 				continue
+			}
+
+			podKey := utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)
+			if applyChanges && !headroomPatchedPods[podKey] {
+				cpuCat, memCat := utils.HeadroomCategories(rec.PodInfo.Stats)
+				if cpuCat != "" || memCat != "" {
+					patched, errStr := utils.PatchPodHeadroomLabelsAndAffinity(ctx, a.kubeClient, freshPod, cpuCat, memCat)
+					if errStr != "" {
+						logging.Errorf(ctx, "Failed to patch pod %s headroom labels/affinity: %s", podKey, errStr)
+					} else if patched {
+						headroomPatchedPods[podKey] = true
+					}
+				}
 			}
 
 			var currentContainerResources corev1.ResourceRequirements

@@ -146,6 +146,82 @@ func UpdatePodMemoryResources(
 	)
 }
 
+func HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory string) []corev1.WeightedPodAffinityTerm {
+	var terms []corev1.WeightedPodAffinityTerm
+	if cpuCategory != "" {
+		terms = append(terms, corev1.WeightedPodAffinityTerm{
+			Weight: 100,
+			PodAffinityTerm: corev1.PodAffinityTerm{
+				LabelSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{{
+						Key:      HeadroomGroupCPULabel,
+						Operator: metav1.LabelSelectorOpIn,
+						Values:   []string{cpuCategory},
+					}},
+				},
+				TopologyKey: "kubernetes.io/hostname",
+			},
+		})
+	}
+	if memoryCategory != "" {
+		terms = append(terms, corev1.WeightedPodAffinityTerm{
+			Weight: 100,
+			PodAffinityTerm: corev1.PodAffinityTerm{
+				LabelSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{{
+						Key:      HeadroomGroupMemoryLabel,
+						Operator: metav1.LabelSelectorOpIn,
+						Values:   []string{memoryCategory},
+					}},
+				},
+				TopologyKey: "kubernetes.io/hostname",
+			},
+		})
+	}
+	return terms
+}
+
+func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, kubeClient *kubernetes.Clientset, pod *corev1.Pod, cpuCategory, memoryCategory string) (bool, string) {
+	if cpuCategory == "" && memoryCategory == "" {
+		return false, ""
+	}
+	labels := make(map[string]string)
+	for k, v := range pod.Labels {
+		labels[k] = v
+	}
+	if cpuCategory != "" {
+		labels[HeadroomGroupCPULabel] = cpuCategory
+	}
+	if memoryCategory != "" {
+		labels[HeadroomGroupMemoryLabel] = memoryCategory
+	}
+	merged := &corev1.Affinity{}
+	if pod.Spec.Affinity != nil {
+		merged = pod.Spec.Affinity.DeepCopy()
+	}
+	if merged.PodAffinity == nil {
+		merged.PodAffinity = &corev1.PodAffinity{}
+	}
+	merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(
+		merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution,
+		HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory)...,
+	)
+	patch := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Labels: labels},
+		Spec: corev1.PodSpec{Affinity: merged},
+	}
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return false, fmt.Sprintf("failed to marshal headroom patch: %v", err)
+	}
+	_, err = kubeClient.CoreV1().Pods(pod.Namespace).Patch(ctx, pod.Name, k8stypes.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	if err != nil {
+		logging.Errorf(ctx, "Failed to patch pod %s/%s headroom labels/affinity: %v", pod.Namespace, pod.Name, err)
+		return false, fmt.Sprintf("failed to patch pod headroom: %v", err)
+	}
+	return true, ""
+}
+
 func EvictPod(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.Pod) (bool, string) {
 	eviction := &policyv1.Eviction{
 		ObjectMeta: metav1.ObjectMeta{

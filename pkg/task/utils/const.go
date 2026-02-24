@@ -11,6 +11,21 @@ const (
 )
 
 const (
+	HeadroomGroupCPULabel    = "cruisekube.com/headroom-group-cpu"
+	HeadroomGroupMemoryLabel = "cruisekube.com/headroom-group-memory"
+	HeadroomCategoryHigh     = "high"
+	HeadroomCategoryMedium   = "medium"
+	HeadroomCategoryLow      = "low"
+)
+
+const (
+	SpikeCPUHighThresholdCores   = 1.0
+	SpikeCPUMediumThresholdCores = 0.1
+	SpikeMemoryHighThresholdMB   = 10000
+	SpikeMemoryMediumThresholdMB = 1000
+)
+
+const (
 	TrueValue  = "true"
 	FalseValue = "false"
 )
