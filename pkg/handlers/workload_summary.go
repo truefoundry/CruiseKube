@@ -360,27 +360,29 @@ func getWorkloadsData(ctx context.Context, clusterID string) (details []types.Wo
 		podsRecsForWorkload := recsByWorkload[w.WorkloadID]
 		agg := aggregateRecsForWorkload(podsRecsForWorkload)
 
+		workloadPodCPURequest := stat.CalculateTotalCPURequest()
+		workloadTotalMemoryRequest := stat.CalculateTotalMemoryRequest()
 		replicas := float64(stat.Replicas)
 		if replicas <= 0 {
 			replicas = 1
 		}
-		currentCPU := stat.CalculateTotalCPURequest() * replicas
-		currentMem := stat.CalculateTotalMemoryRequest() * replicas
+		currentCPU := workloadPodCPURequest * replicas
+		currentMem := workloadTotalMemoryRequest * replicas
 		clusterReqCPU += currentCPU
 		clusterReqMem += currentMem
 		clusterRecCPU += agg.TotalCPU
 		clusterRecMem += agg.TotalMem
 
 		detail.CPU = types.WorkloadCPU{
-			Current: stat.CalculateTotalCPURequest(),
+			Current: workloadPodCPURequest,
 			Recommended: types.CPURecommended{
-				Min: agg.CPUMin, Max: agg.CPUMax, Change: agg.CPUMax - stat.CalculateTotalCPURequest(),
+				Min: agg.CPUMin, Max: agg.CPUMax, Change: agg.CPUMax - workloadPodCPURequest,
 			},
 		}
 		detail.Memory = types.WorkloadMemory{
-			Current: stat.CalculateTotalMemoryRequest(),
+			Current: workloadTotalMemoryRequest,
 			Recommended: types.MemoryRecommended{
-				Min: agg.MemMin, Max: agg.MemMax, Change: agg.MemMax - stat.CalculateTotalMemoryRequest(),
+				Min: agg.MemMin, Max: agg.MemMax, Change: agg.MemMax - workloadTotalMemoryRequest,
 			},
 		}
 		fillWorkloadDetailDollars(&detail, agg)
