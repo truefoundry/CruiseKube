@@ -107,8 +107,6 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	// allocatableCPU := float64(0)
-	//patches := buildPodPatches(&pod, recommendations, allocatableCPU, k8sMemoryGE134, !cfg.RecommendationSettings.DisableMemoryApplication)
 	patches, err := adjustResources(ctx, &pod, clusterID, cfg)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to adjust resources for pod %s/%s: %v", pod.Namespace, getPodName(&pod), err)
