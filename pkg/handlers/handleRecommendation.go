@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
@@ -40,9 +39,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 	}
 
 	recomTask := clusterTask.GetCoreTask().(*task.ApplyRecommendationTask)
-	// Only include data updated in the last 24 hours
-	since := time.Now().Add(-StatsAPIDataLookbackWindow)
-	nodeRecommendationMap, err := recomTask.GenerateNodeStatsForCluster(ctx, &since)
+	nodeRecommendationMap, err := recomTask.GenerateNodeStatsForCluster(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error generating node recommendations: %w", err)
 	}
