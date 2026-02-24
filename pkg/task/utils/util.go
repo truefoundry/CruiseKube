@@ -208,7 +208,7 @@ func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, kubeClient *kubernet
 	)
 	patch := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Labels: labels},
-		Spec: corev1.PodSpec{Affinity: merged},
+		Spec:       corev1.PodSpec{Affinity: merged},
 	}
 	patchBytes, err := json.Marshal(patch)
 	if err != nil {

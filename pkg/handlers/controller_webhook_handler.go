@@ -330,46 +330,46 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 	if workloadStat != nil {
 		cpuCat, memCat := utils.HeadroomCategories((*utils.WorkloadStat)(workloadStat))
 		if cpuCat != "" || memCat != "" {
-		if cpuCat != "" {
-			patches = append(patches, map[string]any{
-				"op":    "add",
-				"path":  "/metadata/labels/cruisekube.com~1headroom-group-cpu",
-				"value": cpuCat,
-			})
-		}
-		if memCat != "" {
-			patches = append(patches, map[string]any{
-				"op":    "add",
-				"path":  "/metadata/labels/cruisekube.com~1headroom-group-memory",
-				"value": memCat,
-			})
-		}
-		merged := &corev1.Affinity{}
-		if pod.Spec.Affinity != nil {
-			merged = pod.Spec.Affinity.DeepCopy()
-		}
-		if merged.PodAffinity == nil {
-			merged.PodAffinity = &corev1.PodAffinity{}
-		}
-		merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(
-			merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution,
-			utils.HeadroomPreferredAffinityTerms(cpuCat, memCat)...,
-		)
-		affinityBytes, err := json.Marshal(merged)
-		if err == nil {
-			var affinityVal map[string]any
-			if json.Unmarshal(affinityBytes, &affinityVal) == nil {
-				op := "add"
-				if pod.Spec.Affinity != nil {
-					op = "replace"
-				}
+			if cpuCat != "" {
 				patches = append(patches, map[string]any{
-					"op":    op,
-					"path":  "/spec/affinity",
-					"value": affinityVal,
+					"op":    "add",
+					"path":  "/metadata/labels/cruisekube.com~1headroom-group-cpu",
+					"value": cpuCat,
 				})
 			}
-		}
+			if memCat != "" {
+				patches = append(patches, map[string]any{
+					"op":    "add",
+					"path":  "/metadata/labels/cruisekube.com~1headroom-group-memory",
+					"value": memCat,
+				})
+			}
+			merged := &corev1.Affinity{}
+			if pod.Spec.Affinity != nil {
+				merged = pod.Spec.Affinity.DeepCopy()
+			}
+			if merged.PodAffinity == nil {
+				merged.PodAffinity = &corev1.PodAffinity{}
+			}
+			merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(
+				merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution,
+				utils.HeadroomPreferredAffinityTerms(cpuCat, memCat)...,
+			)
+			affinityBytes, err := json.Marshal(merged)
+			if err == nil {
+				var affinityVal map[string]any
+				if json.Unmarshal(affinityBytes, &affinityVal) == nil {
+					op := "add"
+					if pod.Spec.Affinity != nil {
+						op = "replace"
+					}
+					patches = append(patches, map[string]any{
+						"op":    op,
+						"path":  "/spec/affinity",
+						"value": affinityVal,
+					})
+				}
+			}
 		}
 	}
 
