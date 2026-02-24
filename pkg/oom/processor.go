@@ -124,7 +124,7 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 		return
 	}
 
-	if pod.Annotations[utils.ExcludedAnnotation] == "true" {
+	if utils.PodExcludedByAnnotation(pod) {
 		logging.Infof(ctx, "Pod %s/%s has cruisekube excluded annotation, skipping eviction", oomInfo.Namespace, oomInfo.PodName)
 		return
 	}

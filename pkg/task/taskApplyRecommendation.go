@@ -503,7 +503,7 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 		DisableMemoryApplication:   a.config.RecommendationSettings.DisableMemoryApplication,
 		NewWorkloadThresholdHours:  a.config.RecommendationSettings.NewWorkloadThresholdHours,
 		SkipMemory:                 a.config.Metadata.SkipMemory,
-		PodExcludedByAnnotation:    false, // when podForExclusion is nil, value is taken from podInfo.Stats.Constraints
+		PodExcludedByAnnotation:    utils.PodExcludedByAnnotation(nil), // when podForExclusion is nil, value is taken from podInfo.Stats.Constraints
 	}
 
 	for _, podInfo := range allPodInfos {
@@ -512,6 +512,9 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 			if o, ok := overridesMap[podInfo.Stats.WorkloadIdentifier]; ok {
 				override = o
 			}
+		}
+		if podInfo.Stats.Constraints.ExcludedAnnotation {
+			input.PodExcludedByAnnotation = true
 		}
 		apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, override, input, nil)
 		if !apply {

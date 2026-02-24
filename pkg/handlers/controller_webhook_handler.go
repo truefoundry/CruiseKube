@@ -14,6 +14,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
+	"github.com/truefoundry/cruisekube/pkg/task"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 
@@ -326,9 +327,16 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		}
 	}
 
-	if cfg.Webhook.DryRun {
+	metadata := task.ApplyRecommendationMetadata{}
+	err = cfg.Controller.Tasks[config.ApplyRecommendationKey].ConvertMetadataToStruct(&metadata)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to convert metadata to struct: %v", err)
+		return patches, nil
+	}
+
+	if metadata.DryRun {
 		logging.Infof(ctx, "Dry run mode enabled, skipping applying patches")
-		return []map[string]any{}, nil
+		return patches, nil
 	}
 
 	return patches, nil

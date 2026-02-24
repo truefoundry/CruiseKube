@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/types"
 
 	corev1 "k8s.io/api/core/v1"
@@ -38,11 +39,7 @@ func ShouldApplyRecommendationToPod(
 		return false, "namespace is blacklisted"
 	}
 
-	excludedByAnnotation := input.PodExcludedByAnnotation
-	if podForExclusion == nil && podInfo.Stats != nil && podInfo.Stats.Constraints != nil {
-		excludedByAnnotation = podInfo.Stats.Constraints.ExcludedAnnotation
-	}
-	if excludedByAnnotation {
+	if input.PodExcludedByAnnotation {
 		return false, "pod annotation is excluded"
 	}
 
@@ -98,14 +95,20 @@ func ComputeRecommendedResourceValues(rec PodContainerRecommendation, allocatabl
 			}
 			memoryLimit = EnforceMinimumMemory(max(memMax, oom) * 2)
 		}
+	} else {
+		logging.Warnf(context.Background(), "No stats for container %s", rec.ContainerName)
 	}
 	return cpuRequest, memoryRequest, cpuLimit, memoryLimit
 }
 
 // PodExcludedByAnnotation returns true if the pod has the cruisekube excluded annotation.
-func PodExcludedByAnnotation(pod *corev1.Pod) bool {
-	if pod == nil || pod.Annotations == nil {
+func PodExcludedByAnnotation(pod interface{}) bool {
+	switch p := pod.(type) {
+	case *corev1.Pod:
+		return p.Annotations[ExcludedAnnotation] == TrueValue
+	case *corev1.PodTemplateSpec:
+		return p.Annotations[ExcludedAnnotation] == TrueValue
+	default:
 		return false
 	}
-	return pod.Annotations[ExcludedAnnotation] == TrueValue
 }
