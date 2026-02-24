@@ -48,7 +48,7 @@ type DisruptionScheduleWindow struct {
 
 type WorkloadConfig struct {
 	Priority           string                     `json:"priority"`
-	Mode               string                     `json:"mode"`
+	CruiseEnabled      bool                       `json:"cruiseEnabled"`
 	DisruptionSchedule []DisruptionScheduleWindow `json:"disruptionSchedule"`
 }
 
