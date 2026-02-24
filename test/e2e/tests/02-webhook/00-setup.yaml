@@ -32,7 +32,7 @@ spec:
             cpu: "100m"
           limits:
             memory: "128Mi"
-            cpu: "600m"
+            cpu: "200m"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -63,4 +63,4 @@ spec:
             cpu: "50m"
           limits:
             memory: "64Mi"
-            cpu: "300m"
+            cpu: "100m"

@@ -16,6 +16,13 @@ all:
 setup: kind-up apply-deps
 clean: kind-down
 
+reset: uninstall-ck
+	@echo "Deleting namespace..."
+	-@kubectl delete namespace test-webhook --timeout=20s
+	-@kubectl delete namespace test-workloads --timeout=20s
+	-@kubectl delete namespace test-oom --timeout=20s
+	-@kubectl delete namespace $(NAMESPACE) --timeout=20s
+
 test:
 	@echo "Running KUTTL tests..."
 	@echo "Current context: $$(kubectl config current-context)"
@@ -86,11 +93,3 @@ uick: uninstall-ck
 uninstall-ck: ## Delete cruisekube
 	@echo "Deleting cruisekube..."
 	@helm delete cruisekube -n cruisekube-system
-
-reset-namespace: 
-	@echo "Deleting namespace..."
-	@kubectl delete namespace $(NAMESPACE)
-	@kubectl delete namespace test-webhook
-	@kubectl delete namespace test-workloads
-
-reset: uninstall-ck reset-namespace install-ck
