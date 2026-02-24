@@ -26,7 +26,6 @@ type Workload struct {
 	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 	Overrides   string    `gorm:"column:overrides;default:'{}'"`
-	Cluster     *Cluster  `gorm:"foreignKey:ClusterID;references:ClusterID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
 func (Workload) TableName() string {
