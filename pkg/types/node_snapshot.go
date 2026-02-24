@@ -14,11 +14,11 @@ type NodeSnapshotResourceMetrics struct {
 
 // NodeSnapshotPayload is the in-memory payload for a single snapshot row (cluster-level, one per run).
 type NodeSnapshotPayload struct {
-	ClusterID       string
-	Timestamp       time.Time
-	CPU             NodeSnapshotResourceMetrics
-	Memory          NodeSnapshotResourceMetrics
-	NodeCount       int    // number of healthy (in-scope) nodes in the snapshot
-	RunningPodCount int    // number of running pods in the snapshot
-	MetaData        string // optional JSON; empty means no metadata
+	ClusterID       string                      `json:"cluster_id"`
+	Timestamp       time.Time                   `json:"timestamp"`
+	CPU             NodeSnapshotResourceMetrics `json:"cpu"`
+	Memory          NodeSnapshotResourceMetrics `json:"memory"`
+	NodeCount       int                         `json:"node_count"`        // number of healthy (in-scope) nodes in the snapshot
+	RunningPodCount int                         `json:"running_pod_count"` // number of running pods in the snapshot
+	MetaData        string                      `json:"metadata"`          // optional JSON; empty means no metadata
 }

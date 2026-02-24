@@ -8,6 +8,7 @@ import (
 
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/truefoundry/cruisekube/pkg/logging"
 )
 
 func CompressQueryForLogging(query string) string {
@@ -228,10 +229,16 @@ func BuildClusterCPUAllocatableExpression() string {
 
 func QueryAndParsePrometheusScalar(ctx context.Context, client v1.API, q string) float64 {
 	if client == nil {
+		logging.Errorf(ctx, "Prometheus client is nil for query: %s", q)
 		return 0
 	}
 	result, _, err := client.Query(ctx, q, time.Now())
-	if err != nil || result == nil {
+	if err != nil {
+		logging.Errorf(ctx, "Failed to query Prometheus scalar: %v for query: %s", err, q)
+		return 0
+	}
+	if result == nil {
+		logging.Errorf(ctx, "Prometheus result is nil for query: %s", q)
 		return 0
 	}
 	if v, ok := result.(model.Vector); ok && len(v) > 0 {
