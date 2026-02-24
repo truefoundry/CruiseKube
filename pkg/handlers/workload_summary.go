@@ -341,7 +341,9 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg) {
 // getWorkloadsData fetches non-GPU workloads and pod recommendations for a cluster, then for each workload
 // filters recommendations by workload ID, computes total CPU, memory, cost, and attaches everything to
 // WorkloadDetail. Returns details and cluster-level requested/recommended CPU and memory.
-func getWorkloadsData(ctx context.Context, clusterID string) (details []types.WorkloadDetail, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64, err error) {
+func getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDetail, float64, float64, float64, float64, error) {
+	var details []types.WorkloadDetail
+	var clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64
 	workloads, err := getNonGPUClusterWorkloads(ctx, clusterID)
 	if err != nil {
 		return nil, 0, 0, 0, 0, err
