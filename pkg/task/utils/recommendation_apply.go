@@ -71,7 +71,6 @@ func ShouldApplyRecommendationToPod(
 	input ApplyCheckInput,
 	podForExclusion *corev1.Pod,
 ) (bool, string) {
-
 	apply, reason := ShouldGenerateRecommendation(ctx, podInfo, input, podForExclusion)
 	if !apply {
 		return false, reason
