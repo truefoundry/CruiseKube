@@ -303,13 +303,10 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 }
 
 // fillWorkloadDetailDollars sets dollar savings and expenditure on a single WorkloadDetail from aggregated recommendations.
+// d.CPU.Current and d.Memory.Current are expected to be totals (per-pod request * number of pods).
 func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg) {
-	podsCount := float64(d.PodsCount)
-	if podsCount <= 0 {
-		podsCount = 1
-	}
-	totalCurrentCPU := d.CPU.Current * podsCount
-	totalCurrentMem := d.Memory.Current * podsCount
+	totalCurrentCPU := d.CPU.Current
+	totalCurrentMem := d.Memory.Current
 	totalRecCPU := agg.TotalCPU
 	totalRecMem := agg.TotalMem
 	cpuSavings := 0.0
@@ -373,16 +370,22 @@ func getWorkloadsData(ctx context.Context, clusterID string) (details []types.Wo
 		clusterRecCPU += agg.TotalCPU
 		clusterRecMem += agg.TotalMem
 
+		cpuChange := agg.TotalCPU - currentCPU
+		memChange := agg.TotalMem - currentMem
+		if stat.Replicas <= 0 {
+			cpuChange, memChange = 0, 0
+		}
+
 		detail.CPU = types.WorkloadCPU{
-			Current: workloadPodCPURequest,
+			Current: currentCPU,
 			Recommended: types.CPURecommended{
-				Min: agg.CPUMin, Max: agg.CPUMax, Change: agg.CPUMax - workloadPodCPURequest,
+				Min: agg.CPUMin, Max: agg.CPUMax, Change: cpuChange,
 			},
 		}
 		detail.Memory = types.WorkloadMemory{
-			Current: workloadTotalMemoryRequest,
+			Current: currentMem,
 			Recommended: types.MemoryRecommended{
-				Min: agg.MemMin, Max: agg.MemMax, Change: agg.MemMax - workloadTotalMemoryRequest,
+				Min: agg.MemMin, Max: agg.MemMax, Change: memChange,
 			},
 		}
 		fillWorkloadDetailDollars(&detail, agg)
