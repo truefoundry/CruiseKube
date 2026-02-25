@@ -446,6 +446,58 @@ func (a *ApplyRecommendationTask) getFreshPodsOnNode(ctx context.Context, nodeNa
 	return podMap, nil
 }
 
+// countNodeHealth lists cluster nodes and returns counts of healthy (Ready) vs unhealthy (NotReady/Unknown) nodes.
+func (a *ApplyRecommendationTask) countNodeHealth(ctx context.Context) (healthy, unhealthy int) {
+	nodeList, err := a.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		logging.Warnf(ctx, "snapshot: failed to list nodes for health count: %v", err)
+		return 0, 0
+	}
+	for i := range nodeList.Items {
+		node := &nodeList.Items[i]
+		if isNodeReady(node) {
+			healthy++
+		} else {
+			unhealthy++
+		}
+	}
+	return healthy, unhealthy
+}
+
+func isNodeReady(node *corev1.Node) bool {
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
+// countPodsByStatus lists pods (in TargetNamespace or all namespaces) and returns counts by pod phase (Running, Pending, etc.).
+func (a *ApplyRecommendationTask) countPodsByStatus(ctx context.Context) types.SnapshotPodsCount {
+	ns := a.config.TargetNamespace
+	var podList *corev1.PodList
+	var err error
+	if ns != "" {
+		podList, err = a.kubeClient.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
+	} else {
+		podList, err = a.kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	}
+	if err != nil {
+		logging.Warnf(ctx, "snapshot: failed to list pods for status count: %v", err)
+		return types.SnapshotPodsCount{}
+	}
+	counts := make(types.SnapshotPodsCount)
+	for i := range podList.Items {
+		phase := podList.Items[i].Status.Phase
+		if phase == "" {
+			phase = corev1.PodUnknown
+		}
+		counts[string(phase)]++
+	}
+	return counts
+}
+
 // buildAndSaveNodeSnapshot aggregates cluster-level CPU/Memory metrics from recommendationResults
 // and persists one row to the node_snapshots table (timestamp in GMT).
 // Current = total allocatable/requested; WorkloadRequested = user's original manifest; RecommendedRequested = our recommendation.
@@ -506,13 +558,15 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 		return nil
 	}
 
+	healthyNodes, unhealthyNodes := a.countNodeHealth(ctx)
+	podsCount := a.countPodsByStatus(ctx)
 	snapshot := &types.SnapshotPayload{
 		ClusterID: a.config.ClusterID,
 		Data: types.SnapshotData{
 			CPU:       cpu,
 			Memory:    memory,
-			Nodes:     types.SnapshotNodes{Healthy: len(recommendationResults), Unhealthy: 0},
-			PodsCount: types.SnapshotPodsCount{"Running": len(podKeys)},
+			Nodes:     types.SnapshotNodes{Healthy: healthyNodes, Unhealthy: unhealthyNodes},
+			PodsCount: podsCount,
 		},
 	}
 	if err := a.storage.InsertSnapshot(snapshot); err != nil {
