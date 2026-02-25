@@ -1,10 +1,8 @@
 package types
 
-import "time"
-
-// NodeSnapshotResourceMetrics holds the metrics for CPU or Memory in a node snapshot.
+// SnapshotResourceMetrics holds the metrics for CPU or Memory in a snapshot.
 // Current = cluster totals; WorkloadRequested = user's original manifest request; RecommendedRequested = our recommendation.
-type NodeSnapshotResourceMetrics struct {
+type SnapshotResourceMetrics struct {
 	CurrentAllocatable   float64 `json:"current_allocatable"`   // total allocatable
 	CurrentRequested     float64 `json:"current_requested"`     // total requested
 	CurrentUtilized      float64 `json:"current_utilized"`      // total utilized (from usage stats)
@@ -12,13 +10,25 @@ type NodeSnapshotResourceMetrics struct {
 	RecommendedRequested float64 `json:"recommended_requested"` // total we recommend should be requested
 }
 
-// NodeSnapshotPayload is the in-memory payload for a single snapshot row (cluster-level, one per run).
-type NodeSnapshotPayload struct {
-	ClusterID       string                      `json:"cluster_id"`
-	Timestamp       time.Time                   `json:"timestamp"`
-	CPU             NodeSnapshotResourceMetrics `json:"cpu"`
-	Memory          NodeSnapshotResourceMetrics `json:"memory"`
-	NodeCount       int                         `json:"node_count"`        // number of healthy (in-scope) nodes in the snapshot
-	RunningPodCount int                         `json:"running_pod_count"` // number of running pods in the snapshot
-	MetaData        string                      `json:"metadata"`          // optional JSON; empty means no metadata
+// SnapshotNodes holds node counts by health in the snapshot.
+type SnapshotNodes struct {
+	Healthy   int `json:"healthy"`
+	Unhealthy int `json:"unhealthy"`
+}
+
+// SnapshotPodsCount holds pod counts by status (e.g. "Running", "Pending").
+type SnapshotPodsCount map[string]int
+
+// SnapshotData is the JSON stored in the node_snapshots.data column.
+type SnapshotData struct {
+	CPU       SnapshotResourceMetrics `json:"cpu"`
+	Memory    SnapshotResourceMetrics `json:"memory"`
+	Nodes     SnapshotNodes           `json:"nodes"`
+	PodsCount SnapshotPodsCount       `json:"podsCount"`
+}
+
+// SnapshotPayload is the in-memory payload for a single snapshot row (cluster-level, one per run).
+type SnapshotPayload struct {
+	ClusterID string       `json:"cluster_id"`
+	Data      SnapshotData `json:"data"`
 }

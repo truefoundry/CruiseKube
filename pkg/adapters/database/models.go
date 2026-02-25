@@ -56,20 +56,15 @@ func (PodResourceRecommendation) TableName() string {
 	return "pod_resource_recommendations"
 }
 
-// NodeSnapshot is the DB row for a cluster-level node stats snapshot (one per apply-recommendation run).
-type NodeSnapshot struct {
-	ID              uint      `gorm:"column:id;primaryKey;autoIncrement"`
-	ClusterID       string    `gorm:"column:cluster_id;index"`
-	Timestamp       time.Time `gorm:"column:timestamp;index"`
-	CPU             string    `gorm:"column:cpu"`    // JSON of NodeSnapshotResourceMetrics
-	Memory          string    `gorm:"column:memory"` // JSON of NodeSnapshotResourceMetrics
-	NodeCount       int       `gorm:"column:node_count"`
-	RunningPodCount int       `gorm:"column:running_pod_count"`
-	MetaData        string    `gorm:"column:metadata"` // optional JSON
-	CreatedAt       time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt       time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
+// Snapshot is the DB row for a cluster-level node stats snapshot (one per apply-recommendation run).
+type Snapshot struct {
+	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
+	ClusterID string    `gorm:"column:cluster_id;index"`
+	Data      string    `gorm:"column:data"` // JSON of SnapshotData (CPU, Memory, Nodes, PodsCount)
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 }
 
-func (NodeSnapshot) TableName() string {
-	return "node_snapshots"
+func (Snapshot) TableName() string {
+	return "snapshots"
 }

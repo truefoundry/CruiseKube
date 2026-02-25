@@ -83,7 +83,7 @@ func (s *GormDB) createTables() error {
 	if err := s.db.AutoMigrate(&PodResourceRecommendation{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate PodResourceRecommendation: %w", err)
 	}
-	if err := s.db.AutoMigrate(&NodeSnapshot{}); err != nil {
+	if err := s.db.AutoMigrate(&Snapshot{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate NodeSnapshot: %w", err)
 	}
 	return nil
@@ -507,26 +507,17 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 	return rows, nil
 }
 
-func (s *GormDB) InsertNodeSnapshot(snapshot *types.NodeSnapshotPayload) error {
+func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	if snapshot == nil {
 		return fmt.Errorf("snapshot cannot be nil")
 	}
-	cpuJSON, err := json.Marshal(snapshot.CPU)
+	dataJSON, err := json.Marshal(snapshot.Data)
 	if err != nil {
-		return fmt.Errorf("failed to marshal CPU metrics: %w", err)
+		return fmt.Errorf("failed to marshal snapshot data: %w", err)
 	}
-	memoryJSON, err := json.Marshal(snapshot.Memory)
-	if err != nil {
-		return fmt.Errorf("failed to marshal Memory metrics: %w", err)
-	}
-	row := NodeSnapshot{
-		ClusterID:       snapshot.ClusterID,
-		Timestamp:       snapshot.Timestamp,
-		CPU:             string(cpuJSON),
-		Memory:          string(memoryJSON),
-		NodeCount:       snapshot.NodeCount,
-		RunningPodCount: snapshot.RunningPodCount,
-		MetaData:        snapshot.MetaData,
+	row := Snapshot{
+		ClusterID: snapshot.ClusterID,
+		Data:      string(dataJSON),
 	}
 	if err := s.db.Create(&row).Error; err != nil {
 		return fmt.Errorf("failed to insert node snapshot: %w", err)

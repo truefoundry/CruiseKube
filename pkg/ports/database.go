@@ -43,5 +43,5 @@ type Database interface {
 	GetPodRecommendationsForWorkload(clusterID, workloadID string) ([]types.PodResourceRecommendationRow, error)
 
 	// Node Snapshots
-	InsertNodeSnapshot(snapshot *types.NodeSnapshotPayload) error
+	InsertSnapshot(snapshot *types.SnapshotPayload) error
 }

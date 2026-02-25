@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
 	"github.com/truefoundry/cruisekube/pkg/client"
@@ -482,14 +481,14 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 		}
 	}
 
-	cpu := types.NodeSnapshotResourceMetrics{
+	cpu := types.SnapshotResourceMetrics{
 		CurrentAllocatable:   currentAllocatableCPU,
 		CurrentRequested:     currentRequestedCPU,
 		CurrentUtilized:      currentUtilizedCPU,
 		WorkloadRequested:    workloadRequestedCPU,
 		RecommendedRequested: recommendedRequestedCPU,
 	}
-	memory := types.NodeSnapshotResourceMetrics{
+	memory := types.SnapshotResourceMetrics{
 		CurrentAllocatable:   currentAllocatableMemory / 1000.0,
 		CurrentRequested:     currentRequestedMemory / 1000.0,
 		CurrentUtilized:      currentUtilizedMemory,
@@ -507,16 +506,16 @@ func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, 
 		return nil
 	}
 
-	snapshot := &types.NodeSnapshotPayload{
-		ClusterID:       a.config.ClusterID,
-		Timestamp:       time.Now().UTC(),
-		CPU:             cpu,
-		Memory:          memory,
-		NodeCount:       len(recommendationResults),
-		RunningPodCount: len(podKeys),
-		MetaData:        "",
+	snapshot := &types.SnapshotPayload{
+		ClusterID: a.config.ClusterID,
+		Data: types.SnapshotData{
+			CPU:       cpu,
+			Memory:    memory,
+			Nodes:     types.SnapshotNodes{Healthy: len(recommendationResults), Unhealthy: 0},
+			PodsCount: types.SnapshotPodsCount{"Running": len(podKeys)},
+		},
 	}
-	if err := a.storage.InsertNodeSnapshot(snapshot); err != nil {
+	if err := a.storage.InsertSnapshot(snapshot); err != nil {
 		return fmt.Errorf("insert node snapshot: %w", err)
 	}
 	return nil
