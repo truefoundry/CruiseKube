@@ -235,21 +235,24 @@ func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, patcher kube.PodPatc
 	}
 
 	// Create the final affinity object
-	merged := &corev1.Affinity{}
+	mergedAffinity := &corev1.Affinity{}
 	if pod.Spec.Affinity != nil {
-		merged = pod.Spec.Affinity.DeepCopy()
+		mergedAffinity = pod.Spec.Affinity.DeepCopy()
 	}
-	if merged.PodAffinity == nil {
-		merged.PodAffinity = &corev1.PodAffinity{}
+	if mergedAffinity.PodAffinity == nil {
+		mergedAffinity.PodAffinity = &corev1.PodAffinity{}
 	}
-	merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = mergedAffinityPreferred
+	mergedAffinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = mergedAffinityPreferred
 
-	// Marshal the pod with the new labels and affinity
-	patchBytes, err := json.Marshal(&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Labels: labels}, Spec: corev1.PodSpec{Affinity: merged}})
+	headroomPatch := map[string]any{
+		"metadata": map[string]any{"labels": labels},
+		"spec":     map[string]any{"affinity": mergedAffinity},
+	}
+	patchBytes, err := json.Marshal(headroomPatch)
 	if err != nil {
 		return false, fmt.Sprintf("failed to marshal headroom patch: %v", err)
 	}
-	_, err = patcher.Patch(ctx, pod.Namespace, pod.Name, k8stypes.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	_, err = patcher.Patch(ctx, pod.Namespace, pod.Name, k8stypes.MergePatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
 		logging.Errorf(ctx, "Failed to patch pod %s/%s headroom labels/affinity: %v", pod.Namespace, pod.Name, err)
 		return false, fmt.Sprintf("failed to patch pod headroom: %v", err)
