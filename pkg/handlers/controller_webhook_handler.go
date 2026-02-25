@@ -374,9 +374,6 @@ func buildDisruptionAnnotationPatches(ctx context.Context, pod *corev1.Pod, stat
 
 	var patches []map[string]any
 	for annotationKey := range utils.GetDoNotDisruptAnnotations() {
-		if pod.Annotations == nil {
-			break
-		}
 		if _, exists := pod.Annotations[annotationKey]; !exists {
 			continue
 		}

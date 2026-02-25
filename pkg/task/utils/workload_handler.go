@@ -568,29 +568,39 @@ func selectorsMatch(workloadSelector, pdbSelector labels.Selector) bool {
 		return false
 	}
 
-	pdbRequirementsMap := make(map[string]string)
-	for _, req := range pdbRequirements {
-		if req.Operator() == selection.Equals || req.Operator() == selection.In {
-			if len(req.Values().List()) > 0 {
-				pdbRequirementsMap[req.Key()] = req.Values().List()[0]
-			}
-		}
-	}
-
+	workloadReqMap := make(map[string]labels.Requirement)
 	for _, req := range workloadRequirements {
 		if req.Operator() == selection.Equals || req.Operator() == selection.In {
-			if len(req.Values().List()) > 0 {
-				workloadValue := req.Values().List()[0]
-				if pdbValue, exists := pdbRequirementsMap[req.Key()]; exists {
-					if workloadValue == pdbValue {
-						return true
-					}
+			workloadReqMap[req.Key()] = req
+		}
+	}
+
+	for _, req := range pdbRequirements {
+		switch req.Operator() {
+		case selection.Equals, selection.In:
+			workloadReq, exists := workloadReqMap[req.Key()]
+			if !exists {
+				return false
+			}
+			if !slices.ContainsFunc(workloadReq.Values().List(), req.Values().Has) {
+				return false
+			}
+
+		case selection.NotIn:
+			if workloadReq, exists := workloadReqMap[req.Key()]; exists {
+				if slices.ContainsFunc(workloadReq.Values().List(), req.Values().Has) {
+					return false
 				}
+			}
+
+		case selection.DoesNotExist:
+			if _, exists := workloadReqMap[req.Key()]; exists {
+				return false
 			}
 		}
 	}
 
-	return false
+	return true
 }
 
 func getPodTemplateSpec(workloadObj WorkloadObject) *corev1.PodTemplateSpec {
