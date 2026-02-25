@@ -363,19 +363,21 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 				utils.HeadroomPreferredAffinityTerms(cpuCat, memCat)...,
 			)
 			affinityBytes, err := json.Marshal(merged)
-			if err == nil {
-				var affinityVal map[string]any
-				if json.Unmarshal(affinityBytes, &affinityVal) == nil {
-					op := "add"
-					if pod.Spec.Affinity != nil {
-						op = "replace"
-					}
-					patches = append(patches, map[string]any{
-						"op":    op,
-						"path":  "/spec/affinity",
-						"value": affinityVal,
-					})
+			if err != nil {
+				logging.Errorf(ctx, "marshal affinity for pod %s/%s (uid %s) failed, merged=%+v: %v", pod.Namespace, pod.Name, pod.UID, merged, err)
+				return nil, fmt.Errorf("marshal affinity for pod %s/%s: %w", pod.Namespace, pod.Name, err)
+			}
+			var affinityVal map[string]any
+			if json.Unmarshal(affinityBytes, &affinityVal) == nil {
+				op := "add"
+				if pod.Spec.Affinity != nil {
+					op = "replace"
 				}
+				patches = append(patches, map[string]any{
+					"op":    op,
+					"path":  "/spec/affinity",
+					"value": affinityVal,
+				})
 			}
 		}
 	}

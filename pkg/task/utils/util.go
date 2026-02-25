@@ -203,9 +203,17 @@ func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, patcher kube.PodPatc
 		}
 		for i := range existingPreferred {
 			t := &existingPreferred[i]
-			isHeadroom := t.PodAffinityTerm.LabelSelector != nil && len(t.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 &&
-				(t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key == HeadroomGroupCPULabel || t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key == HeadroomGroupMemoryLabel)
-			if !isHeadroom {
+			remove := false
+			if t.PodAffinityTerm.LabelSelector != nil && len(t.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 {
+				key := t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key
+				if key == HeadroomGroupCPULabel && cpuCategory != "" {
+					remove = true
+				}
+				if key == HeadroomGroupMemoryLabel && memoryCategory != "" {
+					remove = true
+				}
+			}
+			if !remove {
 				mergedPreferred = append(mergedPreferred, existingPreferred[i])
 			}
 		}

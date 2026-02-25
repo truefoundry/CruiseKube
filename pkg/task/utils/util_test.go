@@ -141,8 +141,8 @@ func TestPatchPodHeadroomLabelsAndAffinity_AdditionDedupe(t *testing.T) {
 	}
 	pref := decoded.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution
 	cpuTerms := 0
-	for _, t := range pref {
-		if t.PodAffinityTerm.LabelSelector != nil && len(t.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 && t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key == HeadroomGroupCPULabel {
+	for _, wt := range pref {
+		if wt.PodAffinityTerm.LabelSelector != nil && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 && wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key == HeadroomGroupCPULabel {
 			cpuTerms++
 		}
 	}
@@ -180,13 +180,13 @@ func TestPatchPodHeadroomLabelsAndAffinity_UpdateLabelPresent(t *testing.T) {
 	pref := decoded.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution
 	hasNonHeadroom := false
 	hasNewCPU := false
-	for _, t := range pref {
-		if t.PodAffinityTerm.LabelSelector != nil && len(t.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 {
-			key := t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key
+	for _, wt := range pref {
+		if wt.PodAffinityTerm.LabelSelector != nil && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 {
+			key := wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key
 			if key == "other/key" {
 				hasNonHeadroom = true
 			}
-			if key == HeadroomGroupCPULabel && len(t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Values) > 0 && t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Values[0] == "new" {
+			if key == HeadroomGroupCPULabel && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Values) > 0 && wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Values[0] == "new" {
 				hasNewCPU = true
 			}
 		}
