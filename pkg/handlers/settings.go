@@ -23,7 +23,7 @@ func GetSettingsHandler(c *gin.Context) {
 	if settings == nil {
 		settings = &types.ClusterSettings{
 			CPUPricePerCorePerHour:  defaultCPUPricePerCorePerHour,
-			MemoryPricePerGBPerHour: defaultMemoryPricePerGbPerHour,
+			MemoryPricePerGBPerHour: defaultMemoryPricePerGBPerHour,
 		}
 	}
 

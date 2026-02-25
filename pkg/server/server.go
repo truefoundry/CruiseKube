@@ -37,7 +37,7 @@ func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook
 		clusterGroup.GET("/workloads/:namespace/:workloadName/detail", handlers.HandleWorkloadDetail)
 		clusterGroup.POST("/workloads/:workloadID/overrides", handlers.UpdateWorkloadOverridesHandler)
 		clusterGroup.GET("/settings", handlers.GetSettingsHandler)
-		clusterGroup.POST("/settings", handlers.UpdateSettingsHandler)
+		clusterGroup.PUT("/settings", handlers.UpdateSettingsHandler)
 	}
 
 	if enableDevAPIs {

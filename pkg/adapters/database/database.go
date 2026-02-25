@@ -101,23 +101,7 @@ func (s *GormDB) Close() error {
 	return nil
 }
 
-func (s *GormDB) ensureCluster(clusterID string) error {
-	row := Cluster{ClusterID: clusterID, Settings: "{}"}
-	err := s.db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "cluster_id"}},
-		DoNothing: true, // never overwrite existing settings
-	}).Create(&row).Error
-	if err != nil {
-		return fmt.Errorf("failed to ensure cluster row for %s: %w", clusterID, err)
-	}
-	return nil
-}
-
 func (s *GormDB) UpsertStat(clusterID, workloadID string, stat types.WorkloadStat, generatedAt time.Time) error {
-	if err := s.ensureCluster(clusterID); err != nil {
-		return err
-	}
-
 	statsJSON, err := json.Marshal(stat)
 	if err != nil {
 		return fmt.Errorf("failed to marshal stats: %w", err)
@@ -523,7 +507,7 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 	return rows, nil
 }
 
-func (s *GormDB) GetSettings(clusterID string) (*types.ClusterSettings, error) {
+func (s *GormDB) GetClusterSettings(clusterID string) (*types.ClusterSettings, error) {
 	var row Cluster
 	err := s.db.Where("cluster_id = ?", clusterID).First(&row).Error
 	if err != nil {
@@ -539,7 +523,7 @@ func (s *GormDB) GetSettings(clusterID string) (*types.ClusterSettings, error) {
 	return &settings, nil
 }
 
-func (s *GormDB) UpdateSettings(clusterID string, settings *types.ClusterSettings) error {
+func (s *GormDB) UpdateClusterSettings(clusterID string, settings *types.ClusterSettings) error {
 	data, err := json.Marshal(settings)
 	if err != nil {
 		return fmt.Errorf("failed to serialize settings for cluster %s: %w", clusterID, err)

@@ -18,19 +18,19 @@ import (
 
 const (
 	defaultCPUPricePerCorePerHour  = 0.0145
-	defaultMemoryPricePerGbPerHour = 0.00725
+	defaultMemoryPricePerGBPerHour = 0.00725
 	defaultHoursPerMonth           = 720
 )
 
 type workloadPricing struct {
 	CPUPerCorePerHour float64
-	MemPerGbPerHour   float64
+	MemPerGBPerHour   float64
 }
 
 func getEffectivePricing(ctx context.Context, clusterID string) workloadPricing {
 	p := workloadPricing{
 		CPUPerCorePerHour: defaultCPUPricePerCorePerHour,
-		MemPerGbPerHour:   defaultMemoryPricePerGbPerHour,
+		MemPerGBPerHour:   defaultMemoryPricePerGBPerHour,
 	}
 	if storage.Stg == nil {
 		return p
@@ -47,7 +47,7 @@ func getEffectivePricing(ctx context.Context, clusterID string) workloadPricing 
 		p.CPUPerCorePerHour = settings.CPUPricePerCorePerHour
 	}
 	if settings.MemoryPricePerGBPerHour > 0 {
-		p.MemPerGbPerHour = settings.MemoryPricePerGBPerHour
+		p.MemPerGBPerHour = settings.MemoryPricePerGBPerHour
 	}
 	return p
 }
@@ -354,7 +354,7 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p wo
 	}
 	memSavings := 0.0
 	if totalCurrentMem > totalRecMem {
-		memSavings = (totalCurrentMem - totalRecMem) / 1024 * p.MemPerGbPerHour * defaultHoursPerMonth
+		memSavings = (totalCurrentMem - totalRecMem) / 1024 * p.MemPerGBPerHour * defaultHoursPerMonth
 	}
 	d.DollarSavingsPerMonth = int(cpuSavings + memSavings)
 	cpuExpenditure := 0.0
@@ -363,7 +363,7 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p wo
 	}
 	memExpenditure := 0.0
 	if totalRecMem > totalCurrentMem {
-		memExpenditure = (totalRecMem - totalCurrentMem) / 1024 * p.MemPerGbPerHour * defaultHoursPerMonth
+		memExpenditure = (totalRecMem - totalCurrentMem) / 1024 * p.MemPerGBPerHour * defaultHoursPerMonth
 	}
 	d.DollarExpenditurePerMonth = int(cpuExpenditure + memExpenditure)
 }
@@ -460,9 +460,9 @@ func WorkloadSummaryHandler(c *gin.Context) {
 	}
 	requestedMemGB := clusterReqMem / 1024
 	recommendedMemGB := clusterRecMem / 1024
-	currentCostDollars := (clusterRes.CPU.Allocatable*p.CPUPerCorePerHour + clusterRes.Memory.Allocatable*p.MemPerGbPerHour) * defaultHoursPerMonth
-	workloadCostDollars := (clusterReqCPU/reqAllocRatioCpu)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGbPerHour*defaultHoursPerMonth
-	optimizedCostDollars := (clusterRecCPU/reqAllocRatioCpu)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGbPerHour*defaultHoursPerMonth
+	currentCostDollars := (clusterRes.CPU.Allocatable*p.CPUPerCorePerHour + clusterRes.Memory.Allocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
+	workloadCostDollars := (clusterReqCPU/reqAllocRatioCpu)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	optimizedCostDollars := (clusterRecCPU/reqAllocRatioCpu)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 	c.JSON(http.StatusOK, types.WorkloadSummaryResponse{
 		ImpactSummary: types.ImpactSummary{
 			DollarCurrentCost:     int(currentCostDollars),
