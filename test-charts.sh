@@ -129,9 +129,9 @@ setup_namespaces() {
 add_helm_repos() {
     log_info "Adding Helm repositories"
     
-    # Add Prometheus community Helm repository
+    # Add Prometheus community Helm repository (update only this repo to avoid failing on other broken repos)
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-    helm repo update
+    helm repo update prometheus-community
     
     log_success "Helm repositories added and updated"
 }

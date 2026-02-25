@@ -348,3 +348,28 @@ func getCurrentPodCPU(pod *corev1.Pod) float64 {
 
 	return max(sumAppSidecar, maxInit)
 }
+
+// BuildPodInfoFromPod builds PodInfo from a pod and optional workload info and stat.
+// Used by the admission webhook to build PodInfo for the incoming pod.
+func BuildPodInfoFromPod(pod *corev1.Pod, workloadInfo *WorkloadInfo, stat *WorkloadStat) PodInfo {
+	info := PodInfo{
+		Namespace:       pod.Namespace,
+		Name:            pod.Name,
+		RequestedCPU:    getCurrentPodCPU(pod),
+		RequestedMemory: getCurrentPodMemory(pod),
+		LimitCPU:        getCurrentPodCPULimit(pod),
+		LimitMemory:     getCurrentPodMemoryLimit(pod),
+	}
+	if workloadInfo != nil {
+		info.WorkloadKind = workloadInfo.Kind
+		info.WorkloadName = workloadInfo.Name
+	}
+	if stat != nil {
+		info.Stats = stat
+		info.ContinuousOptimization = stat.ContinuousOptimization
+	}
+	for i := range pod.Spec.Containers {
+		info.ContainerResources = append(info.ContainerResources, getCurrentContainerResources(&pod.Spec.Containers[i]))
+	}
+	return info
+}

@@ -491,7 +491,7 @@ func DetectWorkloadConstraints(ctx context.Context, kubeClient *kubernetes.Clien
 		constraints.Affinity = checkUncommonAffinity(podTemplate)
 		constraints.TopologySpreadConstraint = checkTopologySpreadConstraints(podTemplate)
 		constraints.PodAntiAffinity = checkPodAntiAffinity(podTemplate)
-		constraints.ExcludedAnnotation = checkExcludedAnnotation(podTemplate)
+		constraints.ExcludedAnnotation = PodExcludedByAnnotation(podTemplate)
 	}
 
 	constraints.BlockingConsolidation =
@@ -585,13 +585,6 @@ func getPodTemplateSpec(workloadObj WorkloadObject) *corev1.PodTemplateSpec {
 	default:
 		return nil
 	}
-}
-
-func checkExcludedAnnotation(podTemplate *corev1.PodTemplateSpec) bool {
-	if podTemplate.Annotations == nil {
-		return false
-	}
-	return podTemplate.Annotations[ExcludedAnnotation] == TrueValue
 }
 
 func checkDoNotDisruptAnnotation(podTemplate *corev1.PodTemplateSpec) bool {

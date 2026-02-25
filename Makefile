@@ -29,7 +29,7 @@ kind-up: ## Update kind cluster
 
 install-prom: ## Install prometheus
 	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-	@helm repo update
+	@helm repo update prometheus-community
 	@helm upgrade --install prometheus \
         prometheus-community/kube-prometheus-stack \
         --namespace monitoring \

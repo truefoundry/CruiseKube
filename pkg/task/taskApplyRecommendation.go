@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"slices"
-	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
 	"github.com/truefoundry/cruisekube/pkg/client"
@@ -15,6 +13,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/metrics"
+
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/task/applystrategies"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
@@ -106,7 +105,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		return nil
 	}
 
-	if !utils.CheckIfClusterVersionAbove(ctx, a.kubeClient, 1, 33) {
+	if !utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 33) {
 		applyChanges = false
 		logging.Infof(ctx, "Cluster version is not above 1.33, running in dry run mode")
 	}
@@ -134,7 +133,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		overridesMap[override.WorkloadID] = &override
 	}
 
-	supportsMemoryReduction := utils.CheckIfClusterVersionAbove(ctx, a.kubeClient, 1, 34)
+	supportsMemoryReduction := utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 34)
 
 	_, err = a.ApplyRecommendationsWithStrategy(
 		ctx,
@@ -305,7 +304,9 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	applyChanges bool,
 	supportsMemoryReduction bool,
 ) (bool, bool, error) {
-	_, recommendedMemoryRequest, _, recommendedMemoryLimit := a.computeRecommendedResourceValues(rec, 0)
+	// We use to set the max limit
+	allocatableCPU := 0.0
+	_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
 
 	containerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
 	if err != nil {
@@ -387,7 +388,7 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 	currentCPULimitQuantity := currentContainerResources.Limits[corev1.ResourceCPU]
 	currentCPULimit := float64(currentCPULimitQuantity.MilliValue()) / 1000.0
 
-	recommendedCPURequest, _, recommendedCPULimit, _ := a.computeRecommendedResourceValues(rec, allocatableCPU)
+	recommendedCPURequest, _, recommendedCPULimit, _ := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
 	if currentCPULimit == 0.0 {
 		recommendedCPULimit = 0.0
 	}
@@ -433,29 +434,6 @@ func (a *ApplyRecommendationTask) getFreshPodsOnNode(ctx context.Context, nodeNa
 	return podMap, nil
 }
 
-func (a *ApplyRecommendationTask) computeRecommendedResourceValues(rec utils.PodContainerRecommendation, allocatableCPU float64) (float64, float64, float64, float64) {
-	cpuRequest := utils.EnforceMinimumCPU(rec.CPU)
-	if cpuRequest > utils.CPUClampValue {
-		cpuRequest = utils.CPUClampValue
-	}
-	memoryRequest := utils.EnforceMinimumMemory(rec.Memory)
-	cpuLimit := allocatableCPU
-	memoryLimit := memoryRequest * 2
-	if rec.PodInfo.Stats != nil {
-		if containerStat, err := rec.PodInfo.Stats.GetContainerStats(rec.ContainerName); err == nil {
-			var memMax, oom float64
-			if containerStat.Memory7Day != nil {
-				memMax = containerStat.Memory7Day.Max
-			}
-			if containerStat.MemoryStats != nil {
-				oom = containerStat.MemoryStats.OOMMemory
-			}
-			memoryLimit = utils.EnforceMinimumMemory(max(memMax, oom) * 2)
-		}
-	}
-	return cpuRequest, memoryRequest, cpuLimit, memoryLimit
-}
-
 func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context, recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {
 	rows := make([]types.PodResourceRecommendationRow, 0)
 	for _, res := range recommendationResults {
@@ -467,7 +445,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 				kind, namespace, name = rec.PodInfo.Stats.Kind, rec.PodInfo.Stats.Namespace, rec.PodInfo.Stats.Name
 			}
 			workloadID := utils.GetWorkloadKey(kind, namespace, name)
-			cpuRequest, memoryRequest, cpuLimit, memoryLimit := a.computeRecommendedResourceValues(rec, allocatableCPU)
+			cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
 			payload := types.PodResourceRecommendation{
 				CPURequest:    cpuRequest,
 				MemoryRequest: memoryRequest,
@@ -517,9 +495,28 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 	optimizablePods := make([]utils.PodInfo, 0)
 	nonOptimizablePods := make([]utils.NonOptimizablePodInfo, 0)
 
+	input := utils.ApplyCheckInput{
+		ApplyBlacklistedNamespaces: a.config.RecommendationSettings.ApplyBlacklistedNamespaces,
+		K8sVersionGE133:            true, // caller sets applyChanges=false when cluster < 1.33
+		K8sMemoryGE134:             true, // caller uses supportsMemoryReduction separately
+		OptimizeGuaranteedPods:     a.config.RecommendationSettings.OptimizeGuaranteedPods,
+		DisableMemoryApplication:   a.config.RecommendationSettings.DisableMemoryApplication,
+		NewWorkloadThresholdHours:  a.config.RecommendationSettings.NewWorkloadThresholdHours,
+		SkipMemory:                 a.config.Metadata.SkipMemory,
+		PodExcludedByAnnotation:    utils.PodExcludedByAnnotation(nil), // when podForExclusion is nil, value is taken from podInfo.Stats.Constraints
+	}
+
 	for _, podInfo := range allPodInfos {
-		if len(a.config.RecommendationSettings.ApplyBlacklistedNamespaces) > 0 && slices.Contains(a.config.RecommendationSettings.ApplyBlacklistedNamespaces, podInfo.Namespace) {
-			logging.Infof(ctx, "Namespace %s is blacklisted, skipping pod %s/%s", podInfo.Namespace, podInfo.Namespace, podInfo.Name)
+		var override *types.WorkloadOverrideInfo
+		if podInfo.Stats != nil {
+			if o, ok := overridesMap[podInfo.Stats.WorkloadIdentifier]; ok {
+				override = o
+			}
+		}
+
+		apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, override, input, nil)
+		if !apply {
+			logging.Infof(ctx, "Skipping pod %s/%s: %s", podInfo.Namespace, podInfo.Name, reason)
 			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
 				PodInfo:       podInfo,
 				PodName:       podInfo.Name,
@@ -529,79 +526,6 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 			})
 			continue
 		}
-
-		if podInfo.Stats == nil {
-			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
-				PodInfo:       podInfo,
-				PodName:       podInfo.Name,
-				PodNamespace:  podInfo.Namespace,
-				CurrentCPU:    podInfo.RequestedCPU,
-				CurrentMemory: podInfo.RequestedMemory,
-			})
-			continue
-		}
-
-		if podInfo.IsGuaranteedPod() && !a.config.RecommendationSettings.OptimizeGuaranteedPods {
-			logging.Infof(ctx, "Skipping guaranteed pod %s/%s", podInfo.Namespace, podInfo.Name)
-			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
-				PodInfo:       podInfo,
-				PodName:       podInfo.Name,
-				PodNamespace:  podInfo.Namespace,
-				CurrentCPU:    podInfo.RequestedCPU,
-				CurrentMemory: podInfo.RequestedMemory,
-			})
-			continue
-		}
-
-		if podInfo.IsBestEffortPod() {
-			logging.Infof(ctx, "Skipping best effort pod %s/%s", podInfo.Namespace, podInfo.Name)
-			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
-				PodInfo:       podInfo,
-				PodName:       podInfo.Name,
-				PodNamespace:  podInfo.Namespace,
-				CurrentCPU:    podInfo.RequestedCPU,
-				CurrentMemory: podInfo.RequestedMemory,
-			})
-			continue
-		}
-
-		overrides, ok := overridesMap[podInfo.Stats.WorkloadIdentifier]
-		if !ok || !overrides.EffectiveEnabled() {
-			logging.Infof(ctx, "cruisekube not enabled for workload %s (no override or recommend-only mode), skipping apply", podInfo.Stats.WorkloadIdentifier)
-			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
-				PodInfo:       podInfo,
-				PodName:       podInfo.Name,
-				PodNamespace:  podInfo.Namespace,
-				CurrentCPU:    podInfo.RequestedCPU,
-				CurrentMemory: podInfo.RequestedMemory,
-			})
-			continue
-		}
-
-		if podInfo.Stats.CreationTime.After(time.Now().Add(-1 * time.Hour * time.Duration(a.config.RecommendationSettings.NewWorkloadThresholdHours))) {
-			logging.Infof(ctx, "Pod %s/%s is from a new workload, skipping", podInfo.Namespace, podInfo.Name)
-			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
-				PodInfo:       podInfo,
-				PodName:       podInfo.Name,
-				PodNamespace:  podInfo.Namespace,
-				CurrentCPU:    podInfo.RequestedCPU,
-				CurrentMemory: podInfo.RequestedMemory,
-			})
-			continue
-		}
-
-		if podInfo.Stats.IsHorizontallyAutoscaledOnCPU || podInfo.Stats.IsHorizontallyAutoscaledOnMem {
-			logging.Infof(ctx, "Pod %s/%s is horizontally autoscaled on CPU/Memory, skipping", podInfo.Namespace, podInfo.Name)
-			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
-				PodInfo:       podInfo,
-				PodName:       podInfo.Name,
-				PodNamespace:  podInfo.Namespace,
-				CurrentCPU:    podInfo.RequestedCPU,
-				CurrentMemory: podInfo.RequestedMemory,
-			})
-			continue
-		}
-
 		optimizablePods = append(optimizablePods, podInfo)
 	}
 

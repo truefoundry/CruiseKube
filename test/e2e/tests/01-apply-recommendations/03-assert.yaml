@@ -1,7 +1,7 @@
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
-timeout: 60
+timeout: 30
 ---
 # Original resources:
 #  - cpu: request = 500m, limit = 1000m

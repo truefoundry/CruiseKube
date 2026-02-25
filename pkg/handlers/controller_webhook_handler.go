@@ -6,116 +6,115 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"slices"
-	"strings"
-	"time"
-
-	"github.com/truefoundry/cruisekube/pkg/client"
-	"github.com/truefoundry/cruisekube/pkg/config"
-	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/task/utils"
 
 	"github.com/gin-gonic/gin"
-	admissionv1 "k8s.io/api/admission/v1"
+	"github.com/truefoundry/cruisekube/pkg/client"
+	"github.com/truefoundry/cruisekube/pkg/cluster"
+	"github.com/truefoundry/cruisekube/pkg/config"
+	"github.com/truefoundry/cruisekube/pkg/contextutils"
+	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/repository/storage"
+	"github.com/truefoundry/cruisekube/pkg/task"
+	"github.com/truefoundry/cruisekube/pkg/task/utils"
+	"github.com/truefoundry/cruisekube/pkg/types"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-var (
-	excludedPodPrefixes = []string{}
-)
-
-func MutateHandler(c *gin.Context) {
+func HandleMutatingPatch(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
+	ctx = contextutils.WithCluster(ctx, clusterID)
 
-	body, err := c.GetRawData()
-	if err != nil {
-		logging.Errorf(ctx, "Failed to read request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	var req client.MutatingPatchRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var review admissionv1.AdmissionReview
-	if err := json.Unmarshal(body, &review); err != nil {
-		logging.Errorf(ctx, "Failed to unmarshal admission review: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	review := req.Review
+	if review.Request == nil {
+		logging.Warnf(ctx, "Admission review has no request")
+		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
 
-	req := review.Request
+	// Only mutate Pods
+	if review.Request.Kind.Kind != "Pod" {
+		logging.Warnf(ctx, "Admission review request is not a Pod, skipping")
+		c.JSON(http.StatusOK, []client.JSONPatchOp{})
+		return
+	}
+
 	var pod corev1.Pod
-	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
-		logging.Errorf(ctx, "Failed to unmarshal pod object: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+	if err := json.Unmarshal(review.Request.Object.Raw, &pod); err != nil {
+		logging.Errorf(ctx, "Failed to decode pod from admission request: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid pod object"})
 		return
 	}
-
-	logging.Infof(ctx, "Processing pod: %s/%s", req.Namespace, getPodName(&pod))
 
 	cfg := config.GetConfigFromGinContext(c)
-	allowed := true
-	var patches []map[string]any
-
-	if shouldProcessPod(ctx, &pod, req.Namespace, cfg.RecommendationSettings.ApplyBlacklistedNamespaces) {
-		patches, err = adjustResources(ctx, &pod, clusterID, cfg)
-		if err != nil {
-			logging.Errorf(ctx, "Failed to adjust resources: %v", err)
-		}
-	} else {
-		logging.Infof(ctx, "Skipping pod %s/%s", req.Namespace, getPodName(&pod))
-		return
-	}
-
-	patchBytes, err := json.Marshal(patches)
+	mgr := c.MustGet("clusterManager").(cluster.Manager)
+	clients, err := mgr.GetClusterClients(clusterID)
 	if err != nil {
-		logging.Errorf(ctx, "Failed to marshal patches: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
+		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
 
-	patchType := admissionv1.PatchTypeJSONPatch
-	reviewResponse := &admissionv1.AdmissionResponse{
-		UID:       req.UID,
-		Allowed:   allowed,
-		PatchType: &patchType,
-		Patch:     patchBytes,
+	workloadInfo := utils.GetWorkloadInfoFromPod(&pod)
+	if workloadInfo == nil {
+		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, pod.Name)
+		c.JSON(http.StatusOK, []client.JSONPatchOp{})
+		return
 	}
 
-	review.Response = reviewResponse
-	logging.Infof(ctx, "Review response for pod %s/%s: %v", req.Namespace, getPodName(&pod), string(patchBytes))
+	workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 
-	c.JSON(http.StatusOK, review)
-}
-
-func shouldProcessPod(ctx context.Context, pod *corev1.Pod, namespace string, applyBlacklistedNamespaces []string) bool {
-	podName := getPodName(pod)
-
-	if slices.Contains(applyBlacklistedNamespaces, namespace) {
-		logging.Infof(ctx, "Skipping pod in blacklisted namespace: %s/%s", namespace, podName)
-		return false
+	stat, err := storage.Stg.GetStatForWorkload(clusterID, workloadKey)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadKey, err)
+		c.JSON(http.StatusOK, []client.JSONPatchOp{})
+		return
+	}
+	if stat == nil {
+		logging.Infof(ctx, "No stats for workload %s, skipping", workloadKey)
+		c.JSON(http.StatusOK, []client.JSONPatchOp{})
+		return
 	}
 
-	for _, prefix := range excludedPodPrefixes {
-		if strings.HasPrefix(podName, prefix) {
-			logging.Infof(ctx, "Skipping pod with excluded prefix: %s/%s", namespace, podName)
-			return false
-		}
-	}
-	if pod.Annotations[utils.ExcludedAnnotation] == "true" {
-		logging.Infof(ctx, "Skipping pod with excluded annotation: %s/%s", namespace, podName)
-		return false
+	overrides, _ := storage.Stg.GetWorkloadOverrides(clusterID, workloadKey)
+	overrideInfo := buildWorkloadOverrideInfo(workloadKey, stat, overrides)
+
+	podInfo := utils.BuildPodInfoFromPod(&pod, workloadInfo, stat)
+	k8sGE133 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 33)
+	k8sMemoryGE134 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 34)
+	input := utils.ApplyCheckInput{
+		ApplyBlacklistedNamespaces: cfg.RecommendationSettings.ApplyBlacklistedNamespaces,
+		K8sVersionGE133:            k8sGE133,
+		K8sMemoryGE134:             k8sMemoryGE134,
+		OptimizeGuaranteedPods:     cfg.RecommendationSettings.OptimizeGuaranteedPods,
+		DisableMemoryApplication:   cfg.RecommendationSettings.DisableMemoryApplication,
+		NewWorkloadThresholdHours:  cfg.RecommendationSettings.NewWorkloadThresholdHours,
+		SkipMemory:                 false,
+		PodExcludedByAnnotation:    utils.PodExcludedByAnnotation(&pod),
 	}
 
-	return true
+	apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overrideInfo, input, &pod)
+	if !apply {
+		logging.Infof(ctx, "Skipping recommendation for pod %s/%s: %s", pod.Namespace, getPodName(&pod), reason)
+		c.JSON(http.StatusOK, []client.JSONPatchOp{})
+		return
+	}
+
+	patches, err := adjustResources(ctx, &pod, clusterID, cfg)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to adjust resources for pod %s/%s: %v", pod.Namespace, getPodName(&pod), err)
+		c.JSON(http.StatusOK, []client.JSONPatchOp{})
+		return
+	}
+	c.JSON(http.StatusOK, patches)
 }
 
 func getPodName(pod *corev1.Pod) string {
@@ -128,24 +127,33 @@ func getPodName(pod *corev1.Pod) string {
 	return "unknown"
 }
 
-func findWorkloadStat(stats *utils.StatsResponse, workloadInfo *utils.WorkloadInfo) *utils.WorkloadStat {
-	identifier := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-
-	for _, stat := range stats.Stats {
-		if stat.WorkloadIdentifier == identifier {
-			return &stat
+func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, overrides *types.Overrides) *types.WorkloadOverrideInfo {
+	effective := &types.WorkloadOverridesEffective{
+		Enabled:         true,
+		EvictionRanking: types.EvictionRankingMedium,
+	}
+	if stat != nil {
+		effective.EvictionRanking = stat.EvictionRanking
+	}
+	if overrides != nil {
+		if overrides.Enabled != nil {
+			effective.Enabled = *overrides.Enabled
+		}
+		if overrides.EvictionRanking != nil {
+			effective.EvictionRanking = *overrides.EvictionRanking
 		}
 	}
-
-	return nil
-}
-
-func cpuCoresToMillicores(cpuCores float64) string {
-	return fmt.Sprintf("%dm", int64(cpuCores*1000))
-}
-
-func memoryBytesToMB(memoryBytes int64) string {
-	return fmt.Sprintf("%dM", memoryBytes/(utils.BytesToMBDivisor))
+	name, ns, kind := "", "", ""
+	if stat != nil {
+		name, ns, kind = stat.Name, stat.Namespace, stat.Kind
+	}
+	return &types.WorkloadOverrideInfo{
+		WorkloadID: workloadID,
+		Name:       name,
+		Namespace:  ns,
+		Kind:       kind,
+		Overrides:  effective,
+	}
 }
 
 //nolint:unparam // error return is part of the interface contract even though currently always nil
@@ -158,47 +166,10 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 
 	logging.Infof(ctx, "Pod %s/%s belongs to workload: %s", pod.Namespace, getPodName(pod), utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 
-	workloadID := strings.ReplaceAll(utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name), "/", ":")
-
-	recommenderClient := client.NewRecommenderServiceClientWithClusterToken(
-		cfg.Webhook.StatsURL.Host,
-		cfg.Webhook.StatsURL.TfyClusterToken,
-	)
-
-	workloadOverrides, err := recommenderClient.WebhookGetWorkloadOverrides(ctx, clusterID, workloadID)
+	workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
+	workloadStat, err := storage.Stg.GetStatForWorkload(clusterID, workloadID)
 	if err != nil {
-		logging.Errorf(ctx, "Could not fetch overrides, allowing pod without adjustment: %v", err)
-		return []map[string]any{}, nil
-	}
-
-	if workloadOverrides.Enabled != nil && !*workloadOverrides.Enabled {
-		logging.Infof(ctx, "Workload %s is disabled via overrides, skipping", workloadID)
-		return []map[string]any{}, nil
-	}
-
-	statsResponse, err := recommenderClient.WebhookGetClusterStats(ctx, clusterID)
-	if err != nil {
-		logging.Errorf(ctx, "Could not fetch stats, allowing pod without adjustment: %v", err)
-		return []map[string]any{}, nil
-	}
-	if len(statsResponse.Stats) == 0 {
-		logging.Infof(ctx, "No stats found for workload %s, allowing pod without adjustment", workloadID)
-		return []map[string]any{}, nil
-	}
-
-	workloadStat := findWorkloadStat(statsResponse, workloadInfo)
-	if workloadStat == nil {
-		logging.Infof(ctx, "No stat found for workload %s, allowing pod without adjustment", workloadID)
-		return []map[string]any{}, nil
-	}
-
-	if workloadStat.IsHorizontallyAutoscaledOnCPU || workloadStat.IsHorizontallyAutoscaledOnMem {
-		logging.Infof(ctx, "Workload %s is horizontally autoscaled on CPU/Memory, skipping", workloadID)
-		return []map[string]any{}, nil
-	}
-
-	if workloadStat.CreationTime.After(time.Now().Add(-1 * time.Hour * time.Duration(cfg.RecommendationSettings.NewWorkloadThresholdHours))) {
-		logging.Infof(ctx, "Workload %s is from a new workload, skipping", workloadID)
+		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
 		return []map[string]any{}, nil
 	}
 
@@ -356,10 +327,25 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		}
 	}
 
-	if cfg.Webhook.DryRun {
+	metadata := task.ApplyRecommendationMetadata{}
+	err = cfg.Controller.Tasks[config.ApplyRecommendationKey].ConvertMetadataToStruct(&metadata)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to convert metadata to struct: %v", err)
+		return patches, nil
+	}
+
+	if metadata.DryRun {
 		logging.Infof(ctx, "Dry run mode enabled, skipping applying patches")
-		return []map[string]any{}, nil
+		return patches, nil
 	}
 
 	return patches, nil
+}
+
+func memoryBytesToMB(memoryBytes int64) string {
+	return fmt.Sprintf("%dM", memoryBytes/(utils.BytesToMBDivisor))
+}
+
+func cpuCoresToMillicores(cpuCores float64) string {
+	return fmt.Sprintf("%dm", int64(cpuCores*1000))
 }

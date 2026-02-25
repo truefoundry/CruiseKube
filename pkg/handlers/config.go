@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
@@ -69,30 +68,10 @@ func GetConfigHandler(c *gin.Context) {
 		logging.Errorf(ctx, "Prometheus client not available for cluster %s", clusterID)
 	}
 
-	applyRecommendationDryRun := false
-	if tc := cfg.GetTaskConfig(config.ApplyRecommendationKey); tc != nil && tc.Metadata != nil {
-		if v, ok := tc.Metadata["dryrun"]; ok {
-			switch val := v.(type) {
-			case bool:
-				applyRecommendationDryRun = val
-			case string:
-				if b, err := strconv.ParseBool(val); err == nil {
-					applyRecommendationDryRun = b
-				}
-			}
-		}
-	}
-
-	recommendationSettingsDryRun := cfg.RecommendationSettings.DisableMemoryApplication
-	webhookDryRun := cfg.Webhook.DryRun
-
-	// Dry run is false only when all three are false; if any is true, we're in dry run.
-	dryRun := recommendationSettingsDryRun || webhookDryRun || applyRecommendationDryRun
-
 	response := gin.H{
 		"url":                       prometheusURL,
 		"connected":                 connected,
-		"applyRecommendationDryRun": dryRun,
+		"applyRecommendationDryRun": false,
 	}
 	if connectionError != "" {
 		response["error"] = connectionError
