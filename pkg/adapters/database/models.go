@@ -4,6 +4,18 @@ import (
 	"time"
 )
 
+type Cluster struct {
+	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
+	ClusterID string    `gorm:"column:cluster_id;uniqueIndex"`
+	Settings  string    `gorm:"column:settings;type:text;default:'{}'"`
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+func (Cluster) TableName() string {
+	return "clusters"
+}
+
 // Workload is the DB row for a workload (stats payload + overrides) per cluster.
 type Workload struct {
 	ID          uint      `gorm:"column:id;primaryKey;autoIncrement"`

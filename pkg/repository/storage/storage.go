@@ -218,6 +218,21 @@ func (s *Storage) GetPodRecommendationsForWorkload(clusterID, workloadID string)
 func (s *Storage) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	if err := s.DB.InsertSnapshot(snapshot); err != nil {
 		return fmt.Errorf("failed to insert node snapshot: %w", err)
+    	}
+	return nil
+}
+
+func (s *Storage) GetSettings(clusterID string) (*types.ClusterSettings, error) {
+	settings, err := s.DB.GetClusterSettings(clusterID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get settings: %w", err)
+	}
+	return settings, nil
+}
+
+func (s *Storage) UpdateSettings(clusterID string, settings *types.ClusterSettings) error {
+	if err := s.DB.UpdateClusterSettings(clusterID, settings); err != nil {
+		return fmt.Errorf("failed to upsert settings: %w", err)
 	}
 	return nil
 }

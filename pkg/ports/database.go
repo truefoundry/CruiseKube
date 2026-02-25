@@ -44,4 +44,7 @@ type Database interface {
 
 	// Node Snapshots
 	InsertSnapshot(snapshot *types.SnapshotPayload) error
+	// Settings
+	GetClusterSettings(clusterID string) (*types.ClusterSettings, error)
+	UpdateClusterSettings(clusterID string, settings *types.ClusterSettings) error
 }
