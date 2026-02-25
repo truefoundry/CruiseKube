@@ -577,7 +577,7 @@ func selectorsMatch(workloadSelector, pdbSelector labels.Selector) bool {
 
 	for _, req := range pdbRequirements {
 		switch req.Operator() {
-		case selection.Equals, selection.In:
+		case selection.Equals, selection.DoubleEquals, selection.In:
 			workloadReq, exists := workloadReqMap[req.Key()]
 			if !exists {
 				return false
@@ -586,7 +586,7 @@ func selectorsMatch(workloadSelector, pdbSelector labels.Selector) bool {
 				return false
 			}
 
-		case selection.NotIn:
+		case selection.NotIn, selection.NotEquals:
 			if workloadReq, exists := workloadReqMap[req.Key()]; exists {
 				if slices.ContainsFunc(workloadReq.Values().List(), req.Values().Has) {
 					return false
@@ -597,6 +597,10 @@ func selectorsMatch(workloadSelector, pdbSelector labels.Selector) bool {
 			if _, exists := workloadReqMap[req.Key()]; exists {
 				return false
 			}
+
+		case selection.Exists, selection.GreaterThan, selection.LessThan:
+			// TODO: confirm handling
+			return false
 		}
 	}
 
