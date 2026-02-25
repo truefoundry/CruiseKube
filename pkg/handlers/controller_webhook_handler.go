@@ -344,13 +344,13 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 					"value": cpuCat,
 				})
 			}
-			if memCat != "" {
-				patches = append(patches, map[string]any{
-					"op":    "add",
-					"path":  "/metadata/labels/cruisekube.com~1headroom-group-memory",
-					"value": memCat,
-				})
-			}
+			// if memCat != "" {
+			// 	patches = append(patches, map[string]any{
+			// 		"op":    "add",
+			// 		"path":  "/metadata/labels/cruisekube.com~1headroom-group-memory",
+			// 		"value": memCat,
+			// 	})
+			// }
 			merged := &corev1.Affinity{}
 			if pod.Spec.Affinity != nil {
 				merged = pod.Spec.Affinity.DeepCopy()

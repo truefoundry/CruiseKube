@@ -166,19 +166,19 @@ func HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory string) []corev1
 		})
 	}
 	if memoryCategory != "" {
-		terms = append(terms, corev1.WeightedPodAffinityTerm{
-			Weight: 100,
-			PodAffinityTerm: corev1.PodAffinityTerm{
-				LabelSelector: &metav1.LabelSelector{
-					MatchExpressions: []metav1.LabelSelectorRequirement{{
-						Key:      HeadroomGroupMemoryLabel,
-						Operator: metav1.LabelSelectorOpIn,
-						Values:   []string{memoryCategory},
-					}},
-				},
-				TopologyKey: "kubernetes.io/hostname",
-			},
-		})
+		// terms = append(terms, corev1.WeightedPodAffinityTerm{
+		// 	Weight: 100,
+		// 	PodAffinityTerm: corev1.PodAffinityTerm{
+		// 		LabelSelector: &metav1.LabelSelector{
+		// 			MatchExpressions: []metav1.LabelSelectorRequirement{{
+		// 				Key:      HeadroomGroupMemoryLabel,
+		// 				Operator: metav1.LabelSelectorOpIn,
+		// 				Values:   []string{memoryCategory},
+		// 			}},
+		// 		},
+		// 		TopologyKey: "kubernetes.io/hostname",
+		// 	},
+		// })
 	}
 	return terms
 }
@@ -202,7 +202,7 @@ func PatchPodHeadroomLabels(ctx context.Context, patcher kube.PodPatcher, pod *c
 		labels[HeadroomGroupCPULabel] = cpuCategory
 	}
 	if memoryCategory != "" {
-		labels[HeadroomGroupMemoryLabel] = memoryCategory
+		// labels[HeadroomGroupMemoryLabel] = memoryCategory
 	}
 
 	headroomPatch := map[string]any{"metadata": map[string]any{"labels": labels}}
