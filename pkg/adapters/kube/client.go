@@ -29,7 +29,11 @@ type kubePodPatcher struct {
 }
 
 func (p *kubePodPatcher) Patch(ctx context.Context, namespace, name string, pt k8stypes.PatchType, data []byte, opts metav1.PatchOptions) (*corev1.Pod, error) {
-	return p.client.CoreV1().Pods(namespace).Patch(ctx, name, pt, data, opts)
+	pod, err := p.client.CoreV1().Pods(namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, fmt.Errorf("patch pod %s/%s: %w", namespace, name, err)
+	}
+	return pod, nil
 }
 
 func NewPodPatcher(client *kubernetes.Clientset) PodPatcher {
