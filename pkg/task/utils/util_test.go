@@ -49,7 +49,7 @@ func (m *mockPodPatcher) lastPatchPod() (*corev1.Pod, error) {
 func minimalPod(namespace, name string, labels map[string]string, preferred []corev1.WeightedPodAffinityTerm) *corev1.Pod {
 	p := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name, Labels: labels},
-		Spec:      corev1.PodSpec{},
+		Spec:       corev1.PodSpec{},
 	}
 	if len(preferred) > 0 {
 		p.Spec.Affinity = &corev1.Affinity{
