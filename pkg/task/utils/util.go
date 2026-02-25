@@ -215,7 +215,7 @@ func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, patcher kube.PodPatc
 			t := &existingAffinityPreferred[i]
 			if t.PodAffinityTerm.LabelSelector != nil && len(t.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 {
 				key := t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key
-				if (key != HeadroomGroupCPULabel && key != HeadroomGroupMemoryLabel) {
+				if key != HeadroomGroupCPULabel && key != HeadroomGroupMemoryLabel {
 					mergedAffinityPreferred = append(mergedAffinityPreferred, existingAffinityPreferred[i])
 				}
 			}
@@ -235,7 +235,7 @@ func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, patcher kube.PodPatc
 	if memoryCategory != "" {
 		labels[HeadroomGroupMemoryLabel] = memoryCategory
 	}
-	
+
 	// Create the final affinity object
 	merged := &corev1.Affinity{}
 	if pod.Spec.Affinity != nil {
