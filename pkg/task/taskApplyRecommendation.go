@@ -256,7 +256,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			if applyChanges && !headroomPatchedPods[podKey] {
 				cpuCat, memCat := utils.HeadroomCategories(rec.PodInfo.Stats)
 				if cpuCat != "" || memCat != "" {
-					patched, errStr := utils.PatchPodHeadroomLabelsAndAffinity(ctx, podPatcher, freshPod, cpuCat, memCat)
+					patched, errStr := utils.PatchPodHeadroomLabels(ctx, podPatcher, freshPod, cpuCat, memCat)
 					if errStr != "" {
 						logging.Errorf(ctx, "Failed to patch pod %s headroom labels/affinity: %s", podKey, errStr)
 					} else if patched {

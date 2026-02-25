@@ -183,8 +183,7 @@ func HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory string) []corev1
 	return terms
 }
 
-// In this function we are assuming that if the label for the headroom category is present, then the affinity is also present.
-func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, patcher kube.PodPatcher, pod *corev1.Pod, cpuCategory, memoryCategory string) (bool, string) {
+func PatchPodHeadroomLabels(ctx context.Context, patcher kube.PodPatcher, pod *corev1.Pod, cpuCategory, memoryCategory string) (bool, string) {
 	if cpuCategory == "" && memoryCategory == "" {
 		return false, ""
 	}
@@ -197,34 +196,6 @@ func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, patcher kube.PodPatc
 		return false, ""
 	}
 
-	desiredAffinityTerms := HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory)
-
-	existingAffinityPreferred := []corev1.WeightedPodAffinityTerm(nil)
-	if pod.Spec.Affinity != nil && pod.Spec.Affinity.PodAffinity != nil {
-		existingAffinityPreferred = pod.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution
-	}
-
-	var mergedAffinityPreferred []corev1.WeightedPodAffinityTerm
-	if needsUpdate {
-		if pod.Spec.Affinity == nil || pod.Spec.Affinity.PodAffinity == nil {
-			logging.Errorf(ctx, "Pod %s/%s headroom update requires existing affinity but PodAffinity is missing", pod.Namespace, pod.Name)
-			return false, "headroom update requires existing pod affinity"
-		}
-
-		for i := range existingAffinityPreferred {
-			t := &existingAffinityPreferred[i]
-			isHeadroomTerm := t.PodAffinityTerm.LabelSelector != nil && len(t.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 && (t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key == HeadroomGroupCPULabel || t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key == HeadroomGroupMemoryLabel)
-			if !isHeadroomTerm {
-				mergedAffinityPreferred = append(mergedAffinityPreferred, existingAffinityPreferred[i])
-			}
-		}
-		mergedAffinityPreferred = append(mergedAffinityPreferred, desiredAffinityTerms...)
-	} else {
-		mergedAffinityPreferred = append(mergedAffinityPreferred, existingAffinityPreferred...)
-		mergedAffinityPreferred = append(mergedAffinityPreferred, desiredAffinityTerms...)
-	}
-
-	// Copy the labels from the pod to the new labels map
 	labels := make(map[string]string)
 	maps.Copy(labels, pod.Labels)
 	if cpuCategory != "" {
@@ -234,27 +205,14 @@ func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, patcher kube.PodPatc
 		labels[HeadroomGroupMemoryLabel] = memoryCategory
 	}
 
-	// Create the final affinity object
-	mergedAffinity := &corev1.Affinity{}
-	if pod.Spec.Affinity != nil {
-		mergedAffinity = pod.Spec.Affinity.DeepCopy()
-	}
-	if mergedAffinity.PodAffinity == nil {
-		mergedAffinity.PodAffinity = &corev1.PodAffinity{}
-	}
-	mergedAffinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = mergedAffinityPreferred
-
-	headroomPatch := map[string]any{
-		"metadata": map[string]any{"labels": labels},
-		"spec":     map[string]any{"affinity": mergedAffinity},
-	}
+	headroomPatch := map[string]any{"metadata": map[string]any{"labels": labels}}
 	patchBytes, err := json.Marshal(headroomPatch)
 	if err != nil {
 		return false, fmt.Sprintf("failed to marshal headroom patch: %v", err)
 	}
 	_, err = patcher.Patch(ctx, pod.Namespace, pod.Name, k8stypes.MergePatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
-		logging.Errorf(ctx, "Failed to patch pod %s/%s headroom labels/affinity: %v", pod.Namespace, pod.Name, err)
+		logging.Errorf(ctx, "Failed to patch pod %s/%s headroom labels: %v", pod.Namespace, pod.Name, err)
 		return false, fmt.Sprintf("failed to patch pod headroom: %v", err)
 	}
 	return true, ""

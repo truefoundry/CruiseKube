@@ -45,28 +45,19 @@ func (m *mockPodPatcher) lastPatchPod() (*corev1.Pod, error) {
 	return &p, nil
 }
 
-// minimalPod builds a pod with optional labels and optional PodAffinity preferred terms for test setup.
-func minimalPod(namespace, name string, labels map[string]string, preferred []corev1.WeightedPodAffinityTerm) *corev1.Pod {
-	p := &corev1.Pod{
+func minimalPod(namespace, name string, labels map[string]string) *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name, Labels: labels},
 		Spec:       corev1.PodSpec{},
 	}
-	if len(preferred) > 0 {
-		p.Spec.Affinity = &corev1.Affinity{
-			PodAffinity: &corev1.PodAffinity{
-				PreferredDuringSchedulingIgnoredDuringExecution: preferred,
-			},
-		}
-	}
-	return p
 }
 
 // EmptyCategories: both cpu and memory categories are empty; function should no-op and not call Patch.
-func TestPatchPodHeadroomLabelsAndAffinity_EmptyCategories(t *testing.T) {
+func TestPatchPodHeadroomLabels_EmptyCategories(t *testing.T) {
 	patcher := &mockPodPatcher{}
 	ctx := context.Background()
-	pod := minimalPod("ns", "pod1", nil, nil)
-	patched, errStr := PatchPodHeadroomLabelsAndAffinity(ctx, patcher, pod, "", "")
+	pod := minimalPod("ns", "pod1", nil)
+	patched, errStr := PatchPodHeadroomLabels(ctx, patcher, pod, "", "")
 	if patched != false || errStr != "" {
 		t.Errorf("got (patched=%v, errStr=%q), want (false, \"\")", patched, errStr)
 	}
@@ -75,12 +66,12 @@ func TestPatchPodHeadroomLabelsAndAffinity_EmptyCategories(t *testing.T) {
 	}
 }
 
-// AdditionCPUOnly: pod has no headroom labels; adding CPU category only. Patch called once, body has CPU label and one preferred term.
-func TestPatchPodHeadroomLabelsAndAffinity_AdditionCPUOnly(t *testing.T) {
+// AdditionCPUOnly: pod has no headroom labels; adding CPU category only. Patch called once.
+func TestPatchPodHeadroomLabels_AdditionCPUOnly(t *testing.T) {
 	patcher := &mockPodPatcher{}
 	ctx := context.Background()
-	pod := minimalPod("ns", "pod1", nil, nil)
-	patched, errStr := PatchPodHeadroomLabelsAndAffinity(ctx, patcher, pod, "high", "")
+	pod := minimalPod("ns", "pod1", nil)
+	patched, errStr := PatchPodHeadroomLabels(ctx, patcher, pod, "high", "")
 	if !patched || errStr != "" {
 		t.Errorf("got (patched=%v, errStr=%q), want (true, \"\")", patched, errStr)
 	}
@@ -94,21 +85,14 @@ func TestPatchPodHeadroomLabelsAndAffinity_AdditionCPUOnly(t *testing.T) {
 	if decoded.Labels[HeadroomGroupCPULabel] != "high" {
 		t.Errorf("patch body labels: got %q for %s, want \"high\"", decoded.Labels[HeadroomGroupCPULabel], HeadroomGroupCPULabel)
 	}
-	pref := decoded.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution
-	if len(pref) != 1 {
-		t.Errorf("patch body preferred terms: got %d, want 1", len(pref))
-	}
-	if len(pref) > 0 && (pref[0].PodAffinityTerm.LabelSelector == nil || len(pref[0].PodAffinityTerm.LabelSelector.MatchExpressions) == 0 || pref[0].PodAffinityTerm.LabelSelector.MatchExpressions[0].Key != HeadroomGroupCPULabel) {
-		t.Errorf("patch body preferred term[0] should be headroom CPU term")
-	}
 }
 
-// AdditionBothCategories: pod has no headroom; add both CPU and memory. Patch body must have both labels and two preferred terms.
-func TestPatchPodHeadroomLabelsAndAffinity_AdditionBothCategories(t *testing.T) {
+// AdditionBothCategories: pod has no headroom; add both CPU and memory.
+func TestPatchPodHeadroomLabels_AdditionBothCategories(t *testing.T) {
 	patcher := &mockPodPatcher{}
 	ctx := context.Background()
-	pod := minimalPod("ns", "pod1", nil, nil)
-	patched, errStr := PatchPodHeadroomLabelsAndAffinity(ctx, patcher, pod, "high", "low")
+	pod := minimalPod("ns", "pod1", nil)
+	patched, errStr := PatchPodHeadroomLabels(ctx, patcher, pod, "high", "low")
 	if !patched || errStr != "" {
 		t.Errorf("got (patched=%v, errStr=%q), want (true, \"\")", patched, errStr)
 	}
@@ -119,31 +103,14 @@ func TestPatchPodHeadroomLabelsAndAffinity_AdditionBothCategories(t *testing.T) 
 	if decoded.Labels[HeadroomGroupCPULabel] != "high" || decoded.Labels[HeadroomGroupMemoryLabel] != "low" {
 		t.Errorf("patch body labels: got cpu=%q mem=%q, want high, low", decoded.Labels[HeadroomGroupCPULabel], decoded.Labels[HeadroomGroupMemoryLabel])
 	}
-	pref := decoded.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution
-	if len(pref) != 2 {
-		t.Errorf("patch body preferred terms: got %d, want 2", len(pref))
-	}
 }
 
-// UpdateLabelPresent: pod already has headroom label and affinity. Patch must update label/headroom term and preserve non-headroom terms (including multi-expression selector shape).
-func TestPatchPodHeadroomLabelsAndAffinity_UpdateLabelPresent(t *testing.T) {
+// UpdateLabelPresent: pod already has headroom label; patch updates only labels.
+func TestPatchPodHeadroomLabels_UpdateLabelPresent(t *testing.T) {
 	patcher := &mockPodPatcher{}
 	ctx := context.Background()
-	oldCPUTerm := HeadroomPreferredAffinityTerms("old", "")[0]
-	nonHeadroomTerm := corev1.WeightedPodAffinityTerm{
-		Weight: 50,
-		PodAffinityTerm: corev1.PodAffinityTerm{
-			LabelSelector: &metav1.LabelSelector{
-				MatchExpressions: []metav1.LabelSelectorRequirement{
-					{Key: "other/key", Operator: metav1.LabelSelectorOpIn, Values: []string{"x"}},
-					{Key: "other/key2", Operator: metav1.LabelSelectorOpNotIn, Values: []string{"y"}},
-				},
-			},
-			TopologyKey: "kubernetes.io/hostname",
-		},
-	}
-	pod := minimalPod("ns", "pod1", map[string]string{HeadroomGroupCPULabel: "old"}, []corev1.WeightedPodAffinityTerm{nonHeadroomTerm, oldCPUTerm})
-	patched, errStr := PatchPodHeadroomLabelsAndAffinity(ctx, patcher, pod, "new", "")
+	pod := minimalPod("ns", "pod1", map[string]string{HeadroomGroupCPULabel: "old"})
+	patched, errStr := PatchPodHeadroomLabels(ctx, patcher, pod, "new", "")
 	if !patched || errStr != "" {
 		t.Errorf("got (patched=%v, errStr=%q), want (true, \"\")", patched, errStr)
 	}
@@ -154,66 +121,14 @@ func TestPatchPodHeadroomLabelsAndAffinity_UpdateLabelPresent(t *testing.T) {
 	if decoded.Labels[HeadroomGroupCPULabel] != "new" {
 		t.Errorf("patch body label: got %q, want \"new\"", decoded.Labels[HeadroomGroupCPULabel])
 	}
-	pref := decoded.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution
-	hasNonHeadroomMultiExpr := false
-	hasNewCPU := false
-	for _, wt := range pref {
-		if wt.PodAffinityTerm.LabelSelector != nil && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions) >= 2 {
-			keys := make(map[string]bool)
-			for _, me := range wt.PodAffinityTerm.LabelSelector.MatchExpressions {
-				keys[me.Key] = true
-			}
-			if keys["other/key"] && keys["other/key2"] && wt.Weight == 50 && wt.PodAffinityTerm.TopologyKey == "kubernetes.io/hostname" {
-				hasNonHeadroomMultiExpr = true
-			}
-		}
-		if wt.PodAffinityTerm.LabelSelector != nil && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 {
-			key := wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key
-			if key == HeadroomGroupCPULabel && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Values) > 0 && wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Values[0] == "new" {
-				hasNewCPU = true
-			}
-		}
-	}
-	if !hasNonHeadroomMultiExpr {
-		t.Errorf("patch should preserve non-headroom preferred term with multi-expression selector (other/key, other/key2)")
-	}
-	if !hasNewCPU {
-		t.Errorf("patch should have headroom term for new")
-	}
 }
 
-// UpdateNoAffinity: pod has headroom label but Spec.Affinity or PodAffinity is nil. Must return error and not call Patch
-func TestPatchPodHeadroomLabelsAndAffinity_UpdateNoAffinity(t *testing.T) {
+// Noop: labels already match desired categories; function should return (false, "") and not call Patch.
+func TestPatchPodHeadroomLabels_Noop(t *testing.T) {
 	patcher := &mockPodPatcher{}
 	ctx := context.Background()
-	pod := minimalPod("ns", "pod1", map[string]string{HeadroomGroupCPULabel: "x"}, nil)
-	pod.Spec.Affinity = nil
-	patched, errStr := PatchPodHeadroomLabelsAndAffinity(ctx, patcher, pod, "new", "")
-	if patched != false {
-		t.Errorf("got patched=%v, want false", patched)
-	}
-	if errStr != "headroom update requires existing pod affinity" {
-		t.Errorf("got errStr=%q, want \"headroom update requires existing pod affinity\"", errStr)
-	}
-	if len(patcher.lastData) != 0 {
-		t.Errorf("Patch should not have been called")
-	}
-	pod2 := minimalPod("ns", "pod2", map[string]string{HeadroomGroupCPULabel: "x"}, nil)
-	pod2.Spec.Affinity = &corev1.Affinity{}
-	patcher2 := &mockPodPatcher{}
-	patched2, errStr2 := PatchPodHeadroomLabelsAndAffinity(ctx, patcher2, pod2, "new", "")
-	if patched2 != false || errStr2 != "headroom update requires existing pod affinity" || len(patcher2.lastData) != 0 {
-		t.Errorf("PodAffinity nil: got (patched=%v, errStr=%q), Patch called=%v", patched2, errStr2, len(patcher2.lastData) != 0)
-	}
-}
-
-// Noop: labels and affinity already match desired categories; function should return (false, "") and not call Patch.
-func TestPatchPodHeadroomLabelsAndAffinity_Noop(t *testing.T) {
-	patcher := &mockPodPatcher{}
-	ctx := context.Background()
-	terms := HeadroomPreferredAffinityTerms("high", "low")
-	pod := minimalPod("ns", "pod1", map[string]string{HeadroomGroupCPULabel: "high", HeadroomGroupMemoryLabel: "low"}, terms)
-	patched, errStr := PatchPodHeadroomLabelsAndAffinity(ctx, patcher, pod, "high", "low")
+	pod := minimalPod("ns", "pod1", map[string]string{HeadroomGroupCPULabel: "high", HeadroomGroupMemoryLabel: "low"})
+	patched, errStr := PatchPodHeadroomLabels(ctx, patcher, pod, "high", "low")
 	if patched != false || errStr != "" {
 		t.Errorf("got (patched=%v, errStr=%q), want (false, \"\")", patched, errStr)
 	}
@@ -223,12 +138,12 @@ func TestPatchPodHeadroomLabelsAndAffinity_Noop(t *testing.T) {
 }
 
 // PatchError: mock Patch returns an error; function must return (false, error string) with that error.
-func TestPatchPodHeadroomLabelsAndAffinity_PatchError(t *testing.T) {
+func TestPatchPodHeadroomLabels_PatchError(t *testing.T) {
 	injectedErr := errors.New("injected")
 	patcher := &mockPodPatcher{patchErr: injectedErr}
 	ctx := context.Background()
-	pod := minimalPod("ns", "pod1", nil, nil)
-	patched, errStr := PatchPodHeadroomLabelsAndAffinity(ctx, patcher, pod, "high", "")
+	pod := minimalPod("ns", "pod1", nil)
+	patched, errStr := PatchPodHeadroomLabels(ctx, patcher, pod, "high", "")
 	if patched != false {
 		t.Errorf("got patched=%v, want false", patched)
 	}
