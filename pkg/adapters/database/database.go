@@ -74,6 +74,9 @@ func (s *GormDB) createTables() error {
 			return fmt.Errorf("failed to rename stats table to workloads: %w", err)
 		}
 	}
+	if err := s.db.AutoMigrate(&Cluster{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate Cluster: %w", err)
+	}
 	if err := s.db.AutoMigrate(&Workload{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate workloads: %w", err)
 	}
@@ -502,4 +505,39 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 		})
 	}
 	return rows, nil
+}
+
+func (s *GormDB) GetClusterSettings(clusterID string) (*types.ClusterSettings, error) {
+	var row Cluster
+	err := s.db.Where("cluster_id = ?", clusterID).First(&row).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil //nolint:nilnil // nil means no settings row yet; callers use application defaults
+		}
+		return nil, fmt.Errorf("failed to get settings for cluster %s: %w", clusterID, err)
+	}
+	var settings types.ClusterSettings
+	if err := json.Unmarshal([]byte(row.Settings), &settings); err != nil {
+		return nil, fmt.Errorf("failed to parse settings JSON for cluster %s: %w", clusterID, err)
+	}
+	return &settings, nil
+}
+
+func (s *GormDB) UpdateClusterSettings(clusterID string, settings *types.ClusterSettings) error {
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to serialize settings for cluster %s: %w", clusterID, err)
+	}
+	row := Cluster{
+		ClusterID: clusterID,
+		Settings:  string(data),
+	}
+	err = s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "cluster_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"settings", "updated_at"}),
+	}).Create(&row).Error
+	if err != nil {
+		return fmt.Errorf("failed to upsert settings for cluster %s: %w", clusterID, err)
+	}
+	return nil
 }
