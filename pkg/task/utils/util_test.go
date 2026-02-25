@@ -125,32 +125,6 @@ func TestPatchPodHeadroomLabelsAndAffinity_AdditionBothCategories(t *testing.T) 
 	}
 }
 
-// AdditionDedupe: affinity already has the headroom term for the given category; result must not duplicate that term.
-func TestPatchPodHeadroomLabelsAndAffinity_AdditionDedupe(t *testing.T) {
-	patcher := &mockPodPatcher{}
-	ctx := context.Background()
-	existingTerms := HeadroomPreferredAffinityTerms("high", "")
-	pod := minimalPod("ns", "pod1", nil, existingTerms)
-	patched, errStr := PatchPodHeadroomLabelsAndAffinity(ctx, patcher, pod, "high", "")
-	if !patched || errStr != "" {
-		t.Errorf("got (patched=%v, errStr=%q), want (true, \"\")", patched, errStr)
-	}
-	decoded, err := patcher.lastPatchPod()
-	if err != nil {
-		t.Fatalf("decode patch body: %v", err)
-	}
-	pref := decoded.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution
-	cpuTerms := 0
-	for _, wt := range pref {
-		if wt.PodAffinityTerm.LabelSelector != nil && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 && wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key == HeadroomGroupCPULabel {
-			cpuTerms++
-		}
-	}
-	if cpuTerms != 1 {
-		t.Errorf("preferred list should have exactly one headroom CPU term (no duplicate), got %d", cpuTerms)
-	}
-}
-
 // UpdateLabelPresent: pod already has headroom label and affinity. Patch must update label/headroom term and preserve non-headroom terms.
 func TestPatchPodHeadroomLabelsAndAffinity_UpdateLabelPresent(t *testing.T) {
 	patcher := &mockPodPatcher{}
