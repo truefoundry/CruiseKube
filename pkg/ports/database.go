@@ -41,4 +41,8 @@ type Database interface {
 	SavePodRecommendations(clusterID string, rows []types.PodResourceRecommendationRow) error
 	GetPodRecommendationsForCluster(clusterID string) ([]types.PodResourceRecommendationRow, error)
 	GetPodRecommendationsForWorkload(clusterID, workloadID string) ([]types.PodResourceRecommendationRow, error)
+
+	// Settings
+	GetClusterSettings(clusterID string) (*types.ClusterSettings, error)
+	UpdateClusterSettings(clusterID string, settings *types.ClusterSettings) error
 }
