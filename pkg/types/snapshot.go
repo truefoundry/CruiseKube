@@ -19,7 +19,7 @@ type SnapshotNodes struct {
 // SnapshotPodsCount holds pod counts by status (e.g. "Running", "Pending").
 type SnapshotPodsCount map[string]int
 
-// SnapshotData is the JSON stored in the node_snapshots.data column.
+// SnapshotData is the JSON stored in the snapshots.data column.
 type SnapshotData struct {
 	CPU       SnapshotResourceMetrics `json:"cpu"`
 	Memory    SnapshotResourceMetrics `json:"memory"`

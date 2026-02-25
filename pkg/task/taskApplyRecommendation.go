@@ -447,12 +447,13 @@ func (a *ApplyRecommendationTask) getFreshPodsOnNode(ctx context.Context, nodeNa
 }
 
 // countNodeHealth lists cluster nodes and returns counts of healthy (Ready) vs unhealthy (NotReady/Unknown) nodes.
-func (a *ApplyRecommendationTask) countNodeHealth(ctx context.Context) (healthy, unhealthy int) {
+func (a *ApplyRecommendationTask) countNodeHealth(ctx context.Context) (int, int) {
 	nodeList, err := a.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		logging.Warnf(ctx, "snapshot: failed to list nodes for health count: %v", err)
 		return 0, 0
 	}
+	var healthy, unhealthy = 0, 0
 	for i := range nodeList.Items {
 		node := &nodeList.Items[i]
 		if isNodeReady(node) {

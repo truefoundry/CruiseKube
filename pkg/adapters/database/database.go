@@ -511,6 +511,10 @@ func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	if snapshot == nil {
 		return fmt.Errorf("snapshot cannot be nil")
 	}
+	if snapshot.ClusterID == "" {
+		return fmt.Errorf("snapshot cluster ID cannot be empty")
+	}
+
 	dataJSON, err := json.Marshal(snapshot.Data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal snapshot data: %w", err)
