@@ -326,6 +326,7 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		}
 	}
 
+	// Here we are assuming that the pod does not already have the headroom labels and affinity, so we need to add them.
 	if workloadStat != nil {
 		cpuCat, memCat := utils.HeadroomCategories(workloadStat)
 		if cpuCat != "" || memCat != "" {
