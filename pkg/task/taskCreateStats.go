@@ -7,7 +7,6 @@ import (
 
 	"github.com/prometheus/common/model"
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
-	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -236,18 +235,6 @@ func (c *CreateStatsTask) writeStatsToFileForCluster(ctx context.Context, cluste
 
 	if err := c.storage.WriteClusterStats(clusterID, allStats, generatedAt); err != nil {
 		return fmt.Errorf("error writing stats for cluster %s: %w", clusterID, err)
-	}
-
-	if audit.Stg != nil {
-		audit.Stg.Record(ctx, clusterID, types.AuditEvent{
-			Type:      types.EventTypeNormal,
-			Automated: true,
-			Category:  types.EventCategoryStatsCollected,
-			Source:    "CreateStats",
-			Target:    "",
-			Message:   fmt.Sprintf("Stats collected for %d workloads", len(allStats.Stats)),
-			MetaData:  types.AuditMetaData{Extras: map[string]string{"workload_count": fmt.Sprintf("%d", len(allStats.Stats))}},
-		})
 	}
 
 	logging.Infof(ctx, "Successfully wrote %d stats for cluster %s", len(allStats.Stats), clusterID)

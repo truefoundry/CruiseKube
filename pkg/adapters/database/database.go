@@ -508,27 +508,26 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 }
 
 func (s *GormDB) InsertAuditEvent(clusterID string, event types.AuditEvent) error {
-	metaExtras := "{}"
-	if len(event.MetaData.Extras) > 0 {
-		b, err := json.Marshal(event.MetaData.Extras)
+	metaJSON := "{}"
+	if len(event.MetaData) > 0 {
+		b, err := json.Marshal(event.MetaData)
 		if err != nil {
-			return fmt.Errorf("failed to marshal audit metadata extras: %w", err)
+			return fmt.Errorf("failed to marshal audit metadata: %w", err)
 		}
-		metaExtras = string(b)
+		metaJSON = string(b)
+	}
+	payloadJSON, err := json.Marshal(event.Payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal audit payload: %w", err)
 	}
 	row := AuditEventRow{
-		ClusterID:  clusterID,
-		Timestamp:  event.Timestamp.UTC(),
-		Type:       string(event.Type),
-		Automated:  event.Automated,
-		Category:   string(event.Category),
-		Source:     event.Source,
-		Target:     event.Target,
-		Message:    event.Message,
-		Namespace:  event.MetaData.Namespace,
-		Kind:       event.MetaData.Kind,
-		Name:       event.MetaData.Name,
-		MetaExtras: metaExtras,
+		ClusterID: clusterID,
+		Timestamp: event.Timestamp.UTC(),
+		Type:      string(event.Type),
+		Category:  string(event.Category),
+		Source:    event.Source,
+		Payload:   string(payloadJSON),
+		Meta:      metaJSON,
 	}
 	if err := s.db.Create(&row).Error; err != nil {
 		return fmt.Errorf("failed to insert audit event: %w", err)

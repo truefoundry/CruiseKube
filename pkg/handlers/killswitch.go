@@ -52,14 +52,16 @@ func KillswitchHandler(c *gin.Context) {
 	} else {
 		response.DeletedMutatingWebhook = true
 		if !dryRun && audit.Stg != nil {
+			target := fmt.Sprintf("cruisekube-resource-adjuster-%s", clusterID)
 			audit.Stg.Record(ctx, clusterID, types.AuditEvent{
-				Type:      types.EventTypeNormal,
-				Automated: false,
-				Category:  types.EventCategoryConfigChange,
-				Source:    "Killswitch",
-				Target:    fmt.Sprintf("cruisekube-resource-adjuster-%s", clusterID),
-				Message:   "MutatingWebhookConfiguration deleted by user (killswitch)",
-				MetaData:  types.AuditMetaData{},
+				Type:     types.EventTypeNormal,
+				Category: types.EventCategoryConfigChange,
+				Source:   "Killswitch",
+				Payload: types.AuditPayload{
+					Message: "MutatingWebhookConfiguration deleted by user (killswitch)",
+					Target:  target,
+				},
+				MetaData: types.AuditMetaData{},
 			})
 		}
 	}
@@ -160,18 +162,15 @@ func analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, c
 				logging.Infof(ctx, "Killed pod %s (reason: %s)", killedPodName, reason)
 				if !dryRun && audit.Stg != nil {
 					audit.Stg.Record(ctx, clusterID, types.AuditEvent{
-						Type:      types.EventTypeNormal,
-						Automated: false,
-						Category:  types.EventCategoryEviction,
-						Source:    "Killswitch",
-						Target:    killedPodName,
-						Message:   "Pod killed by user (killswitch): " + reason,
-						MetaData: types.AuditMetaData{
-							Namespace: pod.Namespace,
-							Kind:      workloadInfo.Kind,
-							Name:      workloadInfo.Name,
-							Extras:    map[string]string{"pod": pod.Name, "reason": reason},
+						Type:     types.EventTypeNormal,
+						Category: types.EventCategoryEviction,
+						Source:   "Killswitch",
+						Payload: types.AuditPayload{
+							Message: "Pod killed by user (killswitch): " + reason,
+							Target:  map[string]interface{}{"kind": workloadInfo.Kind, "namespace": pod.Namespace, "name": pod.Name},
+							After:   map[string]interface{}{"reason": reason},
 						},
+						MetaData: types.AuditMetaData{"pod": pod.Name, "reason": reason},
 					})
 				}
 			} else {

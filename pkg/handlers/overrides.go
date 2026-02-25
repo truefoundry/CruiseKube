@@ -41,13 +41,14 @@ func UpdateWorkloadOverridesHandler(c *gin.Context) {
 
 	if audit.Stg != nil {
 		audit.Stg.Record(c.Request.Context(), clusterID, types.AuditEvent{
-			Type:      types.EventTypeNormal,
-			Automated: false,
-			Category:  types.EventCategoryConfigChange,
-			Source:    "Overrides",
-			Target:    workloadID,
-			Message:   "Workload overrides updated by user",
-			MetaData:  types.AuditMetaData{Extras: map[string]string{"workload_id": workloadID}},
+			Type:     types.EventTypeNormal,
+			Category: types.EventCategoryConfigChange,
+			Source:   "Overrides",
+			Payload: types.AuditPayload{
+				Message: "Workload overrides updated by user",
+				Target:  workloadID,
+			},
+			MetaData: types.AuditMetaData{"workload_id": workloadID},
 		})
 	}
 

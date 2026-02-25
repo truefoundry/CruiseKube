@@ -105,22 +105,6 @@ func HandleMutatingPatch(c *gin.Context) {
 	apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overrideInfo, input, &pod)
 	if !apply {
 		logging.Infof(ctx, "Skipping recommendation for pod %s/%s: %s", pod.Namespace, getPodName(&pod), reason)
-		if audit.Stg != nil {
-			audit.Stg.Record(ctx, clusterID, types.AuditEvent{
-				Type:      types.EventTypeNormal,
-				Automated: true,
-				Category:  types.EventCategoryRecommendationSkipped,
-				Source:    "AdmissionWebhook",
-				Target:    fmt.Sprintf("%s/%s", pod.Namespace, getPodName(&pod)),
-				Message:   reason,
-				MetaData: types.AuditMetaData{
-					Namespace: pod.Namespace,
-					Kind:      workloadInfo.Kind,
-					Name:      workloadInfo.Name,
-					Extras:    map[string]string{"pod": getPodName(&pod), "workload_id": workloadKey},
-				},
-			})
-		}
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
@@ -133,18 +117,15 @@ func HandleMutatingPatch(c *gin.Context) {
 	}
 	if len(patches) > 0 && audit.Stg != nil {
 		audit.Stg.Record(ctx, clusterID, types.AuditEvent{
-			Type:      types.EventTypeNormal,
-			Automated: true,
-			Category:  types.EventCategoryWebhookMutation,
-			Source:    "AdmissionWebhook",
-			Target:    fmt.Sprintf("%s/%s", pod.Namespace, getPodName(&pod)),
-			Message:   "Pod mutated with resource recommendations",
-			MetaData: types.AuditMetaData{
-				Namespace: pod.Namespace,
-				Kind:      workloadInfo.Kind,
-				Name:      workloadInfo.Name,
-				Extras:    map[string]string{"pod": getPodName(&pod), "workload_id": workloadKey, "patch_count": fmt.Sprintf("%d", len(patches))},
+			Type:     types.EventTypeNormal,
+			Category: types.EventCategoryWebhookMutation,
+			Source:   "AdmissionWebhook",
+			Payload: types.AuditPayload{
+				Message: "Pod mutated with resource recommendations",
+				Target:  map[string]interface{}{"kind": "Pod", "namespace": pod.Namespace, "name": getPodName(&pod)},
+				After:   map[string]interface{}{"patch_count": len(patches)},
 			},
+			MetaData: types.AuditMetaData{"pod": getPodName(&pod), "workload_id": workloadKey},
 		})
 	}
 	c.JSON(http.StatusOK, patches)
