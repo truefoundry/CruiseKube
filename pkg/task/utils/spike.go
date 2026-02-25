@@ -6,7 +6,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
-func HeadroomCategories(stat *WorkloadStat) (cpu, mem string) {
+func HeadroomCategories(stat *WorkloadStat) (string, string) {
 	if stat == nil || stat.ContainerStats == nil {
 		return "", ""
 	}

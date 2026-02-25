@@ -11,11 +11,30 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/logging"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+type PodPatcher interface {
+	Patch(ctx context.Context, namespace, name string, pt k8stypes.PatchType, data []byte, opts metav1.PatchOptions) (*corev1.Pod, error)
+}
+
+type kubePodPatcher struct {
+	client *kubernetes.Clientset
+}
+
+func (p *kubePodPatcher) Patch(ctx context.Context, namespace, name string, pt k8stypes.PatchType, data []byte, opts metav1.PatchOptions) (*corev1.Pod, error) {
+	return p.client.CoreV1().Pods(namespace).Patch(ctx, name, pt, data, opts)
+}
+
+func NewPodPatcher(client *kubernetes.Clientset) PodPatcher {
+	return &kubePodPatcher{client: client}
+}
 
 func NewKubeClient(ctx context.Context, kubeconfigPath string) (*kubernetes.Clientset, error) {
 	var config *rest.Config

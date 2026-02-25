@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 
+	"github.com/truefoundry/cruisekube/pkg/adapters/kube"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/metrics"
@@ -181,8 +183,67 @@ func HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory string) []corev1
 	return terms
 }
 
-func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, kubeClient *kubernetes.Clientset, pod *corev1.Pod, cpuCategory, memoryCategory string) (bool, string) {
+func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, patcher kube.PodPatcher, pod *corev1.Pod, cpuCategory, memoryCategory string) (bool, string) {
 	if cpuCategory == "" && memoryCategory == "" {
+		return false, ""
+	}
+	hasCPU := pod.Labels[HeadroomGroupCPULabel] != ""
+	hasMem := pod.Labels[HeadroomGroupMemoryLabel] != ""
+	needsUpdate := (cpuCategory != "" && hasCPU) || (memoryCategory != "" && hasMem)
+	desiredTerms := HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory)
+	existingPreferred := []corev1.WeightedPodAffinityTerm(nil)
+	if pod.Spec.Affinity != nil && pod.Spec.Affinity.PodAffinity != nil {
+		existingPreferred = pod.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution
+	}
+	var mergedPreferred []corev1.WeightedPodAffinityTerm
+	if needsUpdate {
+		if pod.Spec.Affinity == nil || pod.Spec.Affinity.PodAffinity == nil {
+			logging.Errorf(ctx, "Pod %s/%s headroom update requires existing affinity but PodAffinity is missing", pod.Namespace, pod.Name)
+			return false, "headroom update requires existing pod affinity"
+		}
+		for i := range existingPreferred {
+			t := &existingPreferred[i]
+			isHeadroom := t.PodAffinityTerm.LabelSelector != nil && len(t.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 &&
+				(t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key == HeadroomGroupCPULabel || t.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key == HeadroomGroupMemoryLabel)
+			if !isHeadroom {
+				mergedPreferred = append(mergedPreferred, existingPreferred[i])
+			}
+		}
+		mergedPreferred = append(mergedPreferred, desiredTerms...)
+	} else {
+		mergedPreferred = append(mergedPreferred, existingPreferred...)
+		for _, t := range desiredTerms {
+			found := false
+			for _, e := range existingPreferred {
+				if reflect.DeepEqual(t, e) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				mergedPreferred = append(mergedPreferred, t)
+			}
+		}
+	}
+	labelsNeedUpdate := (cpuCategory != "" && pod.Labels[HeadroomGroupCPULabel] != cpuCategory) ||
+		(memoryCategory != "" && pod.Labels[HeadroomGroupMemoryLabel] != memoryCategory)
+	affinityNeedsUpdate := len(mergedPreferred) != len(existingPreferred)
+	if needsUpdate && !affinityNeedsUpdate {
+		for _, a := range mergedPreferred {
+			found := false
+			for _, b := range existingPreferred {
+				if reflect.DeepEqual(a, b) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				affinityNeedsUpdate = true
+				break
+			}
+		}
+	}
+	if !labelsNeedUpdate && !affinityNeedsUpdate {
 		return false, ""
 	}
 	labels := make(map[string]string)
@@ -202,19 +263,12 @@ func PatchPodHeadroomLabelsAndAffinity(ctx context.Context, kubeClient *kubernet
 	if merged.PodAffinity == nil {
 		merged.PodAffinity = &corev1.PodAffinity{}
 	}
-	merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(
-		merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution,
-		HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory)...,
-	)
-	patch := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Labels: labels},
-		Spec:       corev1.PodSpec{Affinity: merged},
-	}
-	patchBytes, err := json.Marshal(patch)
+	merged.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = mergedPreferred
+	patchBytes, err := json.Marshal(&corev1.Pod{ObjectMeta: metav1.ObjectMeta{Labels: labels}, Spec: corev1.PodSpec{Affinity: merged}})
 	if err != nil {
 		return false, fmt.Sprintf("failed to marshal headroom patch: %v", err)
 	}
-	_, err = kubeClient.CoreV1().Pods(pod.Namespace).Patch(ctx, pod.Name, k8stypes.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	_, err = patcher.Patch(ctx, pod.Namespace, pod.Name, k8stypes.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
 		logging.Errorf(ctx, "Failed to patch pod %s/%s headroom labels/affinity: %v", pod.Namespace, pod.Name, err)
 		return false, fmt.Sprintf("failed to patch pod headroom: %v", err)

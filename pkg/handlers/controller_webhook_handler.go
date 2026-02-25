@@ -328,8 +328,15 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 	}
 
 	if workloadStat != nil {
-		cpuCat, memCat := utils.HeadroomCategories((*utils.WorkloadStat)(workloadStat))
+		cpuCat, memCat := utils.HeadroomCategories(workloadStat)
 		if cpuCat != "" || memCat != "" {
+			if pod.Labels == nil {
+				patches = append(patches, map[string]any{
+					"op":    "add",
+					"path":  "/metadata/labels",
+					"value": map[string]any{},
+				})
+			}
 			if cpuCat != "" {
 				patches = append(patches, map[string]any{
 					"op":    "add",

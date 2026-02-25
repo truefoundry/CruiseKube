@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/truefoundry/cruisekube/pkg/adapters/kube"
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
 	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/config"
@@ -254,7 +255,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			if applyChanges && !headroomPatchedPods[podKey] {
 				cpuCat, memCat := utils.HeadroomCategories(rec.PodInfo.Stats)
 				if cpuCat != "" || memCat != "" {
-					patched, errStr := utils.PatchPodHeadroomLabelsAndAffinity(ctx, a.kubeClient, freshPod, cpuCat, memCat)
+					patched, errStr := utils.PatchPodHeadroomLabelsAndAffinity(ctx, kube.NewPodPatcher(a.kubeClient), freshPod, cpuCat, memCat)
 					if errStr != "" {
 						logging.Errorf(ctx, "Failed to patch pod %s headroom labels/affinity: %s", podKey, errStr)
 					} else if patched {
