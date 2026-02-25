@@ -516,6 +516,25 @@ func FetchPDBsForNamespaces(ctx context.Context, kubeClient *kubernetes.Clientse
 	return pdbCache, nil
 }
 
+func FindMatchingPDBs(ctx context.Context, workloadSelector labels.Selector, pdbs []policyv1.PodDisruptionBudget) []*policyv1.PodDisruptionBudget {
+	var matching []*policyv1.PodDisruptionBudget
+	for i := range pdbs {
+		pdb := &pdbs[i]
+		if pdb.Spec.Selector == nil {
+			continue
+		}
+		pdbSelector, err := metav1.LabelSelectorAsSelector(pdb.Spec.Selector)
+		if err != nil {
+			logging.Errorf(ctx, "Error parsing PDB selector for %s/%s: %v", pdb.Namespace, pdb.Name, err)
+			continue
+		}
+		if selectorsMatch(workloadSelector, pdbSelector) {
+			matching = append(matching, pdb)
+		}
+	}
+	return matching
+}
+
 func checkWorkloadAgainstPDBs(ctx context.Context, namespace string, workloadSelector labels.Selector, pdbCache map[string][]policyv1.PodDisruptionBudget) bool {
 	pdbs, exists := pdbCache[namespace]
 	if !exists {
