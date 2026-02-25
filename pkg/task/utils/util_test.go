@@ -125,7 +125,7 @@ func TestPatchPodHeadroomLabelsAndAffinity_AdditionBothCategories(t *testing.T) 
 	}
 }
 
-// UpdateLabelPresent: pod already has headroom label and affinity. Patch must update label/headroom term and preserve non-headroom terms.
+// UpdateLabelPresent: pod already has headroom label and affinity. Patch must update label/headroom term and preserve non-headroom terms (including multi-expression selector shape).
 func TestPatchPodHeadroomLabelsAndAffinity_UpdateLabelPresent(t *testing.T) {
 	patcher := &mockPodPatcher{}
 	ctx := context.Background()
@@ -134,7 +134,10 @@ func TestPatchPodHeadroomLabelsAndAffinity_UpdateLabelPresent(t *testing.T) {
 		Weight: 50,
 		PodAffinityTerm: corev1.PodAffinityTerm{
 			LabelSelector: &metav1.LabelSelector{
-				MatchExpressions: []metav1.LabelSelectorRequirement{{Key: "other/key", Operator: metav1.LabelSelectorOpIn, Values: []string{"x"}}},
+				MatchExpressions: []metav1.LabelSelectorRequirement{
+					{Key: "other/key", Operator: metav1.LabelSelectorOpIn, Values: []string{"x"}},
+					{Key: "other/key2", Operator: metav1.LabelSelectorOpNotIn, Values: []string{"y"}},
+				},
 			},
 			TopologyKey: "kubernetes.io/hostname",
 		},
@@ -152,21 +155,27 @@ func TestPatchPodHeadroomLabelsAndAffinity_UpdateLabelPresent(t *testing.T) {
 		t.Errorf("patch body label: got %q, want \"new\"", decoded.Labels[HeadroomGroupCPULabel])
 	}
 	pref := decoded.Spec.Affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution
-	hasNonHeadroom := false
+	hasNonHeadroomMultiExpr := false
 	hasNewCPU := false
 	for _, wt := range pref {
+		if wt.PodAffinityTerm.LabelSelector != nil && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions) >= 2 {
+			keys := make(map[string]bool)
+			for _, me := range wt.PodAffinityTerm.LabelSelector.MatchExpressions {
+				keys[me.Key] = true
+			}
+			if keys["other/key"] && keys["other/key2"] && wt.Weight == 50 && wt.PodAffinityTerm.TopologyKey == "kubernetes.io/hostname" {
+				hasNonHeadroomMultiExpr = true
+			}
+		}
 		if wt.PodAffinityTerm.LabelSelector != nil && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions) == 1 {
 			key := wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Key
-			if key == "other/key" {
-				hasNonHeadroom = true
-			}
 			if key == HeadroomGroupCPULabel && len(wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Values) > 0 && wt.PodAffinityTerm.LabelSelector.MatchExpressions[0].Values[0] == "new" {
 				hasNewCPU = true
 			}
 		}
 	}
-	if !hasNonHeadroom {
-		t.Errorf("patch should keep non-headroom preferred term")
+	if !hasNonHeadroomMultiExpr {
+		t.Errorf("patch should preserve non-headroom preferred term with multi-expression selector (other/key, other/key2)")
 	}
 	if !hasNewCPU {
 		t.Errorf("patch should have headroom term for new")
