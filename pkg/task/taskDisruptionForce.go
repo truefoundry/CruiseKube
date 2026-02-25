@@ -112,13 +112,12 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 		blockingCount++
 
 		overrides := w.GetOverrides()
-		if overrides == nil || len(overrides.DisruptionWindows) == 0 {
-			continue
+		effectiveState := StateOut
+		if overrides != nil && len(overrides.DisruptionWindows) > 0 {
+			logging.Debugf(ctx, "Workload %s/%s/%s has %d disruption window(s), computing state",
+				stat.Kind, stat.Namespace, stat.Name, len(overrides.DisruptionWindows))
+			effectiveState = t.computeStateFromWindows(ctx, now, scheduleDuration, overrides.DisruptionWindows)
 		}
-
-		logging.Debugf(ctx, "Workload %s/%s/%s has %d disruption window(s), computing state",
-			stat.Kind, stat.Namespace, stat.Name, len(overrides.DisruptionWindows))
-		effectiveState := t.computeStateFromWindows(ctx, now, scheduleDuration, overrides.DisruptionWindows)
 
 		workloadInfo := utils.WorkloadInfo{Kind: stat.Kind, Namespace: stat.Namespace, Name: stat.Name}
 

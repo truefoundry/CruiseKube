@@ -28,14 +28,14 @@ func InEvictionWindow(ctx context.Context, startCron, endCron string, tm time.Ti
 		return false
 	}
 
-	nextStart := startSchedule.Next(tm)
-	nextEnd := endSchedule.Next(tm)
+	nextStart := startSchedule.Next(tm.UTC())
+	nextEnd := endSchedule.Next(tm.UTC())
 
 	return nextEnd.Before(nextStart) || nextEnd.Equal(nextStart)
 }
 
 func IsInAnyDisruptionWindow(ctx context.Context, windows []types.DisruptionWindow) bool {
-	now := time.Now()
+	now := time.Now().UTC()
 	for _, w := range windows {
 		if InEvictionWindow(ctx, w.StartCron, w.EndCron, now) {
 			return true

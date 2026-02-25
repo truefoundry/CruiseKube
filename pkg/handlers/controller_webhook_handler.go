@@ -4,10 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
-	"net/http"
-	"strings"
-
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
@@ -18,6 +14,12 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/task"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
+	"math"
+	"net/http"
+	"strings"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -360,11 +362,15 @@ func buildDisruptionAnnotationPatches(ctx context.Context, pod *corev1.Pod, stat
 		return nil
 	}
 
-	if overrides == nil || len(overrides.DisruptionWindows) == 0 {
+	var windows []types.DisruptionWindow
+	if overrides != nil {
+		windows = overrides.DisruptionWindows
+	}
+	if len(windows) == 0 {
 		return nil
 	}
 
-	if !utils.IsInAnyDisruptionWindow(ctx, overrides.DisruptionWindows) {
+	if !utils.IsInAnyDisruptionWindow(ctx, windows) {
 		return nil
 	}
 
