@@ -296,14 +296,14 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					recommendedCPURequest, _, recommendedCPULimit, _ := utils.ComputeRecommendedResourceValues(ctx, rec, nodeInfo.AllocatableCPU)
 					before := make(map[string]interface{})
 					if q := currentContainerResources.Requests[corev1.ResourceCPU]; !q.IsZero() {
-						before["cpuRequestMillis"] = q.MilliValue()
+						before[types.AuditDetailCPURequestMillis] = q.MilliValue()
 					}
 					if q := currentContainerResources.Limits[corev1.ResourceCPU]; !q.IsZero() {
-						before["cpuLimitMillis"] = q.MilliValue()
+						before[types.AuditDetailCPULimitMillis] = q.MilliValue()
 					}
 					after := make(map[string]interface{})
-					after["cpuRequestMillis"] = int64(recommendedCPURequest * 1000)
-					after["cpuLimitMillis"] = int64(recommendedCPULimit * 1000)
+					after[types.AuditDetailCPURequestMillis] = int64(recommendedCPURequest * 1000)
+					after[types.AuditDetailCPULimitMillis] = int64(recommendedCPULimit * 1000)
 					audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
 						Type:     types.EventTypeNormal,
 						Category: types.EventCategoryCPURecommendationApplied,
@@ -335,10 +335,10 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, 0)
 						before := make(map[string]interface{})
 						if q := currentContainerResources.Requests[corev1.ResourceMemory]; !q.IsZero() {
-							before["memoryRequestMB"] = float64(q.Value()) / utils.BytesToMBDivisor
+							before[types.AuditDetailMemoryRequestMB] = float64(q.Value()) / utils.BytesToMBDivisor
 						}
 						if q := currentContainerResources.Limits[corev1.ResourceMemory]; !q.IsZero() {
-							before["memoryLimitMB"] = float64(q.Value()) / utils.BytesToMBDivisor
+							before[types.AuditDetailMemoryLimitMB] = float64(q.Value()) / utils.BytesToMBDivisor
 						}
 						audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
 							Type:     types.EventTypeNormal,
@@ -352,8 +352,8 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 									"containerName": rec.ContainerName,
 									"before":        before,
 									"after": map[string]interface{}{
-										"memoryRequestMB": recommendedMemoryRequest,
-										"memoryLimitMB":   recommendedMemoryLimit,
+										types.AuditDetailMemoryRequestMB: recommendedMemoryRequest,
+										types.AuditDetailMemoryLimitMB:   recommendedMemoryLimit,
 									},
 								},
 							},

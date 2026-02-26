@@ -11,6 +11,13 @@ const (
 	EventTypeInfo    EventType = "Info"
 )
 
+const (
+	AuditDetailCPURequestMillis = "cpuRequestMillis"
+	AuditDetailCPULimitMillis   = "cpuLimitMillis"
+	AuditDetailMemoryRequestMB  = "memoryRequestMB"
+	AuditDetailMemoryLimitMB    = "memoryLimitMB"
+)
+
 // EventCategory is the category/name of the audit event per the CruiseKube Audit spec.
 type EventCategory string
 

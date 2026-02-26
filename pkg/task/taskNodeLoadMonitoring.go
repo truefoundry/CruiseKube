@@ -98,6 +98,10 @@ func (n *NodeLoadMonitoringTask) Run(ctx context.Context) error {
 
 		isOverloaded := loadDataExists && loadAvg > LoadThreshold
 		hasOverloadTaint := n.nodeHasOverloadTaint(&node)
+		details := map[string]interface{}{}
+		if loadDataExists {
+			details["loadRatio"] = loadAvg
+		}
 
 		if isOverloaded && !hasOverloadTaint {
 			if err := n.addOverloadTaint(ctx, &node); err != nil {
@@ -112,9 +116,7 @@ func (n *NodeLoadMonitoringTask) Run(ctx context.Context) error {
 						Payload: types.AuditPayload{
 							Message: fmt.Sprintf("Overload taint added to node %s", node.Name),
 							Target:  map[string]interface{}{"kind": "Node", "name": node.Name},
-							Details: map[string]interface{}{
-								"loadRatio": loadAvg,
-							},
+							Details: details,
 						},
 					})
 				}
