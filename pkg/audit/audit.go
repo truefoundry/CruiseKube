@@ -37,7 +37,7 @@ type auditPayload struct {
 const defaultBufferSize = 1000
 
 // NewAudit creates an Audit that writes events asynchronously via the given database.
-func NewAudit(db ports.Database, opts Options) *Audit {
+func NewAudit(ctx context.Context, db ports.Database, opts Options) *Audit {
 	if opts.BufferSize <= 0 {
 		opts.BufferSize = defaultBufferSize
 	}
@@ -47,11 +47,11 @@ func NewAudit(db ports.Database, opts Options) *Audit {
 		ch:   make(chan auditPayload, opts.BufferSize),
 		done: make(chan struct{}),
 	}
-	go a.run()
+	go a.run(ctx)
 	return a
 }
 
-func (a *Audit) run() {
+func (a *Audit) run(ctx context.Context) {
 	for p := range a.ch {
 		evt := p.event
 		if evt.Timestamp.IsZero() {
@@ -60,7 +60,7 @@ func (a *Audit) run() {
 			evt.Timestamp = evt.Timestamp.UTC()
 		}
 		if err := a.db.InsertAuditEvent(p.clusterID, evt); err != nil {
-			logging.Errorf(context.Background(), "audit: failed to write event %s: %v", evt.Category, err)
+			logging.Errorf(ctx, "audit: failed to write event %s: %v", evt.Category, err)
 		}
 	}
 	close(a.done)

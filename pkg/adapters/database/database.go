@@ -88,7 +88,7 @@ func (s *GormDB) createTables() error {
 	}
 	if err := s.db.AutoMigrate(&AuditEventRow{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate AuditEventRow: %w", err)
-  }
+	}
 	if err := s.db.AutoMigrate(&Snapshot{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate Snapshot: %w", err)
 	}
@@ -526,8 +526,8 @@ func (s *GormDB) InsertAuditEvent(clusterID string, event types.AuditEvent) erro
 	}
 	if err := s.db.Create(&row).Error; err != nil {
 		return fmt.Errorf("failed to insert audit event: %w", err)
-  }
-  return nil
+	}
+	return nil
 }
 
 func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {

@@ -119,8 +119,8 @@ func HandleMutatingPatch(c *gin.Context) {
 
 	disruptionPatches := buildDisruptionAnnotationPatches(ctx, &pod, stat, overrides)
 	patches = append(patches, disruptionPatches...)
-  
-  	if len(patches) > 0 && audit.Stg != nil {
+
+	if len(patches) > 0 && audit.Stg != nil {
 		audit.Stg.Record(ctx, clusterID, types.AuditEvent{
 			Type:     types.EventTypeNormal,
 			Category: types.EventCategoryWebhookMutation,
