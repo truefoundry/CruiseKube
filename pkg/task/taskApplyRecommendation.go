@@ -650,7 +650,14 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 	}
 
 	for _, podInfo := range allPodInfos {
-		apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overridesMap[podInfo.Stats.WorkloadIdentifier], input, nil)
+		var override *types.WorkloadOverrideInfo
+		if podInfo.Stats != nil {
+			if o, ok := overridesMap[podInfo.Stats.WorkloadIdentifier]; ok {
+				override = o
+			}
+		}
+
+		apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, override, input, nil)
 		if !apply {
 			logging.Infof(ctx, "Skipping pod %s/%s: %s", podInfo.Namespace, podInfo.Name, reason)
 			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{
