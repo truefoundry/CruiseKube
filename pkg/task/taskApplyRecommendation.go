@@ -266,7 +266,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 							Category: types.EventCategoryPODEviction,
 							Payload: types.AuditPayload{
 								Message: fmt.Sprintf("Pod %s/%s evicted for resource optimization", rec.PodInfo.Namespace, rec.PodInfo.Name),
-								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+								Target:  map[string]interface{}{"kind": rec.PodInfo.WorkloadKind, "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
 								Details: map[string]interface{}{
 									"workloadId":    workloadID,
 									"node":          nodeName,
@@ -309,7 +309,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						Category: types.EventCategoryCPURecommendationApplied,
 						Payload: types.AuditPayload{
 							Message: fmt.Sprintf("CPU recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
-							Target:  map[string]interface{}{"kind": "Container", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name, "container": rec.ContainerName},
+							Target:  map[string]interface{}{"kind": rec.PodInfo.WorkloadKind, "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
 							Details: map[string]interface{}{
 								"workloadId":    utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName),
 								"node":          nodeName,
@@ -345,7 +345,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 							Category: types.EventCategoryMemoryRecommendationApplied,
 							Payload: types.AuditPayload{
 								Message: fmt.Sprintf("Memory recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
-								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+								Target:  map[string]interface{}{"kind": rec.PodInfo.WorkloadKind, "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
 								Details: map[string]interface{}{
 									"workloadId":    utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName),
 									"node":          nodeName,
@@ -361,7 +361,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					}
 				}
 			} else {
-				logging.Infof(ctx, "Skipping memory recommendation application for pod since memory recommendationapplication is disabled: %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				logging.Infof(ctx, "Skipping memory recommendation application for pod since memory recommendation application is disabled: %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 			}
 		}
 

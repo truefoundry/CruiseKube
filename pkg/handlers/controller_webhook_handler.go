@@ -126,7 +126,7 @@ func HandleMutatingPatch(c *gin.Context) {
 			Category: types.EventCategoryWebhookMutation,
 			Payload: types.AuditPayload{
 				Message: fmt.Sprintf("Pod %s/%s mutated with resource recommendations", pod.Namespace, getPodName(&pod)),
-				Target:  map[string]interface{}{"kind": "Pod", "namespace": pod.Namespace, "name": getPodName(&pod)},
+				Target:  map[string]interface{}{"kind": pod.Kind, "namespace": pod.Namespace, "name": getPodName(&pod)},
 				Details: map[string]interface{}{
 					"workloadId": workloadKey,
 					"node":       pod.Spec.NodeName,
@@ -345,7 +345,7 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 				logging.Infof(ctx, "Adjusted Memory for container %s from %dMB to %dMB", container.Name, currentMemoryRequest.Value()/utils.BytesToMBDivisor, recommendedMemoryBytes/utils.BytesToMBDivisor)
 			}
 		} else if cfg.RecommendationSettings.DisableMemoryApplication {
-			logging.Infof(ctx, "Skipping memory recommendation application for container %s since memory recommendationapplication is disabled", container.Name)
+			logging.Infof(ctx, "Skipping memory recommendation application for container %s since memory recommendation application is disabled", container.Name)
 		}
 	}
 

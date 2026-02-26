@@ -158,7 +158,7 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 			Category: types.EventCategoryOOMEvent,
 			Payload: types.AuditPayload{
 				Message: fmt.Sprintf("Pod %s/%s evicted after OOM; new pod will receive updated memory via webhook", oomInfo.Namespace, oomInfo.PodName),
-				Target:  map[string]interface{}{"kind": "Pod", "namespace": oomInfo.Namespace, "name": oomInfo.PodName},
+				Target:  map[string]interface{}{"kind": pod.Kind, "namespace": oomInfo.Namespace, "name": oomInfo.PodName},
 				Details: map[string]interface{}{
 					"workloadId":         workloadID,
 					"node":               oomInfo.NodeName,

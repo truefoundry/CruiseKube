@@ -153,7 +153,7 @@ func analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, c
 						Category: types.EventCategoryPODEviction,
 						Payload: types.AuditPayload{
 							Message: fmt.Sprintf("Pod (%s/%s) killed by user (killswitch): %s", pod.Namespace, pod.Name, reason),
-							Target:  map[string]interface{}{"kind": "Pod", "namespace": pod.Namespace, "name": pod.Name},
+							Target:  map[string]interface{}{"kind": pod.Kind, "namespace": pod.Namespace, "name": pod.Name},
 							Details: map[string]interface{}{
 								"workloadId": utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name),
 								"node":       pod.Spec.NodeName,

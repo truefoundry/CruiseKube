@@ -258,7 +258,7 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 		}
 		logging.Infof(ctx, "Updated pod %s/%s", pod.Namespace, pod.Name)
 		if audit.Recorder != nil {
-			target := map[string]interface{}{"kind": "Pod", "namespace": pod.Namespace, "name": pod.Name}
+			target := map[string]interface{}{"kind": pod.Kind, "namespace": pod.Namespace, "name": pod.Name}
 			if state == StateIn {
 				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
@@ -341,7 +341,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 		}
 		logging.Infof(ctx, "Updated PDB %s/%s", pdb.Namespace, pdb.Name)
 		if audit.Recorder != nil {
-			target := map[string]interface{}{"kind": "PodDisruptionBudget", "namespace": pdb.Namespace, "name": pdb.Name}
+			target := map[string]interface{}{"kind": pdb.Kind, "namespace": pdb.Namespace, "name": pdb.Name}
 			if state == StateIn {
 				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
