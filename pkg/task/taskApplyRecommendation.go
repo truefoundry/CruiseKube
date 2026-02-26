@@ -296,14 +296,14 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					recommendedCPURequest, _, recommendedCPULimit, _ := utils.ComputeRecommendedResourceValues(ctx, rec, nodeInfo.AllocatableCPU)
 					before := make(map[string]interface{})
 					if q := currentContainerResources.Requests[corev1.ResourceCPU]; !q.IsZero() {
-						before["cpu_request_millis"] = q.MilliValue()
+						before["cpuRequestMillis"] = q.MilliValue()
 					}
 					if q := currentContainerResources.Limits[corev1.ResourceCPU]; !q.IsZero() {
-						before["cpu_limit_millis"] = q.MilliValue()
+						before["cpuLimitMillis"] = q.MilliValue()
 					}
 					after := make(map[string]interface{})
-					after["cpu_request_millis"] = int64(recommendedCPURequest * 1000)
-					after["cpu_limit_millis"] = int64(recommendedCPULimit * 1000)
+					after["cpuRequestMillis"] = int64(recommendedCPURequest * 1000)
+					after["cpuLimitMillis"] = int64(recommendedCPULimit * 1000)
 					audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
 						Type:     types.EventTypeNormal,
 						Category: types.EventCategoryCPURecommendationApplied,

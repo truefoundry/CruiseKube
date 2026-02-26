@@ -29,9 +29,6 @@ const (
 )
 
 // AuditPayload holds message, target, and details for an audit event.
-// Target can be a string or an object e.g. {"kind":"Pod","name":"...","namespace":"..."}.
-// Details holds before/after state and any other key-value information. Use keys "before" and "after" for state changes.
-// For resource changes use consistent units: CPU in millicores (cpu_request_millis, cpu_limit_millis), memory in MB (memory_request_mb, memory_limit_mb).
 type AuditPayload struct {
 	Message string                 `json:"message,omitempty"`
 	Target  interface{}            `json:"target,omitempty"`
