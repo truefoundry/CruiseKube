@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/client"
@@ -114,6 +115,10 @@ func HandleMutatingPatch(c *gin.Context) {
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
 	}
+
+	disruptionPatches := buildDisruptionAnnotationPatches(ctx, &pod, stat, overrides)
+	patches = append(patches, disruptionPatches...)
+
 	c.JSON(http.StatusOK, patches)
 }
 
@@ -348,4 +353,58 @@ func memoryBytesToMB(memoryBytes int64) string {
 
 func cpuCoresToMillicores(cpuCores float64) string {
 	return fmt.Sprintf("%dm", int64(cpuCores*1000))
+}
+
+func buildDisruptionAnnotationPatches(ctx context.Context, pod *corev1.Pod, stat *types.WorkloadStat, overrides *types.Overrides) []map[string]any {
+	if stat == nil || stat.Constraints == nil || !stat.Constraints.DoNotDisruptAnnotation {
+		return nil
+	}
+
+	var windows []types.DisruptionWindow
+	if overrides != nil {
+		windows = overrides.DisruptionWindows
+	}
+	if len(windows) == 0 {
+		return nil
+	}
+
+	if !utils.IsInAnyDisruptionWindow(ctx, windows) {
+		return nil
+	}
+
+	var patches []map[string]any
+	for annotationKey := range utils.GetDoNotDisruptAnnotations() {
+		if _, exists := pod.Annotations[annotationKey]; !exists {
+			continue
+		}
+		patches = append(patches, map[string]any{
+			"op":   "remove",
+			"path": "/metadata/annotations/" + escapeJSONPointer(annotationKey),
+		})
+	}
+
+	if len(patches) > 0 {
+		logging.Infof(ctx, "Disruption window active: stripping do-not-disrupt annotations from pod %s/%s", pod.Namespace, getPodName(pod))
+		op := "add"
+		if pod.Annotations != nil {
+			if _, exists := pod.Annotations[utils.AnnotationModified]; exists {
+				op = "replace"
+			}
+		}
+		patches = append(patches, map[string]any{
+			"op":    op,
+			"path":  "/metadata/annotations/" + escapeJSONPointer(utils.AnnotationModified),
+			"value": utils.TrueValue,
+		})
+	}
+
+	return patches
+}
+
+// escapeJSONPointer encodes a string for use as a JSON Pointer token (RFC 6901):
+// '~' → '~0', '/' → '~1'.
+func escapeJSONPointer(s string) string {
+	s = strings.ReplaceAll(s, "~", "~0")
+	s = strings.ReplaceAll(s, "/", "~1")
+	return s
 }

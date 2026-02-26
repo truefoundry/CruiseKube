@@ -395,7 +395,6 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 				ClusterID:                ID,
 				IsClusterWriteAuthorized: cfg.IsClusterWriteAuthorized(ID),
 			},
-			cfg,
 		))
 	}
 
