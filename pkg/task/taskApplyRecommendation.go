@@ -292,7 +292,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 			if applied {
 				appliedRecommendations[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = rec
-				if audit.Recorder != nil && rec.PodInfo.Stats != nil {
+				if audit.Recorder != nil {
 					recommendedCPURequest, _, recommendedCPULimit, _ := utils.ComputeRecommendedResourceValues(ctx, rec, nodeInfo.AllocatableCPU)
 					before := make(map[string]interface{})
 					if q := currentContainerResources.Requests[corev1.ResourceCPU]; !q.IsZero() {
@@ -331,7 +331,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 
 				if applied {
 					appliedRecommendations[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = rec
-					if audit.Recorder != nil && rec.PodInfo.Stats != nil {
+					if audit.Recorder != nil {
 						_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, 0)
 						before := make(map[string]interface{})
 						if q := currentContainerResources.Requests[corev1.ResourceMemory]; !q.IsZero() {
