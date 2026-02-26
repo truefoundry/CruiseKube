@@ -149,7 +149,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		return err
 	}
 
-	if err := a.buildAndSaveNodeSnapshot(ctx, recommendationResults); err != nil {
+	if err := a.buildAndSaveSnapshot(ctx, recommendationResults); err != nil {
 		logging.Errorf(ctx, "Error saving node snapshot: %v", err)
 		return err
 	}
@@ -500,10 +500,10 @@ func (a *ApplyRecommendationTask) countPodsByStatus(ctx context.Context) types.S
 	return counts
 }
 
-// buildAndSaveNodeSnapshot aggregates cluster-level CPU/Memory metrics from recommendationResults
+// buildAndSaveSnapshot aggregates cluster-level CPU/Memory metrics from recommendationResults
 // and persists one row to the node_snapshots table (timestamp in GMT).
 // Current = total allocatable/requested; WorkloadRequested = user's original manifest; RecommendedRequested = our recommendation.
-func (a *ApplyRecommendationTask) buildAndSaveNodeSnapshot(ctx context.Context, recommendationResults []*RecommendationResult) error {
+func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, recommendationResults []*RecommendationResult) error {
 	var currentAllocatableCPU, currentAllocatableMemory float64
 	var currentRequestedCPU, currentRequestedMemory float64
 	var currentUtilizedCPU, currentUtilizedMemory float64

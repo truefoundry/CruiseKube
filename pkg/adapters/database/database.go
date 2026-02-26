@@ -87,7 +87,7 @@ func (s *GormDB) createTables() error {
 		return fmt.Errorf("failed to auto-migrate PodResourceRecommendation: %w", err)
 	}
 	if err := s.db.AutoMigrate(&Snapshot{}); err != nil {
-		return fmt.Errorf("failed to auto-migrate NodeSnapshot: %w", err)
+		return fmt.Errorf("failed to auto-migrate Snapshot: %w", err)
 	}
 	return nil
 }
