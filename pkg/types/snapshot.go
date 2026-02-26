@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 // SnapshotResourceMetrics holds the metrics for CPU or Memory in a snapshot.
 // Current = cluster totals; WorkloadRequested = user's original manifest request; RecommendedRequested = our recommendation.
 type SnapshotResourceMetrics struct {
@@ -31,4 +33,10 @@ type SnapshotData struct {
 type SnapshotPayload struct {
 	ClusterID string       `json:"cluster_id"`
 	Data      SnapshotData `json:"data"`
+}
+
+// SnapshotRecord is a snapshot with its database timestamp (for API responses).
+type SnapshotRecord struct {
+	SnapshotPayload
+	CreatedAt time.Time `json:"created_at"`
 }
