@@ -33,7 +33,7 @@ type auditPayload struct {
 	event     types.AuditEvent
 }
 
-const defaultBufferSize = 1000
+const defaultBufferSize = 5000
 
 // NewAudit creates an Audit that writes events asynchronously via the given database.
 func NewAudit(ctx context.Context, db ports.Database, opts Options) *Audit {
