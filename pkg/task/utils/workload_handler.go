@@ -478,7 +478,7 @@ func DetectWorkloadConstraints(ctx context.Context, kubeClient *kubernetes.Clien
 
 	constraints.PDB = checkWorkloadAgainstPDBs(ctx, workloadObj, pdbCache)
 
-	podTemplate := getPodTemplateSpec(workloadObj)
+	podTemplate := GetPodTemplateSpec(workloadObj)
 	if podTemplate != nil {
 		constraints.DoNotDisruptAnnotation = checkDoNotDisruptAnnotation(podTemplate)
 		constraints.Volume = checkVolumes(podTemplate)
@@ -510,7 +510,7 @@ func FetchPDBsForNamespaces(ctx context.Context, kubeClient *kubernetes.Clientse
 	return pdbCache, nil
 }
 
-func FindMatchingPDBs(ctx context.Context, pods []corev1.Pod, pdbs []policyv1.PodDisruptionBudget) []*policyv1.PodDisruptionBudget {
+func FindMatchingPDBs(ctx context.Context, podLabels labels.Set, pdbs []policyv1.PodDisruptionBudget) []*policyv1.PodDisruptionBudget {
 	var matching []*policyv1.PodDisruptionBudget
 	for i := range pdbs {
 		pdb := &pdbs[i]
@@ -522,18 +522,15 @@ func FindMatchingPDBs(ctx context.Context, pods []corev1.Pod, pdbs []policyv1.Po
 			logging.Errorf(ctx, "Error parsing PDB selector for %s/%s: %v", pdb.Namespace, pdb.Name, err)
 			continue
 		}
-		for _, pod := range pods {
-			if pdbSelector.Matches(labels.Set(pod.Labels)) {
-				matching = append(matching, pdb)
-				break
-			}
+		if pdbSelector.Matches(podLabels) {
+			matching = append(matching, pdb)
 		}
 	}
 	return matching
 }
 
 func checkWorkloadAgainstPDBs(ctx context.Context, workloadObj WorkloadObject, pdbCache map[string][]policyv1.PodDisruptionBudget) bool {
-	podTemplate := getPodTemplateSpec(workloadObj)
+	podTemplate := GetPodTemplateSpec(workloadObj)
 	if podTemplate == nil {
 		return false
 	}
@@ -558,7 +555,7 @@ func checkWorkloadAgainstPDBs(ctx context.Context, workloadObj WorkloadObject, p
 	return false
 }
 
-func getPodTemplateSpec(workloadObj WorkloadObject) *corev1.PodTemplateSpec {
+func GetPodTemplateSpec(workloadObj WorkloadObject) *corev1.PodTemplateSpec {
 	switch w := workloadObj.(type) {
 	case DeploymentWrapper:
 		return &w.Spec.Template
