@@ -35,7 +35,7 @@ type AuditPayload struct {
 	Details map[string]interface{} `json:"details,omitempty"`
 }
 
-// AuditEvent represents a single audit record. Timestamp is in GMT (UTC).
+// AuditEvent represents a single audit record.
 type AuditEvent struct {
 	ClusterID string        `json:"cluster_id"`
 	Type      EventType     `json:"type"`

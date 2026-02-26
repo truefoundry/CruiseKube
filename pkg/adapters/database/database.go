@@ -527,7 +527,7 @@ func (s *GormDB) InsertAuditEvent(clusterID string, event types.AuditEvent) erro
 	if err != nil {
 		return fmt.Errorf("failed to marshal audit payload: %w", err)
 	}
-	if len(payloadJSON) == 0 {
+	if string(payloadJSON) == "{}" || string(payloadJSON) == "null" {
 		return fmt.Errorf("audit event payload cannot be empty")
 	}
 	row := AuditEventRow{

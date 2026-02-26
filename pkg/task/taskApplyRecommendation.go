@@ -251,7 +251,11 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				logging.Infof(ctx, "[Decision] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				if applyChanges {
 					logging.Infof(ctx, "[Action] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
-					utils.EvictPod(ctx, a.kubeClient, freshPod)
+					success, errStr := utils.EvictPod(ctx, a.kubeClient, freshPod)
+					if !success {
+						logging.Errorf(ctx, "Error evicting pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, errStr)
+						continue
+					}
 					if audit.Recorder != nil {
 						workloadID := ""
 						if rec.PodInfo.Stats != nil {
@@ -426,8 +430,8 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 			logging.Infof(ctx, "pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
 			return true, false, nil
 		} else {
-			logging.Infof(ctx, "[dry run] pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
-			return true, false, nil
+			logging.Debugf(ctx, "[dry run] pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
+			return false, false, nil
 		}
 	} else {
 		return false, false, nil
@@ -487,7 +491,7 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 			return true, nil
 		} else {
 			logging.Infof(ctx, "[dry run] pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
-			return true, nil
+			return false, nil
 		}
 	} else {
 		return false, nil

@@ -61,9 +61,8 @@ func (a *Audit) run(ctx context.Context) {
 // Record enqueues an audit event for asynchronous write. Non-blocking; drops event if buffer full.
 func (a *Audit) Record(ctx context.Context, clusterID string, event types.AuditEvent) {
 	a.mu.Lock()
-	closed := a.closed
-	a.mu.Unlock()
-	if closed {
+	defer a.mu.Unlock()
+	if a.closed {
 		logging.Warnf(ctx, "audit: Record called after Close, dropping event %s", event.Category)
 		return
 	}
@@ -85,7 +84,7 @@ func (a *Audit) Close() {
 		return
 	}
 	a.closed = true
-	a.mu.Unlock()
 	close(a.ch)
+	a.mu.Unlock()
 	<-a.done
 }
