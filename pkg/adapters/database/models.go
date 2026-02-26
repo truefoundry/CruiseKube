@@ -77,7 +77,6 @@ type AuditEventRow struct {
 	Category  string    `gorm:"column:category;index;not null"`
 	Payload   string    `gorm:"column:payload;type:text;not null"`
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
 }
 
 func (AuditEventRow) TableName() string {
