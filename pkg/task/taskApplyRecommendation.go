@@ -186,7 +186,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		}
 		recommendationResults = append(recommendationResults, recommendationResult)
 
-		optimizablePods, nonOptimizablePods := a.segregateOptimizableNonOptimizablePods(ctx, nodeInfo.Pods)
+		optimizablePods, nonOptimizablePods := a.segregateOptimizableNonOptimizablePods(ctx, nodeInfo.Pods, overridesMap)
 		recommendationResult.NonOptimizablePods = nonOptimizablePods
 
 		metrics.ClusterNonOptimizablePodsCount.WithLabelValues(a.config.ClusterID, nodeName).Set(float64(len(nonOptimizablePods)))
@@ -634,7 +634,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 	return rows
 }
 
-func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx context.Context, allPodInfos []utils.PodInfo) ([]utils.PodInfo, []utils.NonOptimizablePodInfo) {
+func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx context.Context, allPodInfos []utils.PodInfo, overridesMap map[string]*types.WorkloadOverrideInfo) ([]utils.PodInfo, []utils.NonOptimizablePodInfo) {
 	optimizablePods := make([]utils.PodInfo, 0)
 	nonOptimizablePods := make([]utils.NonOptimizablePodInfo, 0)
 
@@ -650,7 +650,7 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 	}
 
 	for _, podInfo := range allPodInfos {
-		apply, reason := utils.ShouldGenerateRecommendation(ctx, &podInfo, input, nil)
+		apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overridesMap[podInfo.Stats.WorkloadIdentifier], input, nil)
 		if !apply {
 			logging.Infof(ctx, "Skipping pod %s/%s: %s", podInfo.Namespace, podInfo.Name, reason)
 			nonOptimizablePods = append(nonOptimizablePods, utils.NonOptimizablePodInfo{

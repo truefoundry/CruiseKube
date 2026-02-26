@@ -72,6 +72,7 @@ func (PodResourceRecommendation) TableName() string {
 type Snapshot struct {
 	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
 	ClusterID string    `gorm:"column:cluster_id;index"`
+	Cluster   Cluster   `gorm:"foreignKey:ClusterID;references:ClusterID"`
 	Data      string    `gorm:"column:data"` // JSON of SnapshotData (CPU, Memory, Nodes, PodsCount)
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
