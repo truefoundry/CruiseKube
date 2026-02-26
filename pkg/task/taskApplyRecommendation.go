@@ -245,17 +245,10 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				continue
 			}
 
-			isCruiseModeEnabled := false
-			if rec.PodInfo.Stats != nil {
-				if o, ok := overridesMap[rec.PodInfo.Stats.WorkloadIdentifier]; ok {
-					isCruiseModeEnabled = o.EffectiveEnabled()
-				}
-			}
-
 			if utils.ToBeEvicted(rec) {
 				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
 				logging.Infof(ctx, "[Decision] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
-				if applyChanges && isCruiseModeEnabled {
+				if applyChanges {
 					logging.Infof(ctx, "[Action] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 					utils.EvictPod(ctx, a.kubeClient, freshPod)
 				}
@@ -269,7 +262,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				}
 			}
 
-			applied, err := a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges && isCruiseModeEnabled, nodeInfo.AllocatableCPU)
+			applied, err := a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges, nodeInfo.AllocatableCPU)
 			if err != nil {
 				logging.Errorf(ctx, "Error applying CPU recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 			}
@@ -278,7 +271,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 
 			if !a.config.RecommendationSettings.DisableMemoryApplication && !a.config.Metadata.SkipMemory {
-				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges && isCruiseModeEnabled, supportsMemoryReduction)
+				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges, supportsMemoryReduction)
 				if skipped {
 					logging.Infof(ctx, "Skipping memory recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 				} else if err != nil {
