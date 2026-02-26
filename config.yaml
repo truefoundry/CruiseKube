@@ -76,9 +76,6 @@ recommendationSettings:
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true
-disruptionSettings:
-  windowStartCron: "0 0 * * *"
-  windowEndCron: "0 3 * * *"
 telemetry:
   enabled: false
   exporterOTLPEndpoint: ""

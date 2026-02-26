@@ -136,7 +136,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 
 	supportsMemoryReduction := utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 34)
 
-	_, err = a.ApplyRecommendationsWithStrategy(
+	recommendationResults, err := a.ApplyRecommendationsWithStrategy(
 		ctx,
 		nodeRecommendationMap,
 		overridesMap,
@@ -147,6 +147,11 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	)
 	if err != nil {
 		logging.Errorf(ctx, "Error applying recommendations: %v", err)
+		return err
+	}
+
+	if err := a.buildAndSaveSnapshot(ctx, recommendationResults); err != nil {
+		logging.Errorf(ctx, "Error saving node snapshot: %v", err)
 		return err
 	}
 
@@ -243,8 +248,9 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 
 			if utils.ToBeEvicted(rec) {
 				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
-				logging.Infof(ctx, "Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				logging.Infof(ctx, "[Decision] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				if applyChanges {
+					logging.Infof(ctx, "[Action] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 					utils.EvictPod(ctx, a.kubeClient, freshPod)
 					if audit.Stg != nil {
 						workloadID := ""
@@ -500,6 +506,136 @@ func (a *ApplyRecommendationTask) getFreshPodsOnNode(ctx context.Context, nodeNa
 		podMap[utils.GetPodKey(pod.Namespace, pod.Name)] = &pod
 	}
 	return podMap, nil
+}
+
+// countNodeHealth lists cluster nodes and returns counts of healthy (Ready) vs unhealthy (NotReady/Unknown) nodes.
+func (a *ApplyRecommendationTask) countNodeHealth(ctx context.Context) (int, int) {
+	nodeList, err := a.kubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		logging.Warnf(ctx, "snapshot: failed to list nodes for health count: %v", err)
+		return 0, 0
+	}
+	var healthy, unhealthy = 0, 0
+	for i := range nodeList.Items {
+		node := &nodeList.Items[i]
+		if isNodeReady(node) {
+			healthy++
+		} else {
+			unhealthy++
+		}
+	}
+	return healthy, unhealthy
+}
+
+func isNodeReady(node *corev1.Node) bool {
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
+// countPodsByStatus lists pods (in TargetNamespace or all namespaces) and returns counts by pod phase (Running, Pending, etc.).
+func (a *ApplyRecommendationTask) countPodsByStatus(ctx context.Context) types.SnapshotPodsCount {
+	ns := a.config.TargetNamespace
+	var podList *corev1.PodList
+	var err error
+	if ns != "" {
+		podList, err = a.kubeClient.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
+	} else {
+		podList, err = a.kubeClient.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	}
+	if err != nil {
+		logging.Warnf(ctx, "snapshot: failed to list pods for status count: %v", err)
+		return types.SnapshotPodsCount{}
+	}
+	counts := make(types.SnapshotPodsCount)
+	for i := range podList.Items {
+		phase := podList.Items[i].Status.Phase
+		if phase == "" {
+			phase = corev1.PodUnknown
+		}
+		counts[string(phase)]++
+	}
+	return counts
+}
+
+// buildAndSaveSnapshot aggregates cluster-level CPU/Memory metrics from recommendationResults
+// and persists one row to the node_snapshots table (timestamp in GMT).
+// Current = total allocatable/requested; WorkloadRequested = user's original manifest; RecommendedRequested = our recommendation.
+func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, recommendationResults []*RecommendationResult) error {
+	var currentAllocatableCPU, currentAllocatableMemory float64
+	var currentRequestedCPU, currentRequestedMemory float64
+	var currentUtilizedCPU, currentUtilizedMemory float64
+	var workloadRequestedCPU, workloadRequestedMemory float64
+	var recommendedRequestedCPU, recommendedRequestedMemory float64
+
+	currentUtilizedCPU = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterCPUUtilizationExpression())
+	currentUtilizedMemory = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterMemoryUtilizationExpression())
+
+	podKeys := make(map[string]struct{})
+	for _, res := range recommendationResults {
+		ni := res.NodeInfo
+		currentAllocatableCPU += ni.AllocatableCPU
+		currentAllocatableMemory += ni.AllocatableMemory
+		currentRequestedCPU += ni.RequestedCPU
+		currentRequestedMemory += ni.RequestedMemory
+
+		for _, rec := range res.PodContainerRecommendations {
+			podKeys[rec.PodInfo.Namespace+"/"+rec.PodInfo.Name] = struct{}{}
+			recommendedRequestedCPU += rec.CPU
+			recommendedRequestedMemory += rec.Memory
+			cr, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
+			if err != nil {
+				logging.Warnf(ctx, "snapshot: skip workload requested for %s/%s container %s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
+				continue
+			}
+			workloadRequestedCPU += cr.CPURequest
+			workloadRequestedMemory += cr.MemoryRequest
+		}
+	}
+
+	cpu := types.SnapshotResourceMetrics{
+		CurrentAllocatable:   currentAllocatableCPU,
+		CurrentRequested:     currentRequestedCPU,
+		CurrentUtilized:      currentUtilizedCPU,
+		WorkloadRequested:    workloadRequestedCPU,
+		RecommendedRequested: recommendedRequestedCPU,
+	}
+	memory := types.SnapshotResourceMetrics{
+		CurrentAllocatable:   currentAllocatableMemory / 1000.0,
+		CurrentRequested:     currentRequestedMemory / 1000.0,
+		CurrentUtilized:      currentUtilizedMemory,
+		WorkloadRequested:    workloadRequestedMemory / 1000.0,
+		RecommendedRequested: recommendedRequestedMemory / 1000.0,
+	}
+
+	if currentUtilizedCPU == 0 || currentUtilizedMemory == 0 {
+		logging.Warnf(ctx, "snapshot: no CPU/Memory utilization found from prometheus, skipping snapshot")
+		return nil
+	}
+
+	if len(podKeys) == 0 {
+		logging.Warnf(ctx, "snapshot: no pods were recommended, skipping snapshot")
+		return nil
+	}
+
+	healthyNodes, unhealthyNodes := a.countNodeHealth(ctx)
+	podsCount := a.countPodsByStatus(ctx)
+	snapshot := &types.SnapshotPayload{
+		ClusterID: a.config.ClusterID,
+		Data: types.SnapshotData{
+			CPU:       cpu,
+			Memory:    memory,
+			Nodes:     types.SnapshotNodes{Healthy: healthyNodes, Unhealthy: unhealthyNodes},
+			PodsCount: podsCount,
+		},
+	}
+	if err := a.storage.InsertSnapshot(snapshot); err != nil {
+		return fmt.Errorf("insert node snapshot: %w", err)
+	}
+	return nil
 }
 
 func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context, recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {

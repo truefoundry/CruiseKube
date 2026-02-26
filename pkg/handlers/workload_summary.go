@@ -5,153 +5,49 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
+	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
 const (
 	defaultCPUPricePerCorePerHour  = 0.0145
-	defaultMemoryPricePerGbPerHour = 0.00725
+	defaultMemoryPricePerGBPerHour = 0.00725
 	defaultHoursPerMonth           = 720
 )
 
-var prometheusClusterQueries = struct {
-	CPUUtilised, CPURequested, CPUAllocatable          string
-	MemoryUtilised, MemoryRequested, MemoryAllocatable string
-}{
-	CPUUtilised: `round(
-      sum(
-        sum by (node) (
-          rate(node_cpu_seconds_total{job="node-exporter", mode=~"user|system"}[1m])
-        )
-        unless max by (node) (
-          max_over_time(kube_node_status_allocatable{
-            job="kube-state-metrics",
-            resource=~"nvidia_com_gpu|amd_com_gpu"
-          }[7d:]) > 0
-        )
-      ),
-      0.001
-    )`,
-	CPURequested: `round(
-      sum(
-        sum by (node) (
-          (
-            (
-              sum by (namespace, pod) (kube_pod_container_resource_requests{job="kube-state-metrics", container!="", resource="cpu"})
-            )
-            unless on (namespace, pod)
-            (
-              sum by (namespace, pod) (kube_pod_container_resource_requests{job="kube-state-metrics", container!="", resource=~"nvidia_com_gpu|amd_com_gpu"})
-            )
-          )
-          * on (namespace, pod) group_left
-            sum by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"})
-        )
-        unless on (node)
-        (
-          max by (node) (
-            max_over_time(
-              kube_node_status_allocatable{job="kube-state-metrics", resource=~"nvidia_com_gpu|amd_com_gpu"}[7d:]
-            )
-          )
-          >
-          0
-        )
-      ),
-      0.001
-    )`,
-	CPUAllocatable: `round(
-      sum(
-        sum by (node) (kube_node_status_allocatable{job="kube-state-metrics", resource="cpu"})
-        unless (
-          sum by (node) (
-            kube_node_spec_taint{job="kube-state-metrics", key="nvidia.com/gpu"}
-          )
-        )
-        unless on (node) (
-          kube_node_labels{job="kube-state-metrics", accelerator="nvidia"}
-        )
-      ),
-      0.001
-    )`,
-	MemoryUtilised: `round(
-      sum(
-        sum by (node) (
-          node_memory_MemTotal_bytes{job="node-exporter"} - (node_memory_MemFree_bytes{job="node-exporter"} + node_memory_Buffers_bytes{job="node-exporter"} + node_memory_Cached_bytes{job="node-exporter"})
-        )
-        unless
-        max by (node) (
-          max_over_time(kube_node_status_allocatable{job="kube-state-metrics", resource=~"nvidia_com_gpu|amd_com_gpu"}[7d:])
-        ) > 0
-      )
-      / 1000000000,
-      0.001
-    )`,
-	MemoryRequested: `round(
-      sum(
-        sum by (node) (
-          (
-            (
-              sum by (namespace, pod) (kube_pod_container_resource_requests{job="kube-state-metrics", container!="", resource="memory"})
-            )
-            unless on (namespace, pod)
-            (
-              sum by (namespace, pod) (kube_pod_container_resource_requests{job="kube-state-metrics", container!="", resource=~"nvidia_com_gpu|amd_com_gpu"})
-            )
-          )
-          * on (namespace, pod) group_left
-            sum by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"})
-        )
-        unless on (node)
-        (
-          max by (node) (
-            max_over_time(
-              kube_node_status_allocatable{job="kube-state-metrics", resource=~"nvidia_com_gpu|amd_com_gpu"}[7d:]
-            )
-          )
-          >
-          0
-        )
-      ) / 1000000000,
-      0.001
-    )`,
-	MemoryAllocatable: `round(
-      sum(
-        sum by (node) (kube_node_status_allocatable{job="kube-state-metrics", resource="memory"})
-        unless (
-          sum by (node) (kube_node_spec_taint{job="kube-state-metrics", key="nvidia.com/gpu"})
-        )
-        unless on (node) (
-          kube_node_labels{job="kube-state-metrics", accelerator="nvidia"}
-        )
-      ) / 1000000000,
-      0.001
-    )`,
+type workloadPricing struct {
+	CPUPerCorePerHour float64
+	MemPerGBPerHour   float64
 }
 
-func queryPrometheusScalar(ctx context.Context, client v1.API, q string) float64 {
-	if client == nil {
-		return 0
+func getEffectivePricing(ctx context.Context, clusterID string) workloadPricing {
+	p := workloadPricing{
+		CPUPerCorePerHour: defaultCPUPricePerCorePerHour,
+		MemPerGBPerHour:   defaultMemoryPricePerGBPerHour,
 	}
-	result, _, err := client.Query(ctx, q, time.Now())
-	if err != nil || result == nil {
-		return 0
+	if storage.Stg == nil {
+		return p
 	}
-	if v, ok := result.(model.Vector); ok && len(v) > 0 {
-		return float64(v[0].Value)
+	settings, err := storage.Stg.GetSettings(clusterID)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to get settings for cluster %s, using defaults: %v", clusterID, err)
+		return p
 	}
-	if s, ok := result.(*model.Scalar); ok {
-		return float64(s.Value)
+	if settings == nil {
+		return p
 	}
-	return 0
+	if settings.CPUPricePerCorePerHour > 0 {
+		p.CPUPerCorePerHour = settings.CPUPricePerCorePerHour
+	}
+	if settings.MemoryPricePerGBPerHour > 0 {
+		p.MemPerGBPerHour = settings.MemoryPricePerGBPerHour
+	}
+	return p
 }
 
 func getClusterResourcesFromPrometheus(ctx context.Context, c *gin.Context, clusterID string) types.ClusterResourcesDTO {
@@ -168,13 +64,12 @@ func getClusterResourcesFromPrometheus(ctx context.Context, c *gin.Context, clus
 		return out
 	}
 	pc := clients.PrometheusClient
-	q := prometheusClusterQueries
-	out.CPU.Utilised = queryPrometheusScalar(ctx, pc, q.CPUUtilised)
-	out.CPU.Requested = queryPrometheusScalar(ctx, pc, q.CPURequested)
-	out.CPU.Allocatable = queryPrometheusScalar(ctx, pc, q.CPUAllocatable)
-	out.Memory.Utilised = queryPrometheusScalar(ctx, pc, q.MemoryUtilised)
-	out.Memory.Requested = queryPrometheusScalar(ctx, pc, q.MemoryRequested)
-	out.Memory.Allocatable = queryPrometheusScalar(ctx, pc, q.MemoryAllocatable)
+	out.CPU.Utilised = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterCPUUtilizationExpression())
+	out.CPU.Requested = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterCPURequestExpression())
+	out.CPU.Allocatable = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterCPUAllocatableExpression())
+	out.Memory.Utilised = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterMemoryUtilizationExpression())
+	out.Memory.Requested = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterMemoryRequestExpression())
+	out.Memory.Allocatable = utils.QueryAndParsePrometheusScalar(ctx, pc, utils.BuildClusterMemoryAllocatableExpression())
 	return out
 }
 
@@ -313,27 +208,27 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 
 // fillWorkloadDetailDollars sets dollar savings and expenditure on a single WorkloadDetail from aggregated recommendations.
 // d.CPU.Current and d.Memory.Current are expected to be totals (per-pod request * number of pods).
-func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg) {
+func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p workloadPricing) {
 	totalCurrentCPU := d.CPU.Current
 	totalCurrentMem := d.Memory.Current
 	totalRecCPU := agg.TotalCPU
 	totalRecMem := agg.TotalMem
 	cpuSavings := 0.0
 	if totalCurrentCPU > totalRecCPU {
-		cpuSavings = (totalCurrentCPU - totalRecCPU) * defaultCPUPricePerCorePerHour * defaultHoursPerMonth
+		cpuSavings = (totalCurrentCPU - totalRecCPU) * p.CPUPerCorePerHour * defaultHoursPerMonth
 	}
 	memSavings := 0.0
 	if totalCurrentMem > totalRecMem {
-		memSavings = (totalCurrentMem - totalRecMem) / 1024 * defaultMemoryPricePerGbPerHour * defaultHoursPerMonth
+		memSavings = (totalCurrentMem - totalRecMem) / 1024 * p.MemPerGBPerHour * defaultHoursPerMonth
 	}
 	d.DollarSavingsPerMonth = int(cpuSavings + memSavings)
 	cpuExpenditure := 0.0
 	if totalRecCPU > totalCurrentCPU {
-		cpuExpenditure = (totalRecCPU - totalCurrentCPU) * defaultCPUPricePerCorePerHour * defaultHoursPerMonth
+		cpuExpenditure = (totalRecCPU - totalCurrentCPU) * p.CPUPerCorePerHour * defaultHoursPerMonth
 	}
 	memExpenditure := 0.0
 	if totalRecMem > totalCurrentMem {
-		memExpenditure = (totalRecMem - totalCurrentMem) / 1024 * defaultMemoryPricePerGbPerHour * defaultHoursPerMonth
+		memExpenditure = (totalRecMem - totalCurrentMem) / 1024 * p.MemPerGBPerHour * defaultHoursPerMonth
 	}
 	d.DollarExpenditurePerMonth = int(cpuExpenditure + memExpenditure)
 }
@@ -341,16 +236,15 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg) {
 // getWorkloadsData fetches non-GPU workloads and pod recommendations for a cluster, then for each workload
 // filters recommendations by workload ID, computes total CPU, memory, cost, and attaches everything to
 // WorkloadDetail. Returns details and cluster-level requested/recommended CPU and memory.
-func getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDetail, float64, float64, float64, float64, error) {
-	var details []types.WorkloadDetail
+func getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDetail, map[string]workloadRecAgg, float64, float64, float64, float64, error) {
 	var clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64
 	workloads, err := getNonGPUClusterWorkloads(ctx, clusterID)
 	if err != nil {
-		return nil, 0, 0, 0, 0, err
+		return nil, nil, 0, 0, 0, 0, err
 	}
 	parsedRecs, err := getPodRecommendationsForCluster(ctx, clusterID)
 	if err != nil {
-		return nil, 0, 0, 0, 0, err
+		return nil, nil, 0, 0, 0, 0, err
 	}
 	// Index recommendations by workload ID for fast lookup
 	recsByWorkload := make(map[string][]parsedPodRecommendation)
@@ -358,15 +252,16 @@ func getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDe
 		recsByWorkload[p.WorkloadID] = append(recsByWorkload[p.WorkloadID], p)
 	}
 
-	details = make([]types.WorkloadDetail, 0, len(workloads))
+	details := make([]types.WorkloadDetail, 0, len(workloads))
+	recAgg := make(map[string]workloadRecAgg, len(workloads))
 	for _, w := range workloads {
 		stat := w.GetStat()
 		if stat == nil {
 			continue
 		}
 		detail := buildWorkloadDetail(w, stat)
-		podsRecsForWorkload := recsByWorkload[w.WorkloadID]
-		agg := aggregateRecsForWorkload(podsRecsForWorkload)
+		agg := aggregateRecsForWorkload(recsByWorkload[w.WorkloadID])
+		recAgg[w.WorkloadID] = agg
 
 		workloadPodCPURequest := stat.CalculateTotalCPURequest()
 		workloadTotalMemoryRequest := stat.CalculateTotalMemoryRequest()
@@ -399,20 +294,26 @@ func getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDe
 				Min: agg.MemMin, Max: agg.MemMax, Change: memChange,
 			},
 		}
-		fillWorkloadDetailDollars(&detail, agg)
 		details = append(details, detail)
 	}
-	return details, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, nil
+
+	return details, recAgg, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, nil
 }
 
 func WorkloadSummaryHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
-	details, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := getWorkloadsData(ctx, clusterID)
+	details, recAgg, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := getWorkloadsData(ctx, clusterID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	p := getEffectivePricing(ctx, clusterID)
+	for i := range details {
+		fillWorkloadDetailDollars(&details[i], recAgg[details[i].WorkloadID], p)
+	}
+
 	clusterRes := getClusterResourcesFromPrometheus(ctx, c, clusterID)
 	reqAllocRatioCpu := 1.0
 	if clusterRes.CPU.Allocatable > 0 {
@@ -424,9 +325,9 @@ func WorkloadSummaryHandler(c *gin.Context) {
 	}
 	requestedMemGB := clusterReqMem / 1024
 	recommendedMemGB := clusterRecMem / 1024
-	currentCostDollars := (clusterRes.CPU.Allocatable*defaultCPUPricePerCorePerHour + clusterRes.Memory.Allocatable*defaultMemoryPricePerGbPerHour) * defaultHoursPerMonth
-	workloadCostDollars := (clusterReqCPU/reqAllocRatioCpu)*defaultCPUPricePerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*defaultMemoryPricePerGbPerHour*defaultHoursPerMonth
-	optimizedCostDollars := (clusterRecCPU/reqAllocRatioCpu)*defaultCPUPricePerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*defaultMemoryPricePerGbPerHour*defaultHoursPerMonth
+	currentCostDollars := (clusterRes.CPU.Allocatable*p.CPUPerCorePerHour + clusterRes.Memory.Allocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
+	workloadCostDollars := (clusterReqCPU/reqAllocRatioCpu)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	optimizedCostDollars := (clusterRecCPU/reqAllocRatioCpu)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 	c.JSON(http.StatusOK, types.WorkloadSummaryResponse{
 		ImpactSummary: types.ImpactSummary{
 			DollarCurrentCost:     int(currentCostDollars),

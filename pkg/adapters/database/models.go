@@ -4,6 +4,18 @@ import (
 	"time"
 )
 
+type Cluster struct {
+	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
+	ClusterID string    `gorm:"column:cluster_id;uniqueIndex"`
+	Settings  string    `gorm:"column:settings;type:text;default:'{}'"`
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime"`
+}
+
+func (Cluster) TableName() string {
+	return "clusters"
+}
+
 // Workload is the DB row for a workload (stats payload + overrides) per cluster.
 type Workload struct {
 	ID          uint      `gorm:"column:id;primaryKey;autoIncrement"`
@@ -68,4 +80,18 @@ type AuditEventRow struct {
 
 func (AuditEventRow) TableName() string {
 	return "audit_events"
+}
+
+// Snapshot is the DB row for a cluster-level node stats snapshot (one per apply-recommendation run).
+type Snapshot struct {
+	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
+	ClusterID string    `gorm:"column:cluster_id;index"`
+	Cluster   Cluster   `gorm:"foreignKey:ClusterID;references:ClusterID"`
+	Data      string    `gorm:"column:data"` // JSON of SnapshotData (CPU, Memory, Nodes, PodsCount)
+	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
+}
+
+func (Snapshot) TableName() string {
+	return "snapshots"
 }

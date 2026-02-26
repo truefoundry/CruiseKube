@@ -25,13 +25,12 @@ type ApplyCheckInput struct {
 	PodExcludedByAnnotation    bool // when true, treat as excluded (from pod.Annotations or workload constraints)
 }
 
-// ShouldApplyRecommendationToPod returns true if recommendations should be applied to this pod.
+// ShouldGenerateRecommendation returns true if recommendations should be applied to this pod.
 // podForExclusion: when non-nil (webhook path), pod name and annotations are used for prefix/annotation checks.
 // When nil (task path), podInfo.Name and podInfo.Stats.Constraints.ExcludedAnnotation are used.
-func ShouldApplyRecommendationToPod(
+func ShouldGenerateRecommendation(
 	ctx context.Context,
 	podInfo *PodInfo,
-	override *types.WorkloadOverrideInfo,
 	input ApplyCheckInput,
 	podForExclusion *corev1.Pod,
 ) (bool, string) {
@@ -41,10 +40,6 @@ func ShouldApplyRecommendationToPod(
 
 	if input.PodExcludedByAnnotation {
 		return false, "pod annotation is excluded"
-	}
-
-	if !input.K8sVersionGE133 {
-		return false, "kubernetes version is not v1.33 or above"
 	}
 
 	if podInfo.Stats == nil {
@@ -58,16 +53,35 @@ func ShouldApplyRecommendationToPod(
 		return false, "best effort pod"
 	}
 
-	if override == nil || !override.EffectiveEnabled() {
-		return false, fmt.Sprintf("cruisekube not enabled for workload %s (no override or recommend-only mode), skipping apply", podInfo.Stats.WorkloadIdentifier)
-	}
-
 	if podInfo.Stats.CreationTime.After(time.Now().Add(-1 * time.Hour * time.Duration(input.NewWorkloadThresholdHours))) {
 		return false, "workload is newer than NewWorkloadThresholdHours"
 	}
 
 	if podInfo.Stats.IsHorizontallyAutoscaledOnCPU || podInfo.Stats.IsHorizontallyAutoscaledOnMem {
 		return false, "workload is horizontally autoscaled on CPU or memory"
+	}
+
+	return true, ""
+}
+
+func ShouldApplyRecommendationToPod(
+	ctx context.Context,
+	podInfo *PodInfo,
+	override *types.WorkloadOverrideInfo,
+	input ApplyCheckInput,
+	podForExclusion *corev1.Pod,
+) (bool, string) {
+	apply, reason := ShouldGenerateRecommendation(ctx, podInfo, input, podForExclusion)
+	if !apply {
+		return false, reason
+	}
+
+	if !input.K8sVersionGE133 {
+		return false, "kubernetes version is not v1.33 or above"
+	}
+
+	if override == nil || !override.EffectiveEnabled() {
+		return false, fmt.Sprintf("cruisekube not enabled for workload %s (no override or recommend-only mode), skipping apply", podInfo.Stats.WorkloadIdentifier)
 	}
 
 	return true, ""

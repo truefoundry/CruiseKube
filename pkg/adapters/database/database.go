@@ -74,6 +74,9 @@ func (s *GormDB) createTables() error {
 			return fmt.Errorf("failed to rename stats table to workloads: %w", err)
 		}
 	}
+	if err := s.db.AutoMigrate(&Cluster{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate Cluster: %w", err)
+	}
 	if err := s.db.AutoMigrate(&Workload{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate workloads: %w", err)
 	}
@@ -85,6 +88,9 @@ func (s *GormDB) createTables() error {
 	}
 	if err := s.db.AutoMigrate(&AuditEventRow{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate AuditEventRow: %w", err)
+  }
+	if err := s.db.AutoMigrate(&Snapshot{}); err != nil {
+		return fmt.Errorf("failed to auto-migrate Snapshot: %w", err)
 	}
 	return nil
 }
@@ -520,6 +526,63 @@ func (s *GormDB) InsertAuditEvent(clusterID string, event types.AuditEvent) erro
 	}
 	if err := s.db.Create(&row).Error; err != nil {
 		return fmt.Errorf("failed to insert audit event: %w", err)
+  }
+  return nil
+}
+
+func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {
+	if snapshot == nil {
+		return fmt.Errorf("snapshot cannot be nil")
+	}
+	if snapshot.ClusterID == "" {
+		return fmt.Errorf("snapshot cluster ID cannot be empty")
+	}
+
+	dataJSON, err := json.Marshal(snapshot.Data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal snapshot data: %w", err)
+	}
+	row := Snapshot{
+		ClusterID: snapshot.ClusterID,
+		Data:      string(dataJSON),
+	}
+	if err := s.db.Create(&row).Error; err != nil {
+		return fmt.Errorf("failed to insert node snapshot: %w", err)
+	}
+	return nil
+}
+
+func (s *GormDB) GetClusterSettings(clusterID string) (*types.ClusterSettings, error) {
+	var row Cluster
+	err := s.db.Where("cluster_id = ?", clusterID).First(&row).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil //nolint:nilnil // nil means no settings row yet; callers use application defaults
+		}
+		return nil, fmt.Errorf("failed to get settings for cluster %s: %w", clusterID, err)
+	}
+	var settings types.ClusterSettings
+	if err := json.Unmarshal([]byte(row.Settings), &settings); err != nil {
+		return nil, fmt.Errorf("failed to parse settings JSON for cluster %s: %w", clusterID, err)
+	}
+	return &settings, nil
+}
+
+func (s *GormDB) UpdateClusterSettings(clusterID string, settings *types.ClusterSettings) error {
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("failed to serialize settings for cluster %s: %w", clusterID, err)
+	}
+	row := Cluster{
+		ClusterID: clusterID,
+		Settings:  string(data),
+	}
+	err = s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "cluster_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"settings", "updated_at"}),
+	}).Create(&row).Error
+	if err != nil {
+		return fmt.Errorf("failed to upsert settings for cluster %s: %w", clusterID, err)
 	}
 	return nil
 }
