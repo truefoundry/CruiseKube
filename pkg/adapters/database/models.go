@@ -91,7 +91,6 @@ type Snapshot struct {
 	Cluster   Cluster   `gorm:"foreignKey:ClusterID;references:ClusterID"`
 	Data      string    `gorm:"column:data;not null"` // JSON of SnapshotData (CPU, Memory, Nodes, PodsCount)
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
 }
 
 func (Snapshot) TableName() string {

@@ -262,7 +262,7 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 			if state == StateIn {
 				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryPODDisruptionRestored,
+					Category: types.EventCategoryPODDisruptionUnblocked,
 					Payload: types.AuditPayload{
 						Message: fmt.Sprintf("DND annotations removed for disruption window for pod %s/%s", pod.Namespace, pod.Name),
 						Target:  target,
@@ -274,7 +274,7 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 			} else {
 				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryPODDisruptionUnblocked,
+					Category: types.EventCategoryPODDisruptionRestored,
 					Payload: types.AuditPayload{
 						Message: fmt.Sprintf("DND annotations restored after disruption window for pod %s/%s", pod.Namespace, pod.Name),
 						Target:  target,
@@ -350,7 +350,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 				}
 				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryPODDisruptionRestored,
+					Category: types.EventCategoryPODDisruptionUnblocked,
 					Payload: types.AuditPayload{
 						Message: fmt.Sprintf("PDB %s/%s relaxed for disruption window", pdb.Namespace, pdb.Name),
 						Target:  target,
@@ -362,7 +362,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 			} else {
 				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryPODDisruptionUnblocked,
+					Category: types.EventCategoryPODDisruptionRestored,
 					Payload: types.AuditPayload{
 						Message: fmt.Sprintf("PDB %s/%s restored after disruption window", pdb.Namespace, pdb.Name),
 						Target:  target,

@@ -2,6 +2,7 @@ package oom
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -154,9 +155,9 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	if audit.Stg != nil {
 		audit.Stg.Record(ctx, p.clusterID, types.AuditEvent{
 			Type:     types.EventTypeNormal,
-			Category: types.EventCategoryPODEviction,
+			Category: types.EventCategoryOOMEvent,
 			Payload: types.AuditPayload{
-				Message: "Pod evicted after OOM; new pod will receive updated memory via webhook",
+				Message: fmt.Sprintf("Pod %s/%s evicted after OOM; new pod will receive updated memory via webhook", oomInfo.Namespace, oomInfo.PodName),
 				Target:  map[string]interface{}{"kind": "Pod", "namespace": oomInfo.Namespace, "name": oomInfo.PodName},
 				Before: map[string]interface{}{
 					"memory_limit":         float64(oomInfo.MemoryLimit) / utils.BytesToMBDivisor,

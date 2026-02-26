@@ -20,6 +20,7 @@ const (
 	EventCategoryPODDisruptionRestored  EventCategory = "POD_DISRUPTION_RESTORED"
 	EventCategoryWebhookMutation        EventCategory = "WEBHOOK_MUTATION"
 	EventCategoryPODEviction            EventCategory = "POD_EVICTION"
+	EventCategoryOOMEvent               EventCategory = "OOM_EVENT"
 )
 
 // AuditPayload holds message, target, optional before/after state, and details for an audit event.
