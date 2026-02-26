@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -477,14 +476,9 @@ func DetectWorkloadConstraints(ctx context.Context, kubeClient *kubernetes.Clien
 		return constraints, nil
 	}
 
-	selector, err := workloadObj.GetSelector()
-	if err != nil {
-		return nil, fmt.Errorf("error getting workload selector: %w", err)
-	}
+	constraints.PDB = checkWorkloadAgainstPDBs(ctx, workloadObj, pdbCache)
 
-	constraints.PDB = checkWorkloadAgainstPDBs(ctx, workloadObj.GetNamespace(), selector, pdbCache)
-
-	podTemplate := getPodTemplateSpec(workloadObj)
+	podTemplate := GetPodTemplateSpec(workloadObj)
 	if podTemplate != nil {
 		constraints.DoNotDisruptAnnotation = checkDoNotDisruptAnnotation(podTemplate)
 		constraints.Volume = checkVolumes(podTemplate)
@@ -516,7 +510,7 @@ func FetchPDBsForNamespaces(ctx context.Context, kubeClient *kubernetes.Clientse
 	return pdbCache, nil
 }
 
-func FindMatchingPDBs(ctx context.Context, workloadSelector labels.Selector, pdbs []policyv1.PodDisruptionBudget) []*policyv1.PodDisruptionBudget {
+func FindMatchingPDBs(ctx context.Context, podLabels labels.Set, pdbs []policyv1.PodDisruptionBudget) []*policyv1.PodDisruptionBudget {
 	var matching []*policyv1.PodDisruptionBudget
 	for i := range pdbs {
 		pdb := &pdbs[i]
@@ -528,20 +522,21 @@ func FindMatchingPDBs(ctx context.Context, workloadSelector labels.Selector, pdb
 			logging.Errorf(ctx, "Error parsing PDB selector for %s/%s: %v", pdb.Namespace, pdb.Name, err)
 			continue
 		}
-		if selectorsMatch(workloadSelector, pdbSelector) {
+		if pdbSelector.Matches(podLabels) {
 			matching = append(matching, pdb)
 		}
 	}
 	return matching
 }
 
-func checkWorkloadAgainstPDBs(ctx context.Context, namespace string, workloadSelector labels.Selector, pdbCache map[string][]policyv1.PodDisruptionBudget) bool {
-	pdbs, exists := pdbCache[namespace]
-	if !exists {
+func checkWorkloadAgainstPDBs(ctx context.Context, workloadObj WorkloadObject, pdbCache map[string][]policyv1.PodDisruptionBudget) bool {
+	podTemplate := GetPodTemplateSpec(workloadObj)
+	if podTemplate == nil {
 		return false
 	}
+	podLabels := labels.Set(podTemplate.Labels)
 
-	for _, pdb := range pdbs {
+	for _, pdb := range pdbCache[workloadObj.GetNamespace()] {
 		if pdb.Spec.Selector == nil {
 			continue
 		}
@@ -552,7 +547,7 @@ func checkWorkloadAgainstPDBs(ctx context.Context, namespace string, workloadSel
 			continue
 		}
 
-		if selectorsMatch(workloadSelector, pdbSelector) {
+		if pdbSelector.Matches(podLabels) {
 			return true
 		}
 	}
@@ -560,54 +555,7 @@ func checkWorkloadAgainstPDBs(ctx context.Context, namespace string, workloadSel
 	return false
 }
 
-func selectorsMatch(workloadSelector, pdbSelector labels.Selector) bool {
-	workloadRequirements, workloadSelectable := workloadSelector.Requirements()
-	pdbRequirements, pdbSelectable := pdbSelector.Requirements()
-
-	if !workloadSelectable || !pdbSelectable {
-		return false
-	}
-
-	workloadReqMap := make(map[string]labels.Requirement)
-	for _, req := range workloadRequirements {
-		if req.Operator() == selection.Equals || req.Operator() == selection.In {
-			workloadReqMap[req.Key()] = req
-		}
-	}
-
-	for _, req := range pdbRequirements {
-		switch req.Operator() {
-		case selection.Equals, selection.DoubleEquals, selection.In:
-			workloadReq, exists := workloadReqMap[req.Key()]
-			if !exists {
-				return false
-			}
-			if !slices.ContainsFunc(workloadReq.Values().List(), req.Values().Has) {
-				return false
-			}
-
-		case selection.NotIn, selection.NotEquals:
-			if workloadReq, exists := workloadReqMap[req.Key()]; exists {
-				if slices.ContainsFunc(workloadReq.Values().List(), req.Values().Has) {
-					return false
-				}
-			}
-
-		case selection.DoesNotExist:
-			if _, exists := workloadReqMap[req.Key()]; exists {
-				return false
-			}
-
-		case selection.Exists, selection.GreaterThan, selection.LessThan:
-			// TODO: confirm handling
-			return false
-		}
-	}
-
-	return true
-}
-
-func getPodTemplateSpec(workloadObj WorkloadObject) *corev1.PodTemplateSpec {
+func GetPodTemplateSpec(workloadObj WorkloadObject) *corev1.PodTemplateSpec {
 	switch w := workloadObj.(type) {
 	case DeploymentWrapper:
 		return &w.Spec.Template

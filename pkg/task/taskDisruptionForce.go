@@ -130,34 +130,33 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 		selector, err := workloadObj.GetSelector()
 		if err != nil {
 			logging.Errorf(ctx, "Failed to get selector for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
-			continue
-		}
-
-		pods, err := utils.GetPods(ctx, t.kubeClient, stat.Namespace, selector)
-		if err != nil {
-			logging.Errorf(ctx, "Failed to list pods for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
-			continue
-		}
-
-		for i := range pods.Items {
-			pod := &pods.Items[i]
-
-			hasModifiedMarker := pod.Annotations != nil && pod.Annotations[utils.AnnotationModified] == utils.TrueValue
-			if !t.hasBlockingAnnotations(pod) && !hasModifiedMarker {
-				continue
-			}
-
-			modified, err := t.reconcilePod(ctx, pod, &workloadInfo, effectiveState)
+		} else {
+			pods, err := utils.GetPods(ctx, t.kubeClient, stat.Namespace, selector)
 			if err != nil {
-				logging.Errorf(ctx, "Failed to reconcile pod %s/%s: %v", pod.Namespace, pod.Name, err)
-				continue
-			}
-			if modified {
-				reconciledPods++
+				logging.Errorf(ctx, "Failed to list pods for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+			} else {
+				for i := range pods.Items {
+					pod := &pods.Items[i]
+
+					hasModifiedMarker := pod.Annotations != nil && pod.Annotations[utils.AnnotationModified] == utils.TrueValue
+					if !t.hasBlockingAnnotations(pod) && !hasModifiedMarker {
+						continue
+					}
+
+					modified, err := t.reconcilePod(ctx, pod, &workloadInfo, effectiveState)
+					if err != nil {
+						logging.Errorf(ctx, "Failed to reconcile pod %s/%s: %v", pod.Namespace, pod.Name, err)
+						continue
+					}
+					if modified {
+						reconciledPods++
+					}
+				}
 			}
 		}
 
-		matchingPDBs := utils.FindMatchingPDBs(ctx, selector, pdbsByNamespace[stat.Namespace])
+		podTemplate := utils.GetPodTemplateSpec(workloadObj)
+		matchingPDBs := utils.FindMatchingPDBs(ctx, podTemplate.Labels, pdbsByNamespace[stat.Namespace])
 		for _, pdb := range matchingPDBs {
 			modified, err := t.reconcilePDB(ctx, pdb, effectiveState)
 			if err != nil {
@@ -170,7 +169,7 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 		}
 	}
 
-	logging.Infof(ctx, "Total workloads with blocking annotations: %d", blockingCount)
+	logging.Infof(ctx, "Total workloads with blocking consolidation: %d", blockingCount)
 	logging.Infof(ctx, "Disruption force task completed: reconciled %d pods, %d PDBs modified", reconciledPods, reconciledPDBs)
 	return nil
 }
