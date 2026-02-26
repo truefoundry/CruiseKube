@@ -528,7 +528,7 @@ func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	}
 	if err := s.db.Create(&row).Error; err != nil {
 		return fmt.Errorf("failed to insert node snapshot: %w", err)
-    }
+	}
 	return nil
 }
 

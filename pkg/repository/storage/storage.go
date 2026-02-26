@@ -218,7 +218,7 @@ func (s *Storage) GetPodRecommendationsForWorkload(clusterID, workloadID string)
 func (s *Storage) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	if err := s.DB.InsertSnapshot(snapshot); err != nil {
 		return fmt.Errorf("failed to insert node snapshot: %w", err)
-    	}
+	}
 	return nil
 }
 

@@ -254,8 +254,9 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 
 			if utils.ToBeEvicted(rec) {
 				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
-				logging.Infof(ctx, "Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				logging.Infof(ctx, "[Decision] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				if applyChanges && isCruiseModeEnabled {
+					logging.Infof(ctx, "[Action] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 					utils.EvictPod(ctx, a.kubeClient, freshPod)
 				}
 				continue
