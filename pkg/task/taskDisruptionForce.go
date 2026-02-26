@@ -157,7 +157,7 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 			}
 		}
 
-		matchingPDBs := utils.FindMatchingPDBs(ctx, selector, pdbsByNamespace[stat.Namespace])
+		matchingPDBs := utils.FindMatchingPDBs(ctx, pods.Items, pdbsByNamespace[stat.Namespace])
 		for _, pdb := range matchingPDBs {
 			modified, err := t.reconcilePDB(ctx, pdb, effectiveState)
 			if err != nil {
