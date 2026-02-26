@@ -308,28 +308,26 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 			if state == StateIn {
 				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryDNDAnnotationRemoved,
-					Source:   "DisruptionForce",
+					Category: types.EventCategoryPODDisruptionRestored,
 					Payload: types.AuditPayload{
-						Message: "DND annotations removed for disruption window",
+						Message: fmt.Sprintf("DND annotations removed for disruption window for pod %s/%s", pod.Namespace, pod.Name),
 						Target:  target,
 						Before:  map[string]interface{}{"annotation": "do-not-disrupt"},
 						After:   map[string]interface{}{"annotation_removed": true},
+						Details: map[string]interface{}{},
 					},
-					MetaData: types.AuditMetaData{"pod": pod.Name},
 				})
 			} else {
 				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryDNDAnnotationRestored,
-					Source:   "DisruptionForce",
+					Category: types.EventCategoryPODDisruptionUnblocked,
 					Payload: types.AuditPayload{
-						Message: "DND annotations restored after disruption window",
+						Message: fmt.Sprintf("DND annotations restored after disruption window for pod %s/%s", pod.Namespace, pod.Name),
 						Target:  target,
 						Before:  map[string]interface{}{"annotation_removed": true},
 						After:   map[string]interface{}{"annotation": "do-not-disrupt"},
+						Details: map[string]interface{}{},
 					},
-					MetaData: types.AuditMetaData{"pod": pod.Name},
 				})
 			}
 		}
@@ -398,28 +396,26 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 				}
 				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryDNDAnnotationRemoved,
-					Source:   "DisruptionForce",
+					Category: types.EventCategoryPODDisruptionRestored,
 					Payload: types.AuditPayload{
-						Message: "PDB relaxed for disruption window",
+						Message: fmt.Sprintf("PDB %s/%s relaxed for disruption window", pdb.Namespace, pdb.Name),
 						Target:  target,
 						Before:  before,
 						After:   map[string]interface{}{"min_available": 0},
+						Details: map[string]interface{}{},
 					},
-					MetaData: types.AuditMetaData{},
 				})
 			} else {
 				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryDNDAnnotationRestored,
-					Source:   "DisruptionForce",
+					Category: types.EventCategoryPODDisruptionUnblocked,
 					Payload: types.AuditPayload{
-						Message: "PDB restored after disruption window",
+						Message: fmt.Sprintf("PDB %s/%s restored after disruption window", pdb.Namespace, pdb.Name),
 						Target:  target,
 						Before:  map[string]interface{}{"min_available": 0},
 						After:   map[string]interface{}{"restored": true},
+						Details: map[string]interface{}{},
 					},
-					MetaData: types.AuditMetaData{},
 				})
 			}
 		}

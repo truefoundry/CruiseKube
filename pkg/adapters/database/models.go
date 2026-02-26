@@ -56,18 +56,13 @@ func (PodResourceRecommendation) TableName() string {
 	return "pod_resource_recommendations"
 }
 
-// AuditEventRow is the DB row for an audit event (one table with cluster_id index for per-cluster logical partitioning).
-// Payload is JSON: { "message", "target", "before", "after" }. Target may be string or object (e.g. {"kind","name","namespace"}).
-// Meta is JSON object of extra key-value metadata.
+// AuditEventRow is the DB row for an audit event. Payload is JSON: { "message", "target", "before", "after", "details" }.
 type AuditEventRow struct {
 	ID        uint      `gorm:"column:id;primaryKey;autoIncrement"`
 	ClusterID string    `gorm:"column:cluster_id;index;not null"`
-	Timestamp time.Time `gorm:"column:timestamp;index;not null"`
 	Type      string    `gorm:"column:type;not null"`
 	Category  string    `gorm:"column:category;index;not null"`
-	Source    string    `gorm:"column:source;not null"`
 	Payload   string    `gorm:"column:payload;type:text"`
-	Meta      string    `gorm:"column:meta_extras;default:'{}'"`
 	CreatedAt time.Time `gorm:"column:created_at;autoCreateTime"`
 }
 

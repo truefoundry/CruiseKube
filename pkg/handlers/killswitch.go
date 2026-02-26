@@ -51,19 +51,6 @@ func KillswitchHandler(c *gin.Context) {
 		response.DeletedMutatingWebhook = false
 	} else {
 		response.DeletedMutatingWebhook = true
-		if !dryRun && audit.Stg != nil {
-			target := fmt.Sprintf("cruisekube-resource-adjuster-%s", clusterID)
-			audit.Stg.Record(ctx, clusterID, types.AuditEvent{
-				Type:     types.EventTypeNormal,
-				Category: types.EventCategoryConfigChange,
-				Source:   "Killswitch",
-				Payload: types.AuditPayload{
-					Message: "MutatingWebhookConfiguration deleted by user (killswitch)",
-					Target:  target,
-				},
-				MetaData: types.AuditMetaData{},
-			})
-		}
 	}
 
 	// Step 2: kill pods with adjusted resources
@@ -163,14 +150,14 @@ func analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, c
 				if !dryRun && audit.Stg != nil {
 					audit.Stg.Record(ctx, clusterID, types.AuditEvent{
 						Type:     types.EventTypeNormal,
-						Category: types.EventCategoryEviction,
-						Source:   "Killswitch",
+						Category: types.EventCategoryPODEviction,
 						Payload: types.AuditPayload{
-							Message: "Pod killed by user (killswitch): " + reason,
+							Message: fmt.Sprintf("Pod (%s/%s) killed by user (killswitch): %s", pod.Namespace, pod.Name, reason),
 							Target:  map[string]interface{}{"kind": workloadInfo.Kind, "namespace": pod.Namespace, "name": pod.Name},
-							After:   map[string]interface{}{"reason": reason},
+							Before:  map[string]interface{}{},
+							After:   map[string]interface{}{},
+							Details: map[string]interface{}{"reason": reason},
 						},
-						MetaData: types.AuditMetaData{"pod": pod.Name, "reason": reason},
 					})
 				}
 			} else {

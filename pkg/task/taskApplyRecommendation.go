@@ -253,14 +253,14 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						}
 						audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
 							Type:     types.EventTypeNormal,
-							Category: types.EventCategoryEviction,
-							Source:   "ApplyRecommendation",
+							Category: types.EventCategoryPODEviction,
 							Payload: types.AuditPayload{
-								Message: "Pod evicted for resource optimization",
+								Message: fmt.Sprintf("Pod %s/%s evicted for resource optimization", rec.PodInfo.Namespace, rec.PodInfo.Name),
 								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
-								After:   map[string]interface{}{"workload_id": workloadID, "node": nodeName},
+								After:   map[string]interface{}{},
+								Before:  map[string]interface{}{},
+								Details: map[string]interface{}{"workload_id": workloadID, "node": nodeName},
 							},
-							MetaData: types.AuditMetaData{"workload_id": workloadID, "node": nodeName},
 						})
 					}
 				}
@@ -289,20 +289,19 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					if q := currentContainerResources.Limits[corev1.ResourceCPU]; !q.IsZero() {
 						before["cpu_limit_millis"] = q.MilliValue()
 					}
+					after := make(map[string]interface{})
+					after["cpu_request_millis"] = int64(recommendedCPURequest * 1000)
+					after["cpu_limit_millis"] = int64(recommendedCPULimit * 1000)
 					audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
 						Type:     types.EventTypeNormal,
-						Category: types.EventCategoryResourceApplied,
-						Source:   "ApplyRecommendation.CPU",
+						Category: types.EventCategoryResourceUpdated,
 						Payload: types.AuditPayload{
-							Message: "CPU recommendation applied",
+							Message: fmt.Sprintf("CPU recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
 							Target:  map[string]interface{}{"kind": "Container", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name, "container": rec.ContainerName},
 							Before:  before,
-							After: map[string]interface{}{
-								"cpu_request": recommendedCPURequest,
-								"cpu_limit":   recommendedCPULimit,
-							},
+							After:   after,
+							Details: map[string]interface{}{},
 						},
-						MetaData: types.AuditMetaData{"pod": rec.PodInfo.Name, "container": rec.ContainerName},
 					})
 				}
 			}
@@ -321,25 +320,24 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, 0)
 						before := make(map[string]interface{})
 						if q := currentContainerResources.Requests[corev1.ResourceMemory]; !q.IsZero() {
-							before["memory_request_mb"] = float64(q.Value()) / utils.BytesToMBDivisor
+							before["memory_request"] = float64(q.Value()) / utils.BytesToMBDivisor
 						}
 						if q := currentContainerResources.Limits[corev1.ResourceMemory]; !q.IsZero() {
-							before["memory_limit_mb"] = float64(q.Value()) / utils.BytesToMBDivisor
+							before["memory_limit"] = float64(q.Value()) / utils.BytesToMBDivisor
 						}
 						audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
 							Type:     types.EventTypeNormal,
-							Category: types.EventCategoryResourceApplied,
-							Source:   "ApplyRecommendation.Memory",
+							Category: types.EventCategoryResourceUpdated,
 							Payload: types.AuditPayload{
-								Message: "Memory recommendation applied",
+								Message: fmt.Sprintf("Memory recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
 								Target:  map[string]interface{}{"kind": "Container", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name, "container": rec.ContainerName},
 								Before:  before,
 								After: map[string]interface{}{
-									"memory_request_mb": recommendedMemoryRequest,
-									"memory_limit_mb":   recommendedMemoryLimit,
+									"memory_request": recommendedMemoryRequest,
+									"memory_limit":   recommendedMemoryLimit,
 								},
+								Details: map[string]interface{}{"pod": rec.PodInfo.Name, "container": rec.ContainerName},
 							},
-							MetaData: types.AuditMetaData{"pod": rec.PodInfo.Name, "container": rec.ContainerName},
 						})
 					}
 				}

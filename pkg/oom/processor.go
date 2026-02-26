@@ -154,15 +154,17 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	if audit.Stg != nil {
 		audit.Stg.Record(ctx, p.clusterID, types.AuditEvent{
 			Type:     types.EventTypeNormal,
-			Category: types.EventCategoryEviction,
-			Source:   "OOM",
+			Category: types.EventCategoryPODEviction,
 			Payload: types.AuditPayload{
 				Message: "Pod evicted after OOM; new pod will receive updated memory via webhook",
 				Target:  map[string]interface{}{"kind": "Pod", "namespace": oomInfo.Namespace, "name": oomInfo.PodName},
-				Before:  map[string]interface{}{"memory_limit": oomInfo.MemoryLimit, "last_observed_memory": oomInfo.LastObservedMemory},
-				After:   map[string]interface{}{"node": oomInfo.NodeName, "container": containerName},
+				Before: map[string]interface{}{
+					"memory_limit":         float64(oomInfo.MemoryLimit) / utils.BytesToMBDivisor,
+					"last_observed_memory": float64(oomInfo.LastObservedMemory) / utils.BytesToMBDivisor,
+				},
+				After:   map[string]interface{}{},
+				Details: map[string]interface{}{"container": containerName, "node": oomInfo.NodeName},
 			},
-			MetaData: types.AuditMetaData{"pod": oomInfo.PodName, "container": containerName, "node": oomInfo.NodeName},
 		})
 	}
 }

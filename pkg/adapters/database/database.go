@@ -508,26 +508,15 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 }
 
 func (s *GormDB) InsertAuditEvent(clusterID string, event types.AuditEvent) error {
-	metaJSON := "{}"
-	if len(event.MetaData) > 0 {
-		b, err := json.Marshal(event.MetaData)
-		if err != nil {
-			return fmt.Errorf("failed to marshal audit metadata: %w", err)
-		}
-		metaJSON = string(b)
-	}
 	payloadJSON, err := json.Marshal(event.Payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal audit payload: %w", err)
 	}
 	row := AuditEventRow{
 		ClusterID: clusterID,
-		Timestamp: event.Timestamp.UTC(),
 		Type:      string(event.Type),
 		Category:  string(event.Category),
-		Source:    event.Source,
 		Payload:   string(payloadJSON),
-		Meta:      metaJSON,
 	}
 	if err := s.db.Create(&row).Error; err != nil {
 		return fmt.Errorf("failed to insert audit event: %w", err)

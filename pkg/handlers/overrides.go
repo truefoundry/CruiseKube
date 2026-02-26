@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
@@ -37,19 +36,6 @@ func UpdateWorkloadOverridesHandler(c *gin.Context) {
 			})
 		}
 		return
-	}
-
-	if audit.Stg != nil {
-		audit.Stg.Record(c.Request.Context(), clusterID, types.AuditEvent{
-			Type:     types.EventTypeNormal,
-			Category: types.EventCategoryConfigChange,
-			Source:   "Overrides",
-			Payload: types.AuditPayload{
-				Message: "Workload overrides updated by user",
-				Target:  workloadID,
-			},
-			MetaData: types.AuditMetaData{"workload_id": workloadID},
-		})
 	}
 
 	c.Header("Content-Type", "application/json")
