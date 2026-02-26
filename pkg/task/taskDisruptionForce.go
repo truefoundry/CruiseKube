@@ -360,6 +360,13 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 					},
 				})
 			} else {
+				after := make(map[string]interface{})
+				if pdb.Spec.MinAvailable != nil {
+					after["min_available"] = pdb.Spec.MinAvailable.String()
+				}
+				if pdb.Spec.MaxUnavailable != nil {
+					after["max_unavailable"] = pdb.Spec.MaxUnavailable.String()
+				}
 				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
 					Category: types.EventCategoryPODDisruptionRestored,
@@ -367,7 +374,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 						Message: fmt.Sprintf("PDB %s/%s restored after disruption window", pdb.Namespace, pdb.Name),
 						Target:  target,
 						Before:  map[string]interface{}{"min_available": 0},
-						After:   map[string]interface{}{"restored": true},
+						After:   after,
 						Details: map[string]interface{}{},
 					},
 				})
