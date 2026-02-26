@@ -121,12 +121,16 @@ func HandleMutatingPatch(c *gin.Context) {
 	patches = append(patches, disruptionPatches...)
 
 	if len(patches) > 0 && audit.Recorder != nil {
+		containerName := "<no-container>"
+		if len(pod.Spec.Containers) > 0 {
+			containerName = pod.Spec.Containers[0].Name
+		}
 		audit.Recorder.Record(ctx, clusterID, types.AuditEvent{
 			Type:     types.EventTypeNormal,
 			Category: types.EventCategoryWebhookMutation,
 			Payload: types.AuditPayload{
 				Message: fmt.Sprintf("Pod %s/%s mutated with resource recommendations", pod.Namespace, getPodName(&pod)),
-				Target:  map[string]interface{}{"kind": "Pod", "namespace": pod.Namespace, "name": getPodName(&pod), "container": pod.Spec.Containers[0].Name},
+				Target:  map[string]interface{}{"kind": "Pod", "namespace": pod.Namespace, "name": getPodName(&pod), "container": containerName},
 				After:   map[string]interface{}{"patches": patches},
 				Before:  map[string]interface{}{},
 				Details: map[string]interface{}{"workload_id": workloadKey},
