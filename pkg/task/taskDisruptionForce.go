@@ -6,9 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/robfig/cron/v3"
 	"github.com/truefoundry/cruisekube/pkg/audit"
-	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
