@@ -3,7 +3,6 @@ package audit
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/ports"
@@ -53,14 +52,8 @@ func NewAudit(ctx context.Context, db ports.Database, opts Options) *Audit {
 
 func (a *Audit) run(ctx context.Context) {
 	for p := range a.ch {
-		evt := p.event
-		if evt.Timestamp.IsZero() {
-			evt.Timestamp = time.Now().UTC()
-		} else {
-			evt.Timestamp = evt.Timestamp.UTC()
-		}
-		if err := a.db.InsertAuditEvent(p.clusterID, evt); err != nil {
-			logging.Errorf(ctx, "audit: failed to write event %s: %v", evt.Category, err)
+		if err := a.db.InsertAuditEvent(p.clusterID, p.event); err != nil {
+			logging.Errorf(ctx, "audit: failed to write event %s: %v", p.event.Category, err)
 		}
 	}
 	close(a.done)
@@ -69,9 +62,6 @@ func (a *Audit) run(ctx context.Context) {
 // Record enqueues an audit event for asynchronous write. Non-blocking; drops event if buffer full.
 // Timestamp is set to UTC now if zero. Do not modify the event after calling Record.
 func (a *Audit) Record(ctx context.Context, clusterID string, event types.AuditEvent) {
-	if a == nil {
-		return
-	}
 	a.mu.Lock()
 	closed := a.closed
 	a.mu.Unlock()

@@ -514,9 +514,21 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 }
 
 func (s *GormDB) InsertAuditEvent(clusterID string, event types.AuditEvent) error {
+	if clusterID == "" {
+		return fmt.Errorf("audit event cluster ID cannot be empty")
+	}
+	if event.Type == "" {
+		return fmt.Errorf("audit event type cannot be empty")
+	}
+	if event.Category == "" {
+		return fmt.Errorf("audit event category cannot be empty")
+	}
 	payloadJSON, err := json.Marshal(event.Payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal audit payload: %w", err)
+	}
+	if len(payloadJSON) == 0 {
+		return fmt.Errorf("audit event payload cannot be empty")
 	}
 	row := AuditEventRow{
 		ClusterID: clusterID,
