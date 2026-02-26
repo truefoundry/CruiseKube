@@ -152,8 +152,8 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 	}
 
 	logging.Infof(ctx, "Successfully evicted pod %s/%s after OOM. New pod will be created with updated memory recommendations via webhook", oomInfo.Namespace, oomInfo.PodName)
-	if audit.Stg != nil {
-		audit.Stg.Record(ctx, p.clusterID, types.AuditEvent{
+	if audit.Recorder != nil {
+		audit.Recorder.Record(ctx, p.clusterID, types.AuditEvent{
 			Type:     types.EventTypeNormal,
 			Category: types.EventCategoryOOMEvent,
 			Payload: types.AuditPayload{

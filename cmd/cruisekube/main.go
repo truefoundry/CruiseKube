@@ -185,7 +185,7 @@ func setupControllerMode(ctx context.Context, cfg *config.Config) {
 	logging.Infof(ctx, "Storage Repo initialized")
 	storage.Stg = storageRepo
 
-	audit.Stg = audit.NewAudit(ctx, databaseAdapter, audit.Options{})
+	audit.Recorder = audit.NewAudit(ctx, databaseAdapter, audit.Options{})
 
 	////////
 	// Initialize Modes

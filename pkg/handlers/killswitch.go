@@ -147,8 +147,8 @@ func analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, c
 				killedPodName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
 				killedPods = append(killedPods, killedPodName)
 				logging.Infof(ctx, "Killed pod %s (reason: %s)", killedPodName, reason)
-				if !dryRun && audit.Stg != nil {
-					audit.Stg.Record(ctx, clusterID, types.AuditEvent{
+				if !dryRun && audit.Recorder != nil {
+					audit.Recorder.Record(ctx, clusterID, types.AuditEvent{
 						Type:     types.EventTypeNormal,
 						Category: types.EventCategoryPODEviction,
 						Payload: types.AuditPayload{

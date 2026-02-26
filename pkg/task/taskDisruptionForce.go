@@ -257,10 +257,10 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 			return false, fmt.Errorf("failed to update pod: %w", err)
 		}
 		logging.Infof(ctx, "Updated pod %s/%s", pod.Namespace, pod.Name)
-		if audit.Stg != nil {
+		if audit.Recorder != nil {
 			target := map[string]interface{}{"kind": "Pod", "namespace": pod.Namespace, "name": pod.Name}
 			if state == StateIn {
-				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
+				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
 					Category: types.EventCategoryPODDisruptionUnblocked,
 					Payload: types.AuditPayload{
@@ -272,7 +272,7 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 					},
 				})
 			} else {
-				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
+				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
 					Category: types.EventCategoryPODDisruptionRestored,
 					Payload: types.AuditPayload{
@@ -338,7 +338,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 			return false, fmt.Errorf("failed to update PDB: %w", err)
 		}
 		logging.Infof(ctx, "Updated PDB %s/%s", pdb.Namespace, pdb.Name)
-		if audit.Stg != nil {
+		if audit.Recorder != nil {
 			target := map[string]interface{}{"kind": "PodDisruptionBudget", "namespace": pdb.Namespace, "name": pdb.Name}
 			if state == StateIn {
 				before := make(map[string]interface{})
@@ -348,7 +348,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 				if v, ok := pdb.Annotations[utils.AnnotationPDBMaxUnavailable]; ok {
 					before["max_unavailable"] = v
 				}
-				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
+				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
 					Category: types.EventCategoryPODDisruptionUnblocked,
 					Payload: types.AuditPayload{
@@ -360,7 +360,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 					},
 				})
 			} else {
-				audit.Stg.Record(ctx, t.config.ClusterID, types.AuditEvent{
+				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
 					Category: types.EventCategoryPODDisruptionRestored,
 					Payload: types.AuditPayload{

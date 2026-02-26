@@ -9,12 +9,11 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
-// Stg is the singleton audit storage, set at startup (e.g. in main).
-var Stg *Audit
+// Recorder is the singleton audit storage, set at startup (e.g. in main).
+var Recorder *Audit
 
 // Options holds optional configuration for the audit system.
 type Options struct {
-	// BufferSize is the capacity of the async write channel (default 1000).
 	BufferSize int
 }
 
@@ -60,7 +59,6 @@ func (a *Audit) run(ctx context.Context) {
 }
 
 // Record enqueues an audit event for asynchronous write. Non-blocking; drops event if buffer full.
-// Timestamp is set to UTC now if zero. Do not modify the event after calling Record.
 func (a *Audit) Record(ctx context.Context, clusterID string, event types.AuditEvent) {
 	a.mu.Lock()
 	closed := a.closed

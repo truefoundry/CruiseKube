@@ -252,12 +252,12 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				if applyChanges {
 					logging.Infof(ctx, "[Action] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 					utils.EvictPod(ctx, a.kubeClient, freshPod)
-					if audit.Stg != nil {
+					if audit.Recorder != nil {
 						workloadID := ""
 						if rec.PodInfo.Stats != nil {
 							workloadID = rec.PodInfo.Stats.WorkloadIdentifier
 						}
-						audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
+						audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
 							Type:     types.EventTypeNormal,
 							Category: types.EventCategoryPODEviction,
 							Payload: types.AuditPayload{
@@ -286,7 +286,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 			if applied {
 				appliedRecommendations[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = rec
-				if audit.Stg != nil && rec.PodInfo.Stats != nil {
+				if audit.Recorder != nil && rec.PodInfo.Stats != nil {
 					recommendedCPURequest, _, recommendedCPULimit, _ := utils.ComputeRecommendedResourceValues(ctx, rec, nodeInfo.AllocatableCPU)
 					before := make(map[string]interface{})
 					if q := currentContainerResources.Requests[corev1.ResourceCPU]; !q.IsZero() {
@@ -298,7 +298,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					after := make(map[string]interface{})
 					after["cpu_request_millis"] = int64(recommendedCPURequest * 1000)
 					after["cpu_limit_millis"] = int64(recommendedCPULimit * 1000)
-					audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
+					audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
 						Type:     types.EventTypeNormal,
 						Category: types.EventCategoryResourceUpdated,
 						Payload: types.AuditPayload{
@@ -322,7 +322,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 
 				if applied {
 					appliedRecommendations[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = rec
-					if audit.Stg != nil && rec.PodInfo.Stats != nil {
+					if audit.Recorder != nil && rec.PodInfo.Stats != nil {
 						_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, 0)
 						before := make(map[string]interface{})
 						if q := currentContainerResources.Requests[corev1.ResourceMemory]; !q.IsZero() {
@@ -331,7 +331,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						if q := currentContainerResources.Limits[corev1.ResourceMemory]; !q.IsZero() {
 							before["memory_limit"] = float64(q.Value()) / utils.BytesToMBDivisor
 						}
-						audit.Stg.Record(ctx, a.config.ClusterID, types.AuditEvent{
+						audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
 							Type:     types.EventTypeNormal,
 							Category: types.EventCategoryResourceUpdated,
 							Payload: types.AuditPayload{
