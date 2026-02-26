@@ -138,9 +138,7 @@ func (n *NodeLoadMonitoringTask) Run(ctx context.Context) error {
 						Payload: types.AuditPayload{
 							Message: fmt.Sprintf("Overload taint removed from node %s", node.Name),
 							Target:  map[string]interface{}{"kind": "Node", "name": node.Name},
-							Details: map[string]interface{}{
-								"loadRatio": loadAvg,
-							},
+							Details: details,
 						},
 					})
 				}
