@@ -3,11 +3,11 @@ package types
 // SnapshotResourceMetrics holds the metrics for CPU or Memory in a snapshot.
 // Current = cluster totals; WorkloadRequested = user's original manifest request; RecommendedRequested = our recommendation.
 type SnapshotResourceMetrics struct {
-	CurrentAllocatable   float64 `json:"current_allocatable"`   // total allocatable
-	CurrentRequested     float64 `json:"current_requested"`     // total requested
-	CurrentUtilized      float64 `json:"current_utilized"`      // total utilized (from usage stats)
-	WorkloadRequested    float64 `json:"workload_requested"`    // total CPU/memory user set in original manifest
-	RecommendedRequested float64 `json:"recommended_requested"` // total we recommend should be requested
+	CurrentAllocatable   float64 `json:"currentAllocatable"`   // total allocatable
+	CurrentRequested     float64 `json:"currentRequested"`     // total requested
+	CurrentUtilized      float64 `json:"currentUtilized"`      // total utilized (from usage stats)
+	WorkloadRequested    float64 `json:"workloadRequested"`    // total CPU/memory user set in original manifest
+	RecommendedRequested float64 `json:"recommendedRequested"` // total we recommend should be requested
 }
 
 // SnapshotNodes holds node counts by health in the snapshot.
