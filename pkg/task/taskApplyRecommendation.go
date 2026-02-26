@@ -335,10 +335,10 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, 0)
 						before := make(map[string]interface{})
 						if q := currentContainerResources.Requests[corev1.ResourceMemory]; !q.IsZero() {
-							before["memoryRequest"] = float64(q.Value()) / utils.BytesToMBDivisor
+							before["memoryRequestMB"] = float64(q.Value()) / utils.BytesToMBDivisor
 						}
 						if q := currentContainerResources.Limits[corev1.ResourceMemory]; !q.IsZero() {
-							before["memoryLimit"] = float64(q.Value()) / utils.BytesToMBDivisor
+							before["memoryLimitMB"] = float64(q.Value()) / utils.BytesToMBDivisor
 						}
 						audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
 							Type:     types.EventTypeNormal,
@@ -352,8 +352,8 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 									"containerName": rec.ContainerName,
 									"before":        before,
 									"after": map[string]interface{}{
-										"memoryRequest": recommendedMemoryRequest,
-										"memoryLimit":   recommendedMemoryLimit,
+										"memoryRequestMB": recommendedMemoryRequest,
+										"memoryLimitMB":   recommendedMemoryLimit,
 									},
 								},
 							},
