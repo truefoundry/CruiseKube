@@ -267,9 +267,11 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 							Payload: types.AuditPayload{
 								Message: fmt.Sprintf("Pod %s/%s evicted for resource optimization", rec.PodInfo.Namespace, rec.PodInfo.Name),
 								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
-								After:   map[string]interface{}{},
-								Before:  map[string]interface{}{},
-								Details: map[string]interface{}{"workload_id": workloadID, "node": nodeName},
+								Details: map[string]interface{}{
+									"workloadId":    workloadID,
+									"node":          nodeName,
+									"containerName": rec.ContainerName,
+								},
 							},
 						})
 					}
@@ -304,13 +306,16 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					after["cpu_limit_millis"] = int64(recommendedCPULimit * 1000)
 					audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
 						Type:     types.EventTypeNormal,
-						Category: types.EventCategoryResourceUpdated,
+						Category: types.EventCategoryCPURecommendationApplied,
 						Payload: types.AuditPayload{
 							Message: fmt.Sprintf("CPU recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
 							Target:  map[string]interface{}{"kind": "Container", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name, "container": rec.ContainerName},
-							Before:  before,
-							After:   after,
-							Details: map[string]interface{}{},
+							Details: map[string]interface{}{
+								"workloadId":    utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName),
+								"node":          nodeName,
+								"containerName": rec.ContainerName,
+								"before":        before,
+								"after":         after},
 						},
 					})
 				}
@@ -330,23 +335,27 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, 0)
 						before := make(map[string]interface{})
 						if q := currentContainerResources.Requests[corev1.ResourceMemory]; !q.IsZero() {
-							before["memory_request"] = float64(q.Value()) / utils.BytesToMBDivisor
+							before["memoryRequest"] = float64(q.Value()) / utils.BytesToMBDivisor
 						}
 						if q := currentContainerResources.Limits[corev1.ResourceMemory]; !q.IsZero() {
-							before["memory_limit"] = float64(q.Value()) / utils.BytesToMBDivisor
+							before["memoryLimit"] = float64(q.Value()) / utils.BytesToMBDivisor
 						}
 						audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
 							Type:     types.EventTypeNormal,
-							Category: types.EventCategoryResourceUpdated,
+							Category: types.EventCategoryMemoryRecommendationApplied,
 							Payload: types.AuditPayload{
 								Message: fmt.Sprintf("Memory recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
-								Target:  map[string]interface{}{"kind": "Container", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name, "container": rec.ContainerName},
-								Before:  before,
-								After: map[string]interface{}{
-									"memory_request": recommendedMemoryRequest,
-									"memory_limit":   recommendedMemoryLimit,
+								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+								Details: map[string]interface{}{
+									"workloadId":    utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName),
+									"node":          nodeName,
+									"containerName": rec.ContainerName,
+									"before":        before,
+									"after": map[string]interface{}{
+										"memoryRequest": recommendedMemoryRequest,
+										"memoryLimit":   recommendedMemoryLimit,
+									},
 								},
-								Details: map[string]interface{}{"pod": rec.PodInfo.Name, "container": rec.ContainerName},
 							},
 						})
 					}

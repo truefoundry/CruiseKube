@@ -15,23 +15,26 @@ const (
 type EventCategory string
 
 const (
-	EventCategoryResourceUpdated        EventCategory = "RESOURCE_UPDATED"
-	EventCategoryPODDisruptionUnblocked EventCategory = "POD_DISRUPTION_UNBLOCKED"
-	EventCategoryPODDisruptionRestored  EventCategory = "POD_DISRUPTION_RESTORED"
-	EventCategoryWebhookMutation        EventCategory = "WEBHOOK_MUTATION"
-	EventCategoryPODEviction            EventCategory = "POD_EVICTION"
-	EventCategoryOOMEvent               EventCategory = "OOM_EVENT"
+	EventCategoryCPURecommendationApplied    EventCategory = "CPU_RECOMMENDATION_APPLIED"
+	EventCategoryMemoryRecommendationApplied EventCategory = "MEMORY_RECOMMENDATION_APPLIED"
+	EventCategoryPODDisruptionBlockRemoved   EventCategory = "POD_DISRUPTION_BLOCK_REMOVED"
+	EventCategoryPODDisruptionBlockRestored  EventCategory = "POD_DISRUPTION_BLOCK_RESTORED"
+	EventCategoryPDBRelaxed                  EventCategory = "PDB_RELAXED"
+	EventCategoryPDBRestored                 EventCategory = "PDB_RESTORED"
+	EventCategoryWebhookMutation             EventCategory = "WEBHOOK_MUTATION"
+	EventCategoryPODEviction                 EventCategory = "POD_EVICTION"
+	EventCategoryOOMEvent                    EventCategory = "OOM_EVENT"
+	EventCategoryNodeOverloadTaintAdded      EventCategory = "NODE_OVERLOAD_TAINT_ADDED"
+	EventCategoryNodeOverloadTaintRemoved    EventCategory = "NODE_OVERLOAD_TAINT_REMOVED"
 )
 
-// AuditPayload holds message, target, optional before/after state, and details for an audit event.
+// AuditPayload holds message, target, and details for an audit event.
 // Target can be a string or an object e.g. {"kind":"Pod","name":"...","namespace":"..."}.
-// Before and After use consistent units: CPU in millicores (cpu_request_millis, cpu_limit_millis), memory in MB (memory_request_mb, memory_limit_mb).
-// Details holds any other key-value information to track.
+// Details holds before/after state and any other key-value information. Use keys "before" and "after" for state changes.
+// For resource changes use consistent units: CPU in millicores (cpu_request_millis, cpu_limit_millis), memory in MB (memory_request_mb, memory_limit_mb).
 type AuditPayload struct {
 	Message string                 `json:"message,omitempty"`
 	Target  interface{}            `json:"target,omitempty"`
-	Before  map[string]interface{} `json:"before,omitempty"`
-	After   map[string]interface{} `json:"after,omitempty"`
 	Details map[string]interface{} `json:"details,omitempty"`
 }
 

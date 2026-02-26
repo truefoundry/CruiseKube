@@ -159,12 +159,13 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 			Payload: types.AuditPayload{
 				Message: fmt.Sprintf("Pod %s/%s evicted after OOM; new pod will receive updated memory via webhook", oomInfo.Namespace, oomInfo.PodName),
 				Target:  map[string]interface{}{"kind": "Pod", "namespace": oomInfo.Namespace, "name": oomInfo.PodName},
-				Before: map[string]interface{}{
-					"memory_limit":         float64(oomInfo.MemoryLimit) / utils.BytesToMBDivisor,
-					"last_observed_memory": float64(oomInfo.LastObservedMemory) / utils.BytesToMBDivisor,
+				Details: map[string]interface{}{
+					"workloadId":         workloadID,
+					"node":               oomInfo.NodeName,
+					"containerName":      containerName,
+					"memoryLimit":        float64(oomInfo.MemoryLimit) / utils.BytesToMBDivisor,
+					"lastObservedMemory": float64(oomInfo.LastObservedMemory) / utils.BytesToMBDivisor,
 				},
-				After:   map[string]interface{}{},
-				Details: map[string]interface{}{"container": containerName, "node": oomInfo.NodeName},
 			},
 		})
 	}

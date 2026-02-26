@@ -262,25 +262,27 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 			if state == StateIn {
 				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryPODDisruptionUnblocked,
+					Category: types.EventCategoryPODDisruptionBlockRemoved,
 					Payload: types.AuditPayload{
 						Message: fmt.Sprintf("DND annotations removed for disruption window for pod %s/%s", pod.Namespace, pod.Name),
 						Target:  target,
-						Before:  map[string]interface{}{"annotation": "do-not-disrupt"},
-						After:   map[string]interface{}{"annotation_removed": true},
-						Details: map[string]interface{}{},
+						Details: map[string]interface{}{
+							"workloadId": utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name),
+							"node":       pod.Spec.NodeName,
+						},
 					},
 				})
 			} else {
 				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryPODDisruptionRestored,
+					Category: types.EventCategoryPODDisruptionBlockRestored,
 					Payload: types.AuditPayload{
 						Message: fmt.Sprintf("DND annotations restored after disruption window for pod %s/%s", pod.Namespace, pod.Name),
 						Target:  target,
-						Before:  map[string]interface{}{"annotation_removed": true},
-						After:   map[string]interface{}{"annotation": "do-not-disrupt"},
-						Details: map[string]interface{}{},
+						Details: map[string]interface{}{
+							"workloadId": utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name),
+							"node":       pod.Spec.NodeName,
+						},
 					},
 				})
 			}
@@ -341,40 +343,22 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 		if audit.Recorder != nil {
 			target := map[string]interface{}{"kind": "PodDisruptionBudget", "namespace": pdb.Namespace, "name": pdb.Name}
 			if state == StateIn {
-				before := make(map[string]interface{})
-				if v, ok := pdb.Annotations[utils.AnnotationPDBMinAvailable]; ok {
-					before["min_available"] = v
-				}
-				if v, ok := pdb.Annotations[utils.AnnotationPDBMaxUnavailable]; ok {
-					before["max_unavailable"] = v
-				}
 				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryPODDisruptionUnblocked,
+					Category: types.EventCategoryPDBRelaxed,
 					Payload: types.AuditPayload{
 						Message: fmt.Sprintf("PDB %s/%s relaxed for disruption window", pdb.Namespace, pdb.Name),
 						Target:  target,
-						Before:  before,
-						After:   map[string]interface{}{"min_available": 0},
 						Details: map[string]interface{}{},
 					},
 				})
 			} else {
-				after := make(map[string]interface{})
-				if pdb.Spec.MinAvailable != nil {
-					after["min_available"] = pdb.Spec.MinAvailable.String()
-				}
-				if pdb.Spec.MaxUnavailable != nil {
-					after["max_unavailable"] = pdb.Spec.MaxUnavailable.String()
-				}
 				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
-					Category: types.EventCategoryPODDisruptionRestored,
+					Category: types.EventCategoryPDBRestored,
 					Payload: types.AuditPayload{
 						Message: fmt.Sprintf("PDB %s/%s restored after disruption window", pdb.Namespace, pdb.Name),
 						Target:  target,
-						Before:  map[string]interface{}{"min_available": 0},
-						After:   after,
 						Details: map[string]interface{}{},
 					},
 				})
