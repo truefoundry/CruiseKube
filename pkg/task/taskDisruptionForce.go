@@ -120,6 +120,8 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 			effectiveState = t.computeStateFromWindows(ctx, now, scheduleDuration, overrides.DisruptionWindows)
 		}
 
+		t.updateDisruptionWindowMetadata(ctx, w, stat, effectiveState != StateOut)
+
 		workloadInfo := utils.WorkloadInfo{Kind: stat.Kind, Namespace: stat.Namespace, Name: stat.Name}
 
 		workloadObj, err := utils.GetWorkloadObject(ctx, t.kubeClient, stat.Kind, stat.Namespace, stat.Name)
@@ -290,6 +292,21 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 	}
 
 	return modified, nil
+}
+
+func (t *DisruptionForceTask) updateDisruptionWindowMetadata(ctx context.Context, w *types.WorkloadInCluster, stat *types.WorkloadStat, inDisruptionWindow bool) {
+	if stat.Metadata == nil {
+		stat.Metadata = &types.WorkloadStatMetadata{}
+	}
+	if stat.Metadata.InDisruptionWindow == inDisruptionWindow {
+		return
+	}
+	stat.Metadata.InDisruptionWindow = inDisruptionWindow
+	if err := t.storage.DB.UpsertStat(t.config.ClusterID, w.WorkloadID, *stat, w.GeneratedAt); err != nil {
+		logging.Errorf(ctx, "Failed to persist InDisruptionWindow metadata for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+	} else {
+		logging.Debugf(ctx, "Updated InDisruptionWindow=%v for workload %s/%s/%s", inDisruptionWindow, stat.Kind, stat.Namespace, stat.Name)
+	}
 }
 
 func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.PodDisruptionBudget, state ReconcileState) (bool, error) {

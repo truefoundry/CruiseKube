@@ -27,9 +27,10 @@ const (
 
 // WorkloadStatMetadata holds metadata about a workload stat (e.g. exclusion from recommendations).
 type WorkloadStatMetadata struct {
-	Excluded      bool           `json:"excluded"`
-	ExcludedCodes []ExcludedCode `json:"excluded_codes,omitempty"`
-	IsGPUWorkload bool           `json:"is_gpu_workload,omitempty"`
+	Excluded           bool           `json:"excluded"`
+	ExcludedCodes      []ExcludedCode `json:"excluded_codes,omitempty"`
+	IsGPUWorkload      bool           `json:"is_gpu_workload,omitempty"`
+	InDisruptionWindow bool           `json:"in_disruption_window,omitempty"`
 }
 
 type EvictionRanking int

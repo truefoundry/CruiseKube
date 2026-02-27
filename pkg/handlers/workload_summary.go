@@ -190,6 +190,7 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 			})
 		}
 	}
+	inDisruptionWindow := stat.Metadata != nil && stat.Metadata.InDisruptionWindow
 	return types.WorkloadDetail{
 		WorkloadID:  w.WorkloadID,
 		Kind:        stat.Kind,
@@ -202,6 +203,7 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 			Priority:           priority,
 			CruiseEnabled:      effective.Enabled,
 			DisruptionSchedule: disruptionSchedule,
+			InDisruptionWindow: inDisruptionWindow,
 		},
 	}
 }
