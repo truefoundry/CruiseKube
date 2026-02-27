@@ -291,7 +291,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		appliedRecommendations := make(map[string]utils.PodContainerRecommendation)
 
 		for _, rec := range podContainerRecommendation {
-			if _, ok := optimizableWorkloadIDs[utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.Name)]; !ok {
+			if _, ok := optimizableWorkloadIDs[utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName)]; !ok {
 				continue
 			}
 			freshPod, found := podsOnNode[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]
