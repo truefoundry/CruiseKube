@@ -233,8 +233,8 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					logging.Errorf(ctx, "Error getting container stats for container %s: %v", container.Name, err)
 					continue
 				}
-				recommendedCPU, restCPU := strategy.GetRecommendedAndRestCPU(optimizableButExcludedPod, *containerStat)
-				recommendedMemory, restMemory := strategy.GetRecommendedAndRestMemory(optimizableButExcludedPod, *containerStat)
+				recommendedCPU, restCPU := strategy.GetRecommendedAndRestCPU(ctx, optimizableButExcludedPod, *containerStat)
+				recommendedMemory, restMemory := strategy.GetRecommendedAndRestMemory(ctx, optimizableButExcludedPod, *containerStat)
 
 				recommendationResult.PodContainerRecommendations = append(recommendationResult.PodContainerRecommendations, utils.PodContainerRecommendation{
 					PodInfo:       optimizableButExcludedPod,
@@ -246,7 +246,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 		}
 
-		result, err := strategy.OptimizeNode(a.kubeClient, overridesMap, utils.NodeOptimizationData{
+		result, err := strategy.OptimizeNode(ctx, a.kubeClient, overridesMap, utils.NodeOptimizationData{
 			NodeName:          nodeName,
 			AllocatableCPU:    availableCPU,
 			AllocatableMemory: availableMemory,
