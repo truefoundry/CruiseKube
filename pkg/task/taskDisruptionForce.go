@@ -146,10 +146,6 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 			}
 		}
 
-		if stat.Constraints.BlockingConsolidation && !stat.Constraints.PDB {
-			logging.Infof(ctx, "Skipping workload %s/%s/%s because it has blocking consolidation but no PDB", stat.Kind, stat.Namespace, stat.Name)
-		}
-
 		if stat.Constraints.DoNotDisruptAnnotation {
 			selector, err := workloadObj.GetSelector()
 			if err != nil {
