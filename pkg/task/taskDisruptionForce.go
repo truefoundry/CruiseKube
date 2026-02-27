@@ -102,12 +102,14 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	}
 
 	reconciledPods := 0
+	modifiedPods := 0
 	reconciledPDBs := 0
+	modifiedPDBs := 0
 	blockingCount := 0
 
 	for _, w := range workloads {
 		stat := w.GetStat()
-		if stat == nil || stat.Constraints == nil || !stat.Constraints.DoNotDisruptAnnotation {
+		if stat == nil || stat.Constraints == nil || !stat.Constraints.BlockingConsolidation {
 			continue
 		}
 		blockingCount++
@@ -128,50 +130,62 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 			continue
 		}
 
-		selector, err := workloadObj.GetSelector()
-		if err != nil {
-			logging.Errorf(ctx, "Failed to get selector for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
-		} else {
-			pods, err := utils.GetPods(ctx, t.kubeClient, stat.Namespace, selector)
-			if err != nil {
-				logging.Errorf(ctx, "Failed to list pods for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
-			} else {
-				for i := range pods.Items {
-					pod := &pods.Items[i]
-
-					hasModifiedMarker := pod.Annotations != nil && pod.Annotations[utils.AnnotationModified] == utils.TrueValue
-					if !t.hasBlockingAnnotations(pod) && !hasModifiedMarker {
-						continue
-					}
-
-					modified, err := t.reconcilePod(ctx, pod, &workloadInfo, effectiveState)
-					if err != nil {
-						logging.Errorf(ctx, "Failed to reconcile pod %s/%s: %v", pod.Namespace, pod.Name, err)
-						continue
-					}
-					if modified {
-						reconciledPods++
-					}
+		if stat.Constraints.PDB {
+			podTemplate := utils.GetPodTemplateSpec(workloadObj)
+			matchingPDBs := utils.FindMatchingPDBs(ctx, podTemplate.Labels, pdbsByNamespace[stat.Namespace])
+			for _, pdb := range matchingPDBs {
+				modified, err := t.reconcilePDB(ctx, pdb, effectiveState)
+				if err != nil {
+					logging.Errorf(ctx, "Failed to reconcile PDB %s/%s: %v", pdb.Namespace, pdb.Name, err)
+					continue
+				}
+				reconciledPDBs++
+				if modified {
+					modifiedPDBs++
 				}
 			}
 		}
 
-		podTemplate := utils.GetPodTemplateSpec(workloadObj)
-		matchingPDBs := utils.FindMatchingPDBs(ctx, podTemplate.Labels, pdbsByNamespace[stat.Namespace])
-		for _, pdb := range matchingPDBs {
-			modified, err := t.reconcilePDB(ctx, pdb, effectiveState)
+		if stat.Constraints.BlockingConsolidation && !stat.Constraints.PDB {
+			logging.Infof(ctx, "Skipping workload %s/%s/%s because it has blocking consolidation but no PDB", stat.Kind, stat.Namespace, stat.Name)
+		}
+
+		if stat.Constraints.DoNotDisruptAnnotation {
+			selector, err := workloadObj.GetSelector()
 			if err != nil {
-				logging.Errorf(ctx, "Failed to reconcile PDB %s/%s: %v", pdb.Namespace, pdb.Name, err)
+				logging.Errorf(ctx, "Failed to get selector for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
 				continue
 			}
-			if modified {
-				reconciledPDBs++
+
+			pods, err := utils.GetPods(ctx, t.kubeClient, stat.Namespace, selector)
+			if err != nil {
+				logging.Errorf(ctx, "Failed to list pods for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+				continue
+			}
+
+			for i := range pods.Items {
+				pod := &pods.Items[i]
+
+				hasModifiedMarker := pod.Annotations != nil && pod.Annotations[utils.AnnotationModified] == utils.TrueValue
+				if !t.hasBlockingAnnotations(pod) && !hasModifiedMarker {
+					continue
+				}
+
+				modified, err := t.reconcilePod(ctx, pod, &workloadInfo, effectiveState)
+				if err != nil {
+					logging.Errorf(ctx, "Failed to reconcile pod %s/%s: %v", pod.Namespace, pod.Name, err)
+					continue
+				}
+				reconciledPods++
+				if modified {
+					modifiedPods++
+				}
 			}
 		}
 	}
 
 	logging.Infof(ctx, "Total workloads with blocking consolidation: %d", blockingCount)
-	logging.Infof(ctx, "Disruption force task completed: reconciled %d pods, %d PDBs modified", reconciledPods, reconciledPDBs)
+	logging.Infof(ctx, "Disruption force task completed: reconciled: %d pods, %d PDBs, modified: %d pods, %d PDBs", reconciledPods, reconciledPDBs, modifiedPods, modifiedPDBs)
 	return nil
 }
 
