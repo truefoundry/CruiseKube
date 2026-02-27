@@ -103,7 +103,7 @@ func HandleMutatingPatch(c *gin.Context) {
 		PodExcludedByAnnotation:    utils.PodExcludedByAnnotation(&pod),
 	}
 
-	apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overrideInfo, input, &pod)
+	apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overrideInfo, input)
 	if !apply {
 		logging.Infof(ctx, "Skipping recommendation for pod %s/%s: %s", pod.Namespace, getPodName(&pod), reason)
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})

@@ -369,12 +369,21 @@ type OOMEvent struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 }
 
+type RecommendationType string
+
+const (
+	RecommendationTypeOptimizable            RecommendationType = "optimizable"
+	RecommendationTypeNonOptimizable         RecommendationType = "non_optimizable"
+	RecommendationTypeOptimizableButExcluded RecommendationType = "optimizable_but_excluded"
+)
+
 type PodResourceRecommendation struct {
-	CPURequest    float64 `json:"cpu_request"`
-	MemoryRequest float64 `json:"memory_request"`
-	CPULimit      float64 `json:"cpu_limit"`
-	MemoryLimit   float64 `json:"memory_limit"`
-	ToBeEvicted   bool    `json:"to_be_evicted"`
+	RecommendationType RecommendationType `json:"recommendation_type"`
+	CPURequest         float64            `json:"cpu_request"`
+	MemoryRequest      float64            `json:"memory_request"`
+	CPULimit           float64            `json:"cpu_limit"`
+	MemoryLimit        float64            `json:"memory_limit"`
+	ToBeEvicted        bool               `json:"to_be_evicted"`
 }
 
 type PodResourceRecommendationRow struct {

@@ -26,28 +26,14 @@ type ApplyCheckInput struct {
 }
 
 // ShouldGenerateRecommendation returns true if recommendations should be applied to this pod.
-// podForExclusion: when non-nil (webhook path), pod name and annotations are used for prefix/annotation checks.
 // When nil (task path), podInfo.Name and podInfo.Stats.Constraints.ExcludedAnnotation are used.
 func ShouldGenerateRecommendation(
 	ctx context.Context,
 	podInfo *PodInfo,
 	input ApplyCheckInput,
-	podForExclusion *corev1.Pod,
 ) (bool, string) {
-	if len(input.ApplyBlacklistedNamespaces) > 0 && slices.Contains(input.ApplyBlacklistedNamespaces, podInfo.Namespace) {
-		return false, "namespace is blacklisted"
-	}
-
-	if input.PodExcludedByAnnotation {
-		return false, "pod annotation is excluded"
-	}
-
 	if podInfo.Stats == nil {
 		return false, "no stats for workload"
-	}
-
-	if podInfo.IsGuaranteedPod() && !input.OptimizeGuaranteedPods {
-		return false, "guaranteed pod and config disables optimizing guaranteed pods"
 	}
 	if podInfo.IsBestEffortPod() {
 		return false, "best effort pod"
@@ -69,11 +55,22 @@ func ShouldApplyRecommendationToPod(
 	podInfo *PodInfo,
 	override *types.WorkloadOverrideInfo,
 	input ApplyCheckInput,
-	podForExclusion *corev1.Pod,
 ) (bool, string) {
-	apply, reason := ShouldGenerateRecommendation(ctx, podInfo, input, podForExclusion)
-	if !apply {
+	shouldGenerate, reason := ShouldGenerateRecommendation(ctx, podInfo, input)
+	if !shouldGenerate {
 		return false, reason
+	}
+
+	if len(input.ApplyBlacklistedNamespaces) > 0 && slices.Contains(input.ApplyBlacklistedNamespaces, podInfo.Namespace) {
+		return false, "namespace is blacklisted"
+	}
+
+	if input.PodExcludedByAnnotation {
+		return false, "pod annotation is excluded"
+	}
+
+	if podInfo.IsGuaranteedPod() && !input.OptimizeGuaranteedPods {
+		return false, "guaranteed pod and config disables optimizing guaranteed pods"
 	}
 
 	if !input.K8sVersionGE133 {

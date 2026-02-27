@@ -131,6 +131,11 @@ var (
 		Help: "Number of optimizable pods per node in the cluster",
 	}, []string{"cluster", "node"})
 
+	ClusterOptimizableButExcludedPodsCount = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "cruisekube_optimizable_but_excluded_pods_count",
+		Help: "Number of optimizable but excluded pods per node in the cluster",
+	}, []string{"cluster", "node"})
+
 	WorkloadStatsAgeMax = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "cruisekube_workload_stats_age_max_minutes",
 		Help: "Maximum age of workload stats in minutes",
