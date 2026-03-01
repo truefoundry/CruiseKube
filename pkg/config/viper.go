@@ -113,7 +113,7 @@ func (c *Config) ValidateControllerExecutionMode() error {
 	var missingTaskConfigs []string
 	for _, taskKey := range RequiredTaskKeys() {
 		if c.GetTaskConfig(taskKey) == nil {
-			missingTaskConfigs = append(missingTaskConfigs, CanonicalTaskConfigKey(taskKey))
+			missingTaskConfigs = append(missingTaskConfigs, taskKey)
 		}
 	}
 	if len(missingTaskConfigs) > 0 {

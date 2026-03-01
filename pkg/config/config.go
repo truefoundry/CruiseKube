@@ -36,25 +36,7 @@ func (c *Config) GetTaskConfig(taskName string) *TaskConfig {
 		return nil
 	}
 
-	if taskConfig, ok := c.Controller.Tasks[taskName]; ok {
-		return taskConfig
-	}
-
-	if alias, ok := taskConfigAliases[taskName]; ok {
-		return c.Controller.Tasks[alias]
-	}
-
-	return nil
-}
-
-var taskConfigAliases = map[string]string{
-	ApplyRecommendationKey:     "applyRecommendation",
-	FetchMetricsKey:            "fetchMetrics",
-	CreateStatsKey:             "createStats",
-	ModifyEqualCPUResourcesKey: "modifyEqualCPUResources",
-	NodeLoadMonitoringKey:      "nodeLoadMonitoring",
-	CleanupOOMEventsKey:        "cleanupOOMEvent",
-	DisruptionForceKey:         "disruptionForce",
+	return c.Controller.Tasks[taskName]
 }
 
 func RequiredTaskKeys() []string {
@@ -67,14 +49,6 @@ func RequiredTaskKeys() []string {
 		CleanupOOMEventsKey,
 		DisruptionForceKey,
 	}
-}
-
-func CanonicalTaskConfigKey(taskName string) string {
-	if alias, ok := taskConfigAliases[taskName]; ok {
-		return alias
-	}
-
-	return taskName
 }
 
 type Dependencies struct {

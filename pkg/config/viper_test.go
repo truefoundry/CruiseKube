@@ -33,7 +33,7 @@ func TestValidateRejectsInvalidControllerMode(t *testing.T) {
 
 func TestValidateRejectsMissingTaskConfigs(t *testing.T) {
 	cfg := validControllerConfig()
-	delete(cfg.Controller.Tasks, "createStats")
+	delete(cfg.Controller.Tasks, CreateStatsKey)
 
 	err := cfg.Validate()
 	if err == nil {
@@ -42,8 +42,8 @@ func TestValidateRejectsMissingTaskConfigs(t *testing.T) {
 	if !strings.Contains(err.Error(), "missing required controller task configurations") {
 		t.Fatalf("expected missing task config error, got %v", err)
 	}
-	if !strings.Contains(err.Error(), "createStats") {
-		t.Fatalf("expected missing createStats task in error, got %v", err)
+	if !strings.Contains(err.Error(), CreateStatsKey) {
+		t.Fatalf("expected missing %s task in error, got %v", CreateStatsKey, err)
 	}
 }
 
@@ -64,18 +64,6 @@ func TestValidateRejectsMissingWebhookFields(t *testing.T) {
 	}
 }
 
-func TestGetTaskConfigSupportsLegacyInternalKeys(t *testing.T) {
-	cfg := validControllerConfig()
-
-	taskCfg := cfg.GetTaskConfig(CreateStatsKey)
-	if taskCfg == nil {
-		t.Fatal("expected createStats task config to resolve from internal key")
-	}
-	if taskCfg.Schedule != "15m" {
-		t.Fatalf("expected createStats schedule to be 15m, got %q", taskCfg.Schedule)
-	}
-}
-
 func validControllerConfig() *Config {
 	return &Config{
 		ControllerMode: ClusterModeInCluster,
@@ -87,31 +75,31 @@ func validControllerConfig() *Config {
 		},
 		Controller: ControllerConfig{
 			Tasks: map[string]*TaskConfig{
-				"createStats": {
+				CreateStatsKey: {
 					Enabled:  true,
 					Schedule: "15m",
 				},
-				"applyRecommendation": {
+				ApplyRecommendationKey: {
 					Enabled:  true,
 					Schedule: "5m",
 				},
-				"modifyEqualCPUResources": {
+				ModifyEqualCPUResourcesKey: {
 					Enabled:  false,
 					Schedule: "10m",
 				},
-				"nodeLoadMonitoring": {
+				NodeLoadMonitoringKey: {
 					Enabled:  false,
 					Schedule: "60s",
 				},
-				"fetchMetrics": {
+				FetchMetricsKey: {
 					Enabled:  true,
 					Schedule: "1m",
 				},
-				"cleanupOOMEvent": {
+				CleanupOOMEventsKey: {
 					Enabled:  false,
 					Schedule: "24h",
 				},
-				"disruptionForce": {
+				DisruptionForceKey: {
 					Enabled:  true,
 					Schedule: "5m",
 				},
