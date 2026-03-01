@@ -21,12 +21,7 @@ func GetConfigHandler(c *gin.Context) {
 
 	logging.Infof(ctx, "Getting Prometheus config for cluster %s", clusterID)
 
-	cfg, ok := config.GetConfigFromGinContext(c)
-	if !ok {
-		logging.Errorf(ctx, "Failed to get app config from context")
-		c.JSON(500, gin.H{"error": "internal server error"})
-		return
-	}
+	cfg := config.GetConfigFromGinContext(c)
 	mgr := c.MustGet("clusterManager").(cluster.Manager)
 
 	var prometheusURL string

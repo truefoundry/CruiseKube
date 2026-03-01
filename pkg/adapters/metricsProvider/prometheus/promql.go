@@ -53,9 +53,9 @@ func (p *PrometheusProvider) getOrCreateQuerySemaphore(clusterId string) chan st
 		// Remove the corrupted entry and fall through to create a fresh semaphore.
 		p.querySemaphores.Delete(clusterId)
 	}
-	semaphore := make(chan struct{}, p.config.MaxConcurrentQueries)
-	p.querySemaphores.Store(clusterId, semaphore)
-	return semaphore
+	newSem := make(chan struct{}, p.config.MaxConcurrentQueries)
+	actual, _ := p.querySemaphores.LoadOrStore(clusterId, newSem)
+	return actual.(chan struct{})
 }
 
 func (p *PrometheusProvider) acquireQuerySlot(clusterId string) {
