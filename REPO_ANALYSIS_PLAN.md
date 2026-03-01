@@ -208,10 +208,10 @@ npm run build
 
 - [x] Initial repository scan completed
 - [x] Detailed architecture mapping
-- [ ] Reliability risk review
-- [ ] Simplification candidate review
-- [ ] Test-gap assessment
-- [ ] Refactor backlog definition
+- [x] Reliability risk review
+- [x] Simplification candidate review
+- [x] Test-gap assessment
+- [x] Refactor backlog definition
 
 ### Notes
 
