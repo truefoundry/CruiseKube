@@ -4,10 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetConfigFromGinContext(c *gin.Context) *Config {
+func GetConfigFromGinContext(c *gin.Context) (*Config, bool) {
 	appConfig, ok := c.MustGet("appConfig").(*Config)
-	if !ok {
-		panic("invalid app config type")
-	}
-	return appConfig
+	return appConfig, ok
 }

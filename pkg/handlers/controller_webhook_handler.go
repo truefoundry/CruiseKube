@@ -56,7 +56,12 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	cfg := config.GetConfigFromGinContext(c)
+	cfg, ok := config.GetConfigFromGinContext(c)
+	if !ok {
+		logging.Errorf(ctx, "Failed to get app config from context")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		return
+	}
 	mgr := c.MustGet("clusterManager").(cluster.Manager)
 	clients, err := mgr.GetClusterClients(clusterID)
 	if err != nil {

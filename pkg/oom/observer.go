@@ -68,11 +68,13 @@ func (o *Observer) Stop() error {
 func (o *Observer) OnUpdate(oldObj, newObj any) {
 	oldPod, ok := oldObj.(*apiv1.Pod)
 	if !ok {
-		panic("invalid old object type")
+		logging.Errorf(context.Background(), "OOM observer: OnUpdate received unexpected old object type %T", oldObj)
+		return
 	}
 	newPod, ok := newObj.(*apiv1.Pod)
 	if !ok {
-		panic("invalid new object type")
+		logging.Errorf(context.Background(), "OOM observer: OnUpdate received unexpected new object type %T", newObj)
+		return
 	}
 
 	o.checkContainersForOOM(oldPod, newPod)

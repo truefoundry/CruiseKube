@@ -46,11 +46,12 @@ type ParallelQueryRequest struct {
 
 func (p *PrometheusProvider) getOrCreateQuerySemaphore(clusterId string) chan struct{} {
 	if semaphore, ok := p.querySemaphores.Load(clusterId); ok {
-		sem, ok := semaphore.(chan struct{})
-		if !ok {
-			panic("invalid semaphore type")
+		if sem, ok := semaphore.(chan struct{}); ok {
+			return sem
 		}
-		return sem
+		// Type invariant violated: stored value is not a chan struct{}.
+		// Remove the corrupted entry and fall through to create a fresh semaphore.
+		p.querySemaphores.Delete(clusterId)
 	}
 	semaphore := make(chan struct{}, p.config.MaxConcurrentQueries)
 	p.querySemaphores.Store(clusterId, semaphore)
@@ -70,7 +71,8 @@ func (p *PrometheusProvider) releaseQuerySlot(ctx context.Context, clusterId str
 	}
 	sem, ok := semaphore.(chan struct{})
 	if !ok {
-		panic("invalid semaphore type")
+		logging.Errorf(ctx, "Query semaphore has unexpected type %T for cluster %s", semaphore, clusterId)
+		return
 	}
 	<-sem
 }
