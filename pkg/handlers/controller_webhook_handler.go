@@ -350,7 +350,12 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 	}
 
 	metadata := task.ApplyRecommendationMetadata{}
-	err = cfg.Controller.Tasks[config.ApplyRecommendationKey].ConvertMetadataToStruct(&metadata)
+	applyTaskConfig := cfg.GetTaskConfig(config.ApplyRecommendationKey)
+	if applyTaskConfig == nil {
+		logging.Errorf(ctx, "Missing task config for %s", config.CanonicalTaskConfigKey(config.ApplyRecommendationKey))
+		return patches, nil
+	}
+	err = applyTaskConfig.ConvertMetadataToStruct(&metadata)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to convert metadata to struct: %v", err)
 		return patches, nil
