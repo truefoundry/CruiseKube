@@ -54,16 +54,9 @@ func (p *PrometheusProvider) getOrCreateQuerySemaphore(clusterId string) chan st
 		p.querySemaphores.Delete(clusterId)
 	}
 	newSem := make(chan struct{}, p.config.MaxConcurrentQueries)
-	// LoadOrStore is used instead of Store to handle concurrent callers for the
-	// same clusterId. If another goroutine wins the race and stores first, we
-	// return its value rather than overwriting it (which would orphan the
-	// already-acquired slots on the old channel).
-	//
-	// The unchecked assertion on actual is safe: querySemaphores has exactly one
-	// writer — this function via LoadOrStore — which always stores chan struct{}.
-	// A concurrent goroutine that also reaches LoadOrStore will likewise store a
-	// valid chan struct{}, so the value returned by LoadOrStore is always the
-	// correct type regardless of which goroutine wins.
+	// LoadOrStore avoids overwriting a concurrently stored semaphore.
+	// The assertion is safe: this function is the only writer to querySemaphores
+	// and always stores chan struct{}, so the returned value is always the correct type.
 	actual, _ := p.querySemaphores.LoadOrStore(clusterId, newSem)
 	return actual.(chan struct{})
 }
