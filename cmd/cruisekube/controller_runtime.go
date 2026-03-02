@@ -164,10 +164,7 @@ func startOOMWorkers(ctx context.Context, cfg *config.Config, clusterManager clu
 		oomObserver := oom.NewObserver(clusterClients.KubeClient)
 		oomProcessor := oom.NewProcessor(storageRepo, clusterClients.KubeClient, clusterID, cfg)
 
-		namespace := ""
-		if cfg.Controller.TargetNamespace != "" {
-			namespace = cfg.Controller.TargetNamespace
-		}
+		namespace := cfg.Controller.TargetNamespace
 
 		if err := oomObserver.Start(ctx, clusterClients.KubeClient, namespace); err != nil {
 			logging.Errorf(ctx, "Failed to start OOM observer for cluster %s: %v", clusterID, err)
