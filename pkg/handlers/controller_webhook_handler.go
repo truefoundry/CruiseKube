@@ -348,6 +348,60 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 		}
 	}
 
+	if workloadStat != nil {
+		cpuCategory, memoryCategory := utils.HeadroomCategories(workloadStat)
+		if cpuCategory != "" || memoryCategory != "" {
+			if pod.Labels == nil {
+				patches = append(patches, map[string]any{
+					"op":    "add",
+					"path":  "/metadata/labels",
+					"value": map[string]any{},
+				})
+			}
+			if cpuCategory != "" {
+				patches = append(patches, map[string]any{
+					"op":    "add",
+					"path":  "/metadata/labels/cruisekube.com~1headroom-group-cpu",
+					"value": cpuCategory,
+				})
+			}
+
+			affinity := &corev1.Affinity{}
+			if pod.Spec.Affinity != nil {
+				affinity = pod.Spec.Affinity.DeepCopy()
+			}
+			if affinity.PodAffinity == nil {
+				affinity.PodAffinity = &corev1.PodAffinity{}
+			}
+			affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(
+				affinity.PodAffinity.PreferredDuringSchedulingIgnoredDuringExecution,
+				utils.HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory)...,
+			)
+
+			affinityBytes, err := json.Marshal(affinity)
+			if err != nil {
+				logging.Errorf(ctx, "Failed to marshal affinity for pod %s/%s: %v", pod.Namespace, getPodName(pod), err)
+				return nil, fmt.Errorf("marshal affinity for pod %s/%s: %w", pod.Namespace, getPodName(pod), err)
+			}
+
+			var affinityValue map[string]any
+			if err := json.Unmarshal(affinityBytes, &affinityValue); err != nil {
+				logging.Errorf(ctx, "Failed to unmarshal affinity for pod %s/%s: %v", pod.Namespace, getPodName(pod), err)
+				return nil, fmt.Errorf("unmarshal affinity for pod %s/%s: %w", pod.Namespace, getPodName(pod), err)
+			}
+
+			op := "add"
+			if pod.Spec.Affinity != nil {
+				op = "replace"
+			}
+			patches = append(patches, map[string]any{
+				"op":    op,
+				"path":  "/spec/affinity",
+				"value": affinityValue,
+			})
+		}
+	}
+
 	metadata := task.ApplyRecommendationMetadata{}
 	applyTaskConfig := cfg.GetTaskConfig(config.ApplyRecommendationKey)
 	if applyTaskConfig == nil {

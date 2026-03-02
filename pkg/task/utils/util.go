@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/truefoundry/cruisekube/pkg/adapters/kube"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/metrics"
@@ -144,6 +145,74 @@ func UpdatePodMemoryResources(
 		corev1.ResourceMemory, recommendedMemoryRequest, recommendedMemoryLimit,
 		"%.0fM", "%.0fM", "memory",
 	)
+}
+
+func HeadroomPreferredAffinityTerms(cpuCategory, memoryCategory string) []corev1.WeightedPodAffinityTerm {
+	var terms []corev1.WeightedPodAffinityTerm
+
+	if cpuCategory != "" {
+		terms = append(terms, corev1.WeightedPodAffinityTerm{
+			Weight: 100,
+			PodAffinityTerm: corev1.PodAffinityTerm{
+				LabelSelector: &metav1.LabelSelector{
+					MatchExpressions: []metav1.LabelSelectorRequirement{{
+						Key:      HeadroomGroupCPULabel,
+						Operator: metav1.LabelSelectorOpIn,
+						Values:   []string{cpuCategory},
+					}},
+				},
+				TopologyKey: "kubernetes.io/hostname",
+			},
+		})
+	}
+
+	if memoryCategory != "" {
+		_ = memoryCategory
+	}
+
+	return terms
+}
+
+func PatchPodHeadroomLabels(ctx context.Context, patcher kube.PodPatcher, pod *corev1.Pod, cpuCategory, memoryCategory string) (bool, string) {
+	if cpuCategory == "" && memoryCategory == "" {
+		return false, ""
+	}
+
+	existingCPUCategory := pod.Labels[HeadroomGroupCPULabel]
+	existingMemoryCategory := pod.Labels[HeadroomGroupMemoryLabel]
+	needsUpdate := (cpuCategory != "" && existingCPUCategory != "" && existingCPUCategory != cpuCategory) ||
+		(memoryCategory != "" && existingMemoryCategory != "" && existingMemoryCategory != memoryCategory)
+	needsAddition := (cpuCategory != "" && existingCPUCategory == "") ||
+		(memoryCategory != "" && existingMemoryCategory == "")
+
+	if !needsAddition && !needsUpdate {
+		return false, ""
+	}
+
+	labels := make(map[string]string, len(pod.Labels)+1)
+	for key, value := range pod.Labels {
+		labels[key] = value
+	}
+	if cpuCategory != "" {
+		labels[HeadroomGroupCPULabel] = cpuCategory
+	}
+	if memoryCategory != "" {
+		_ = memoryCategory
+	}
+
+	headroomPatch := map[string]any{"metadata": map[string]any{"labels": labels}}
+	patchBytes, err := json.Marshal(headroomPatch)
+	if err != nil {
+		return false, fmt.Sprintf("failed to marshal headroom patch: %v", err)
+	}
+
+	_, err = patcher.Patch(ctx, pod.Namespace, pod.Name, k8stypes.MergePatchType, patchBytes, metav1.PatchOptions{})
+	if err != nil {
+		logging.Errorf(ctx, "Failed to patch pod %s/%s headroom labels: %v", pod.Namespace, pod.Name, err)
+		return false, fmt.Sprintf("failed to patch pod headroom: %v", err)
+	}
+
+	return true, ""
 }
 
 func EvictPod(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.Pod) (bool, string) {

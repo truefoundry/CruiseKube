@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/truefoundry/cruisekube/pkg/adapters/kube"
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
 	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/client"
@@ -289,6 +290,8 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 
 		podsToEvict := make(map[string]bool)
 		appliedRecommendations := make(map[string]utils.PodContainerRecommendation)
+		headroomPatchedPods := make(map[string]bool)
+		podPatcher := kube.NewPodPatcher(a.kubeClient)
 
 		for _, rec := range podContainerRecommendation {
 			if _, ok := optimizableWorkloadIDs[utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName)]; !ok {
@@ -331,6 +334,19 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					}
 				}
 				continue
+			}
+
+			podKey := utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)
+			if applyChanges && !headroomPatchedPods[podKey] {
+				cpuCategory, memoryCategory := utils.HeadroomCategories(rec.PodInfo.Stats)
+				if cpuCategory != "" || memoryCategory != "" {
+					patched, errStr := utils.PatchPodHeadroomLabels(ctx, podPatcher, freshPod, cpuCategory, memoryCategory)
+					if errStr != "" {
+						logging.Errorf(ctx, "Failed to patch pod %s headroom labels: %s", podKey, errStr)
+					} else if patched {
+						headroomPatchedPods[podKey] = true
+					}
+				}
 			}
 
 			var currentContainerResources corev1.ResourceRequirements
