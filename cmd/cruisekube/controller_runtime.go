@@ -173,10 +173,9 @@ func startOOMWorkers(ctx context.Context, cfg *config.Config, clusterManager clu
 			logging.Errorf(ctx, "Failed to start OOM observer for cluster %s: %v", clusterID, err)
 		} else {
 			logging.Infof(ctx, "OOM observer started for cluster %s", clusterID)
+			oomProcessor.Start(ctx, oomObserver)
+			logging.Infof(ctx, "OOM processor started for cluster %s", clusterID)
 		}
-
-		oomProcessor.Start(ctx, oomObserver)
-		logging.Infof(ctx, "OOM processor started for cluster %s", clusterID)
 	}
 }
 
