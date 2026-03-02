@@ -30,7 +30,7 @@ func parseUTCTimestamp(raw string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("invalid UTC timestamp: %s", raw)
 }
 
-func buildCostFromSnapshot(ctx *gin.Context, clusterID string, snapshot types.SnapshotRecord) (currentCost float64, withoutCruiseKubeCost float64, withCruiseKubeCost float64) {
+func buildCostFromSnapshot(ctx *gin.Context, clusterID string, snapshot types.SnapshotRecord) (float64, float64, float64) {
 	p := getEffectivePricing(ctx.Request.Context(), clusterID)
 
 	reqAllocRatioCPU := 1.0
@@ -44,11 +44,11 @@ func buildCostFromSnapshot(ctx *gin.Context, clusterID string, snapshot types.Sn
 	requestedMemGB := snapshot.Data.Memory.WorkloadRequested / 1024
 	recommendedMemGB := snapshot.Data.Memory.RecommendedRequested / 1024
 
-	currentCost = (snapshot.Data.CPU.CurrentAllocatable*p.CPUPerCorePerHour + snapshot.Data.Memory.CurrentAllocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
+	currentCost := (snapshot.Data.CPU.CurrentAllocatable*p.CPUPerCorePerHour + snapshot.Data.Memory.CurrentAllocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
 	// Same formula as overview's workloadCostDollars: cost if infra were sized to workload-requested resources (Without CruiseKube).
-	withoutCruiseKubeCost = (snapshot.Data.CPU.WorkloadRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	withoutCruiseKubeCost := (snapshot.Data.CPU.WorkloadRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 	// Cost at recommended resources (With CruiseKube).
-	withCruiseKubeCost = (snapshot.Data.CPU.RecommendedRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	withCruiseKubeCost := (snapshot.Data.CPU.RecommendedRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 	return currentCost, withoutCruiseKubeCost, withCruiseKubeCost
 }
 
