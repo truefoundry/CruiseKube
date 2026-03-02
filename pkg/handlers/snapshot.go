@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -8,29 +10,89 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
+	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
-const defaultSnapshotMinutes = 60
-const maxSnapshotMinutes = 43200 // 30 days
-
-func parseSnapshotMinutesParam(c *gin.Context) int {
-	s := c.DefaultQuery("minutes", strconv.Itoa(defaultSnapshotMinutes))
-	m, err := strconv.Atoi(s)
-	if err != nil || m < 1 {
-		return defaultSnapshotMinutes
+func parseUTCTimestamp(raw string) (time.Time, error) {
+	if raw == "" {
+		return time.Time{}, fmt.Errorf("missing timestamp")
 	}
-	if m > maxSnapshotMinutes {
-		return maxSnapshotMinutes
+	if unix, err := strconv.ParseInt(raw, 10, 64); err == nil {
+		// Support both seconds and milliseconds UNIX timestamps.
+		if unix > 1_000_000_000_000 {
+			return time.UnixMilli(unix).UTC(), nil
+		}
+		return time.Unix(unix, 0).UTC(), nil
 	}
-	return m
+	if ts, err := time.Parse(time.RFC3339Nano, raw); err == nil {
+		return ts.UTC(), nil
+	}
+	return time.Time{}, fmt.Errorf("invalid UTC timestamp: %s", raw)
 }
 
-// GetSnapshotsHandler returns all snapshots for the cluster from the last x minutes.
-// GET /api/v1/clusters/:clusterID/snapshots?minutes=60
-func GetSnapshotsHandler(c *gin.Context) {
+func buildCostFromSnapshot(ctx *gin.Context, clusterID string, snapshot types.SnapshotRecord) (currentCost float64, withoutCruiseKubeCost float64, withCruiseKubeCost float64) {
+	p := getEffectivePricing(ctx.Request.Context(), clusterID)
+
+	reqAllocRatioCPU := 1.0
+	if snapshot.Data.CPU.CurrentAllocatable > 0 {
+		reqAllocRatioCPU = snapshot.Data.CPU.CurrentRequested / snapshot.Data.CPU.CurrentAllocatable
+	}
+	reqAllocRatioMem := 1.0
+	if snapshot.Data.Memory.CurrentAllocatable > 0 {
+		reqAllocRatioMem = snapshot.Data.Memory.CurrentRequested / snapshot.Data.Memory.CurrentAllocatable
+	}
+	requestedMemGB := snapshot.Data.Memory.WorkloadRequested / 1024
+	recommendedMemGB := snapshot.Data.Memory.RecommendedRequested / 1024
+
+	currentCost = (snapshot.Data.CPU.CurrentAllocatable*p.CPUPerCorePerHour + snapshot.Data.Memory.CurrentAllocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
+	// Same formula as overview's workloadCostDollars: cost if infra were sized to workload-requested resources (Without CruiseKube).
+	withoutCruiseKubeCost = (snapshot.Data.CPU.WorkloadRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	// Cost at recommended resources (With CruiseKube).
+	withCruiseKubeCost = (snapshot.Data.CPU.RecommendedRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	return currentCost, withoutCruiseKubeCost, withCruiseKubeCost
+}
+
+func addTimelinePoint(out *[]types.HistoricalTimelineItem, legend, color string, threshold float64, timestamp time.Time, value float64) {
+	*out = append(*out, types.HistoricalTimelineItem{
+		Legend: legend,
+		Color:  color,
+		Threshold: types.HistoricalTimelineThreshold{
+			Value: threshold,
+			Color: "#ef4444",
+		},
+		Data: types.HistoricalTimelinePoint{
+			Timestamp: timestamp.UTC(),
+			Value:     math.Round(value*1000) / 1000,
+		},
+	})
+}
+
+// GetOverviewHistoricalTimelineHandler returns historical CPU/memory/cost timeline data for a cluster.
+// GET /api/v1/clusters/:clusterID/ui/overview/historical-timeline/:metric?startTime=<UTC timestamp>&endTime=<UTC timestamp>
+func GetOverviewHistoricalTimelineHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
-	minutes := parseSnapshotMinutesParam(c)
+	metric := types.HistoricalTimelineMetric(c.Param("metric"))
+	if metric != types.HistoricalTimelineMetricCPU &&
+		metric != types.HistoricalTimelineMetricMemory &&
+		metric != types.HistoricalTimelineMetricCost {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid metric, expected one of: cpu, memory, cost"})
+		return
+	}
+	startTime, err := parseUTCTimestamp(c.Query("startTime"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid startTime"})
+		return
+	}
+	endTime, err := parseUTCTimestamp(c.Query("endTime"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid endTime"})
+		return
+	}
+	if endTime.Before(startTime) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "endTime must be greater than or equal to startTime"})
+		return
+	}
 
 	if storage.Stg == nil {
 		logging.Errorf(ctx, "Storage not initialized")
@@ -38,13 +100,38 @@ func GetSnapshotsHandler(c *gin.Context) {
 		return
 	}
 
-	since := time.Now().Add(-time.Duration(minutes) * time.Minute)
-	snapshots, err := storage.Stg.GetSnapshots(clusterID, since)
+	snapshots, err := storage.Stg.GetSnapshotsInRange(clusterID, startTime, endTime)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get snapshots for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"snapshots": snapshots})
+	response := types.HistoricalTimelineResponse{
+		Data: make([]types.HistoricalTimelineItem, 0, len(snapshots)*4),
+	}
+
+	for _, snapshot := range snapshots {
+		switch metric {
+		case types.HistoricalTimelineMetricCPU:
+			threshold := snapshot.Data.CPU.CurrentAllocatable
+			addTimelinePoint(&response.Data, "Allocatable", "#2563eb", threshold, snapshot.CreatedAt, snapshot.Data.CPU.CurrentAllocatable)
+			addTimelinePoint(&response.Data, "Requested", "#f59e0b", threshold, snapshot.CreatedAt, snapshot.Data.CPU.CurrentRequested)
+			addTimelinePoint(&response.Data, "Usage", "#16a34a", threshold, snapshot.CreatedAt, snapshot.Data.CPU.CurrentUtilized)
+			addTimelinePoint(&response.Data, "Recommended", "#7c3aed", threshold, snapshot.CreatedAt, snapshot.Data.CPU.RecommendedRequested)
+		case types.HistoricalTimelineMetricMemory:
+			threshold := snapshot.Data.Memory.CurrentAllocatable
+			addTimelinePoint(&response.Data, "Allocatable", "#2563eb", threshold, snapshot.CreatedAt, snapshot.Data.Memory.CurrentAllocatable)
+			addTimelinePoint(&response.Data, "Requested", "#f59e0b", threshold, snapshot.CreatedAt, snapshot.Data.Memory.CurrentRequested)
+			addTimelinePoint(&response.Data, "Usage", "#16a34a", threshold, snapshot.CreatedAt, snapshot.Data.Memory.CurrentUtilized)
+			addTimelinePoint(&response.Data, "Recommended", "#7c3aed", threshold, snapshot.CreatedAt, snapshot.Data.Memory.RecommendedRequested)
+		case types.HistoricalTimelineMetricCost:
+			currentCost, withoutCruiseKubeCost, withCruiseKubeCost := buildCostFromSnapshot(c, clusterID, snapshot)
+			addTimelinePoint(&response.Data, "Without CruiseKube", "#f59e0b", currentCost, snapshot.CreatedAt, withoutCruiseKubeCost)
+			addTimelinePoint(&response.Data, "Cost", "#2563eb", currentCost, snapshot.CreatedAt, currentCost)
+			addTimelinePoint(&response.Data, "With CruiseKube Cost", "#16a34a", currentCost, snapshot.CreatedAt, withCruiseKubeCost)
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }

@@ -40,3 +40,32 @@ type SnapshotRecord struct {
 	SnapshotPayload
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type HistoricalTimelineMetric string
+
+const (
+	HistoricalTimelineMetricCPU    HistoricalTimelineMetric = "cpu"
+	HistoricalTimelineMetricMemory HistoricalTimelineMetric = "memory"
+	HistoricalTimelineMetricCost   HistoricalTimelineMetric = "cost"
+)
+
+type HistoricalTimelineThreshold struct {
+	Value float64 `json:"value"`
+	Color string  `json:"color"`
+}
+
+type HistoricalTimelinePoint struct {
+	Timestamp time.Time `json:"timestamp"`
+	Value     float64   `json:"value"`
+}
+
+type HistoricalTimelineItem struct {
+	Legend    string                      `json:"legend"`
+	Color     string                      `json:"color"`
+	Threshold HistoricalTimelineThreshold `json:"threshold"`
+	Data      HistoricalTimelinePoint     `json:"data"`
+}
+
+type HistoricalTimelineResponse struct {
+	Data []HistoricalTimelineItem `json:"data"`
+}

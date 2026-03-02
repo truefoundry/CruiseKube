@@ -29,7 +29,7 @@ type OverviewResponse struct {
 	CurrentMonthlyCost int                   `json:"currentMonthlyCost"`
 	CurrentSavings     int                   `json:"currentSavings"`
 	PossibleSavings    int                   `json:"possibleSavings"`
-	ClusterUtilistion  float64               `json:"clusterUtilistion"`
+	ClusterUtilisation float64               `json:"clusterUtilisation"`
 	NodeCount          int                   `json:"nodeCount"`
 	Coverage           OverviewCoverage      `json:"coverage"`
 	CPUStats           OverviewResourceStats `json:"cpuStats"`

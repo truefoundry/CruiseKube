@@ -222,11 +222,11 @@ func (s *Storage) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	return nil
 }
 
-// GetSnapshots returns snapshots for the cluster since the given time.
-func (s *Storage) GetSnapshots(clusterID string, since time.Time) ([]types.SnapshotRecord, error) {
-	snapshots, err := s.DB.GetSnapshots(clusterID, since)
+// GetSnapshotsInRange returns snapshots for the cluster in [startTime, endTime].
+func (s *Storage) GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error) {
+	snapshots, err := s.DB.GetSnapshotsInRange(clusterID, startTime, endTime)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get snapshots for cluster %s: %w", clusterID, err)
+		return nil, fmt.Errorf("failed to get snapshots for cluster %s in range: %w", clusterID, err)
 	}
 	return snapshots, nil
 }

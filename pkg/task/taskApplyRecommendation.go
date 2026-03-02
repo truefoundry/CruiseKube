@@ -150,7 +150,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		return err
 	}
 
-	if err := a.buildAndSaveSnapshot(ctx, recommendationResults); err != nil {
+	if err := a.buildAndSaveSnapshot(ctx, nodeRecommendationMap, recommendationResults); err != nil {
 		logging.Errorf(ctx, "Error saving node snapshot: %v", err)
 		return err
 	}
@@ -574,27 +574,29 @@ func (a *ApplyRecommendationTask) countPodsByStatus(ctx context.Context) types.S
 	return counts
 }
 
-// buildAndSaveSnapshot aggregates cluster-level CPU/Memory metrics from recommendationResults
-// and persists one row to the node_snapshots table (timestamp in GMT).
-// Current = total allocatable/requested; WorkloadRequested = user's original manifest; RecommendedRequested = our recommendation.
-func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, recommendationResults []*RecommendationResult) error {
+// buildAndSaveSnapshot aggregates cluster-level CPU/Memory metrics from nodeRecommendationMap
+// (allocatable, requested) and recommendationResults (workload/recommended request totals), then
+// persists one row to the node_snapshots table (timestamp in GMT).
+func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, nodeRecommendationMap map[string]utils.NodeResourceInfo, recommendationResults []*RecommendationResult) error {
 	var currentAllocatableCPU, currentAllocatableMemory float64
 	var currentRequestedCPU, currentRequestedMemory float64
 	var currentUtilizedCPU, currentUtilizedMemory float64
 	var workloadRequestedCPU, workloadRequestedMemory float64
 	var recommendedRequestedCPU, recommendedRequestedMemory float64
 
+	// Use nodeRecommendationMap for cluster allocatable and requested (all nodes).
+	for _, ni := range nodeRecommendationMap {
+		currentAllocatableCPU += ni.AllocatableCPU
+		currentAllocatableMemory += ni.AllocatableMemory
+		currentRequestedCPU += ni.RequestedCPU
+		currentRequestedMemory += ni.RequestedMemory
+	}
+
 	currentUtilizedCPU = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterCPUUtilizationExpression())
 	currentUtilizedMemory = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterMemoryUtilizationExpression())
 
 	podKeys := make(map[string]struct{})
 	for _, res := range recommendationResults {
-		ni := res.NodeInfo
-		currentAllocatableCPU += ni.AllocatableCPU
-		currentAllocatableMemory += ni.AllocatableMemory
-		currentRequestedCPU += ni.RequestedCPU
-		currentRequestedMemory += ni.RequestedMemory
-
 		for _, rec := range res.PodContainerRecommendations {
 			podKeys[rec.PodInfo.Namespace+"/"+rec.PodInfo.Name] = struct{}{}
 			recommendedRequestedCPU += rec.CPU

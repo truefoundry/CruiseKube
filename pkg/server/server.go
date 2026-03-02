@@ -34,12 +34,15 @@ func SetupServerEngine(mgr cluster.Manager, authAPI gin.HandlerFunc, authWebhook
 		clusterGroup.POST("/killswitch", handlers.KillswitchHandler)
 		clusterGroup.GET("/workloads", handlers.ListWorkloadsHandler)
 		clusterGroup.GET("/workloads/summary", handlers.WorkloadSummaryHandler)
-		clusterGroup.GET("/ui/overview", handlers.OverviewHandler)
 		clusterGroup.GET("/workloads/:namespace/:workloadName/detail", handlers.HandleWorkloadDetail)
 		clusterGroup.POST("/workloads/:workloadID/overrides", handlers.UpdateWorkloadOverridesHandler)
+		// Audit Events
 		clusterGroup.GET("/audit-events", handlers.GetAuditEventsHandler)
 		clusterGroup.GET("/audit-events/:workloadID", handlers.GetAuditEventsForWorkloadHandler)
-		clusterGroup.GET("/snapshots", handlers.GetSnapshotsHandler)
+		// UI Overview
+		clusterGroup.GET("/ui/overview", handlers.OverviewHandler)
+		clusterGroup.GET("/ui/overview/historical-timeline/:metric", handlers.GetOverviewHistoricalTimelineHandler)
+		// Settings
 		clusterGroup.GET("/settings", handlers.GetSettingsHandler)
 		clusterGroup.PUT("/settings", handlers.UpdateSettingsHandler)
 	}

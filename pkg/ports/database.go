@@ -48,7 +48,7 @@ type Database interface {
 	GetAuditEventsForWorkload(clusterID, workloadID string, since time.Time) ([]types.AuditEventRecord, error)
 	// Node Snapshots
 	InsertSnapshot(snapshot *types.SnapshotPayload) error
-	GetSnapshots(clusterID string, since time.Time) ([]types.SnapshotRecord, error)
+	GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error)
 	// Settings
 	GetClusterSettings(clusterID string) (*types.ClusterSettings, error)
 	UpdateClusterSettings(clusterID string, settings *types.ClusterSettings) error

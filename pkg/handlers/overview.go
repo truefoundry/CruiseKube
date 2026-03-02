@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"math"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -66,20 +67,24 @@ func OverviewHandler(c *gin.Context) {
 	workloadCostDollars := (clusterReqCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 	optimizedCostDollars := (clusterRecCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 
-	// Cluster utilization is the average of CPU and memory allocatable utilization percentages (only across available dimensions).
-	utilRatioSum := 0.0
-	utilRatioCount := 0.0
+	// Cluster utilization is the highest of CPU and memory allocatable utilization (only across available dimensions).
+	var cpuRatio, memRatio *float64
 	if clusterRes.CPU.Allocatable > 0 {
-		utilRatioSum += clusterRes.CPU.Utilised / clusterRes.CPU.Allocatable
-		utilRatioCount++
+		r := clusterRes.CPU.Utilised / clusterRes.CPU.Allocatable
+		cpuRatio = &r
 	}
 	if clusterRes.Memory.Allocatable > 0 {
-		utilRatioSum += clusterRes.Memory.Utilised / clusterRes.Memory.Allocatable
-		utilRatioCount++
+		r := clusterRes.Memory.Utilised / clusterRes.Memory.Allocatable
+		memRatio = &r
 	}
-	clusterUtilistion := 0.0
-	if utilRatioCount > 0 {
-		clusterUtilistion = utilRatioSum / utilRatioCount * 100
+	clusterUtilisation := 0.0
+	switch {
+	case cpuRatio != nil && memRatio != nil:
+		clusterUtilisation = min(*cpuRatio, *memRatio) * 100
+	case cpuRatio != nil:
+		clusterUtilisation = *cpuRatio * 100
+	case memRatio != nil:
+		clusterUtilisation = *memRatio * 100
 	}
 
 	// Adoption coverage is workload-count based, while CPU/memory coverage is weighted by current requested resources.
@@ -101,8 +106,8 @@ func OverviewHandler(c *gin.Context) {
 		}
 	}
 
-	enabledAdoption := percent(enabledWorkloads, totalWorkloads)
-	disabledAdoption := percent(totalWorkloads-enabledWorkloads, totalWorkloads)
+	enabledAdoption := enabledWorkloads
+	disabledAdoption := totalWorkloads - enabledWorkloads
 	enabledCPUCoverage := percent(enabledRequestedCPU, totalRequestedCPU)
 	disabledCPUCoverage := percent(totalRequestedCPU-enabledRequestedCPU, totalRequestedCPU)
 	enabledMemoryCoverage := percent(enabledRequestedMem, totalRequestedMem)
@@ -112,7 +117,7 @@ func OverviewHandler(c *gin.Context) {
 		CurrentMonthlyCost: int(currentCostDollars),
 		CurrentSavings:     int(workloadCostDollars - currentCostDollars),
 		PossibleSavings:    int(workloadCostDollars - optimizedCostDollars),
-		ClusterUtilistion:  clusterUtilistion,
+		ClusterUtilisation: math.Round(clusterUtilisation),
 		NodeCount:          getClusterNodeCount(c, clusterID),
 		Coverage: types.OverviewCoverage{
 			Adoption: types.OverviewCoverageBreakdown{

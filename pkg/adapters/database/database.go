@@ -606,12 +606,12 @@ func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	return nil
 }
 
-func (s *GormDB) GetSnapshots(clusterID string, since time.Time) ([]types.SnapshotRecord, error) {
+func (s *GormDB) GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error) {
 	var rows []Snapshot
-	if err := s.db.Where("cluster_id = ? AND created_at >= ?", clusterID, since).
-		Order("created_at DESC").
+	if err := s.db.Where("cluster_id = ? AND created_at >= ? AND created_at <= ?", clusterID, startTime, endTime).
+		Order("created_at ASC").
 		Find(&rows).Error; err != nil {
-		return nil, fmt.Errorf("failed to get snapshots for cluster %s: %w", clusterID, err)
+		return nil, fmt.Errorf("failed to get snapshots for cluster %s in range [%s, %s]: %w", clusterID, startTime.UTC().Format(time.RFC3339), endTime.UTC().Format(time.RFC3339), err)
 	}
 	out := make([]types.SnapshotRecord, 0, len(rows))
 	for _, row := range rows {
