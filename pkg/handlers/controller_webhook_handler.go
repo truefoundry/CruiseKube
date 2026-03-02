@@ -178,7 +178,6 @@ func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, over
 	}
 }
 
-//nolint:unparam // error return is part of the interface contract even though currently always nil
 func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg *config.Config) ([]map[string]any, error) {
 	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
 	if workloadInfo == nil {
@@ -350,10 +349,13 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 	}
 
 	metadata := task.ApplyRecommendationMetadata{}
-	err = cfg.Controller.Tasks[config.ApplyRecommendationKey].ConvertMetadataToStruct(&metadata)
+	applyTaskConfig := cfg.GetTaskConfig(config.ApplyRecommendationKey)
+	if applyTaskConfig == nil {
+		return nil, fmt.Errorf("missing task config for %s", config.ApplyRecommendationKey)
+	}
+	err = applyTaskConfig.ConvertMetadataToStruct(&metadata)
 	if err != nil {
-		logging.Errorf(ctx, "Failed to convert metadata to struct: %v", err)
-		return patches, nil
+		return nil, fmt.Errorf("convert metadata to struct: %w", err)
 	}
 
 	if metadata.DryRun {
