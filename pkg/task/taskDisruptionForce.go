@@ -329,19 +329,25 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 	switch state {
 	case StateIn:
 		if pdb.Annotations[utils.AnnotationModified] != utils.TrueValue {
-			if pdb.Spec.MaxUnavailable != nil {
+			modified = true
+			switch {
+			case pdb.Spec.MaxUnavailable != nil:
 				pdb.Annotations[utils.AnnotationPDBMaxUnavailable] = pdb.Spec.MaxUnavailable.String()
-			}
-			if pdb.Spec.MinAvailable != nil {
+				maxUnavailable := intstr.FromString("100%")
+				pdb.Spec.MaxUnavailable = &maxUnavailable
+			case pdb.Spec.MinAvailable != nil:
 				pdb.Annotations[utils.AnnotationPDBMinAvailable] = pdb.Spec.MinAvailable.String()
+				minAvailable := intstr.FromInt32(0)
+				pdb.Spec.MinAvailable = &minAvailable
+			default:
+				modified = false
 			}
 
-			minAvailable := intstr.FromInt32(0)
-			pdb.Spec.MinAvailable = &minAvailable
-			pdb.Spec.MaxUnavailable = nil
-			pdb.Annotations[utils.AnnotationModified] = utils.TrueValue
-			modified = true
+			if modified {
+				pdb.Annotations[utils.AnnotationModified] = utils.TrueValue
+			}
 		}
+
 	case StateAboutToExit, StateOut:
 		if pdb.Annotations[utils.AnnotationModified] == utils.TrueValue {
 			if val, exists := pdb.Annotations[utils.AnnotationPDBMaxUnavailable]; exists {
@@ -352,6 +358,8 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 				minAvailable := intstr.Parse(val)
 				pdb.Spec.MinAvailable = &minAvailable
 				pdb.Spec.MaxUnavailable = nil
+			} else {
+				break
 			}
 
 			delete(pdb.Annotations, utils.AnnotationPDBMaxUnavailable)
