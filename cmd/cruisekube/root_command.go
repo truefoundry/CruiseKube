@@ -13,7 +13,7 @@ func newRootCommand(ctx context.Context) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:   "cruisekube",
 		Short: "Kubernetes resource cruisekube",
-		Run:   runcruisekube,
+		Run:   runCruiseKube,
 	}
 
 	addPersistentFlags(rootCmd)

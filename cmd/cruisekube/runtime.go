@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runcruisekube(cmd *cobra.Command, args []string) {
+func runCruiseKube(cmd *cobra.Command, args []string) {
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
