@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -14,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runCruiseKube(cmd *cobra.Command, args []string) error {
+func runCruiseKube(cmd *cobra.Command, args []string) (runErr error) {
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
@@ -22,8 +23,13 @@ func runCruiseKube(cmd *cobra.Command, args []string) error {
 
 	runtime := newRuntimeManager(ctx)
 	defer func() {
-		if err := runtime.Shutdown(); err != nil {
-			logging.Errorf(context.Background(), "Failed to shutdown runtime: %v", err)
+		if shutdownErr := runtime.Shutdown(); shutdownErr != nil {
+			if runErr == nil {
+				runErr = fmt.Errorf("shutdown failed: %w", shutdownErr)
+				return
+			}
+
+			logging.Errorf(context.Background(), "Failed to shutdown runtime: %v", shutdownErr)
 		}
 	}()
 
@@ -38,9 +44,7 @@ func runCruiseKube(cmd *cobra.Command, args []string) error {
 	startMetricsServer(runtime, cfg)
 
 	if shouldStartWebhook(cfg.ExecutionMode) {
-		if err := startWebhookRuntime(runtime, cfg); err != nil {
-			return err
-		}
+		startWebhookRuntime(runtime, cfg)
 	}
 
 	if shouldStartController(cfg.ExecutionMode) {
@@ -86,8 +90,9 @@ func startMetricsServer(runtime *runtimeManager, cfg *config.Config) {
 	}
 
 	metricsServer := &http.Server{
-		Addr:    ":" + cfg.Metrics.Port,
-		Handler: server.SetupMetricsServerEngine(),
+		Addr:              ":" + cfg.Metrics.Port,
+		Handler:           server.SetupMetricsServerEngine(),
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 	startHTTPServer(runtime, "metrics server", "Starting metrics server on :"+cfg.Metrics.Port, metricsServer, func(server *http.Server) error {
 		return server.ListenAndServe()

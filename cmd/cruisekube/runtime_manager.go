@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -11,6 +12,7 @@ import (
 const runtimeShutdownTimeout = 5 * time.Second
 
 type runtimeManager struct {
+	//nolint:containedctx // This coordinator owns the root cancellation state for all managed components.
 	ctx      context.Context
 	cancel   context.CancelFunc
 	errCh    chan error
@@ -30,11 +32,14 @@ func newRuntimeManager(parent context.Context) *runtimeManager {
 
 func (m *runtimeManager) Go(name string, fn func(context.Context) error) {
 	go func() {
-		if err := fn(m.ctx); err != nil {
-			select {
-			case m.errCh <- fmt.Errorf("%s: %w", name, err):
-			default:
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				m.reportError(fmt.Errorf("%s panic: %v\n%s", name, recovered, debug.Stack()))
 			}
+		}()
+
+		if err := fn(m.ctx); err != nil {
+			m.reportError(fmt.Errorf("%s: %w", name, err))
 		}
 	}()
 }
@@ -73,4 +78,11 @@ func (m *runtimeManager) Shutdown() error {
 	}
 
 	return shutdownErr
+}
+
+func (m *runtimeManager) reportError(err error) {
+	select {
+	case m.errCh <- err:
+	default:
+	}
 }

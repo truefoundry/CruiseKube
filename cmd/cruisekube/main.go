@@ -21,8 +21,7 @@ func main() {
 	rootCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	rootCmd := newRootCommand(context.Background())
-	rootCmd.SetContext(rootCtx)
+	rootCmd := newRootCommand(rootCtx)
 
 	if err := rootCmd.Execute(); err != nil {
 		logging.Fatalf(context.Background(), "Cruisekube failed: %v", err)

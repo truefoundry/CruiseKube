@@ -90,9 +90,10 @@ func initStorageRepo(runtimeManager *runtimeManager, cfg *config.Config) (*stora
 	logging.Infof(ctx, "Storage Repo initialized")
 
 	storage.Stg = storageRepo
-	audit.Recorder = audit.NewAudit(ctx, databaseAdapter, audit.Options{})
+	recorder := audit.NewAudit(ctx, databaseAdapter, audit.Options{})
+	audit.Recorder = recorder
 	runtimeManager.AddCleanup(func(context.Context) error {
-		audit.Recorder.Close()
+		recorder.Close()
 		return nil
 	})
 
@@ -174,8 +175,9 @@ func startControllerHTTPServer(runtimeManager *runtimeManager, cfg *config.Confi
 	)
 
 	startHTTPServer(runtimeManager, "controller HTTP server", "Starting HTTP server on :"+cfg.Server.Port, &http.Server{
-		Addr:    ":" + cfg.Server.Port,
-		Handler: engine,
+		Addr:              ":" + cfg.Server.Port,
+		Handler:           engine,
+		ReadHeaderTimeout: 5 * time.Second,
 	}, func(server *http.Server) error {
 		return server.ListenAndServe()
 	})
