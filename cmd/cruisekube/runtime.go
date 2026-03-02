@@ -12,7 +12,10 @@ import (
 )
 
 func runcruisekube(cmd *cobra.Command, args []string) {
-	ctx := context.Background()
+	ctx := cmd.Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	cfg := loadRuntimeConfig(ctx)
 
 	if shutdownTelemetry := setupTelemetry(ctx, cfg); shutdownTelemetry != nil {

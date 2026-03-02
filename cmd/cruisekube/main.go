@@ -16,6 +16,7 @@ var (
 func main() {
 	ctx := context.Background()
 	rootCmd := newRootCommand(ctx)
+	rootCmd.SetContext(ctx)
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
