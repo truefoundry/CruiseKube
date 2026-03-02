@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"os"
+
 	"github.com/spf13/viper"
 	_ "go.uber.org/automaxprocs"
-	"os"
 )
 
 var (
