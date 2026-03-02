@@ -32,7 +32,23 @@ type Config struct {
 }
 
 func (c *Config) GetTaskConfig(taskName string) *TaskConfig {
+	if c == nil || c.Controller.Tasks == nil {
+		return nil
+	}
+
 	return c.Controller.Tasks[taskName]
+}
+
+func RequiredTaskKeys() []string {
+	return []string{
+		CreateStatsKey,
+		ApplyRecommendationKey,
+		ModifyEqualCPUResourcesKey,
+		NodeLoadMonitoringKey,
+		FetchMetricsKey,
+		CleanupOOMEventsKey,
+		DisruptionForceKey,
+	}
 }
 
 type Dependencies struct {

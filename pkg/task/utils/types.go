@@ -4,7 +4,6 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
 )
 
 type WorkloadInfo struct {
@@ -116,9 +115,4 @@ type OptimizationResult struct {
 	PodContainerRecommendations []PodContainerRecommendation `json:"pod_container_recommendations"`
 	MaxRestCPU                  float64                      `json:"max_rest"`
 	MaxRestMemory               float64                      `json:"max_rest_memory"`
-}
-
-type OptimizationStrategy interface {
-	GetName() string
-	OptimizeNode(kubeClient *kubernetes.Clientset, overridesMap map[string]*types.WorkloadOverrideInfo, data NodeOptimizationData) (OptimizationResult, error)
 }

@@ -2,7 +2,6 @@ package applystrategies
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"sort"
 
@@ -13,8 +12,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func NewAdjustAmongstPodsDistributedStrategy(ctx context.Context) utils.OptimizationStrategy {
-	return &AdjustAmongstPodsDistributedStrategy{}
+func NewAdjustAmongstPodsDistributedStrategy(ctx context.Context) AdjustAmongstPodsDistributedStrategy {
+	return AdjustAmongstPodsDistributedStrategy{}
 }
 
 type AdjustAmongstPodsDistributedStrategy struct {
@@ -24,7 +23,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) GetName() string {
 	return "AdjustAmongstPodsDistributed"
 }
 
-func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernetes.Clientset, overridesMap map[string]*types.WorkloadOverrideInfo, data utils.NodeOptimizationData) (utils.OptimizationResult, error) {
+func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context, kubeClient *kubernetes.Clientset, overridesMap map[string]*types.WorkloadOverrideInfo, data utils.NodeOptimizationData) (utils.OptimizationResult, error) {
 	result := utils.OptimizationResult{
 		PodContainerRecommendations: make([]utils.PodContainerRecommendation, 0),
 		MaxRestCPU:                  0,
@@ -44,17 +43,13 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 			if containerRec.ContainerType == types.InitContainer {
 				continue
 			}
-			recommendedCPU, cpuRest, err := s.calculateForSpecificPercentile(podInfo, containerRec)
-			if err != nil {
-				logging.Errorf(context.Background(), "Error calculating for specific percentile for container %s: %v", containerRec.ContainerName, err)
-				continue
-			}
-			recommendedMemory, memoryRest := s.getRecommendedAndRestMemory(containerRec)
+			recommendedCPU, cpuRest := s.GetRecommendedAndRestCPU(ctx, podInfo, containerRec)
+			recommendedMemory, memoryRest := s.GetRecommendedAndRestMemory(ctx, podInfo, containerRec)
 
 			if podInfo.WorkloadKind == utils.DaemonSetKind {
 				containerResource, err := podInfo.GetContainerResource(containerRec.ContainerName)
 				if err != nil {
-					logging.Errorf(context.Background(), "Error getting container resource for container %s: %v", containerRec.ContainerName, err)
+					logging.Errorf(ctx, "Error getting container resource for container %s: %v", containerRec.ContainerName, err)
 					continue
 				}
 				currentCPU := containerResource.CPURequest
@@ -187,18 +182,14 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 				}
 				currentResource, err := pod.GetContainerResource(containerStat.ContainerName)
 				if err != nil {
-					logging.Errorf(context.Background(), "Error getting container resource for container %s: %v", containerStat.ContainerName, err)
+					logging.Errorf(ctx, "Error getting container resource for container %s: %v", containerStat.ContainerName, err)
 					continue
 				}
 				currentCPU := currentResource.CPURequest
 				currentMemory := currentResource.MemoryRequest
 
-				recommendedCPU, restCPU, err := s.calculateForSpecificPercentile(pod, containerStat)
-				if err != nil {
-					logging.Errorf(context.Background(), "Error calculating for specific percentile for container %s: %v", containerStat.ContainerName, err)
-					continue
-				}
-				recommendedMemory, restMemory := s.getRecommendedAndRestMemory(containerStat)
+				recommendedCPU, restCPU := s.GetRecommendedAndRestCPU(ctx, pod, containerStat)
+				recommendedMemory, restMemory := s.GetRecommendedAndRestMemory(ctx, pod, containerStat)
 
 				if pod.WorkloadKind == utils.DaemonSetKind {
 					currentCPU := currentResource.CPURequest
@@ -265,7 +256,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 		finalCPU := metric.recommendedCPU + additionalCPU
 		finalMemory := metric.recommendedMemory + additionalMemory
 
-		logging.Infof(context.Background(), "Distributed strategy for %s/%s/%s: base_cpu=%.3f, additional_cpu=%.3f, final_cpu=%.3f, base_memory=%.3f, additional_memory=%.3f, final_memory=%.3f",
+		logging.Infof(ctx, "Distributed strategy for %s/%s/%s: base_cpu=%.3f, additional_cpu=%.3f, final_cpu=%.3f, base_memory=%.3f, additional_memory=%.3f, final_memory=%.3f",
 			metric.pod.Namespace, metric.pod.Name, metric.containerStats.ContainerName,
 			metric.recommendedCPU, additionalCPU, finalCPU, metric.recommendedMemory, additionalMemory, finalMemory)
 
@@ -281,7 +272,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(kubeClient *kubernet
 
 	for _, pod := range podInfosClone {
 		if pod.Stats.ContainerStats == nil {
-			logging.Errorf(context.Background(), "No container recommendations found for pod %s/%s", pod.Namespace, pod.Name)
+			logging.Errorf(ctx, "No container recommendations found for pod %s/%s", pod.Namespace, pod.Name)
 		}
 	}
 
@@ -341,46 +332,36 @@ func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
 	return podInfosClone
 }
 
-func (s *AdjustAmongstPodsDistributedStrategy) getPmax(containerRec utils.ContainerStats) (float64, error) {
-	if containerRec.SimplePredictionsCPU != nil {
-		return containerRec.SimplePredictionsCPU.MaxValue, nil
-	} else {
-		return 0.0, fmt.Errorf("no simple predictions found for container %s", containerRec.ContainerName)
-	}
-}
-
-func (s *AdjustAmongstPodsDistributedStrategy) getRecommendedAndRestMemory(containerRec utils.ContainerStats) (float64, float64) {
-	if containerRec.MemoryStats.OOMMemory > 0 && containerRec.MemoryStats.OOMMemory > containerRec.MemoryStats.P75 {
-		logging.Infof(context.Background(), "Using OOM memory for container %s: %v", containerRec.ContainerName, containerRec.MemoryStats.OOMMemory)
+func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestMemory(ctx context.Context, pod utils.PodInfo, containerStat utils.ContainerStats) (float64, float64) {
+	if containerStat.MemoryStats.OOMMemory > 0 && containerStat.MemoryStats.OOMMemory > containerStat.MemoryStats.P75 {
+		logging.Infof(ctx, "Using OOM memory for %s/%s/%s: %v", pod.Namespace, pod.Name, containerStat.ContainerName, containerStat.MemoryStats.OOMMemory)
 		// We are not underestimating the memory requests here, we are just using the OOM memory as the total recommended memory with no extra headspace
-		return containerRec.MemoryStats.OOMMemory, 0.0
+		return containerStat.MemoryStats.OOMMemory, 0.0
 	}
-	if containerRec.SimplePredictionsMemory == nil {
-		logging.Errorf(context.Background(), "Error: No simple predictions found for container %s", containerRec.ContainerName)
-		return containerRec.MemoryStats.P75, containerRec.MemoryStats.Max - containerRec.MemoryStats.P75
+	if containerStat.SimplePredictionsMemory == nil {
+		logging.Errorf(ctx, "Error: No simple predictions found for %s/%s/%s", pod.Namespace, pod.Name, containerStat.ContainerName)
+		return containerStat.MemoryStats.P75, containerStat.MemoryStats.Max - containerStat.MemoryStats.P75
 	} else {
-		return containerRec.MemoryStats.P75, containerRec.SimplePredictionsMemory.MaxValue - containerRec.MemoryStats.P75
+		return containerStat.MemoryStats.P75, containerStat.SimplePredictionsMemory.MaxValue - containerStat.MemoryStats.P75
 	}
 }
 
-func (s *AdjustAmongstPodsDistributedStrategy) calculateForSpecificPercentile(pod utils.PodInfo, containerRec utils.ContainerStats) (float64, float64, error) {
-	x := 75.0
-	px := containerRec.CPUStats.P75
-	if containerRec.PSIAdjustedUsage != nil {
-		px = containerRec.PSIAdjustedUsage.P75
-	}
-	pmax, err := s.getPmax(containerRec)
-	if err != nil {
-		return 0.0, 0.0, fmt.Errorf("error getting pmax for container %s: %w", containerRec.ContainerName, err)
+func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestCPU(ctx context.Context, pod utils.PodInfo, containerStat utils.ContainerStats) (float64, float64) {
+	recommendedCPU := containerStat.CPUStats.P75
+	if containerStat.PSIAdjustedUsage != nil {
+		recommendedCPU = containerStat.PSIAdjustedUsage.P75
 	}
 
-	request := px
+	pmax := containerStat.CPUStats.Max
+	if containerStat.SimplePredictionsCPU != nil {
+		pmax = containerStat.SimplePredictionsCPU.MaxValue
+	}
 
-	rest := (pmax - px)
+	rest := (pmax - recommendedCPU)
 
-	logging.Infof(context.Background(), "Variable diff calculation for %s/%s/%s: x=%.1f, px=%.3f, pmax=%.3f, request=%.3f, rest=%.3f",
-		pod.Namespace, pod.Name, containerRec.ContainerName,
-		x, px, pmax, request, rest)
+	logging.Infof(ctx, "Variable diff calculation for %s/%s/%s: recommended_cpu=%.1f, pmax=%.3f, rest=%.3f",
+		pod.Namespace, pod.Name, containerStat.ContainerName,
+		recommendedCPU, pmax, rest)
 
-	return request, rest, nil
+	return recommendedCPU, rest
 }

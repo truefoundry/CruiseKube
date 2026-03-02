@@ -21,7 +21,7 @@ dependencies:
     repository: "oci://tfy.jfrog.io/tfy-mirror/bitnamicharts"
     condition: postgresql.enabled
 annotations:
-  "artifacthub.io/license": MIT
+  "artifacthub.io/license": BUSL-1.1
   "artifacthub.io/operator": "true"
   "artifacthub.io/links": |
     - name: Homepage

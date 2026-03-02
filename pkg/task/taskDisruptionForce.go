@@ -102,12 +102,14 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	}
 
 	reconciledPods := 0
+	modifiedPods := 0
 	reconciledPDBs := 0
+	modifiedPDBs := 0
 	blockingCount := 0
 
 	for _, w := range workloads {
 		stat := w.GetStat()
-		if stat == nil || stat.Constraints == nil || !stat.Constraints.DoNotDisruptAnnotation {
+		if stat == nil || stat.Constraints == nil || !stat.Constraints.BlockingConsolidation {
 			continue
 		}
 		blockingCount++
@@ -120,6 +122,8 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 			effectiveState = t.computeStateFromWindows(ctx, now, scheduleDuration, overrides.DisruptionWindows)
 		}
 
+		t.updateDisruptionWindowMetadata(ctx, w, stat, effectiveState != StateOut)
+
 		workloadInfo := utils.WorkloadInfo{Kind: stat.Kind, Namespace: stat.Namespace, Name: stat.Name}
 
 		workloadObj, err := utils.GetWorkloadObject(ctx, t.kubeClient, stat.Kind, stat.Namespace, stat.Name)
@@ -128,50 +132,58 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 			continue
 		}
 
-		selector, err := workloadObj.GetSelector()
-		if err != nil {
-			logging.Errorf(ctx, "Failed to get selector for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
-		} else {
-			pods, err := utils.GetPods(ctx, t.kubeClient, stat.Namespace, selector)
-			if err != nil {
-				logging.Errorf(ctx, "Failed to list pods for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
-			} else {
-				for i := range pods.Items {
-					pod := &pods.Items[i]
-
-					hasModifiedMarker := pod.Annotations != nil && pod.Annotations[utils.AnnotationModified] == utils.TrueValue
-					if !t.hasBlockingAnnotations(pod) && !hasModifiedMarker {
-						continue
-					}
-
-					modified, err := t.reconcilePod(ctx, pod, &workloadInfo, effectiveState)
-					if err != nil {
-						logging.Errorf(ctx, "Failed to reconcile pod %s/%s: %v", pod.Namespace, pod.Name, err)
-						continue
-					}
-					if modified {
-						reconciledPods++
-					}
+		if stat.Constraints.PDB {
+			podTemplate := utils.GetPodTemplateSpec(workloadObj)
+			matchingPDBs := utils.FindMatchingPDBs(ctx, podTemplate.Labels, pdbsByNamespace[stat.Namespace])
+			for _, pdb := range matchingPDBs {
+				modified, err := t.reconcilePDB(ctx, pdb, effectiveState)
+				if err != nil {
+					logging.Errorf(ctx, "Failed to reconcile PDB %s/%s: %v", pdb.Namespace, pdb.Name, err)
+					continue
+				}
+				reconciledPDBs++
+				if modified {
+					modifiedPDBs++
 				}
 			}
 		}
 
-		podTemplate := utils.GetPodTemplateSpec(workloadObj)
-		matchingPDBs := utils.FindMatchingPDBs(ctx, podTemplate.Labels, pdbsByNamespace[stat.Namespace])
-		for _, pdb := range matchingPDBs {
-			modified, err := t.reconcilePDB(ctx, pdb, effectiveState)
+		if stat.Constraints.DoNotDisruptAnnotation {
+			selector, err := workloadObj.GetSelector()
 			if err != nil {
-				logging.Errorf(ctx, "Failed to reconcile PDB %s/%s: %v", pdb.Namespace, pdb.Name, err)
+				logging.Errorf(ctx, "Failed to get selector for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
 				continue
 			}
-			if modified {
-				reconciledPDBs++
+
+			pods, err := utils.GetPods(ctx, t.kubeClient, stat.Namespace, selector)
+			if err != nil {
+				logging.Errorf(ctx, "Failed to list pods for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+				continue
+			}
+
+			for i := range pods.Items {
+				pod := &pods.Items[i]
+
+				hasModifiedMarker := pod.Annotations != nil && pod.Annotations[utils.AnnotationModified] == utils.TrueValue
+				if !t.hasBlockingAnnotations(pod) && !hasModifiedMarker {
+					continue
+				}
+
+				modified, err := t.reconcilePod(ctx, pod, &workloadInfo, effectiveState)
+				if err != nil {
+					logging.Errorf(ctx, "Failed to reconcile pod %s/%s: %v", pod.Namespace, pod.Name, err)
+					continue
+				}
+				reconciledPods++
+				if modified {
+					modifiedPods++
+				}
 			}
 		}
 	}
 
 	logging.Infof(ctx, "Total workloads with blocking consolidation: %d", blockingCount)
-	logging.Infof(ctx, "Disruption force task completed: reconciled %d pods, %d PDBs modified", reconciledPods, reconciledPDBs)
+	logging.Infof(ctx, "Disruption force task completed: reconciled: %d pods, %d PDBs, modified: %d pods, %d PDBs", reconciledPods, reconciledPDBs, modifiedPods, modifiedPDBs)
 	return nil
 }
 
@@ -292,6 +304,21 @@ func (t *DisruptionForceTask) reconcilePod(ctx context.Context, pod *corev1.Pod,
 	return modified, nil
 }
 
+func (t *DisruptionForceTask) updateDisruptionWindowMetadata(ctx context.Context, w *types.WorkloadInCluster, stat *types.WorkloadStat, inDisruptionWindow bool) {
+	if stat.Metadata == nil {
+		stat.Metadata = &types.WorkloadStatMetadata{}
+	}
+	if stat.Metadata.InDisruptionWindow == inDisruptionWindow {
+		return
+	}
+	stat.Metadata.InDisruptionWindow = inDisruptionWindow
+	if err := t.storage.DB.UpsertStat(t.config.ClusterID, w.WorkloadID, *stat, w.GeneratedAt); err != nil {
+		logging.Errorf(ctx, "Failed to persist InDisruptionWindow metadata for workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+	} else {
+		logging.Debugf(ctx, "Updated InDisruptionWindow=%v for workload %s/%s/%s", inDisruptionWindow, stat.Kind, stat.Namespace, stat.Name)
+	}
+}
+
 func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.PodDisruptionBudget, state ReconcileState) (bool, error) {
 	if pdb.Annotations == nil {
 		pdb.Annotations = make(map[string]string)
@@ -302,19 +329,25 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 	switch state {
 	case StateIn:
 		if pdb.Annotations[utils.AnnotationModified] != utils.TrueValue {
-			if pdb.Spec.MaxUnavailable != nil {
+			modified = true
+			switch {
+			case pdb.Spec.MaxUnavailable != nil:
 				pdb.Annotations[utils.AnnotationPDBMaxUnavailable] = pdb.Spec.MaxUnavailable.String()
-			}
-			if pdb.Spec.MinAvailable != nil {
+				maxUnavailable := intstr.FromString("100%")
+				pdb.Spec.MaxUnavailable = &maxUnavailable
+			case pdb.Spec.MinAvailable != nil:
 				pdb.Annotations[utils.AnnotationPDBMinAvailable] = pdb.Spec.MinAvailable.String()
+				minAvailable := intstr.FromInt32(0)
+				pdb.Spec.MinAvailable = &minAvailable
+			default:
+				modified = false
 			}
 
-			minAvailable := intstr.FromInt32(0)
-			pdb.Spec.MinAvailable = &minAvailable
-			pdb.Spec.MaxUnavailable = nil
-			pdb.Annotations[utils.AnnotationModified] = utils.TrueValue
-			modified = true
+			if modified {
+				pdb.Annotations[utils.AnnotationModified] = utils.TrueValue
+			}
 		}
+
 	case StateAboutToExit, StateOut:
 		if pdb.Annotations[utils.AnnotationModified] == utils.TrueValue {
 			if val, exists := pdb.Annotations[utils.AnnotationPDBMaxUnavailable]; exists {
@@ -325,6 +358,8 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 				minAvailable := intstr.Parse(val)
 				pdb.Spec.MinAvailable = &minAvailable
 				pdb.Spec.MaxUnavailable = nil
+			} else {
+				break
 			}
 
 			delete(pdb.Annotations, utils.AnnotationPDBMaxUnavailable)

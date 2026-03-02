@@ -17,7 +17,7 @@ type WorkloadOverrideInfo struct {
 
 // EffectiveEnabled returns the effective enabled flag (default false if Overrides is nil).
 func (w *WorkloadOverrideInfo) EffectiveEnabled() bool {
-	if w == nil || w.Overrides == nil {
+	if w == nil || w.Overrides == nil || !w.Overrides.Enabled {
 		return false
 	}
 	return w.Overrides.Enabled

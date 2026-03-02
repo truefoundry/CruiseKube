@@ -70,19 +70,6 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 				totalMemoryDifferences += analysisItem.MemoryDifference
 			}
 		}
-
-		for _, nonOptPod := range result.NonOptimizablePods {
-			if nonOptPod.PodInfo.Stats != nil && !nonOptPod.PodInfo.Stats.IsGPUWorkload() {
-				for _, containerResource := range nonOptPod.PodInfo.ContainerResources {
-					analysisItem := analyzeWorkloadStats(nonOptPod.PodInfo.Stats, nonOptPod.PodName, containerResource.Name, result.NodeName, containerResource.CPURequest, containerResource.CPURequest, containerResource.MemoryRequest, containerResource.MemoryRequest)
-					analysis = append(analysis, analysisItem)
-					totalCurrentRequests += containerResource.CPURequest
-					totalDifferences += analysisItem.CPUDifference
-					totalCurrentMemoryRequests += containerResource.MemoryRequest
-					totalMemoryDifferences += analysisItem.MemoryDifference
-				}
-			}
-		}
 	}
 
 	summary := types.RecommendationSummary{
