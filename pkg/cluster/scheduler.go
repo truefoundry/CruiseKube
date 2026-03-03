@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -15,9 +16,10 @@ type taskEntry struct {
 }
 
 type Scheduler struct {
-	mu    sync.Mutex
-	tasks map[string]*taskEntry
-	quit  chan struct{}
+	mu       sync.Mutex
+	tasks    map[string]*taskEntry
+	quit     chan struct{}
+	stopOnce sync.Once
 }
 
 func NewScheduler() *Scheduler {
@@ -32,18 +34,16 @@ func (s *Scheduler) ScheduleTask(
 	name string,
 	schedule string,
 	task func(ctx context.Context) error,
-) {
+) error {
 	duration, err := time.ParseDuration(schedule)
 	if err != nil {
-		logging.Errorf(ctx, "Failed to parse schedule for task %s: %v", name, err)
-		return
+		return fmt.Errorf("parse schedule for task %s: %w", name, err)
 	}
 
 	s.mu.Lock()
 	if _, exists := s.tasks[name]; exists {
 		s.mu.Unlock()
-		logging.Errorf(ctx, "Task %s already exists", name)
-		return
+		return fmt.Errorf("task %s already exists", name)
 	}
 
 	entry := &taskEntry{
@@ -68,6 +68,8 @@ func (s *Scheduler) ScheduleTask(
 			}
 		}
 	}()
+
+	return nil
 }
 
 func (s *Scheduler) executeTask(
@@ -105,10 +107,15 @@ func (s *Scheduler) executeTask(
 
 func (s *Scheduler) Wait(ctx context.Context) {
 	logging.Info(ctx, "Scheduler started")
-	<-s.quit
+	select {
+	case <-s.quit:
+	case <-ctx.Done():
+	}
 }
 
 func (s *Scheduler) Stop(ctx context.Context) {
 	logging.Info(ctx, "Stopping scheduler")
-	close(s.quit)
+	s.stopOnce.Do(func() {
+		close(s.quit)
+	})
 }
