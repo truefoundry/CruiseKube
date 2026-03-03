@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
@@ -14,6 +15,16 @@ type storageReader interface {
 	ReadClusterStats(clusterID string, target *types.StatsResponse) error
 	GetStatForWorkload(clusterID, workloadID string) (*types.WorkloadStat, error)
 	GetWorkloadOverrides(clusterID, workloadID string) (*types.Overrides, error)
+	GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCluster, error)
+	GetPodRecommendationsForWorkload(clusterID, workloadID string) ([]types.PodResourceRecommendationRow, error)
+	GetAllStatsForCluster(clusterID string) ([]types.WorkloadStat, error)
+	UpdateWorkloadOverrides(clusterID, workloadID string, overrides *types.Overrides) error
+	GetAuditEvents(clusterID string, since time.Time) ([]types.AuditEventRecord, error)
+	GetAuditEventsForWorkload(clusterID, workloadID string, since time.Time) ([]types.AuditEventRecord, error)
+	GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error)
+	GetSettings(clusterID string) (*types.ClusterSettings, error)
+	UpdateSettings(clusterID string, settings *types.ClusterSettings) error
+	GetPodRecommendationsForCluster(clusterID string) ([]types.PodResourceRecommendationRow, error)
 }
 
 type auditRecorder interface {

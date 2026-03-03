@@ -16,11 +16,10 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
-func RecommendationAnalysisHandlerForCluster(c *gin.Context) {
+func (deps HandlerDependencies) RecommendationAnalysisHandlerForCluster(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	clusterID := c.Param("clusterID")
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
-	response, err := generateRecommendationAnalysisForCluster(c.Request.Context(), clusterID, mgr)
+	response, err := generateRecommendationAnalysisForCluster(c.Request.Context(), clusterID, deps.ClusterManager)
 	if err != nil {
 		logging.Errorf(c.Request.Context(), "Failed to generate recommendation analysis for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{

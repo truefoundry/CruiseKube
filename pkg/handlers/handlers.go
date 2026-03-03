@@ -10,7 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
-	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/types"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -100,9 +99,8 @@ func (deps HandlerDependencies) HandleClusterStats(c *gin.Context) {
 	c.JSON(http.StatusOK, statsResponse)
 }
 
-func HandlePrometheusProxy(c *gin.Context) {
+func (deps HandlerDependencies) HandlePrometheusProxy(c *gin.Context) {
 	ctx := c.Request.Context()
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
 	clusterID := c.Param("clusterID")
 
 	span := oteltrace.SpanFromContext(ctx)
@@ -110,7 +108,7 @@ func HandlePrometheusProxy(c *gin.Context) {
 
 	logging.Infof(ctx, "Proxying prometheus request for cluster %s from %s", clusterID, c.ClientIP())
 
-	connInfo, err := mgr.GetPrometheusConnectionInfo(clusterID)
+	connInfo, err := deps.ClusterManager.GetPrometheusConnectionInfo(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get prometheus connection info for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -176,9 +174,8 @@ func HandlePrometheusProxy(c *gin.Context) {
 	}
 }
 
-func HandlePrometheusQuery(c *gin.Context) {
+func (deps HandlerDependencies) HandlePrometheusQuery(c *gin.Context) {
 	ctx := c.Request.Context()
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
 	clusterID := c.Param("clusterID")
 
 	span := oteltrace.SpanFromContext(ctx)
@@ -197,7 +194,7 @@ func HandlePrometheusQuery(c *gin.Context) {
 
 	logging.Infof(ctx, "Executing Prometheus query for cluster %s from %s", clusterID, c.ClientIP())
 
-	clients, err := mgr.GetClusterClients(clusterID)
+	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
 		c.JSON(http.StatusNotFound, gin.H{

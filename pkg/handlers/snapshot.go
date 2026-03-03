@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
@@ -30,9 +29,7 @@ func parseUTCTimestamp(raw string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("invalid UTC timestamp: %s", raw)
 }
 
-func buildCostFromSnapshot(ctx *gin.Context, clusterID string, snapshot types.SnapshotRecord) (float64, float64, float64) {
-	p := getEffectivePricing(ctx.Request.Context(), clusterID)
-
+func buildCostFromSnapshot(p workloadPricing, snapshot types.SnapshotRecord) (float64, float64, float64) {
 	reqAllocRatioCPU := 1.0
 	if snapshot.Data.CPU.CurrentAllocatable > 0 && snapshot.Data.CPU.CurrentRequested > 0 {
 		reqAllocRatioCPU = snapshot.Data.CPU.CurrentRequested / snapshot.Data.CPU.CurrentAllocatable
@@ -70,7 +67,7 @@ func addTimelinePoint(out *[]types.HistoricalTimelineItem, legend, color string,
 
 // GetOverviewHistoricalTimelineHandler returns historical CPU/memory/cost timeline data for a cluster.
 // GET /api/v1/clusters/:clusterID/ui/overview/historical-timeline/:metric?startTime=<UTC timestamp>&endTime=<UTC timestamp>
-func GetOverviewHistoricalTimelineHandler(c *gin.Context) {
+func (deps HandlerDependencies) GetOverviewHistoricalTimelineHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 	metric := types.HistoricalTimelineMetric(c.Param("metric"))
@@ -99,13 +96,13 @@ func GetOverviewHistoricalTimelineHandler(c *gin.Context) {
 		return
 	}
 
-	if storage.Stg == nil {
+	if deps.Storage == nil {
 		logging.Errorf(ctx, "Storage not initialized")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "storage not available"})
 		return
 	}
 
-	snapshots, err := storage.Stg.GetSnapshotsInRange(clusterID, startTime, endTime)
+	snapshots, err := deps.Storage.GetSnapshotsInRange(clusterID, startTime, endTime)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get snapshots for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -134,8 +131,9 @@ func GetOverviewHistoricalTimelineHandler(c *gin.Context) {
 			addTimelinePoint(&response.Data, "Recommended", "#7c3aed", threshold, snapshot.CreatedAt, snapshot.Data.Memory.RecommendedRequested)
 		}
 	case types.HistoricalTimelineMetricCost:
+		pricing := deps.getEffectivePricing(ctx, clusterID)
 		for _, snapshot := range snapshots {
-			currentCost, withoutCruiseKubeCost, withCruiseKubeCost := buildCostFromSnapshot(c, clusterID, snapshot)
+			currentCost, withoutCruiseKubeCost, withCruiseKubeCost := buildCostFromSnapshot(pricing, snapshot)
 			addTimelinePoint(&response.Data, "Hourly Cost Without CruiseKube", "#f59e0b", currentCost, snapshot.CreatedAt, withoutCruiseKubeCost)
 			addTimelinePoint(&response.Data, "Hourly Cost", "#2563eb", currentCost, snapshot.CreatedAt, currentCost)
 			addTimelinePoint(&response.Data, "Hourly Cost With CruiseKube", "#16a34a", currentCost, snapshot.CreatedAt, withCruiseKubeCost)

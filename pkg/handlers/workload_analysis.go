@@ -16,11 +16,11 @@ const (
 	NoValue  = "No"
 )
 
-func WorkloadAnalysisHandlerForCluster(c *gin.Context) {
+func (deps HandlerDependencies) WorkloadAnalysisHandlerForCluster(c *gin.Context) {
 	// ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
-	analysis, err := generateWorkloadAnalysisForCluster(clusterID)
+	analysis, err := deps.generateWorkloadAnalysisForCluster(clusterID)
 	if err != nil {
 		logging.Errorf(c.Request.Context(), "Failed to generate workload analysis for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -81,13 +81,13 @@ func calculateRequestGap(requestedCPU, p50 float64) float64 {
 	return (requestedCPU - p50)
 }
 
-func generateWorkloadAnalysisForCluster(clusterID string) ([]types.WorkloadAnalysisItem, error) {
-	statsFile, err := utils.LoadStatsFromClusterStorage(clusterID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load stats from storage for cluster %s: %w", clusterID, err)
+func (deps HandlerDependencies) generateWorkloadAnalysisForCluster(clusterID string) ([]types.WorkloadAnalysisItem, error) {
+	var statsFile types.StatsResponse
+	if err := deps.Storage.ReadClusterStats(clusterID, &statsFile); err != nil {
+		return nil, fmt.Errorf("failed to read cluster stats: %w", err)
 	}
 
-	var analysis []types.WorkloadAnalysisItem
+	analysis := make([]types.WorkloadAnalysisItem, 0, len(statsFile.Stats))
 	for _, stat := range statsFile.Stats {
 		if stat.IsGPUWorkload() {
 			continue

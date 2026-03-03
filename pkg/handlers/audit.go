@@ -8,7 +8,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 )
 
 const defaultAuditMinutes = 60
@@ -32,7 +31,7 @@ func parseMinutesParam(c *gin.Context) (int, error) {
 
 // GetAuditEventsHandler returns all audit events for the cluster from the last x minutes.
 // GET /api/v1/clusters/:clusterID/audit-events?minutes=60
-func GetAuditEventsHandler(c *gin.Context) {
+func (deps HandlerDependencies) GetAuditEventsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 	minutes, err := parseMinutesParam(c)
@@ -41,14 +40,14 @@ func GetAuditEventsHandler(c *gin.Context) {
 		return
 	}
 
-	if storage.Stg == nil {
+	if deps.Storage == nil {
 		logging.Errorf(ctx, "Storage not initialized")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "storage not available"})
 		return
 	}
 
 	since := time.Now().Add(-time.Duration(minutes) * time.Minute)
-	events, err := storage.Stg.GetAuditEvents(clusterID, since)
+	events, err := deps.Storage.GetAuditEvents(clusterID, since)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get audit events for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -60,7 +59,7 @@ func GetAuditEventsHandler(c *gin.Context) {
 
 // GetAuditEventsForWorkloadHandler returns audit events for a specific workload from the last x minutes.
 // GET /api/v1/clusters/:clusterID/audit-events/:workloadID?minutes=60
-func GetAuditEventsForWorkloadHandler(c *gin.Context) {
+func (deps HandlerDependencies) GetAuditEventsForWorkloadHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 	workloadID := c.Param("workloadID")
@@ -70,14 +69,14 @@ func GetAuditEventsForWorkloadHandler(c *gin.Context) {
 		return
 	}
 
-	if storage.Stg == nil {
+	if deps.Storage == nil {
 		logging.Errorf(ctx, "Storage not initialized")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "storage not available"})
 		return
 	}
 
 	since := time.Now().Add(-time.Duration(minutes) * time.Minute)
-	events, err := storage.Stg.GetAuditEventsForWorkload(clusterID, workloadID, since)
+	events, err := deps.Storage.GetAuditEventsForWorkload(clusterID, workloadID, since)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get audit events for workload %s in cluster %s: %v", workloadID, clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

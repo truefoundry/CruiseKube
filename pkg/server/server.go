@@ -24,31 +24,31 @@ func SetupServerEngine(handlerDeps handlers.HandlerDependencies, authAPI gin.Han
 	clusterGroup := apiV1Group.Group("/clusters/:clusterID", authAPI, ensureClusterExists)
 	{
 		clusterGroup.GET("/stats", handlerDeps.HandleClusterStats)
-		clusterGroup.GET("/workload-analysis", handlers.WorkloadAnalysisHandlerForCluster)
-		clusterGroup.GET("/recommendation-analysis", handlers.RecommendationAnalysisHandlerForCluster)
-		clusterGroup.Any("/prometheus-proxy/*proxyPath", handlers.HandlePrometheusProxy)
-		clusterGroup.GET("/prometheus-query", handlers.HandlePrometheusQuery)
+		clusterGroup.GET("/workload-analysis", handlerDeps.WorkloadAnalysisHandlerForCluster)
+		clusterGroup.GET("/recommendation-analysis", handlerDeps.RecommendationAnalysisHandlerForCluster)
+		clusterGroup.Any("/prometheus-proxy/*proxyPath", handlerDeps.HandlePrometheusProxy)
+		clusterGroup.GET("/prometheus-query", handlerDeps.HandlePrometheusQuery)
 		clusterGroup.GET("/config", handlerDeps.GetConfigHandler)
-		clusterGroup.POST("/killswitch", handlers.KillswitchHandler)
-		clusterGroup.GET("/workloads", handlers.ListWorkloadsHandler)
-		clusterGroup.GET("/workloads/summary", handlers.WorkloadSummaryHandler)
-		clusterGroup.GET("/workloads/:namespace/:workloadName/detail", handlers.HandleWorkloadDetail)
-		clusterGroup.POST("/workloads/:workloadID/overrides", handlers.UpdateWorkloadOverridesHandler)
+		clusterGroup.POST("/killswitch", handlerDeps.KillswitchHandler)
+		clusterGroup.GET("/workloads", handlerDeps.ListWorkloadsHandler)
+		clusterGroup.GET("/workloads/summary", handlerDeps.WorkloadSummaryHandler)
+		clusterGroup.GET("/workloads/:namespace/:workloadName/detail", handlerDeps.HandleWorkloadDetail)
+		clusterGroup.POST("/workloads/:workloadID/overrides", handlerDeps.UpdateWorkloadOverridesHandler)
 		// Audit Events
-		clusterGroup.GET("/audit-events", handlers.GetAuditEventsHandler)
-		clusterGroup.GET("/audit-events/:workloadID", handlers.GetAuditEventsForWorkloadHandler)
+		clusterGroup.GET("/audit-events", handlerDeps.GetAuditEventsHandler)
+		clusterGroup.GET("/audit-events/:workloadID", handlerDeps.GetAuditEventsForWorkloadHandler)
 		// UI Overview
-		clusterGroup.GET("/ui/overview", handlers.OverviewHandler)
-		clusterGroup.GET("/ui/overview/historical-timeline/:metric", handlers.GetOverviewHistoricalTimelineHandler)
+		clusterGroup.GET("/ui/overview", handlerDeps.OverviewHandler)
+		clusterGroup.GET("/ui/overview/historical-timeline/:metric", handlerDeps.GetOverviewHistoricalTimelineHandler)
 		// Settings
-		clusterGroup.GET("/settings", handlers.GetSettingsHandler)
-		clusterGroup.PUT("/settings", handlers.UpdateSettingsHandler)
+		clusterGroup.GET("/settings", handlerDeps.GetSettingsHandler)
+		clusterGroup.PUT("/settings", handlerDeps.UpdateSettingsHandler)
 	}
 
 	if enableDevAPIs {
 		devGroup := apiV1Group.Group("/dev/clusters/:clusterID", authAPI, ensureClusterExists)
 		{
-			devGroup.POST("/tasks/:taskName/trigger", handlers.HandleTaskTrigger)
+			devGroup.POST("/tasks/:taskName/trigger", handlerDeps.HandleTaskTrigger)
 		}
 	}
 

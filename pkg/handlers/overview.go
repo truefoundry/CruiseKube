@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -26,18 +24,17 @@ func percent(part, total float64) float64 {
 	return part / total * 100
 }
 
-func getClusterNodeCount(ctx *gin.Context, clusterID string) int {
-	mgr, _ := ctx.Get("clusterManager")
-	if mgr == nil {
+func (deps HandlerDependencies) getClusterNodeCount(ctx context.Context, clusterID string) int {
+	if deps.ClusterManager == nil {
 		return 0
 	}
-	clients, err := mgr.(cluster.Manager).GetClusterClients(clusterID)
+	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
 	if err != nil || clients == nil || clients.KubeClient == nil {
 		return 0
 	}
-	nodes, err := clients.KubeClient.CoreV1().Nodes().List(ctx.Request.Context(), metav1.ListOptions{})
+	nodes, err := clients.KubeClient.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		logging.Warnf(ctx.Request.Context(), "Failed to list nodes for cluster %s: %v", clusterID, err)
+		logging.Warnf(ctx, "Failed to list nodes for cluster %s: %v", clusterID, err)
 		return 0
 	}
 	return len(nodes.Items)
@@ -52,7 +49,7 @@ type clusterResourcesFromDB struct {
 
 // getClusterResourcesFromDatabase loads cluster allocatable/requested/utilised from the snapshots table,
 // and computes request-to-allocatable ratios as the average over the last 7 days using at most 10 samples (one per day).
-func getClusterResourcesFromDatabase(ctx context.Context, clusterID string) clusterResourcesFromDB {
+func (deps HandlerDependencies) getClusterResourcesFromDatabase(ctx context.Context, clusterID string) clusterResourcesFromDB {
 	out := clusterResourcesFromDB{
 		Resources: types.ClusterResourcesDTO{
 			CPU:    types.ClusterResourceDTO{Utilised: 0, Requested: 0, Allocatable: 0},
@@ -61,12 +58,12 @@ func getClusterResourcesFromDatabase(ctx context.Context, clusterID string) clus
 		ReqAllocRatioCPU: 1.0,
 		ReqAllocRatioMem: 1.0,
 	}
-	if storage.Stg == nil {
+	if deps.Storage == nil {
 		return out
 	}
 	endTime := time.Now().UTC()
 	startTime := endTime.AddDate(0, 0, -ratioLookbackDays)
-	snapshots, err := storage.Stg.GetSnapshotsInRange(clusterID, startTime, endTime)
+	snapshots, err := deps.Storage.GetSnapshotsInRange(clusterID, startTime, endTime)
 	if err != nil {
 		logging.Warnf(ctx, "Failed to get snapshots for cluster %s: %v", clusterID, err)
 		return out
@@ -117,18 +114,18 @@ func getClusterResourcesFromDatabase(ctx context.Context, clusterID string) clus
 	return out
 }
 
-func OverviewHandler(c *gin.Context) {
+func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
-	details, _, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := getWorkloadsData(ctx, clusterID)
+	details, _, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := deps.getWorkloadsData(ctx, clusterID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	p := getEffectivePricing(ctx, clusterID)
-	dbRes := getClusterResourcesFromDatabase(ctx, clusterID)
+	p := deps.getEffectivePricing(ctx, clusterID)
+	dbRes := deps.getClusterResourcesFromDatabase(ctx, clusterID)
 	clusterRes := dbRes.Resources
 	reqAllocRatioCPU := dbRes.ReqAllocRatioCPU
 	reqAllocRatioMem := dbRes.ReqAllocRatioMem
@@ -197,7 +194,7 @@ func OverviewHandler(c *gin.Context) {
 		CurrentSavings:     int(workloadCostDollars - currentCostDollars),
 		PossibleSavings:    int(workloadCostDollars - optimizedCostDollars),
 		ClusterUtilisation: math.Round(clusterUtilisation),
-		NodeCount:          getClusterNodeCount(c, clusterID),
+		NodeCount:          deps.getClusterNodeCount(ctx, clusterID),
 		Coverage: types.OverviewCoverage{
 			Adoption: types.OverviewCoverageBreakdown{
 				Enabled:  enabledAdoption,
