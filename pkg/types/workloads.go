@@ -31,18 +31,6 @@ func (w *WorkloadOverrideInfo) EffectiveEvictionRanking() EvictionRanking {
 	return w.Overrides.EvictionRanking
 }
 
-type WorkloadAnalysisItem struct {
-	WorkloadType      string        `json:"workload_type"`
-	WorkloadNamespace string        `json:"workload_namespace"`
-	WorkloadName      string        `json:"workload_name"`
-	ContainerName     string        `json:"container_name"`
-	ContainerType     ContainerType `json:"container_type"`
-	CPUUsage7Days     string        `json:"cpu_usage_7_days"`
-	SpikeRange        float64       `json:"spike_range"`
-	RequestGap        float64       `json:"request_gap"`
-	BlockingKarpenter string        `json:"blocking_karpenter"`
-}
-
 type KillswitchResponse struct {
 	Message                string   `json:"message"`
 	DeletedMutatingWebhook bool     `json:"deleted_mutating_webhook"`
@@ -58,7 +46,6 @@ type RecommendationAnalysisItem struct {
 	WorkloadName           string  `json:"workload_name"`
 	PodName                string  `json:"pod_name"`
 	ContainerName          string  `json:"container_name"`
-	CPUUsage7Days          string  `json:"cpu_usage_7_days"`
 	SpikeRange             float64 `json:"spike_range"`
 	RequestGap             float64 `json:"request_gap"`
 	BlockingKarpenter      string  `json:"blocking_karpenter"`

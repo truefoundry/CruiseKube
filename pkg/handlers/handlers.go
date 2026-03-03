@@ -25,7 +25,6 @@ func HandleRoot(c *gin.Context) {
 			"endpoints": {
 				"/clusters": "Lists all available clusters",
 				"/clusters/{clusterId}/stats": "Serves stats file for specific cluster",
-				"/clusters/{clusterId}/workload-analysis": "Generates workload analysis for specific cluster",
 				"/clusters/{clusterId}/prometheus-proxy": "Proxies requests to cluster's Prometheus instance",
 				"/clusters/{clusterId}/killswitch": "Deletes MutatingWebhookConfiguration objects and kills pods with resource differences (POST only)",
 				"/clusters/{clusterId}/webhook/mutate": "Mutating admission webhook for pod resource adjustment",

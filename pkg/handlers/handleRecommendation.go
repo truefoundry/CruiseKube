@@ -17,6 +17,10 @@ import (
 )
 
 func (deps HandlerDependencies) RecommendationAnalysisHandlerForCluster(c *gin.Context) {
+const (
+	YesValue = "Yes"
+	NoValue  = "No"
+)
 	c.Header("Content-Type", "application/json")
 	clusterID := c.Param("clusterID")
 	response, err := generateRecommendationAnalysisForCluster(c.Request.Context(), clusterID, deps.ClusterManager)
@@ -90,13 +94,7 @@ func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, node
 		blockingKarpenter = YesValue
 	}
 
-	cpuUsage7Days := "N/A"
-	containerStat, err := stat.GetContainerStats(containerName)
-	if err == nil && containerStat.CPU7Day != nil {
-		cpuUsage7Days = fmt.Sprintf("%.2f / %.2f / %.2f / %.2f / %.2f",
-			containerStat.CPU7Day.Max, containerStat.CPU7Day.P99,
-			containerStat.CPU7Day.P90, containerStat.CPU7Day.P75, containerStat.CPU7Day.P50)
-	}
+	containerStat, _ := stat.GetContainerStats(containerName)
 
 	spikeRange := 0.0
 	if containerStat != nil && containerStat.SimplePredictionsCPU != nil && containerStat.CPUStats != nil {
@@ -117,7 +115,6 @@ func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, node
 		WorkloadName:           stat.Name,
 		ContainerName:          containerName,
 		PodName:                podName,
-		CPUUsage7Days:          cpuUsage7Days,
 		SpikeRange:             spikeRange,
 		RequestGap:             requestGap,
 		BlockingKarpenter:      blockingKarpenter,
