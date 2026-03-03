@@ -34,15 +34,17 @@ func startControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) 
 		return err
 	}
 
+	runtimeManager.AddCleanup(func(ctx context.Context) error {
+		runtime.clusterManager.StopScheduler(ctx)
+		return nil
+	})
+
 	startControllerHTTPServer(runtimeManager, cfg, runtime.clusterManager)
 	startOOMWorkers(runtimeManager.ctx, cfg, runtime.clusterManager, runtime.storageRepo)
 	registerControllerTasks(runtimeManager.ctx, cfg, runtime.clusterManager, runtime.promClient, runtime.storageRepo)
-	runtimeManager.Go("controller scheduler", func(context.Context) error {
-		if err := runtime.clusterManager.ScheduleAllTasks(); err != nil {
-			return fmt.Errorf("failed to schedule tasks: %w", err)
-		}
-		return nil
-	})
+	if err := runtime.clusterManager.ScheduleAllTasks(runtimeManager.ctx); err != nil {
+		return fmt.Errorf("failed to schedule tasks: %w", err)
+	}
 
 	return nil
 }
