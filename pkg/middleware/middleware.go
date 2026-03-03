@@ -13,9 +13,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Dependencies(mgr cluster.Manager, cfg *config.Config) gin.HandlerFunc {
+func Dependencies(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("clusterManager", mgr)
 		c.Set("appConfig", cfg)
 		c.Next()
 	}
@@ -74,14 +73,13 @@ func Logger() gin.HandlerFunc {
 	})
 }
 
-func EnsureClusterExists() gin.HandlerFunc {
+func EnsureClusterExists(mgr cluster.Manager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Param("clusterID") == cluster.SingleClusterID {
 			c.Next()
 			return
 		}
 
-		mgr := c.MustGet("clusterManager").(cluster.Manager)
 		clusterID := c.Param("clusterID")
 
 		if clusterID == "" {
@@ -100,12 +98,12 @@ func EnsureClusterExists() gin.HandlerFunc {
 	}
 }
 
-func Common(mgr cluster.Manager, cfg *config.Config) []gin.HandlerFunc {
+func Common(cfg *config.Config) []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		Logger(),
 		gin.Recovery(),
 		CorsMiddleware(),
-		Dependencies(mgr, cfg),
+		Dependencies(cfg),
 		RequestContext(),
 	}
 }
