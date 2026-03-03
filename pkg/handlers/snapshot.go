@@ -41,8 +41,8 @@ func buildCostFromSnapshot(ctx *gin.Context, clusterID string, snapshot types.Sn
 	if snapshot.Data.Memory.CurrentAllocatable > 0 {
 		reqAllocRatioMem = snapshot.Data.Memory.CurrentRequested / snapshot.Data.Memory.CurrentAllocatable
 	}
-	requestedMemGB := snapshot.Data.Memory.WorkloadRequested / 1024
-	recommendedMemGB := snapshot.Data.Memory.RecommendedRequested / 1024
+	requestedMemGB := snapshot.Data.Memory.WorkloadRequested
+	recommendedMemGB := snapshot.Data.Memory.RecommendedRequested
 
 	// Cost series values are per hour.
 	currentCost := snapshot.Data.CPU.CurrentAllocatable*p.CPUPerCorePerHour + snapshot.Data.Memory.CurrentAllocatable*p.MemPerGBPerHour

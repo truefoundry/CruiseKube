@@ -644,6 +644,11 @@ func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, node
 		currentAllocatableMemory += ni.AllocatableMemory
 		currentRequestedCPU += ni.RequestedCPU
 		currentRequestedMemory += ni.RequestedMemory
+
+		for _, pod := range ni.Pods {
+			workloadRequestedCPU += pod.Stats.CalculateTotalCPURequest()
+			workloadRequestedMemory += pod.Stats.CalculateTotalMemoryRequest()
+		}
 	}
 
 	currentUtilizedCPU = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterCPUUtilizationExpression())
@@ -652,16 +657,8 @@ func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, node
 	podKeys := make(map[string]struct{})
 	for _, res := range recommendationResults {
 		for _, rec := range res.PodContainerRecommendations {
-			podKeys[rec.PodInfo.Namespace+"/"+rec.PodInfo.Name] = struct{}{}
 			recommendedRequestedCPU += rec.CPU
 			recommendedRequestedMemory += rec.Memory
-			cr, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
-			if err != nil {
-				logging.Warnf(ctx, "snapshot: skip workload requested for %s/%s container %s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
-				continue
-			}
-			workloadRequestedCPU += cr.CPURequest
-			workloadRequestedMemory += cr.MemoryRequest
 		}
 	}
 
