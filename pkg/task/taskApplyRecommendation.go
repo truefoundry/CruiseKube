@@ -646,6 +646,9 @@ func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, node
 		currentRequestedMemory += ni.RequestedMemory
 
 		for _, pod := range ni.Pods {
+			if pod.Stats == nil {
+				continue
+			}
 			workloadRequestedCPU += pod.Stats.CalculateTotalCPURequest()
 			workloadRequestedMemory += pod.Stats.CalculateTotalMemoryRequest()
 		}
