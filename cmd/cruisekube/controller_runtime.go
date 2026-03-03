@@ -14,6 +14,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
+	"github.com/truefoundry/cruisekube/pkg/handlers"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/middleware"
 	"github.com/truefoundry/cruisekube/pkg/oom"
@@ -26,6 +27,7 @@ type controllerRuntime struct {
 	clusterManager cluster.Manager
 	promClient     *prometheus.PrometheusProvider
 	storageRepo    *storage.Storage
+	auditRecorder  *audit.Audit
 }
 
 func startControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) error {
@@ -39,7 +41,12 @@ func startControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) 
 		return nil
 	})
 
-	startControllerHTTPServer(runtimeManager, cfg, runtime.clusterManager)
+	startControllerHTTPServer(runtimeManager, cfg, handlers.HandlerDependencies{
+		Storage:        runtime.storageRepo,
+		AuditRecorder:  runtime.auditRecorder,
+		ClusterManager: runtime.clusterManager,
+		Config:         cfg,
+	})
 	startOOMWorkers(runtimeManager.ctx, cfg, runtime.clusterManager, runtime.storageRepo)
 	registerControllerTasks(runtimeManager.ctx, cfg, runtime.clusterManager, runtime.promClient, runtime.storageRepo)
 	if err := runtime.clusterManager.ScheduleAllTasks(runtimeManager.ctx); err != nil {
@@ -50,7 +57,7 @@ func startControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) 
 }
 
 func buildControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) (controllerRuntime, error) {
-	storageRepo, err := initStorageRepo(runtimeManager, cfg)
+	storageRepo, auditRecorder, err := initStorageRepo(runtimeManager, cfg)
 	if err != nil {
 		return controllerRuntime{}, err
 	}
@@ -63,10 +70,11 @@ func buildControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) 
 		clusterManager: clusterManager,
 		promClient:     promClient,
 		storageRepo:    storageRepo,
+		auditRecorder:  auditRecorder,
 	}, nil
 }
 
-func initStorageRepo(runtimeManager *runtimeManager, cfg *config.Config) (*storage.Storage, error) {
+func initStorageRepo(runtimeManager *runtimeManager, cfg *config.Config) (*storage.Storage, *audit.Audit, error) {
 	ctx := runtimeManager.ctx
 	databaseAdapter, err := database.NewDatabase(database.DatabaseConfig{
 		Type:     cfg.DB.Type,
@@ -78,7 +86,7 @@ func initStorageRepo(runtimeManager *runtimeManager, cfg *config.Config) (*stora
 		SSLMode:  cfg.DB.SSLMode,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize database: %w", err)
+		return nil, nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 	logging.Infof(ctx, "Database initialized")
 	runtimeManager.AddCleanup(func(context.Context) error {
@@ -87,7 +95,7 @@ func initStorageRepo(runtimeManager *runtimeManager, cfg *config.Config) (*stora
 
 	storageRepo, err := storage.NewStorageRepo(databaseAdapter)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize storage: %w", err)
+		return nil, nil, fmt.Errorf("failed to initialize storage: %w", err)
 	}
 	logging.Infof(ctx, "Storage Repo initialized")
 
@@ -99,7 +107,7 @@ func initStorageRepo(runtimeManager *runtimeManager, cfg *config.Config) (*stora
 		return nil
 	})
 
-	return storageRepo, nil
+	return storageRepo, recorder, nil
 }
 
 func buildClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Manager, *prometheus.PrometheusProvider, error) {
@@ -166,14 +174,14 @@ func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Man
 	return clusterManager, promClient, nil
 }
 
-func startControllerHTTPServer(runtimeManager *runtimeManager, cfg *config.Config, clusterManager cluster.Manager) {
+func startControllerHTTPServer(runtimeManager *runtimeManager, cfg *config.Config, handlerDeps handlers.HandlerDependencies) {
 	engine := server.SetupServerEngine(
-		clusterManager,
+		handlerDeps,
 		middleware.AuthAPI(),
 		middleware.AuthWebhook(),
 		middleware.EnsureClusterExists(),
 		cfg.Server.EnableDevAPIs,
-		middleware.Common(clusterManager, cfg)...,
+		middleware.Common(handlerDeps.ClusterManager, cfg)...,
 	)
 
 	startHTTPServer(runtimeManager, "controller HTTP server", "Starting HTTP server on :"+cfg.Server.Port, &http.Server{

@@ -12,7 +12,6 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
@@ -42,9 +41,9 @@ func HandleHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 }
 
-func HandleListClusters(c *gin.Context) {
+func (deps HandlerDependencies) HandleListClusters(c *gin.Context) {
 	ctx := c.Request.Context()
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
+	mgr := deps.ClusterManager
 
 	logging.Infof(ctx, "Serving cluster list to %s", c.ClientIP())
 
@@ -52,7 +51,7 @@ func HandleListClusters(c *gin.Context) {
 
 	clusters := make([]map[string]any, len(clusterIDs))
 	for i, clusterID := range clusterIDs {
-		statsExists, err := storage.Stg.ClusterStatsExists(clusterID)
+		statsExists, err := deps.Storage.ClusterStatsExists(clusterID)
 		if err != nil {
 			logging.Errorf(ctx, "Failed to check if cluster stats exists for %s: %v", clusterID, err)
 			continue
@@ -73,7 +72,7 @@ func HandleListClusters(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func HandleClusterStats(c *gin.Context) {
+func (deps HandlerDependencies) HandleClusterStats(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
@@ -83,7 +82,7 @@ func HandleClusterStats(c *gin.Context) {
 	logging.Infof(ctx, "Serving stats for cluster %s to %s", clusterID, c.ClientIP())
 	c.Header("Content-Type", "application/json")
 	var statsResponse types.StatsResponse
-	if err := storage.Stg.ReadClusterStats(clusterID, &statsResponse); err != nil {
+	if err := deps.Storage.ReadClusterStats(clusterID, &statsResponse); err != nil {
 		logging.Errorf(ctx, "Failed to read cluster stats for %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to read cluster stats for %s: %v", clusterID, err),
