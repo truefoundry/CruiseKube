@@ -116,21 +116,25 @@ func GetOverviewHistoricalTimelineHandler(c *gin.Context) {
 		Data: make([]types.HistoricalTimelineItem, 0, len(snapshots)*4),
 	}
 
-	for _, snapshot := range snapshots {
-		switch metric {
-		case types.HistoricalTimelineMetricCPU:
+	switch metric {
+	case types.HistoricalTimelineMetricCPU:
+		for _, snapshot := range snapshots {
 			threshold := snapshot.Data.CPU.CurrentAllocatable
 			addTimelinePoint(&response.Data, "Allocatable", "#2563eb", threshold, snapshot.CreatedAt, snapshot.Data.CPU.CurrentAllocatable)
 			addTimelinePoint(&response.Data, "Requested", "#f59e0b", threshold, snapshot.CreatedAt, snapshot.Data.CPU.CurrentRequested)
 			addTimelinePoint(&response.Data, "Usage", "#16a34a", threshold, snapshot.CreatedAt, snapshot.Data.CPU.CurrentUtilized)
 			addTimelinePoint(&response.Data, "Recommended", "#7c3aed", threshold, snapshot.CreatedAt, snapshot.Data.CPU.RecommendedRequested)
-		case types.HistoricalTimelineMetricMemory:
+		}
+	case types.HistoricalTimelineMetricMemory:
+		for _, snapshot := range snapshots {
 			threshold := snapshot.Data.Memory.CurrentAllocatable
 			addTimelinePoint(&response.Data, "Allocatable", "#2563eb", threshold, snapshot.CreatedAt, snapshot.Data.Memory.CurrentAllocatable)
 			addTimelinePoint(&response.Data, "Requested", "#f59e0b", threshold, snapshot.CreatedAt, snapshot.Data.Memory.CurrentRequested)
 			addTimelinePoint(&response.Data, "Usage", "#16a34a", threshold, snapshot.CreatedAt, snapshot.Data.Memory.CurrentUtilized)
 			addTimelinePoint(&response.Data, "Recommended", "#7c3aed", threshold, snapshot.CreatedAt, snapshot.Data.Memory.RecommendedRequested)
-		case types.HistoricalTimelineMetricCost:
+		}
+	case types.HistoricalTimelineMetricCost:
+		for _, snapshot := range snapshots {
 			currentCost, withoutCruiseKubeCost, withCruiseKubeCost := buildCostFromSnapshot(c, clusterID, snapshot)
 			addTimelinePoint(&response.Data, "Hourly Cost Without CruiseKube", "#f59e0b", currentCost, snapshot.CreatedAt, withoutCruiseKubeCost)
 			addTimelinePoint(&response.Data, "Hourly Cost", "#2563eb", currentCost, snapshot.CreatedAt, currentCost)
