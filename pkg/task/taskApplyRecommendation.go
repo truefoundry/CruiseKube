@@ -657,9 +657,10 @@ func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, node
 	currentUtilizedCPU = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterCPUUtilizationExpression())
 	currentUtilizedMemory = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterMemoryUtilizationExpression())
 
-	podKeys := make(map[string]struct{})
+	recommendedPods := 0
 	for _, res := range recommendationResults {
 		for _, rec := range res.PodContainerRecommendations {
+			recommendedPods++
 			recommendedRequestedCPU += rec.CPU
 			recommendedRequestedMemory += rec.Memory
 		}
@@ -685,7 +686,7 @@ func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, node
 		return nil
 	}
 
-	if len(podKeys) == 0 {
+	if recommendedPods == 0 {
 		logging.Warnf(ctx, "snapshot: no pods were recommended, skipping snapshot")
 		return nil
 	}
