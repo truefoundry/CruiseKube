@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,17 +14,20 @@ import (
 const defaultAuditMinutes = 60
 const maxAuditMinutes = 43200 // 30 days
 
-// parseMinutesParam parses the "minutes" query param; returns defaultAuditMinutes if missing or invalid, clamped to [1, maxAuditMinutes].
-func parseMinutesParam(c *gin.Context) int {
+// parseMinutesParam parses the "minutes" query param. Returns an error if missing, invalid, or out of range [1, maxAuditMinutes].
+func parseMinutesParam(c *gin.Context) (int, error) {
 	s := c.DefaultQuery("minutes", strconv.Itoa(defaultAuditMinutes))
 	m, err := strconv.Atoi(s)
-	if err != nil || m < 1 {
-		return defaultAuditMinutes
+	if err != nil {
+		return 0, fmt.Errorf("minutes must be a valid integer, got %q", s)
+	}
+	if m < 1 {
+		return 0, fmt.Errorf("minutes must be at least 1, got %d", m)
 	}
 	if m > maxAuditMinutes {
-		return maxAuditMinutes
+		return 0, fmt.Errorf("minutes must be at most %d, got %d", maxAuditMinutes, m)
 	}
-	return m
+	return m, nil
 }
 
 // GetAuditEventsHandler returns all audit events for the cluster from the last x minutes.
@@ -31,7 +35,11 @@ func parseMinutesParam(c *gin.Context) int {
 func GetAuditEventsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
-	minutes := parseMinutesParam(c)
+	minutes, err := parseMinutesParam(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	if storage.Stg == nil {
 		logging.Errorf(ctx, "Storage not initialized")
@@ -56,7 +64,11 @@ func GetAuditEventsForWorkloadHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 	workloadID := c.Param("workloadID")
-	minutes := parseMinutesParam(c)
+	minutes, err := parseMinutesParam(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	if storage.Stg == nil {
 		logging.Errorf(ctx, "Storage not initialized")
