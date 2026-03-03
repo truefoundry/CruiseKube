@@ -16,11 +16,12 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
-func (deps HandlerDependencies) RecommendationAnalysisHandlerForCluster(c *gin.Context) {
 const (
 	YesValue = "Yes"
 	NoValue  = "No"
 )
+
+func (deps HandlerDependencies) RecommendationAnalysisHandlerForCluster(c *gin.Context) {
 	c.Header("Content-Type", "application/json")
 	clusterID := c.Param("clusterID")
 	response, err := generateRecommendationAnalysisForCluster(c.Request.Context(), clusterID, deps.ClusterManager)
