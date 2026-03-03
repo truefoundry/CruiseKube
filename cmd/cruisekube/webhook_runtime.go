@@ -26,7 +26,7 @@ func startWebhookRuntime(runtimeManager *runtimeManager, cfg *config.Config) {
 		panic(err)
 	}
 
-	webhookEngine := server.SetupWebhookServerEngine(handlerDeps, middleware.Common(cfg)...)
+	webhookEngine := server.SetupWebhookServerEngine(handlerDeps, middleware.Common()...)
 	webhookServer := &http.Server{
 		Addr:              ":" + webhookPort,
 		Handler:           webhookEngine,

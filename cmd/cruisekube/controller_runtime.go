@@ -205,7 +205,7 @@ func startControllerHTTPServer(runtimeManager *runtimeManager, cfg *config.Confi
 		middleware.AuthWebhook(),
 		middleware.EnsureClusterExists(handlerDeps.ClusterManager),
 		cfg.Server.EnableDevAPIs,
-		middleware.Common(cfg)...,
+		middleware.Common()...,
 	)
 
 	startHTTPServer(runtimeManager, "controller HTTP server", "Starting HTTP server on :"+cfg.Server.Port, &http.Server{

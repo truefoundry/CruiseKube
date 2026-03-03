@@ -5,20 +5,12 @@ import (
 	"net/http"
 
 	"github.com/truefoundry/cruisekube/pkg/cluster"
-	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
-
-func Dependencies(cfg *config.Config) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Set("appConfig", cfg)
-		c.Next()
-	}
-}
 
 func AuthWebhook() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -98,12 +90,11 @@ func EnsureClusterExists(mgr cluster.Manager) gin.HandlerFunc {
 	}
 }
 
-func Common(cfg *config.Config) []gin.HandlerFunc {
+func Common() []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		Logger(),
 		gin.Recovery(),
 		CorsMiddleware(),
-		Dependencies(cfg),
 		RequestContext(),
 	}
 }
