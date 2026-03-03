@@ -44,10 +44,19 @@ func TestSchedulerSkipsOverlappingExecutions(t *testing.T) {
 	t.Parallel()
 
 	scheduler := NewScheduler()
-	defer scheduler.Stop(context.Background())
+	t.Cleanup(func() {
+		scheduler.Stop(context.Background())
+	})
 
 	started := make(chan struct{})
 	release := make(chan struct{})
+	t.Cleanup(func() {
+		select {
+		case <-release:
+		default:
+			close(release)
+		}
+	})
 	unexpectedRun := make(chan struct{}, 1)
 	var runCount atomic.Int32
 	var firstRun atomic.Bool
@@ -86,8 +95,6 @@ func TestSchedulerSkipsOverlappingExecutions(t *testing.T) {
 	if got := runCount.Load(); got != 1 {
 		t.Fatalf("run count while first execution is blocked = %d, want 1", got)
 	}
-
-	close(release)
 }
 
 func TestSchedulerWaitReturnsAfterStop(t *testing.T) {
