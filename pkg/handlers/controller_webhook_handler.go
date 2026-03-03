@@ -82,7 +82,10 @@ func (deps HandlerDependencies) HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	overrides, _ := deps.Storage.GetWorkloadOverrides(clusterID, workloadKey)
+	overrides, err := deps.Storage.GetWorkloadOverrides(clusterID, workloadKey)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to get workload overrides for %s in cluster %s: %v; proceeding without overrides", workloadKey, clusterID, err)
+	}
 	overrideInfo := buildWorkloadOverrideInfo(workloadKey, stat, overrides)
 
 	podInfo := utils.BuildPodInfoFromPod(&pod, workloadInfo, stat)

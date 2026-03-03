@@ -18,6 +18,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/middleware"
 	"github.com/truefoundry/cruisekube/pkg/oom"
+	"github.com/truefoundry/cruisekube/pkg/ports"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/server"
 	"github.com/truefoundry/cruisekube/pkg/task"
@@ -57,10 +58,17 @@ func startControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) 
 }
 
 func buildControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) (controllerRuntime, error) {
-	storageRepo, auditRecorder, err := initStorageRepo(runtimeManager, cfg)
+	databaseAdapter, err := initDatabaseAdapter(runtimeManager, cfg)
 	if err != nil {
 		return controllerRuntime{}, err
 	}
+
+	storageRepo, err := initStorageRepo(runtimeManager.ctx, databaseAdapter)
+	if err != nil {
+		return controllerRuntime{}, err
+	}
+
+	auditRecorder := initAuditRecorder(runtimeManager, databaseAdapter)
 	clusterManager, promClient, err := buildClusterRuntime(runtimeManager.ctx, cfg)
 	if err != nil {
 		return controllerRuntime{}, err
@@ -74,8 +82,7 @@ func buildControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) 
 	}, nil
 }
 
-func initStorageRepo(runtimeManager *runtimeManager, cfg *config.Config) (*storage.Storage, *audit.Audit, error) {
-	ctx := runtimeManager.ctx
+func initDatabaseAdapter(runtimeManager *runtimeManager, cfg *config.Config) (ports.Database, error) {
 	databaseAdapter, err := database.NewDatabase(database.DatabaseConfig{
 		Type:     cfg.DB.Type,
 		Host:     cfg.DB.Host,
@@ -86,28 +93,39 @@ func initStorageRepo(runtimeManager *runtimeManager, cfg *config.Config) (*stora
 		SSLMode:  cfg.DB.SSLMode,
 	})
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to initialize database: %w", err)
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
-	logging.Infof(ctx, "Database initialized")
+	logging.Infof(runtimeManager.ctx, "Database initialized")
 	runtimeManager.AddCleanup(func(context.Context) error {
 		return databaseAdapter.Close()
 	})
 
+	return databaseAdapter, nil
+}
+
+func initStorageRepo(ctx context.Context, databaseAdapter ports.Database) (*storage.Storage, error) {
 	storageRepo, err := storage.NewStorageRepo(databaseAdapter)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to initialize storage: %w", err)
+		return nil, fmt.Errorf("failed to initialize storage: %w", err)
 	}
 	logging.Infof(ctx, "Storage Repo initialized")
 
+	// TODO: Remove global singleton assignments once all handlers are migrated to HandlerDependencies.
 	storage.Stg = storageRepo
+	return storageRepo, nil
+}
+
+func initAuditRecorder(runtimeManager *runtimeManager, databaseAdapter ports.Database) *audit.Audit {
+	ctx := runtimeManager.ctx
 	recorder := audit.NewAudit(ctx, databaseAdapter, audit.Options{})
+	// TODO: Remove global singleton assignments once all handlers are migrated to HandlerDependencies.
 	audit.Recorder = recorder
 	runtimeManager.AddCleanup(func(context.Context) error {
 		recorder.Close()
 		return nil
 	})
 
-	return storageRepo, recorder, nil
+	return recorder
 }
 
 func buildClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Manager, *prometheus.PrometheusProvider, error) {

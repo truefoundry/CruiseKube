@@ -30,7 +30,19 @@ func (deps HandlerDependencies) MutateHandler(c *gin.Context) {
 	}
 	if review.Request == nil {
 		logging.Warnf(ctx, "Admission review has no request")
-		c.JSON(http.StatusOK, []client.JSONPatchOp{})
+		c.JSON(http.StatusOK, admissionv1.AdmissionReview{
+			TypeMeta: review.TypeMeta,
+			Response: &admissionv1.AdmissionResponse{
+				Allowed: true,
+			},
+		})
+		return
+	}
+	if deps.RecommenderClient == nil {
+		logging.Errorf(ctx, "RecommenderClient not configured")
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "webhook not properly configured",
+		})
 		return
 	}
 
