@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/client"
@@ -41,4 +42,44 @@ type HandlerDependencies struct {
 	ClusterManager    cluster.Manager
 	Config            *config.Config
 	RecommenderClient recommenderClient
+}
+
+func NewHandlerDependencies(
+	storage storageReader,
+	clusterManager cluster.Manager,
+	cfg *config.Config,
+	audit auditRecorder,
+	recommender recommenderClient,
+) (HandlerDependencies, error) {
+	if storage == nil {
+		return HandlerDependencies{}, fmt.Errorf("storage is required")
+	}
+	if clusterManager == nil {
+		return HandlerDependencies{}, fmt.Errorf("cluster manager is required")
+	}
+	if cfg == nil {
+		return HandlerDependencies{}, fmt.Errorf("config is required")
+	}
+
+	return HandlerDependencies{
+		Storage:           storage,
+		AuditRecorder:     audit,
+		ClusterManager:    clusterManager,
+		Config:            cfg,
+		RecommenderClient: recommender,
+	}, nil
+}
+
+func NewWebhookHandlerDependencies(cfg *config.Config, recommender recommenderClient) (HandlerDependencies, error) {
+	if cfg == nil {
+		return HandlerDependencies{}, fmt.Errorf("config is required")
+	}
+	if recommender == nil {
+		return HandlerDependencies{}, fmt.Errorf("recommender client is required")
+	}
+
+	return HandlerDependencies{
+		Config:            cfg,
+		RecommenderClient: recommender,
+	}, nil
 }

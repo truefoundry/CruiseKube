@@ -15,13 +15,18 @@ func startWebhookRuntime(runtimeManager *runtimeManager, cfg *config.Config) {
 	webhookPort := cfg.Webhook.Port
 	certDir := cfg.Webhook.CertsDir
 
-	webhookEngine := server.SetupWebhookServerEngine(handlers.HandlerDependencies{
-		Config: cfg,
-		RecommenderClient: client.NewRecommenderServiceClientWithClusterToken(
+	handlerDeps, err := handlers.NewWebhookHandlerDependencies(
+		cfg,
+		client.NewRecommenderServiceClientWithClusterToken(
 			cfg.Webhook.StatsURL.Host,
 			cfg.Webhook.StatsURL.TfyClusterToken,
 		),
-	}, middleware.Common(nil, cfg)...)
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	webhookEngine := server.SetupWebhookServerEngine(handlerDeps, middleware.Common(nil, cfg)...)
 	webhookServer := &http.Server{
 		Addr:              ":" + webhookPort,
 		Handler:           webhookEngine,

@@ -42,12 +42,18 @@ func startControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) 
 		return nil
 	})
 
-	startControllerHTTPServer(runtimeManager, cfg, handlers.HandlerDependencies{
-		Storage:        runtime.storageRepo,
-		AuditRecorder:  runtime.auditRecorder,
-		ClusterManager: runtime.clusterManager,
-		Config:         cfg,
-	})
+	handlerDeps, err := handlers.NewHandlerDependencies(
+		runtime.storageRepo,
+		runtime.clusterManager,
+		cfg,
+		runtime.auditRecorder,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize handler dependencies: %w", err)
+	}
+
+	startControllerHTTPServer(runtimeManager, cfg, handlerDeps)
 	startOOMWorkers(runtimeManager.ctx, cfg, runtime.clusterManager, runtime.storageRepo)
 	registerControllerTasks(runtimeManager.ctx, cfg, runtime.clusterManager, runtime.promClient, runtime.storageRepo)
 	if err := runtime.clusterManager.ScheduleAllTasks(runtimeManager.ctx); err != nil {
