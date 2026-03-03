@@ -51,7 +51,7 @@ func GetAuditEventsHandler(c *gin.Context) {
 }
 
 // GetAuditEventsForWorkloadHandler returns audit events for a specific workload from the last x minutes.
-// GET /api/v1/clusters/:clusterID/workloads/:workloadID/audit-events?minutes=60
+// GET /api/v1/clusters/:clusterID/audit-events/:workloadID?minutes=60
 func GetAuditEventsForWorkloadHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")

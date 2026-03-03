@@ -45,7 +45,7 @@ func getClusterNodeCount(ctx *gin.Context, clusterID string) int {
 
 // clusterResourcesFromDB holds cluster resource values and the 7-day average request/allocatable ratios.
 type clusterResourcesFromDB struct {
-	Resources       types.ClusterResourcesDTO
+	Resources        types.ClusterResourcesDTO
 	ReqAllocRatioCPU float64
 	ReqAllocRatioMem float64
 }
@@ -141,6 +141,10 @@ func OverviewHandler(c *gin.Context) {
 	currentCostDollars := (clusterRes.CPU.Allocatable*p.CPUPerCorePerHour + clusterRes.Memory.Allocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
 	workloadCostDollars := (clusterReqCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 	optimizedCostDollars := (clusterRecCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+
+	currentCostDollars = math.Round(currentCostDollars)
+	workloadCostDollars = math.Round(workloadCostDollars)
+	optimizedCostDollars = math.Round(optimizedCostDollars)
 
 	// Cluster utilization is the highest of CPU and memory allocatable utilization (only across available dimensions).
 	var cpuRatio, memRatio *float64

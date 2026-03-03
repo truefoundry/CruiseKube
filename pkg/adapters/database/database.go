@@ -1,12 +1,14 @@
 package database
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/adapters/database/clients"
+	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/ports"
 	"github.com/truefoundry/cruisekube/pkg/types"
 	"gorm.io/gorm"
@@ -553,7 +555,8 @@ func (s *GormDB) GetAuditEvents(clusterID string, since time.Time) ([]types.Audi
 	for _, row := range rows {
 		var payload types.AuditPayload
 		if err := json.Unmarshal([]byte(row.Payload), &payload); err != nil {
-			continue // skip malformed payload
+			logging.Errorf(context.Background(), "failed to unmarshal audit payload id: %d: %v", row.ID, err)
+			continue
 		}
 		out = append(out, types.AuditEventRecord{
 			AuditEvent: types.AuditEvent{
@@ -569,19 +572,53 @@ func (s *GormDB) GetAuditEvents(clusterID string, since time.Time) ([]types.Audi
 }
 
 func (s *GormDB) GetAuditEventsForWorkload(clusterID, workloadID string, since time.Time) ([]types.AuditEventRecord, error) {
-	events, err := s.GetAuditEvents(clusterID, since)
-	if err != nil {
-		return nil, err
-	}
-	filtered := make([]types.AuditEventRecord, 0)
-	for _, e := range events {
-		if e.Payload.Details != nil {
-			if id, ok := e.Payload.Details["workloadId"].(string); ok && id == workloadID {
-				filtered = append(filtered, e)
+	var rows []AuditEventRow
+	// Filter by workload in SQL using JSON extraction on payload (no extra column).
+	var workloadCond string
+	switch s.db.Name() {
+	case "postgres":
+		workloadCond = "payload::jsonb->'details'->>'workloadId' = ?"
+	case "sqlite":
+		workloadCond = "json_extract(payload, '$.details.workloadId') = ?"
+	default:
+		// Fallback: load cluster events and filter in memory
+		events, err := s.GetAuditEvents(clusterID, since)
+		if err != nil {
+			return nil, err
+		}
+		filtered := make([]types.AuditEventRecord, 0)
+		for _, e := range events {
+			if e.Payload.Details != nil {
+				if id, ok := e.Payload.Details["workloadId"].(string); ok && id == workloadID {
+					filtered = append(filtered, e)
+				}
 			}
 		}
+		return filtered, nil
 	}
-	return filtered, nil
+	if err := s.db.Where("cluster_id = ? AND "+workloadCond+" AND created_at >= ?", clusterID, workloadID, since).
+		Order("created_at DESC").
+		Find(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to get audit events for cluster %s workload %s: %w", clusterID, workloadID, err)
+	}
+	out := make([]types.AuditEventRecord, 0, len(rows))
+	for _, row := range rows {
+		var payload types.AuditPayload
+		if err := json.Unmarshal([]byte(row.Payload), &payload); err != nil {
+			logging.Errorf(context.Background(), "failed to unmarshal audit payload id: %d: %v", row.ID, err)
+			continue
+		}
+		out = append(out, types.AuditEventRecord{
+			AuditEvent: types.AuditEvent{
+				ClusterID: row.ClusterID,
+				Type:      types.EventType(row.Type),
+				Category:  types.EventCategory(row.Category),
+				Payload:   payload,
+			},
+			CreatedAt: row.CreatedAt,
+		})
+	}
+	return out, nil
 }
 
 func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {
@@ -617,6 +654,7 @@ func (s *GormDB) GetSnapshotsInRange(clusterID string, startTime, endTime time.T
 	for _, row := range rows {
 		var data types.SnapshotData
 		if err := json.Unmarshal([]byte(row.Data), &data); err != nil {
+			logging.Errorf(context.Background(), "failed to unmarshal snapshot data id: %d: %v", row.ID, err)
 			continue
 		}
 		out = append(out, types.SnapshotRecord{

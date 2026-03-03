@@ -34,11 +34,11 @@ func buildCostFromSnapshot(ctx *gin.Context, clusterID string, snapshot types.Sn
 	p := getEffectivePricing(ctx.Request.Context(), clusterID)
 
 	reqAllocRatioCPU := 1.0
-	if snapshot.Data.CPU.CurrentAllocatable > 0 {
+	if snapshot.Data.CPU.CurrentAllocatable > 0 && snapshot.Data.CPU.CurrentRequested > 0 {
 		reqAllocRatioCPU = snapshot.Data.CPU.CurrentRequested / snapshot.Data.CPU.CurrentAllocatable
 	}
 	reqAllocRatioMem := 1.0
-	if snapshot.Data.Memory.CurrentAllocatable > 0 {
+	if snapshot.Data.Memory.CurrentAllocatable > 0 && snapshot.Data.Memory.CurrentRequested > 0 {
 		reqAllocRatioMem = snapshot.Data.Memory.CurrentRequested / snapshot.Data.Memory.CurrentAllocatable
 	}
 	requestedMemGB := snapshot.Data.Memory.WorkloadRequested
@@ -92,6 +92,10 @@ func GetOverviewHistoricalTimelineHandler(c *gin.Context) {
 	}
 	if endTime.Before(startTime) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "endTime must be greater than or equal to startTime"})
+		return
+	}
+	if endTime.Sub(startTime) > 90*24*time.Hour {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "time range too large; max allowed is 90 days"})
 		return
 	}
 
