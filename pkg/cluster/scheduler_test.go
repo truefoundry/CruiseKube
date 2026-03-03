@@ -48,15 +48,21 @@ func TestSchedulerSkipsOverlappingExecutions(t *testing.T) {
 
 	started := make(chan struct{})
 	release := make(chan struct{})
+	unexpectedRun := make(chan struct{}, 1)
 	var runCount atomic.Int32
 	var firstRun atomic.Bool
 
-	err := scheduler.ScheduleTask(context.Background(), "task", "5ms", func(context.Context) error {
+	err := scheduler.ScheduleTask(context.Background(), "task", "10ms", func(context.Context) error {
 		runCount.Add(1)
 
 		if firstRun.CompareAndSwap(false, true) {
 			close(started)
 			<-release
+		} else {
+			select {
+			case unexpectedRun <- struct{}{}:
+			default:
+			}
 		}
 
 		return nil
@@ -71,7 +77,11 @@ func TestSchedulerSkipsOverlappingExecutions(t *testing.T) {
 		t.Fatal("timed out waiting for first task run")
 	}
 
-	time.Sleep(20 * time.Millisecond)
+	select {
+	case <-unexpectedRun:
+		t.Fatal("task ran again while first execution was still blocked")
+	case <-time.After(35 * time.Millisecond):
+	}
 
 	if got := runCount.Load(); got != 1 {
 		t.Fatalf("run count while first execution is blocked = %d, want 1", got)
