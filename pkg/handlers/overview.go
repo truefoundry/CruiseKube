@@ -1,14 +1,22 @@
 package handlers
 
 import (
+	"context"
 	"math"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	maxRatioSamples   = 10
+	ratioLookbackDays = 7
 )
 
 func percent(part, total float64) float64 {
@@ -35,6 +43,80 @@ func getClusterNodeCount(ctx *gin.Context, clusterID string) int {
 	return len(nodes.Items)
 }
 
+// clusterResourcesFromDB holds cluster resource values and the 7-day average request/allocatable ratios.
+type clusterResourcesFromDB struct {
+	Resources       types.ClusterResourcesDTO
+	ReqAllocRatioCPU float64
+	ReqAllocRatioMem float64
+}
+
+// getClusterResourcesFromDatabase loads cluster allocatable/requested/utilised from the snapshots table,
+// and computes request-to-allocatable ratios as the average over the last 7 days using at most 10 samples (one per day).
+func getClusterResourcesFromDatabase(ctx context.Context, clusterID string) clusterResourcesFromDB {
+	out := clusterResourcesFromDB{
+		Resources: types.ClusterResourcesDTO{
+			CPU:    types.ClusterResourceDTO{Utilised: 0, Requested: 0, Allocatable: 0},
+			Memory: types.ClusterResourceDTO{Utilised: 0, Requested: 0, Allocatable: 0},
+		},
+		ReqAllocRatioCPU: 1.0,
+		ReqAllocRatioMem: 1.0,
+	}
+	if storage.Stg == nil {
+		return out
+	}
+	endTime := time.Now().UTC()
+	startTime := endTime.AddDate(0, 0, -ratioLookbackDays)
+	snapshots, err := storage.Stg.GetSnapshotsInRange(clusterID, startTime, endTime)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to get snapshots for cluster %s: %v", clusterID, err)
+		return out
+	}
+	if len(snapshots) == 0 {
+		return out
+	}
+
+	// Sample at most maxRatioSamples from different days for ratio averaging.
+	seenDays := make(map[string]struct{})
+	var ratioSamples []types.SnapshotRecord
+	for i := len(snapshots) - 1; i >= 0 && len(ratioSamples) < maxRatioSamples; i-- {
+		day := snapshots[i].CreatedAt.UTC().Format("2006-01-02")
+		if _, ok := seenDays[day]; ok {
+			continue
+		}
+		seenDays[day] = struct{}{}
+		ratioSamples = append(ratioSamples, snapshots[i])
+	}
+
+	var sumRatioCPU, sumRatioMem float64
+	var countCPU, countMem int
+	for _, s := range ratioSamples {
+		if s.Data.CPU.CurrentAllocatable > 0 {
+			sumRatioCPU += s.Data.CPU.CurrentRequested / s.Data.CPU.CurrentAllocatable
+			countCPU++
+		}
+		if s.Data.Memory.CurrentAllocatable > 0 {
+			sumRatioMem += s.Data.Memory.CurrentRequested / s.Data.Memory.CurrentAllocatable
+			countMem++
+		}
+	}
+	if countCPU > 0 {
+		out.ReqAllocRatioCPU = sumRatioCPU / float64(countCPU)
+	}
+	if countMem > 0 {
+		out.ReqAllocRatioMem = sumRatioMem / float64(countMem)
+	}
+
+	// Use the most recent snapshot for current cluster state.
+	latest := snapshots[len(snapshots)-1]
+	out.Resources.CPU.Allocatable = latest.Data.CPU.CurrentAllocatable
+	out.Resources.CPU.Requested = latest.Data.CPU.CurrentRequested
+	out.Resources.CPU.Utilised = latest.Data.CPU.CurrentUtilized
+	out.Resources.Memory.Allocatable = latest.Data.Memory.CurrentAllocatable
+	out.Resources.Memory.Requested = latest.Data.Memory.CurrentRequested
+	out.Resources.Memory.Utilised = latest.Data.Memory.CurrentUtilized
+	return out
+}
+
 func OverviewHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
@@ -46,17 +128,10 @@ func OverviewHandler(c *gin.Context) {
 	}
 
 	p := getEffectivePricing(ctx, clusterID)
-	clusterRes := getClusterResourcesFromPrometheus(ctx, c, clusterID)
-
-	// Match summary API logic by normalizing requested/recommended resources with request-to-allocatable ratios.
-	reqAllocRatioCPU := 1.0
-	if clusterRes.CPU.Allocatable > 0 {
-		reqAllocRatioCPU = clusterRes.CPU.Requested / clusterRes.CPU.Allocatable
-	}
-	reqAllocRatioMem := 1.0
-	if clusterRes.Memory.Allocatable > 0 {
-		reqAllocRatioMem = clusterRes.Memory.Requested / clusterRes.Memory.Allocatable
-	}
+	dbRes := getClusterResourcesFromDatabase(ctx, clusterID)
+	clusterRes := dbRes.Resources
+	reqAllocRatioCPU := dbRes.ReqAllocRatioCPU
+	reqAllocRatioMem := dbRes.ReqAllocRatioMem
 
 	// Memory request/recommendation from workload stats are in MiB; convert to GiB to align with pricing units.
 	requestedMemGB := clusterReqMem / 1024

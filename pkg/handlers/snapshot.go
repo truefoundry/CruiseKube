@@ -44,11 +44,12 @@ func buildCostFromSnapshot(ctx *gin.Context, clusterID string, snapshot types.Sn
 	requestedMemGB := snapshot.Data.Memory.WorkloadRequested / 1024
 	recommendedMemGB := snapshot.Data.Memory.RecommendedRequested / 1024
 
-	currentCost := (snapshot.Data.CPU.CurrentAllocatable*p.CPUPerCorePerHour + snapshot.Data.Memory.CurrentAllocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
-	// Same formula as overview's workloadCostDollars: cost if infra were sized to workload-requested resources (Without CruiseKube).
-	withoutCruiseKubeCost := (snapshot.Data.CPU.WorkloadRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
-	// Cost at recommended resources (With CruiseKube).
-	withCruiseKubeCost := (snapshot.Data.CPU.RecommendedRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	// Cost series values are per hour.
+	currentCost := snapshot.Data.CPU.CurrentAllocatable*p.CPUPerCorePerHour + snapshot.Data.Memory.CurrentAllocatable*p.MemPerGBPerHour
+	// Cost if infra were sized to workload-requested resources (Without CruiseKube), per hour.
+	withoutCruiseKubeCost := (snapshot.Data.CPU.WorkloadRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour
+	// Cost at recommended resources (With CruiseKube), per hour.
+	withCruiseKubeCost := (snapshot.Data.CPU.RecommendedRequested/reqAllocRatioCPU)*p.CPUPerCorePerHour + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour
 	return currentCost, withoutCruiseKubeCost, withCruiseKubeCost
 }
 
@@ -127,9 +128,9 @@ func GetOverviewHistoricalTimelineHandler(c *gin.Context) {
 			addTimelinePoint(&response.Data, "Recommended", "#7c3aed", threshold, snapshot.CreatedAt, snapshot.Data.Memory.RecommendedRequested)
 		case types.HistoricalTimelineMetricCost:
 			currentCost, withoutCruiseKubeCost, withCruiseKubeCost := buildCostFromSnapshot(c, clusterID, snapshot)
-			addTimelinePoint(&response.Data, "Without CruiseKube", "#f59e0b", currentCost, snapshot.CreatedAt, withoutCruiseKubeCost)
-			addTimelinePoint(&response.Data, "Cost", "#2563eb", currentCost, snapshot.CreatedAt, currentCost)
-			addTimelinePoint(&response.Data, "With CruiseKube Cost", "#16a34a", currentCost, snapshot.CreatedAt, withCruiseKubeCost)
+			addTimelinePoint(&response.Data, "Hourly Cost Without CruiseKube", "#f59e0b", currentCost, snapshot.CreatedAt, withoutCruiseKubeCost)
+			addTimelinePoint(&response.Data, "Hourly Cost", "#2563eb", currentCost, snapshot.CreatedAt, currentCost)
+			addTimelinePoint(&response.Data, "Hourly Cost With CruiseKube", "#16a34a", currentCost, snapshot.CreatedAt, withCruiseKubeCost)
 		}
 	}
 
