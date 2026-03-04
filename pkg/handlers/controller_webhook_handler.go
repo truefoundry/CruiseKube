@@ -189,7 +189,7 @@ func (deps HandlerDependencies) shouldApplyMutatingPatch(ctx context.Context, cl
 }
 
 func (deps HandlerDependencies) buildMutatingPatches(ctx context.Context, clusterID string, resolved *mutatingPatchResolvedContext) ([]map[string]any, error) {
-	patches, err := deps.adjustResources(ctx, resolved.pod, clusterID)
+	patches, err := deps.adjustResourcesWithResolved(ctx, resolved.pod, clusterID, resolved.workloadInfo, resolved.stat)
 	if err != nil {
 		return nil, err
 	}
@@ -279,8 +279,14 @@ func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, over
 // from the webhook flow, and moving it off the receiver would reintroduce globals
 // or add avoidable plumbing parameters.
 func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string) ([]map[string]any, error) {
+	return deps.adjustResourcesWithResolved(ctx, pod, clusterID, nil, nil)
+}
+
+func (deps HandlerDependencies) adjustResourcesWithResolved(ctx context.Context, pod *corev1.Pod, clusterID string, workloadInfo *utils.WorkloadInfo, workloadStat *types.WorkloadStat) ([]map[string]any, error) {
 	cfg := deps.Config
-	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
+	if workloadInfo == nil {
+		workloadInfo = utils.GetWorkloadInfoFromPod(pod)
+	}
 	if workloadInfo == nil {
 		logging.Warnf(ctx, "Could not determine workload for pod %s/%s, allowing without adjustment", pod.Namespace, getPodName(pod))
 		return []map[string]any{}, nil
@@ -288,10 +294,16 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 
 	logging.Infof(ctx, "Pod %s/%s belongs to workload: %s", pod.Namespace, getPodName(pod), utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 
-	workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-	workloadStat, err := deps.Storage.GetStatForWorkload(clusterID, workloadID)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
+	if workloadStat == nil {
+		workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
+		var err error
+		workloadStat, err = deps.Storage.GetStatForWorkload(clusterID, workloadID)
+		if err != nil {
+			logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
+			return []map[string]any{}, nil
+		}
+	}
+	if workloadStat == nil {
 		return []map[string]any{}, nil
 	}
 
@@ -454,7 +466,7 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 	if applyTaskConfig == nil {
 		return nil, fmt.Errorf("missing task config for %s", config.ApplyRecommendationKey)
 	}
-	err = applyTaskConfig.ConvertMetadataToStruct(&metadata)
+	err := applyTaskConfig.ConvertMetadataToStruct(&metadata)
 	if err != nil {
 		return nil, fmt.Errorf("convert metadata to struct: %w", err)
 	}

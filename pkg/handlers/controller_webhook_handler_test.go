@@ -11,8 +11,8 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type testStorage struct {
@@ -21,65 +21,65 @@ type testStorage struct {
 }
 
 func (s testStorage) ClusterStatsExists(clusterID string) (bool, error) {
-	return false, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.ClusterStatsExists(%q)", clusterID))
 }
 
 func (s testStorage) ReadClusterStats(clusterID string, target *types.StatsResponse) error {
-	return nil
+	panic(fmt.Sprintf("unexpected call to testStorage.ReadClusterStats(%q)", clusterID))
 }
 
 func (s testStorage) GetStatForWorkload(clusterID, workloadID string) (*types.WorkloadStat, error) {
 	if s.statFn != nil {
 		return s.statFn(clusterID, workloadID)
 	}
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetStatForWorkload(%q, %q)", clusterID, workloadID))
 }
 
 func (s testStorage) GetWorkloadOverrides(clusterID, workloadID string) (*types.Overrides, error) {
 	if s.overridesFn != nil {
 		return s.overridesFn(clusterID, workloadID)
 	}
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetWorkloadOverrides(%q, %q)", clusterID, workloadID))
 }
 
 func (s testStorage) GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCluster, error) {
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetWorkloadsInCluster(%q)", clusterID))
 }
 
 func (s testStorage) GetPodRecommendationsForWorkload(clusterID, workloadID string) ([]types.PodResourceRecommendationRow, error) {
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetPodRecommendationsForWorkload(%q, %q)", clusterID, workloadID))
 }
 
 func (s testStorage) GetAllStatsForCluster(clusterID string) ([]types.WorkloadStat, error) {
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetAllStatsForCluster(%q)", clusterID))
 }
 
 func (s testStorage) UpdateWorkloadOverrides(clusterID, workloadID string, overrides *types.Overrides) error {
-	return nil
+	panic(fmt.Sprintf("unexpected call to testStorage.UpdateWorkloadOverrides(%q, %q)", clusterID, workloadID))
 }
 
 func (s testStorage) GetAuditEvents(clusterID string, since time.Time) ([]types.AuditEventRecord, error) {
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetAuditEvents(%q)", clusterID))
 }
 
 func (s testStorage) GetAuditEventsForWorkload(clusterID, workloadID string, since time.Time) ([]types.AuditEventRecord, error) {
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetAuditEventsForWorkload(%q, %q)", clusterID, workloadID))
 }
 
 func (s testStorage) GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error) {
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetSnapshotsInRange(%q)", clusterID))
 }
 
 func (s testStorage) GetSettings(clusterID string) (*types.ClusterSettings, error) {
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetSettings(%q)", clusterID))
 }
 
 func (s testStorage) UpdateSettings(clusterID string, settings *types.ClusterSettings) error {
-	return nil
+	panic(fmt.Sprintf("unexpected call to testStorage.UpdateSettings(%q)", clusterID))
 }
 
 func (s testStorage) GetPodRecommendationsForCluster(clusterID string) ([]types.PodResourceRecommendationRow, error) {
-	return nil, nil
+	panic(fmt.Sprintf("unexpected call to testStorage.GetPodRecommendationsForCluster(%q)", clusterID))
 }
 
 func TestAdjustResourcesBuildsExpectedPatches(t *testing.T) {
@@ -224,13 +224,9 @@ func testWorkloadStat() *types.WorkloadStat {
 }
 
 func activeDisruptionWindow() types.DisruptionWindow {
-	now := time.Now().UTC()
-	start := now.Add(-1 * time.Minute)
-	end := now.Add(1 * time.Minute)
-
 	return types.DisruptionWindow{
-		StartCron: fmt.Sprintf("%d %d * * *", start.Minute(), start.Hour()),
-		EndCron:   fmt.Sprintf("%d %d * * *", end.Minute(), end.Hour()),
+		StartCron: "* * * * *",
+		EndCron:   "* * * * *",
 	}
 }
 
