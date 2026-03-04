@@ -66,7 +66,7 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 				}
 				currentRequestedCPU := containerResource.CPURequest
 				currentRequestedMemory := containerResource.MemoryRequest
-				analysisItem := analyzeWorkloadStats(rec.PodInfo.Stats, rec.PodInfo.Name, rec.ContainerName, result.NodeName, currentRequestedCPU, rec.CPU, currentRequestedMemory, rec.Memory)
+				analysisItem := analyzeWorkloadStats(ctx, rec.PodInfo.Stats, rec.PodInfo.Name, rec.ContainerName, result.NodeName, currentRequestedCPU, rec.CPU, currentRequestedMemory, rec.Memory)
 				analysis = append(analysis, analysisItem)
 				totalCurrentRequests += currentRequestedCPU
 				totalDifferences += analysisItem.CPUDifference
@@ -89,13 +89,16 @@ func generateRecommendationAnalysisForCluster(ctx context.Context, clusterID str
 	}, nil
 }
 
-func analyzeWorkloadStats(stat *utils.WorkloadStat, podName, containerName, nodeName string, currentRequestedCPU, recommendedCPU, currentRequestedMemory, recommendedMemory float64) types.RecommendationAnalysisItem {
+func analyzeWorkloadStats(ctx context.Context, stat *utils.WorkloadStat, podName, containerName, nodeName string, currentRequestedCPU, recommendedCPU, currentRequestedMemory, recommendedMemory float64) types.RecommendationAnalysisItem {
 	blockingKarpenter := NoValue
 	if stat.Constraints != nil && stat.Constraints.BlockingConsolidation {
 		blockingKarpenter = YesValue
 	}
 
-	containerStat, _ := stat.GetContainerStats(containerName)
+	containerStat, err := stat.GetContainerStats(containerName)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to get container stats for %s/%s container %s: %v", stat.Namespace, stat.Name, containerName, err)
+	}
 
 	spikeRange := 0.0
 	if containerStat != nil && containerStat.SimplePredictionsCPU != nil && containerStat.CPUStats != nil {

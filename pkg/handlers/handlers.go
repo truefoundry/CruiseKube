@@ -47,18 +47,18 @@ func (deps HandlerDependencies) HandleListClusters(c *gin.Context) {
 
 	clusterIDs := mgr.GetClusterIDs()
 
-	clusters := make([]map[string]any, len(clusterIDs))
-	for i, clusterID := range clusterIDs {
+	clusters := make([]map[string]any, 0, len(clusterIDs))
+	for _, clusterID := range clusterIDs {
 		statsExists, err := deps.Storage.ClusterStatsExists(clusterID)
 		if err != nil {
 			logging.Errorf(ctx, "Failed to check if cluster stats exists for %s: %v", clusterID, err)
 			continue
 		}
-		clusters[i] = map[string]any{
+		clusters = append(clusters, map[string]any{
 			"id":              clusterID,
 			"name":            clusterID,
 			"stats_available": statsExists,
-		}
+		})
 	}
 
 	response := map[string]any{
