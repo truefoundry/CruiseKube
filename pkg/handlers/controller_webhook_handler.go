@@ -115,18 +115,18 @@ func extractMutatingPatchInput(ctx context.Context, req client.MutatingPatchRequ
 }
 
 func (deps HandlerDependencies) resolveMutatingPatchContext(ctx context.Context, clusterID string, pod *corev1.Pod) (*mutatingPatchResolvedContext, *mutatingPatchResult) {
-	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
+	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
+	if workloadInfo == nil {
+		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, pod.Name)
 		return nil, &mutatingPatchResult{
 			statusCode: http.StatusOK,
 			patches:    emptyPatchList(),
 		}
 	}
 
-	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
-	if workloadInfo == nil {
-		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, pod.Name)
+	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
 		return nil, &mutatingPatchResult{
 			statusCode: http.StatusOK,
 			patches:    emptyPatchList(),
@@ -196,6 +196,9 @@ func (deps HandlerDependencies) buildMutatingPatches(ctx context.Context, cluste
 
 	disruptionPatches := buildDisruptionAnnotationPatches(ctx, resolved.pod, resolved.stat, resolved.overrides)
 	patches = append(patches, disruptionPatches...)
+	if patches == nil {
+		return emptyPatchList(), nil
+	}
 	return patches, nil
 }
 
@@ -207,11 +210,15 @@ func (deps HandlerDependencies) writeMutatingPatchResponse(c *gin.Context, clust
 	}
 
 	if len(result.patches) > 0 && deps.AuditRecorder != nil && result.audit != nil {
+		message := fmt.Sprintf("Pod %s/%s mutated with disruption annotation changes", result.audit.pod.Namespace, getPodName(result.audit.pod))
+		if hasResourcePatch(result.patches) {
+			message = fmt.Sprintf("Pod %s/%s mutated with resource recommendations", result.audit.pod.Namespace, getPodName(result.audit.pod))
+		}
 		deps.AuditRecorder.Record(ctx, clusterID, types.AuditEvent{
 			Type:     types.EventTypeNormal,
 			Category: types.EventCategoryWebhookMutation,
 			Payload: types.AuditPayload{
-				Message: fmt.Sprintf("Pod %s/%s mutated with resource recommendations", result.audit.pod.Namespace, getPodName(result.audit.pod)),
+				Message: message,
 				Target:  map[string]interface{}{"kind": result.audit.pod.Kind, "namespace": result.audit.pod.Namespace, "name": getPodName(result.audit.pod)},
 				Details: map[string]interface{}{
 					"workloadId": result.audit.workloadKey,
@@ -234,6 +241,16 @@ func emptyMutatingPatchResult() mutatingPatchResult {
 
 func emptyPatchList() []map[string]any {
 	return []map[string]any{}
+}
+
+func hasResourcePatch(patches []map[string]any) bool {
+	for _, patch := range patches {
+		path, _ := patch["path"].(string)
+		if strings.Contains(path, "/resources/requests") || strings.Contains(path, "/resources/limits") {
+			return true
+		}
+	}
+	return false
 }
 
 func getPodName(pod *corev1.Pod) string {
