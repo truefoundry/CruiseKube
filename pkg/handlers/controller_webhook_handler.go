@@ -189,7 +189,7 @@ func (deps HandlerDependencies) shouldApplyMutatingPatch(ctx context.Context, cl
 }
 
 func (deps HandlerDependencies) buildMutatingPatches(ctx context.Context, clusterID string, resolved *mutatingPatchResolvedContext) ([]map[string]any, error) {
-	patches, err := deps.adjustResourcesWithResolved(ctx, resolved.pod, clusterID, resolved.workloadInfo, resolved.stat)
+	patches, err := deps.adjustResources(ctx, resolved.pod, clusterID, resolved.workloadInfo, resolved.stat)
 	if err != nil {
 		return nil, err
 	}
@@ -278,11 +278,7 @@ func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, over
 // Keep this helper on HandlerDependencies because it still needs injected services
 // from the webhook flow, and moving it off the receiver would reintroduce globals
 // or add avoidable plumbing parameters.
-func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string) ([]map[string]any, error) {
-	return deps.adjustResourcesWithResolved(ctx, pod, clusterID, nil, nil)
-}
-
-func (deps HandlerDependencies) adjustResourcesWithResolved(ctx context.Context, pod *corev1.Pod, clusterID string, workloadInfo *utils.WorkloadInfo, workloadStat *types.WorkloadStat) ([]map[string]any, error) {
+func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, workloadInfo *utils.WorkloadInfo, workloadStat *types.WorkloadStat) ([]map[string]any, error) {
 	cfg := deps.Config
 	if workloadInfo == nil {
 		workloadInfo = utils.GetWorkloadInfoFromPod(pod)

@@ -98,7 +98,7 @@ func TestAdjustResourcesBuildsExpectedPatches(t *testing.T) {
 		Config: testHandlerConfig(false),
 	}
 
-	patches, err := deps.adjustResources(context.Background(), testPod(), "cluster-a")
+	patches, err := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, nil)
 	if err != nil {
 		t.Fatalf("adjustResources returned error: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestAdjustResourcesSkipsMemoryPatchesWhenDisabled(t *testing.T) {
 		Config: testHandlerConfig(true),
 	}
 
-	patches, err := deps.adjustResources(context.Background(), testPod(), "cluster-a")
+	patches, err := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, nil)
 	if err != nil {
 		t.Fatalf("adjustResources returned error: %v", err)
 	}
