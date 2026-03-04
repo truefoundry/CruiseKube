@@ -24,9 +24,6 @@ func SetupServerEngine(handlerDeps handlers.HandlerDependencies, authAPI gin.Han
 	clusterGroup := apiV1Group.Group("/clusters/:clusterID", authAPI, ensureClusterExists)
 	{
 		clusterGroup.GET("/stats", handlerDeps.HandleClusterStats)
-		clusterGroup.GET("/recommendation-analysis", handlerDeps.RecommendationAnalysisHandlerForCluster)
-		clusterGroup.Any("/prometheus-proxy/*proxyPath", handlerDeps.HandlePrometheusProxy)
-		clusterGroup.GET("/prometheus-query", handlerDeps.HandlePrometheusQuery)
 		clusterGroup.GET("/config", handlerDeps.GetConfigHandler)
 		clusterGroup.POST("/killswitch", handlerDeps.KillswitchHandler)
 		clusterGroup.GET("/workloads", handlerDeps.ListWorkloadsHandler)
