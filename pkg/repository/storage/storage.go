@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/ports"
-	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 	"gorm.io/gorm"
 )
+
+const BytesPerMB = 1_000_000
 
 var Stg *Storage
 
@@ -167,7 +168,7 @@ func (s *Storage) UpdateOOMMemoryForContainer(clusterID, workloadID, containerNa
 		if stat.ContainerStats[i].MemoryStats == nil {
 			stat.ContainerStats[i].MemoryStats = &types.MemoryStats{}
 		}
-		stat.ContainerStats[i].MemoryStats.OOMMemory = float64(oomMemoryBytes) / utils.BytesPerMB
+		stat.ContainerStats[i].MemoryStats.OOMMemory = float64(oomMemoryBytes) / BytesPerMB
 
 		containerFound = true
 		break
