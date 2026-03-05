@@ -20,6 +20,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * Remove unused recommender endpoints by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/148
 * Change project license to BUSL-1.1 by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/140
 
+
 ### What's Changed
 * Update getting started docs by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/94
 * feat: dry run fix by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/96
@@ -64,6 +65,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * return error if workloads listing fails by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/150
 * Add webhook patching tests by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/147
 * feat: update worklaod summary by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/152
+
 
 ### New Contributors
 * @innoavator made their first contribution in https://github.com/truefoundry/CruiseKube/pull/103
