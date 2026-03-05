@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"path/filepath"
 	"time"
 
@@ -12,9 +14,11 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
+	"github.com/truefoundry/cruisekube/pkg/handlers"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/middleware"
 	"github.com/truefoundry/cruisekube/pkg/oom"
+	"github.com/truefoundry/cruisekube/pkg/ports"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/server"
 	"github.com/truefoundry/cruisekube/pkg/task"
@@ -24,32 +28,67 @@ type controllerRuntime struct {
 	clusterManager cluster.Manager
 	promClient     *prometheus.PrometheusProvider
 	storageRepo    *storage.Storage
+	auditRecorder  *audit.Audit
 }
 
-func startControllerRuntime(ctx context.Context, cfg *config.Config) {
-	runtime := buildControllerRuntime(ctx, cfg)
-
-	startControllerHTTPServer(ctx, cfg, runtime.clusterManager)
-	startOOMWorkers(ctx, cfg, runtime.clusterManager, runtime.storageRepo)
-	registerControllerTasks(ctx, cfg, runtime.clusterManager, runtime.promClient, runtime.storageRepo)
-
-	if err := runtime.clusterManager.ScheduleAllTasks(); err != nil {
-		logging.Fatalf(ctx, "Failed to schedule tasks: %v", err)
+func startControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) error {
+	runtime, err := buildControllerRuntime(runtimeManager, cfg)
+	if err != nil {
+		return err
 	}
+
+	runtimeManager.AddCleanup(func(ctx context.Context) error {
+		runtime.clusterManager.StopScheduler(ctx)
+		return nil
+	})
+
+	handlerDeps, err := handlers.NewHandlerDependencies(
+		runtime.storageRepo,
+		runtime.clusterManager,
+		cfg,
+		runtime.auditRecorder,
+		nil,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize handler dependencies: %w", err)
+	}
+
+	startControllerHTTPServer(runtimeManager, cfg, handlerDeps)
+	startOOMWorkers(runtimeManager.ctx, cfg, runtime.clusterManager, runtime.storageRepo)
+	registerControllerTasks(runtimeManager.ctx, cfg, runtime.clusterManager, runtime.promClient, runtime.storageRepo)
+	if err := runtime.clusterManager.ScheduleAllTasks(runtimeManager.ctx); err != nil {
+		return fmt.Errorf("failed to schedule tasks: %w", err)
+	}
+
+	return nil
 }
 
-func buildControllerRuntime(ctx context.Context, cfg *config.Config) controllerRuntime {
-	storageRepo := initStorageRepo(ctx, cfg)
-	clusterManager, promClient := buildClusterRuntime(ctx, cfg)
+func buildControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) (controllerRuntime, error) {
+	databaseAdapter, err := initDatabaseAdapter(runtimeManager, cfg)
+	if err != nil {
+		return controllerRuntime{}, err
+	}
+
+	storageRepo, err := initStorageRepo(runtimeManager.ctx, databaseAdapter)
+	if err != nil {
+		return controllerRuntime{}, err
+	}
+
+	auditRecorder := initAuditRecorder(runtimeManager, databaseAdapter)
+	clusterManager, promClient, err := buildClusterRuntime(runtimeManager.ctx, cfg)
+	if err != nil {
+		return controllerRuntime{}, err
+	}
 
 	return controllerRuntime{
 		clusterManager: clusterManager,
 		promClient:     promClient,
 		storageRepo:    storageRepo,
-	}
+		auditRecorder:  auditRecorder,
+	}, nil
 }
 
-func initStorageRepo(ctx context.Context, cfg *config.Config) *storage.Storage {
+func initDatabaseAdapter(runtimeManager *runtimeManager, cfg *config.Config) (ports.Database, error) {
 	databaseAdapter, err := database.NewDatabase(database.DatabaseConfig{
 		Type:     cfg.DB.Type,
 		Host:     cfg.DB.Host,
@@ -60,35 +99,53 @@ func initStorageRepo(ctx context.Context, cfg *config.Config) *storage.Storage {
 		SSLMode:  cfg.DB.SSLMode,
 	})
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to initialize database: %v", err)
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
-	logging.Infof(ctx, "Database initialized")
+	logging.Infof(runtimeManager.ctx, "Database initialized")
+	runtimeManager.AddCleanup(func(context.Context) error {
+		return databaseAdapter.Close()
+	})
 
+	return databaseAdapter, nil
+}
+
+func initStorageRepo(ctx context.Context, databaseAdapter ports.Database) (*storage.Storage, error) {
 	storageRepo, err := storage.NewStorageRepo(databaseAdapter)
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to initialize storage: %v", err)
+		return nil, fmt.Errorf("failed to initialize storage: %w", err)
 	}
 	logging.Infof(ctx, "Storage Repo initialized")
 
+	// TODO: Remove global singleton assignments once all handlers are migrated to HandlerDependencies.
 	storage.Stg = storageRepo
-	audit.Recorder = audit.NewAudit(ctx, databaseAdapter, audit.Options{})
-
-	return storageRepo
+	return storageRepo, nil
 }
 
-func buildClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Manager, *prometheus.PrometheusProvider) {
+func initAuditRecorder(runtimeManager *runtimeManager, databaseAdapter ports.Database) *audit.Audit {
+	ctx := runtimeManager.ctx
+	recorder := audit.NewAudit(ctx, databaseAdapter, audit.Options{})
+	// TODO: Remove global singleton assignments once all handlers are migrated to HandlerDependencies.
+	audit.Recorder = recorder
+	runtimeManager.AddCleanup(func(context.Context) error {
+		recorder.Close()
+		return nil
+	})
+
+	return recorder
+}
+
+func buildClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Manager, *prometheus.PrometheusProvider, error) {
 	switch cfg.ControllerMode {
 	case config.ClusterModeLocal:
 		return buildLocalClusterRuntime(ctx, cfg)
 	case config.ClusterModeInCluster:
 		return buildInClusterRuntime(ctx, cfg)
 	default:
-		logging.Fatalf(ctx, "Invalid controller mode: %s", cfg.ControllerMode)
-		return nil, nil
+		return nil, nil, fmt.Errorf("invalid controller mode: %s", cfg.ControllerMode)
 	}
 }
 
-func buildLocalClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Manager, *prometheus.PrometheusProvider) {
+func buildLocalClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Manager, *prometheus.PrometheusProvider, error) {
 	logging.Infof(ctx, "Local cluster mode")
 	clusterCtx := contextutils.WithCluster(ctx, "local")
 
@@ -101,62 +158,63 @@ func buildLocalClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.
 
 	kubeClient, err := kube.NewKubeClient(clusterCtx, kubeconfigPath)
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to create kube client: %v", err)
+		return nil, nil, fmt.Errorf("failed to create kube client: %w", err)
 	}
 
 	dynamicClient, err := kube.NewDynamicClient(clusterCtx, kubeconfigPath)
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to create dynamic client: %v", err)
+		return nil, nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
 	promClient, err := prometheus.NewPrometheusProvider(clusterCtx, prometheus.GetPrometheusClientConfig(cfg.Dependencies.Local.PrometheusURL))
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to create prometheus client: %v", err)
+		return nil, nil, fmt.Errorf("failed to create prometheus client: %w", err)
 	}
 
 	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, promClient.GetClient())
-	return clusterManager, promClient
+	return clusterManager, promClient, nil
 }
 
-func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Manager, *prometheus.PrometheusProvider) {
+func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Manager, *prometheus.PrometheusProvider, error) {
 	logging.Infof(ctx, "In-cluster mode")
 	clusterCtx := contextutils.WithCluster(ctx, "in-cluster")
 
 	kubeClient, err := kube.NewKubeClient(clusterCtx, "")
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to create kube client: %v", err)
+		return nil, nil, fmt.Errorf("failed to create kube client: %w", err)
 	}
 
 	dynamicClient, err := kube.NewDynamicClient(clusterCtx, "")
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to create dynamic client: %v", err)
+		return nil, nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
 	promClient, err := prometheus.NewPrometheusProvider(clusterCtx, prometheus.GetPrometheusClientConfig(cfg.Dependencies.InCluster.PrometheusURL))
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to create prometheus client: %v", err)
+		return nil, nil, fmt.Errorf("failed to create prometheus client: %w", err)
 	}
 
 	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, promClient.GetClient())
-	return clusterManager, promClient
+	return clusterManager, promClient, nil
 }
 
-func startControllerHTTPServer(ctx context.Context, cfg *config.Config, clusterManager cluster.Manager) {
+func startControllerHTTPServer(runtimeManager *runtimeManager, cfg *config.Config, handlerDeps handlers.HandlerDependencies) {
 	engine := server.SetupServerEngine(
-		clusterManager,
+		handlerDeps,
 		middleware.AuthAPI(),
 		middleware.AuthWebhook(),
-		middleware.EnsureClusterExists(),
+		middleware.EnsureClusterExists(handlerDeps.ClusterManager),
 		cfg.Server.EnableDevAPIs,
-		middleware.Common(clusterManager, cfg)...,
+		middleware.Common()...,
 	)
 
-	serverPort := cfg.Server.Port
-	go func() {
-		if err := engine.Run(":" + serverPort); err != nil {
-			logging.Fatalf(ctx, "HTTP server failed: %v", err)
-		}
-	}()
+	startHTTPServer(runtimeManager, "controller HTTP server", "Starting HTTP server on :"+cfg.Server.Port, &http.Server{
+		Addr:              ":" + cfg.Server.Port,
+		Handler:           engine,
+		ReadHeaderTimeout: 5 * time.Second,
+	}, func(server *http.Server) error {
+		return server.ListenAndServe()
+	})
 }
 
 func startOOMWorkers(ctx context.Context, cfg *config.Config, clusterManager cluster.Manager, storageRepo *storage.Storage) {

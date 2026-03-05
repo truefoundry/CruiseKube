@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"go.opentelemetry.io/otel/attribute"
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -19,9 +18,8 @@ type TaskTriggerResponse struct {
 	Duration string `json:"duration,omitempty"`
 }
 
-func HandleTaskTrigger(c *gin.Context) {
+func (deps HandlerDependencies) HandleTaskTrigger(c *gin.Context) {
 	ctx := c.Request.Context()
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
 	clusterID := c.Param("clusterID")
 	taskName := c.Param("taskName")
 
@@ -33,7 +31,7 @@ func HandleTaskTrigger(c *gin.Context) {
 
 	logging.Infof(ctx, "Manual task trigger for task '%s' in cluster '%s' by %s", taskName, clusterID, c.ClientIP())
 
-	task, err := mgr.GetTask(taskName)
+	task, err := deps.ClusterManager.GetTask(taskName)
 	if err != nil {
 		logging.Errorf(ctx, "Task '%s' not found: %v", taskName, err)
 		c.JSON(http.StatusNotFound, TaskTriggerResponse{

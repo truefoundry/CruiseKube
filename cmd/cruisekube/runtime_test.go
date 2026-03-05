@@ -45,23 +45,3 @@ func TestShouldStartController(t *testing.T) {
 		})
 	}
 }
-
-func TestShouldBlockForever(t *testing.T) {
-	testCases := []struct {
-		name     string
-		mode     config.ExecutionMode
-		expected bool
-	}{
-		{name: "webhook", mode: config.ExecutionModeWebhook, expected: true},
-		{name: "both", mode: config.ExecutionModeBoth, expected: false},
-		{name: "controller", mode: config.ExecutionModeController, expected: false},
-	}
-
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			if actual := shouldBlockForever(testCase.mode); actual != testCase.expected {
-				t.Fatalf("shouldBlockForever(%q) = %t, want %t", testCase.mode, actual, testCase.expected)
-			}
-		})
-	}
-}

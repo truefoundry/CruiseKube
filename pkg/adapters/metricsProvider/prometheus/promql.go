@@ -20,7 +20,6 @@ import (
 
 const (
 	CPULookbackWindow        = 10 * time.Minute
-	CPU7DayLookbackWindow    = 7 * 24 * time.Hour
 	ReplicaLookbackWindow    = 7 * 24 * time.Hour
 	MemoryLookbackWindow     = 30 * time.Minute
 	Memory7DayLookbackWindow = 7 * 24 * time.Hour
@@ -101,17 +100,23 @@ func (p *PrometheusProvider) ExecuteQueryWithRetry(ctx context.Context, clusterI
 		p.acquireQuerySlot(clusterId)
 
 		logging.Infof(ctx, "Query for %s: %v", queryID, CompressQueryForLogging(query))
+		attemptStart := time.Now()
 		result, warnings, lastErr = p.client.Query(ctx, query, time.Now())
+		attemptDuration := time.Since(attemptStart)
 
 		p.releaseQuerySlot(ctx, clusterId)
 		cancel()
 
 		if lastErr == nil {
+			logging.Infof(ctx, "Query %s succeeded in %v on attempt %d/%d", queryID, attemptDuration, attempt+1, p.config.MaxQueryRetries)
 			if len(warnings) > 0 {
+				logging.Infof(ctx, "Query %s returned %d warning(s) in %v", queryID, len(warnings), attemptDuration)
 				span.SetAttributes(attribute.Int("warnings.count", len(warnings)))
 			}
 			return result, warnings, nil
 		}
+
+		logging.Infof(ctx, "Query %s failed in %v on attempt %d/%d: %v", queryID, attemptDuration, attempt+1, p.config.MaxQueryRetries, lastErr)
 
 		if attempt < p.config.MaxQueryRetries-1 {
 			backoffDuration := p.config.RetryBackoffBase * time.Duration(1<<attempt)
@@ -250,25 +255,6 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 		}
 	}
 
-	cpu7DayQueries := []struct {
-		percentile float64
-		key        string
-	}{
-		{0.50, "cpu_p50"},
-		{0.75, "cpu_p75"},
-		{0.90, "cpu_p90"},
-		{0.99, "cpu_p99"},
-		{1.0, "cpu_max"},
-	}
-
-	for _, q := range cpu7DayQueries {
-		query := p.buildBatch7DayCPURecommendationQuery(namespace, q.percentile, false)
-		requests = append(requests, ParallelQueryRequest{
-			QueryID: fmt.Sprintf("%s-%s-cpu-7day", namespace, q.key),
-			Query:   query,
-		})
-	}
-
 	memoryQueries := []struct {
 		percentile float64
 		key        string
@@ -405,28 +391,6 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 			}
 
 			utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, q.key+"_7day", false)
-		}
-	}
-
-	for _, q := range cpu7DayQueries {
-		queryID := fmt.Sprintf("%s-%s-cpu-7day", namespace, q.key)
-		if result, exists := results[queryID]; exists {
-			if result.Error != nil {
-				logging.Infof(ctx, "Error getting 7-day %s CPU metrics for namespace %s: %v", q.key, namespace, result.Error)
-				continue
-			}
-
-			if len(result.Warnings) > 0 {
-				logging.Infof(ctx, "Warnings from 7-day %s CPU query for namespace %s: %v", q.key, namespace, result.Warnings)
-			}
-
-			rawResults, err := p.parsePrometheusVectorResultForContainer(result.Result)
-			if err != nil {
-				logging.Infof(ctx, "Error parsing 7-day %s CPU results for namespace %s: %v", q.key, namespace, err)
-				continue
-			}
-
-			utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, q.key+"_cpu_7day", false)
 		}
 	}
 
@@ -655,27 +619,6 @@ func (p *PrometheusProvider) buildBatch7DayMemoryRecommendationQuery(namespace s
 		percentile,
 		memoryUsage,
 		Memory7DayLookbackWindow.String(),
-	)
-}
-
-func (p *PrometheusProvider) buildBatch7DayCPURecommendationQuery(namespace string, percentile float64, psiAdjusted bool) string {
-	coreCPU := p.BuildBatchCoreCPUExpression(namespace, psiAdjusted)
-
-	template := `ceil(
-      quantile_over_time(
-        %.2f,
-        (%s)
-        [%s:1m]
-      )
-      * %.6f
-    ) / %.6f`
-
-	return fmt.Sprintf(template,
-		percentile,
-		coreCPU,
-		CPU7DayLookbackWindow.String(),
-		CPUDecimalScale,
-		CPUDecimalScale,
 	)
 }
 

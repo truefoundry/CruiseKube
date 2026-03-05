@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 // EventType is the severity/type of the audit event (Warning, Error, Normal, Fatal, Info).
 type EventType string
 
@@ -48,4 +50,10 @@ type AuditEvent struct {
 	Type      EventType     `json:"type"`
 	Category  EventCategory `json:"category"`
 	Payload   AuditPayload  `json:"payload"`
+}
+
+// AuditEventRecord is an audit event with its database timestamp (for API responses).
+type AuditEventRecord struct {
+	AuditEvent
+	CreatedAt time.Time `json:"created_at"`
 }
