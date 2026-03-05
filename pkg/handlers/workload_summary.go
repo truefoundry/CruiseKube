@@ -287,10 +287,10 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		clusterRecMem += agg.TotalMem
 
 		// The difference needs to be per pod
-		AggCPUPerPod := agg.TotalCPU / float64(replicas)
-		AggMemPerPod := agg.TotalMem / float64(replicas)
-		cpuChange := AggCPUPerPod - currentCPUPerPod
-		memChange := AggMemPerPod - currentMemPerPod
+		aggCPUPerPod := agg.TotalCPU / float64(replicas)
+		aggMemPerPod := agg.TotalMem / float64(replicas)
+		cpuChange := aggCPUPerPod - currentCPUPerPod
+		memChange := aggMemPerPod - currentMemPerPod
 		if stat.Replicas <= 0 {
 			cpuChange, memChange = 0, 0
 		}
