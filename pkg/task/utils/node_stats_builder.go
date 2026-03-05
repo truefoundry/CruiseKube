@@ -169,7 +169,6 @@ func CreateNodeStatsMapping(
 
 			if stat, hasStat := podStats[podKey]; hasStat {
 				podInfo.Stats = stat
-				podInfo.ContinuousOptimization = stat.ContinuousOptimization
 			}
 
 			for _, container := range pod.Spec.Containers {
@@ -196,20 +195,9 @@ func CreateNodeStatsMapping(
 			podI := nodeInfo.Pods[i]
 			podJ := nodeInfo.Pods[j]
 
-			continuousOptI := podI.ContinuousOptimization
-			continuousOptJ := podJ.ContinuousOptimization
-
-			if continuousOptI != continuousOptJ {
-				return continuousOptI
-			}
-
-			if continuousOptI && continuousOptJ {
-				ratioI := calculateCPURatio(podI)
-				ratioJ := calculateCPURatio(podJ)
-				return ratioI > ratioJ
-			}
-
-			return false
+			ratioI := calculateCPURatio(podI)
+			ratioJ := calculateCPURatio(podJ)
+			return ratioI > ratioJ
 		})
 		nodeMap[nodeName] = nodeInfo
 	}
@@ -366,7 +354,6 @@ func BuildPodInfoFromPod(pod *corev1.Pod, workloadInfo *WorkloadInfo, stat *Work
 	}
 	if stat != nil {
 		info.Stats = stat
-		info.ContinuousOptimization = stat.ContinuousOptimization
 	}
 	for i := range pod.Spec.Containers {
 		info.ContainerResources = append(info.ContainerResources, getCurrentContainerResources(&pod.Spec.Containers[i]))

@@ -468,16 +468,9 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 		Kind:                       workloadInfo.Kind,
 		Namespace:                  workloadInfo.Namespace,
 		Name:                       workloadInfo.Name,
-		ContinuousOptimization:     true,
 		Replicas:                   int32(medianReplicas),
 		ContainerStats:             containerStats,
 		OriginalContainerResources: containerResources,
-	}
-
-	totalMaxCPU := workloadStat.CalculateTotalCPUStats(100)
-	totalP50CPU := workloadStat.CalculateTotalCPUStats(50)
-	if totalMaxCPU/totalP50CPU < ContinuousOptimizationRatioThreshold || totalMaxCPU-totalP50CPU < ContinuousOptimizationDiffThreshold {
-		workloadStat.ContinuousOptimization = false
 	}
 
 	return workloadStat
