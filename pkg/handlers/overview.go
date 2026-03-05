@@ -173,12 +173,12 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 
 	for i := range details {
 		d := details[i]
-		totalRequestedCPU += d.CPU.CurrentPerPod
-		totalRequestedMem += d.Memory.CurrentPerPod
+		totalRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
+		totalRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
 		if d.Config.CruiseEnabled {
 			enabledWorkloads++
-			enabledRequestedCPU += d.CPU.CurrentPerPod
-			enabledRequestedMem += d.Memory.CurrentPerPod
+			enabledRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
+			enabledRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
 		}
 	}
 
