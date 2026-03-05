@@ -21,13 +21,6 @@ func runCruiseKube(cmd *cobra.Command, args []string) (runErr error) {
 		ctx = context.Background()
 	}
 
-	setupSentry(ctx, cfg)
-	defer logging.FlushReporter(2 * time.Second)
-
-	if shutdownTelemetry := setupTelemetry(ctx, cfg); shutdownTelemetry != nil {
-		defer shutdownTelemetry()
-  }
-
 	runtime := newRuntimeManager(ctx)
 	defer func() {
 		if shutdownErr := runtime.Shutdown(); shutdownErr != nil {
@@ -44,6 +37,9 @@ func runCruiseKube(cmd *cobra.Command, args []string) (runErr error) {
 	if err != nil {
 		return err
 	}
+
+	setupSentry(ctx, cfg)
+	defer logging.FlushReporter(2 * time.Second)
 
 	if err := setupTelemetry(runtime, cfg); err != nil {
 		return err
