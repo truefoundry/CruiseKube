@@ -208,10 +208,6 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 // fillWorkloadDetailDollars sets dollar savings and expenditure on a single WorkloadDetail from aggregated recommendations.
 // d.CPU.Current and d.Memory.Current are expected to be totals (per-pod request * number of pods).
 func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p workloadPricing) {
-	// TODO: Remove this after debugging
-	if d.Name == "livekit-agent-server" {
-		fmt.Println("livekit-agent-server")
-	}
 	totalCurrentCPU := d.CPU.CurrentPerPod * float64(d.PodsCount)
 	totalCurrentMem := d.Memory.CurrentPerPod * float64(d.PodsCount)
 	totalRecCPU := agg.TotalCPU
@@ -271,10 +267,6 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		replicas := stat.Replicas
 		if replicas <= 0 {
 			replicas = 1
-		}
-		// TODO: Remove this after debugging
-		if stat.Name == "livekit-agent-server" {
-			replicas = stat.Replicas
 		}
 		// Per Pod Current Request
 		currentCPUPerPod := workloadPodCPURequest
