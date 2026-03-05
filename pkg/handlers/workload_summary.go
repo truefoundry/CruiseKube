@@ -176,6 +176,7 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 			TopologySpreadConstraint: stat.Constraints.TopologySpreadConstraint,
 			PodAntiAffinity:          stat.Constraints.PodAntiAffinity,
 			ExcludedAnnotation:       stat.Constraints.ExcludedAnnotation,
+			IsGPUWorkload:            stat.IsGPUWorkload(),
 		}
 	}
 	disruptionSchedule := make([]types.DisruptionScheduleWindow, 0, len(effective.DisruptionWindows))
@@ -188,6 +189,7 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 		}
 	}
 	inDisruptionWindow := stat.Metadata != nil && stat.Metadata.InDisruptionWindow
+	cruiseEnabled := effective.Enabled && !stat.IsGPUWorkload() // do not enable for GPU workloads
 	return types.WorkloadDetail{
 		WorkloadID:  w.WorkloadID,
 		Kind:        stat.Kind,
@@ -198,7 +200,7 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 		Constraints: constraints,
 		Config: types.WorkloadConfig{
 			Priority:           priority,
-			CruiseEnabled:      effective.Enabled,
+			CruiseEnabled:      cruiseEnabled,
 			DisruptionSchedule: disruptionSchedule,
 			InDisruptionWindow: inDisruptionWindow,
 		},
@@ -236,13 +238,13 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p wo
 // filters recommendations by workload ID, computes total CPU, memory, cost, and attaches everything to
 // WorkloadDetail. Returns details and cluster-level requested/recommended CPU and memory.
 func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDetail, map[string]workloadRecAgg, float64, float64, float64, float64, error) {
-	workloads, err := deps.getNonGPUClusterWorkloads(ctx, clusterID)
+	workloads, err := deps.Storage.GetWorkloadsInCluster(clusterID)
 	if err != nil {
-		return nil, nil, 0, 0, 0, 0, err
+		return nil, nil, 0, 0, 0, 0, fmt.Errorf("get workloads for cluster %s: %w", clusterID, err)
 	}
 	parsedRecs, err := deps.getPodRecommendationsForCluster(ctx, clusterID)
 	if err != nil {
-		return nil, nil, 0, 0, 0, 0, err
+		return nil, nil, 0, 0, 0, 0, fmt.Errorf("get pod recommendations for cluster %s: %w", clusterID, err)
 	}
 	// Index recommendations by workload ID for fast lookup
 	recsByWorkload := make(map[string][]parsedPodRecommendation)
@@ -261,6 +263,10 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		detail := buildWorkloadDetail(w, stat)
 		agg := aggregateRecsForWorkload(recsByWorkload[w.WorkloadID])
 		recAgg[w.WorkloadID] = agg
+
+		if detail.Name == "ebs-csi-node" {
+			fmt.Println("ebs-csi-node")
+		}
 
 		workloadPodCPURequest := stat.CalculateTotalCPURequest()
 		workloadTotalMemoryRequest := stat.CalculateTotalMemoryRequest()
@@ -281,8 +287,10 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		clusterRecMem += agg.TotalMem
 
 		// The difference needs to be per pod
-		cpuChange := (agg.TotalCPU / float64(replicas)) - currentCPUPerPod
-		memChange := (agg.TotalMem / float64(replicas)) - currentMemPerPod
+		AggCPUPerPod := agg.TotalCPU / float64(replicas)
+		AggMemPerPod := agg.TotalMem / float64(replicas)
+		cpuChange := AggCPUPerPod - currentCPUPerPod
+		memChange := AggMemPerPod - currentMemPerPod
 		if stat.Replicas <= 0 {
 			cpuChange, memChange = 0, 0
 		}

@@ -210,16 +210,18 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 			},
 		},
 		CPUStats: types.OverviewResourceStats{
-			Allocatable: clusterRes.CPU.Allocatable,
-			Requested:   clusterRes.CPU.Requested,
-			Usage:       clusterRes.CPU.Utilised,
-			Recommended: clusterRecCPU,
+			Allocatable:       clusterRes.CPU.Allocatable,
+			Requested:         clusterRes.CPU.Requested,
+			WorkloadRequested: clusterReqCPU,
+			Usage:             clusterRes.CPU.Utilised,
+			Recommended:       clusterRecCPU,
 		},
 		MemoryStats: types.OverviewResourceStats{
-			Allocatable: clusterRes.Memory.Allocatable,
-			Requested:   clusterRes.Memory.Requested,
-			Usage:       clusterRes.Memory.Utilised,
-			Recommended: recommendedMemGB,
+			Allocatable:       clusterRes.Memory.Allocatable,
+			Requested:         clusterRes.Memory.Requested,
+			WorkloadRequested: requestedMemGB,
+			Usage:             clusterRes.Memory.Utilised,
+			Recommended:       recommendedMemGB,
 		},
 	})
 }

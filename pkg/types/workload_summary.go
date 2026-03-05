@@ -27,6 +27,7 @@ type WorkloadSummaryConstraints struct {
 	TopologySpreadConstraint bool `json:"topologySpreadConstraint"`
 	PodAntiAffinity          bool `json:"podAntiAffinity"`
 	ExcludedAnnotation       bool `json:"excludedAnnotation"`
+	IsGPUWorkload            bool `json:"isGPUWorkload"`
 }
 
 type CPURecommended struct {
