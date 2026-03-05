@@ -275,10 +275,8 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		////////////////////////////////////////////////////////////
 		// Added to global cluster request and recommendation
 		////////////////////////////////////////////////////////////
-		// Since this is added to total cluster request, we need to multiply by the number of replicas
 		clusterReqCPU += currentCPUPerPod * float64(replicas)
 		clusterReqMem += currentMemPerPod * float64(replicas)
-		// We need to divide by the number of replicas to get the average per pod
 		clusterRecCPU += agg.TotalCPU
 		clusterRecMem += agg.TotalMem
 
