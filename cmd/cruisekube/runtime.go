@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -17,6 +18,9 @@ func runCruiseKube(cmd *cobra.Command, args []string) {
 		ctx = context.Background()
 	}
 	cfg := loadRuntimeConfig(ctx)
+
+	setupSentry(ctx, cfg)
+	defer logging.FlushReporter(2 * time.Second)
 
 	if shutdownTelemetry := setupTelemetry(ctx, cfg); shutdownTelemetry != nil {
 		defer shutdownTelemetry()
@@ -48,6 +52,21 @@ func loadRuntimeConfig(ctx context.Context) *config.Config {
 
 	logging.Infof(ctx, "Configuration loaded: controllerMode=%s executionMode=%s", cfg.ControllerMode, cfg.ExecutionMode)
 	return cfg
+}
+
+func setupSentry(ctx context.Context, cfg *config.Config) {
+	if !cfg.Sentry.Enabled {
+		return
+	}
+	reporter, err := logging.NewSentryReporter(cfg.Sentry.DSN, cfg.Sentry.Environment)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to initialize Sentry: %v", err)
+		return
+	}
+	if reporter != nil {
+		logging.SetErrorReporter(reporter)
+		logging.Infof(ctx, "Sentry initialized (environment=%s)", cfg.Sentry.Environment)
+	}
 }
 
 func setupTelemetry(ctx context.Context, cfg *config.Config) func() {
