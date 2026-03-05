@@ -2,6 +2,7 @@ package logging
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -40,15 +41,12 @@ func (s *sentryReporter) Flush(timeout time.Duration) {
 }
 
 func NewSentryReporter(dsn, environment string) (ErrorReporter, error) {
-	if dsn == "" {
-		return nil, nil
-	}
 	if err := sentry.Init(sentry.ClientOptions{
 		Dsn:              dsn,
 		Environment:      environment,
 		AttachStacktrace: true,
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize sentry: %w", err)
 	}
 	return &sentryReporter{}, nil
 }

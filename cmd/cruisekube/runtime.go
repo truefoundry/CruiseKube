@@ -74,7 +74,7 @@ func loadRuntimeConfig(ctx context.Context) (*config.Config, error) {
 }
 
 func setupSentry(ctx context.Context, cfg *config.Config) {
-	if !cfg.Sentry.Enabled {
+	if !cfg.Sentry.Enabled || cfg.Sentry.DSN == "" {
 		return
 	}
 	reporter, err := logging.NewSentryReporter(cfg.Sentry.DSN, cfg.Sentry.Environment)
@@ -82,10 +82,8 @@ func setupSentry(ctx context.Context, cfg *config.Config) {
 		logging.Warnf(ctx, "Failed to initialize Sentry: %v", err)
 		return
 	}
-	if reporter != nil {
-		logging.SetErrorReporter(reporter)
-		logging.Infof(ctx, "Sentry initialized (environment=%s)", cfg.Sentry.Environment)
-	}
+	logging.SetErrorReporter(reporter)
+	logging.Infof(ctx, "Sentry initialized (environment=%s)", cfg.Sentry.Environment)
 }
 
 func setupTelemetry(runtime *runtimeManager, cfg *config.Config) error {
