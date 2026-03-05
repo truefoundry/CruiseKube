@@ -208,8 +208,12 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 // fillWorkloadDetailDollars sets dollar savings and expenditure on a single WorkloadDetail from aggregated recommendations.
 // d.CPU.Current and d.Memory.Current are expected to be totals (per-pod request * number of pods).
 func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p workloadPricing) {
-	totalCurrentCPU := d.CPU.Current
-	totalCurrentMem := d.Memory.Current
+	// TODO: Remove this after debugging
+	if d.Name == "livekit-agent-server" {
+		fmt.Println("livekit-agent-server")
+	}
+	totalCurrentCPU := d.CPU.CurrentPerPod * float64(d.PodsCount)
+	totalCurrentMem := d.Memory.CurrentPerPod * float64(d.PodsCount)
 	totalRecCPU := agg.TotalCPU
 	totalRecMem := agg.TotalMem
 	cpuSavings := 0.0
@@ -236,7 +240,6 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p wo
 // filters recommendations by workload ID, computes total CPU, memory, cost, and attaches everything to
 // WorkloadDetail. Returns details and cluster-level requested/recommended CPU and memory.
 func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDetail, map[string]workloadRecAgg, float64, float64, float64, float64, error) {
-	var clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64
 	workloads, err := deps.getNonGPUClusterWorkloads(ctx, clusterID)
 	if err != nil {
 		return nil, nil, 0, 0, 0, 0, err
@@ -251,6 +254,7 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		recsByWorkload[p.WorkloadID] = append(recsByWorkload[p.WorkloadID], p)
 	}
 
+	var clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64
 	details := make([]types.WorkloadDetail, 0, len(workloads))
 	recAgg := make(map[string]workloadRecAgg, len(workloads))
 	for _, w := range workloads {
@@ -264,31 +268,43 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 
 		workloadPodCPURequest := stat.CalculateTotalCPURequest()
 		workloadTotalMemoryRequest := stat.CalculateTotalMemoryRequest()
-		replicas := float64(stat.Replicas)
+		replicas := stat.Replicas
 		if replicas <= 0 {
 			replicas = 1
 		}
-		currentCPU := workloadPodCPURequest * replicas
-		currentMem := workloadTotalMemoryRequest * replicas
-		clusterReqCPU += currentCPU
-		clusterReqMem += currentMem
+		// TODO: Remove this after debugging
+		if stat.Name == "livekit-agent-server" {
+			replicas = stat.Replicas
+		}
+		// Per Pod Current Request
+		currentCPUPerPod := workloadPodCPURequest
+		currentMemPerPod := workloadTotalMemoryRequest
+
+		////////////////////////////////////////////////////////////
+		// Added to global cluster request and recommendation
+		////////////////////////////////////////////////////////////
+		// Since this is added to total cluster request, we need to multiply by the number of replicas
+		clusterReqCPU += currentCPUPerPod * float64(replicas)
+		clusterReqMem += currentMemPerPod * float64(replicas)
+		// We need to divide by the number of replicas to get the average per pod
 		clusterRecCPU += agg.TotalCPU
 		clusterRecMem += agg.TotalMem
 
-		cpuChange := agg.TotalCPU - currentCPU
-		memChange := agg.TotalMem - currentMem
+		// The difference needs to be per pod
+		cpuChange := (agg.TotalCPU / float64(replicas)) - currentCPUPerPod
+		memChange := (agg.TotalMem / float64(replicas)) - currentMemPerPod
 		if stat.Replicas <= 0 {
 			cpuChange, memChange = 0, 0
 		}
 
 		detail.CPU = types.WorkloadCPU{
-			Current: currentCPU,
+			CurrentPerPod: currentCPUPerPod,
 			Recommended: types.CPURecommended{
 				Min: agg.CPUMin, Max: agg.CPUMax, Change: cpuChange,
 			},
 		}
 		detail.Memory = types.WorkloadMemory{
-			Current: currentMem,
+			CurrentPerPod: currentMemPerPod,
 			Recommended: types.MemoryRecommended{
 				Min: agg.MemMin, Max: agg.MemMax, Change: memChange,
 			},
