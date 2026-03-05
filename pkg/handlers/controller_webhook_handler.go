@@ -9,13 +9,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/client"
-	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/task"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
@@ -24,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
-func HandleMutatingPatch(c *gin.Context) {
+func (deps HandlerDependencies) HandleMutatingPatch(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 	ctx = contextutils.WithCluster(ctx, clusterID)
@@ -56,9 +53,8 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	cfg := config.GetConfigFromGinContext(c)
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
-	clients, err := mgr.GetClusterClients(clusterID)
+	cfg := deps.Config
+	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
@@ -74,7 +70,7 @@ func HandleMutatingPatch(c *gin.Context) {
 
 	workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 
-	stat, err := storage.Stg.GetStatForWorkload(clusterID, workloadKey)
+	stat, err := deps.Storage.GetStatForWorkload(clusterID, workloadKey)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadKey, err)
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
@@ -86,7 +82,10 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	overrides, _ := storage.Stg.GetWorkloadOverrides(clusterID, workloadKey)
+	overrides, err := deps.Storage.GetWorkloadOverrides(clusterID, workloadKey)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to get workload overrides for %s in cluster %s: %v; proceeding without overrides", workloadKey, clusterID, err)
+	}
 	overrideInfo := buildWorkloadOverrideInfo(workloadKey, stat, overrides)
 
 	podInfo := utils.BuildPodInfoFromPod(&pod, workloadInfo, stat)
@@ -110,7 +109,7 @@ func HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
-	patches, err := adjustResources(ctx, &pod, clusterID, cfg)
+	patches, err := deps.adjustResources(ctx, &pod, clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to adjust resources for pod %s/%s: %v", pod.Namespace, getPodName(&pod), err)
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
@@ -120,8 +119,8 @@ func HandleMutatingPatch(c *gin.Context) {
 	disruptionPatches := buildDisruptionAnnotationPatches(ctx, &pod, stat, overrides)
 	patches = append(patches, disruptionPatches...)
 
-	if len(patches) > 0 && audit.Recorder != nil {
-		audit.Recorder.Record(ctx, clusterID, types.AuditEvent{
+	if len(patches) > 0 && deps.AuditRecorder != nil {
+		deps.AuditRecorder.Record(ctx, clusterID, types.AuditEvent{
 			Type:     types.EventTypeNormal,
 			Category: types.EventCategoryWebhookMutation,
 			Payload: types.AuditPayload{
@@ -178,7 +177,11 @@ func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, over
 	}
 }
 
-func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg *config.Config) ([]map[string]any, error) {
+// Keep this helper on HandlerDependencies because it still needs injected services
+// from the webhook flow, and moving it off the receiver would reintroduce globals
+// or add avoidable plumbing parameters.
+func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string) ([]map[string]any, error) {
+	cfg := deps.Config
 	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
 	if workloadInfo == nil {
 		logging.Warnf(ctx, "Could not determine workload for pod %s/%s, allowing without adjustment", pod.Namespace, getPodName(pod))
@@ -188,7 +191,7 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 	logging.Infof(ctx, "Pod %s/%s belongs to workload: %s", pod.Namespace, getPodName(pod), utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 
 	workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-	workloadStat, err := storage.Stg.GetStatForWorkload(clusterID, workloadID)
+	workloadStat, err := deps.Storage.GetStatForWorkload(clusterID, workloadID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
 		return []map[string]any{}, nil

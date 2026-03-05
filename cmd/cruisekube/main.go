@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/truefoundry/cruisekube/pkg/logging"
 
 	"github.com/spf13/viper"
 	_ "go.uber.org/automaxprocs"
@@ -14,16 +18,14 @@ var (
 )
 
 func main() {
-	ctx := context.Background()
-	rootCmd := newRootCommand(ctx)
-	rootCmd.SetContext(ctx)
-	if err := rootCmd.Execute(); err != nil {
-		os.Exit(1)
-	}
-}
+	rootCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-func blockForever() {
-	select {}
+	rootCmd := newRootCommand(rootCtx)
+
+	if err := rootCmd.Execute(); err != nil {
+		logging.Fatalf(context.Background(), "Cruisekube failed: %v", err)
+	}
 }
 
 func homeDir() string {

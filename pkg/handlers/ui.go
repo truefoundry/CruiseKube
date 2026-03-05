@@ -7,17 +7,16 @@ import (
 	"strings"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
 
 	"github.com/gin-gonic/gin"
 )
 
-func ListWorkloadsHandler(c *gin.Context) {
+func (deps HandlerDependencies) ListWorkloadsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 	logging.Infof(ctx, "Listing workloads for cluster %s", clusterID)
-	stats, err := storage.Stg.GetAllStatsForCluster(clusterID)
+	stats, err := deps.Storage.GetAllStatsForCluster(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get stats for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -32,7 +31,7 @@ func ListWorkloadsHandler(c *gin.Context) {
 			continue
 		}
 		workloadColumnId := strings.ReplaceAll(stat.WorkloadIdentifier, "/", ":")
-		overrides, err := storage.Stg.GetWorkloadOverrides(clusterID, workloadColumnId)
+		overrides, err := deps.Storage.GetWorkloadOverrides(clusterID, workloadColumnId)
 		if err != nil {
 			logging.Errorf(ctx, "Failed to get overrides for workload %s: %v", stat.WorkloadIdentifier, err)
 		}

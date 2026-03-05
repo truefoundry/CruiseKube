@@ -294,8 +294,6 @@ func updateStandardMetrics(metrics *ContainerMetrics, value float64, metricType 
 		metrics.HasCPUData = true
 	case updateMemoryMetrics(metrics, value, metricType):
 		metrics.HasMemoryData = true
-	case updateCPU7DayMetrics(metrics, value, metricType):
-		metrics.HasCPUData = true
 	case updateMemory7DayMetrics(metrics, value, metricType):
 		metrics.HasMemoryData = true
 	case metricType == "median_replicas":
@@ -347,24 +345,6 @@ func updateMemoryMetrics(metrics *ContainerMetrics, value float64, metricType st
 		updateMaxValue(&metrics.MemoryMax, value)
 	case "oom_memory":
 		updateMaxValue(&metrics.OOMMemory, value)
-	default:
-		return false
-	}
-	return true
-}
-
-func updateCPU7DayMetrics(metrics *ContainerMetrics, value float64, metricType string) bool {
-	switch metricType {
-	case "cpu_p50_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.P50, value)
-	case "cpu_p75_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.P75, value)
-	case "cpu_p90_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.P90, value)
-	case "cpu_p99_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.P99, value)
-	case "cpu_max_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.Max, value)
 	default:
 		return false
 	}
@@ -459,14 +439,6 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 			Max: metrics.Memory7Day.Max,
 		}
 
-		cpu7Day := &CPU7DayStats{
-			Max: metrics.CPU7Day.Max,
-			P50: metrics.CPU7Day.P50,
-			P75: metrics.CPU7Day.P75,
-			P90: metrics.CPU7Day.P90,
-			P99: metrics.CPU7Day.P99,
-		}
-
 		var psiAdjustedUsageStats *PSIAdjustedUsageStats
 		if metrics.PSIAdjustedUsage != nil {
 			psiAdjustedUsageStats = &PSIAdjustedUsageStats{
@@ -482,7 +454,6 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 			CPUStats:         cpuStats,
 			MemoryStats:      memoryStats,
 			Memory7Day:       memory7Day,
-			CPU7Day:          cpu7Day,
 			PSIAdjustedUsage: psiAdjustedUsageStats,
 		})
 	}

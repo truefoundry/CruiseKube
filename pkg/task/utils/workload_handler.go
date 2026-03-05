@@ -253,48 +253,45 @@ func ListAllWorkloads(ctx context.Context, kubeClient *kubernetes.Clientset, tar
 	// List Deployments
 	deployments, err := kubeClient.AppsV1().Deployments(targetNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		logging.Infof(ctx, "Could not list deployments: %v", err)
-	} else {
-		for _, deployment := range deployments.Items {
-			if deployment.Spec.Selector != nil {
-				workloads = append(workloads, WorkloadInfo{
-					Kind:      DeploymentKind,
-					Namespace: deployment.Namespace,
-					Name:      deployment.Name,
-				})
-			}
+		return nil, fmt.Errorf("failed to list deployments: %w", err)
+	}
+	for _, deployment := range deployments.Items {
+		if deployment.Spec.Selector != nil {
+			workloads = append(workloads, WorkloadInfo{
+				Kind:      DeploymentKind,
+				Namespace: deployment.Namespace,
+				Name:      deployment.Name,
+			})
 		}
 	}
 
 	// List StatefulSets
 	statefulSets, err := kubeClient.AppsV1().StatefulSets(targetNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		logging.Errorf(ctx, "Could not list statefulsets: %v", err)
-	} else {
-		for _, statefulSet := range statefulSets.Items {
-			if statefulSet.Spec.Selector != nil {
-				workloads = append(workloads, WorkloadInfo{
-					Kind:      StatefulSetKind,
-					Namespace: statefulSet.Namespace,
-					Name:      statefulSet.Name,
-				})
-			}
+		return nil, fmt.Errorf("failed to list statefulsets: %w", err)
+	}
+	for _, statefulSet := range statefulSets.Items {
+		if statefulSet.Spec.Selector != nil {
+			workloads = append(workloads, WorkloadInfo{
+				Kind:      StatefulSetKind,
+				Namespace: statefulSet.Namespace,
+				Name:      statefulSet.Name,
+			})
 		}
 	}
 
 	// List DaemonSets
 	daemonSets, err := kubeClient.AppsV1().DaemonSets(targetNamespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		logging.Errorf(ctx, "Could not list daemonsets: %v", err)
-	} else {
-		for _, daemonSet := range daemonSets.Items {
-			if daemonSet.Spec.Selector != nil {
-				workloads = append(workloads, WorkloadInfo{
-					Kind:      DaemonSetKind,
-					Namespace: daemonSet.Namespace,
-					Name:      daemonSet.Name,
-				})
-			}
+		return nil, fmt.Errorf("failed to list daemonsets: %w", err)
+	}
+	for _, daemonSet := range daemonSets.Items {
+		if daemonSet.Spec.Selector != nil {
+			workloads = append(workloads, WorkloadInfo{
+				Kind:      DaemonSetKind,
+				Namespace: daemonSet.Namespace,
+				Name:      daemonSet.Name,
+			})
 		}
 	}
 
