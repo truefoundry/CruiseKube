@@ -197,6 +197,12 @@ func CreateNodeStatsMapping(
 
 			ratioI := calculateCPURatio(podI)
 			ratioJ := calculateCPURatio(podJ)
+			if ratioI == ratioJ {
+				if podI.Namespace == podJ.Namespace {
+					return podI.Name < podJ.Name
+				}
+				return podI.Namespace < podJ.Namespace
+			}
 			return ratioI > ratioJ
 		})
 		nodeMap[nodeName] = nodeInfo
