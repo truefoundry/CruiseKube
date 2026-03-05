@@ -71,21 +71,21 @@ func (deps HandlerDependencies) getClusterResourcesFromPrometheus(ctx context.Co
 }
 
 // getNonGPUClusterWorkloads returns workloads for the cluster (single DB call), filtered to non-GPU.
-func (deps HandlerDependencies) getNonGPUClusterWorkloads(ctx context.Context, clusterID string) ([]*types.WorkloadInCluster, error) {
-	workloads, err := deps.Storage.GetWorkloadsInCluster(clusterID)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
-		return nil, fmt.Errorf("get workloads for cluster %s: %w", clusterID, err)
-	}
-	// filter out GPU workloads
-	out := make([]*types.WorkloadInCluster, 0, len(workloads))
-	for _, w := range workloads {
-		if w.GetStat() != nil && !w.GetStat().IsGPUWorkload() {
-			out = append(out, w)
-		}
-	}
-	return out, nil
-}
+// func (deps HandlerDependencies) getNonGPUClusterWorkloads(ctx context.Context, clusterID string) ([]*types.WorkloadInCluster, error) {
+// 	workloads, err := deps.Storage.GetWorkloadsInCluster(clusterID)
+// 	if err != nil {
+// 		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
+// 		return nil, fmt.Errorf("get workloads for cluster %s: %w", clusterID, err)
+// 	}
+// 	// filter out GPU workloads
+// 	out := make([]*types.WorkloadInCluster, 0, len(workloads))
+// 	for _, w := range workloads {
+// 		if w.GetStat() != nil && !w.GetStat().IsGPUWorkload() {
+// 			out = append(out, w)
+// 		}
+// 	}
+// 	return out, nil
+// }
 
 type parsedPodRecommendation struct {
 	WorkloadID string
@@ -234,13 +234,17 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p wo
 	d.DollarExpenditurePerMonth = int(cpuExpenditure + memExpenditure)
 }
 
-// getWorkloadsData fetches non-GPU workloads and pod recommendations for a cluster, then for each workload
+// getWorkloadsData fetches workloads and pod recommendations for a cluster, then for each workload
 // filters recommendations by workload ID, computes total CPU, memory, cost, and attaches everything to
 // WorkloadDetail. Returns details and cluster-level requested/recommended CPU and memory.
-func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID string) ([]types.WorkloadDetail, map[string]workloadRecAgg, float64, float64, float64, float64, error) {
-	workloads, err := deps.Storage.GetWorkloadsInCluster(clusterID)
-	if err != nil {
-		return nil, nil, 0, 0, 0, 0, fmt.Errorf("get workloads for cluster %s: %w", clusterID, err)
+// If workloads is nil, all cluster workloads are used; otherwise the provided list is used (e.g. non-GPU only).
+func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID string, workloads []*types.WorkloadInCluster) ([]types.WorkloadDetail, map[string]workloadRecAgg, float64, float64, float64, float64, error) {
+	if workloads == nil {
+		var err error
+		workloads, err = deps.Storage.GetWorkloadsInCluster(clusterID)
+		if err != nil {
+			return nil, nil, 0, 0, 0, 0, fmt.Errorf("get workloads for cluster %s: %w", clusterID, err)
+		}
 	}
 	parsedRecs, err := deps.getPodRecommendationsForCluster(ctx, clusterID)
 	if err != nil {
@@ -263,10 +267,6 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		detail := buildWorkloadDetail(w, stat)
 		agg := aggregateRecsForWorkload(recsByWorkload[w.WorkloadID])
 		recAgg[w.WorkloadID] = agg
-
-		if detail.Name == "ebs-csi-node" {
-			fmt.Println("ebs-csi-node")
-		}
 
 		workloadPodCPURequest := stat.CalculateTotalCPURequest()
 		workloadTotalMemoryRequest := stat.CalculateTotalMemoryRequest()
@@ -316,7 +316,12 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 func (deps HandlerDependencies) WorkloadSummaryHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
-	details, recAgg, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := deps.getWorkloadsData(ctx, clusterID)
+	workloads, err := deps.Storage.GetWorkloadsInCluster(clusterID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	details, recAgg, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := deps.getWorkloadsData(ctx, clusterID, workloads)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
