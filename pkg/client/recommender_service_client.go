@@ -230,13 +230,6 @@ func (c *RecommenderServiceClient) GetClusterStats(ctx context.Context, clusterI
 	return &result, err
 }
 
-func (c *RecommenderServiceClient) GetWorkloadAnalysis(ctx context.Context, clusterID string) ([]types.WorkloadAnalysisItem, error) {
-	var result []types.WorkloadAnalysisItem
-	endpoint := fmt.Sprintf("/api/v1/clusters/%s/workload-analysis", clusterID)
-	err := c.makeRequest(ctx, "GET", endpoint, nil, &result)
-	return result, err
-}
-
 func (c *RecommenderServiceClient) GetRecommendationAnalysis(ctx context.Context, clusterID string) (interface{}, error) {
 	var result interface{}
 	endpoint := fmt.Sprintf("/api/v1/clusters/%s/recommendation-analysis", clusterID)

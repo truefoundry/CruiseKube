@@ -10,9 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
-	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/attribute"
@@ -27,7 +25,6 @@ func HandleRoot(c *gin.Context) {
 			"endpoints": {
 				"/clusters": "Lists all available clusters",
 				"/clusters/{clusterId}/stats": "Serves stats file for specific cluster",
-				"/clusters/{clusterId}/workload-analysis": "Generates workload analysis for specific cluster",
 				"/clusters/{clusterId}/prometheus-proxy": "Proxies requests to cluster's Prometheus instance",
 				"/clusters/{clusterId}/killswitch": "Deletes MutatingWebhookConfiguration objects and kills pods with resource differences (POST only)",
 				"/clusters/{clusterId}/webhook/mutate": "Mutating admission webhook for pod resource adjustment",
@@ -42,26 +39,26 @@ func HandleHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "healthy"})
 }
 
-func HandleListClusters(c *gin.Context) {
+func (deps HandlerDependencies) HandleListClusters(c *gin.Context) {
 	ctx := c.Request.Context()
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
+	mgr := deps.ClusterManager
 
 	logging.Infof(ctx, "Serving cluster list to %s", c.ClientIP())
 
 	clusterIDs := mgr.GetClusterIDs()
 
-	clusters := make([]map[string]any, len(clusterIDs))
-	for i, clusterID := range clusterIDs {
-		statsExists, err := storage.Stg.ClusterStatsExists(clusterID)
+	clusters := make([]map[string]any, 0, len(clusterIDs))
+	for _, clusterID := range clusterIDs {
+		statsExists, err := deps.Storage.ClusterStatsExists(clusterID)
 		if err != nil {
 			logging.Errorf(ctx, "Failed to check if cluster stats exists for %s: %v", clusterID, err)
 			continue
 		}
-		clusters[i] = map[string]any{
+		clusters = append(clusters, map[string]any{
 			"id":              clusterID,
 			"name":            clusterID,
 			"stats_available": statsExists,
-		}
+		})
 	}
 
 	response := map[string]any{
@@ -73,7 +70,7 @@ func HandleListClusters(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func HandleClusterStats(c *gin.Context) {
+func (deps HandlerDependencies) HandleClusterStats(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
@@ -83,7 +80,7 @@ func HandleClusterStats(c *gin.Context) {
 	logging.Infof(ctx, "Serving stats for cluster %s to %s", clusterID, c.ClientIP())
 	c.Header("Content-Type", "application/json")
 	var statsResponse types.StatsResponse
-	if err := storage.Stg.ReadClusterStats(clusterID, &statsResponse); err != nil {
+	if err := deps.Storage.ReadClusterStats(clusterID, &statsResponse); err != nil {
 		logging.Errorf(ctx, "Failed to read cluster stats for %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": fmt.Sprintf("Failed to read cluster stats for %s: %v", clusterID, err),
@@ -101,9 +98,8 @@ func HandleClusterStats(c *gin.Context) {
 	c.JSON(http.StatusOK, statsResponse)
 }
 
-func HandlePrometheusProxy(c *gin.Context) {
+func (deps HandlerDependencies) HandlePrometheusProxy(c *gin.Context) {
 	ctx := c.Request.Context()
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
 	clusterID := c.Param("clusterID")
 
 	span := oteltrace.SpanFromContext(ctx)
@@ -111,7 +107,7 @@ func HandlePrometheusProxy(c *gin.Context) {
 
 	logging.Infof(ctx, "Proxying prometheus request for cluster %s from %s", clusterID, c.ClientIP())
 
-	connInfo, err := mgr.GetPrometheusConnectionInfo(clusterID)
+	connInfo, err := deps.ClusterManager.GetPrometheusConnectionInfo(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get prometheus connection info for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -177,9 +173,8 @@ func HandlePrometheusProxy(c *gin.Context) {
 	}
 }
 
-func HandlePrometheusQuery(c *gin.Context) {
+func (deps HandlerDependencies) HandlePrometheusQuery(c *gin.Context) {
 	ctx := c.Request.Context()
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
 	clusterID := c.Param("clusterID")
 
 	span := oteltrace.SpanFromContext(ctx)
@@ -198,7 +193,7 @@ func HandlePrometheusQuery(c *gin.Context) {
 
 	logging.Infof(ctx, "Executing Prometheus query for cluster %s from %s", clusterID, c.ClientIP())
 
-	clients, err := mgr.GetClusterClients(clusterID)
+	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
 		c.JSON(http.StatusNotFound, gin.H{

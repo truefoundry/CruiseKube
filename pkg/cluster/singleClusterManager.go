@@ -58,18 +58,23 @@ func (m *SingleClusterManager) GetTask(taskName string) (task.Task, error) {
 	return task, nil
 }
 
-func (m *SingleClusterManager) ScheduleAllTasks() error {
+func (m *SingleClusterManager) ScheduleAllTasks(ctx context.Context) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	for taskName, task := range m.registeredTasks {
 		if task.IsEnabled() {
-			m.scheduler.ScheduleTask(context.Background(), taskName, task.GetSchedule(), task.Run)
+			if err := m.scheduler.ScheduleTask(ctx, taskName, task.GetSchedule(), task.Run); err != nil {
+				return err
+			}
 		}
 	}
-	m.scheduler.Wait(context.Background())
 
 	return nil
+}
+
+func (m *SingleClusterManager) StopScheduler(ctx context.Context) {
+	m.scheduler.Stop(ctx)
 }
 
 func (m *SingleClusterManager) RefreshClusters(ctx context.Context) error {

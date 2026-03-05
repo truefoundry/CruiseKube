@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
@@ -26,14 +25,14 @@ type rowWithValues struct {
 // using data from the database: workloads table (type, current requests) and
 // pod_resource_recommendations table (recommended values, pod/container list).
 // GET /api/v1/clusters/:clusterID/workloads/:namespace/:workloadName/detail
-func HandleWorkloadDetail(c *gin.Context) {
+func (deps HandlerDependencies) HandleWorkloadDetail(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 	namespace := c.Param("namespace")
 	workloadName := c.Param("workloadName")
 
 	// 1. Get workload (type + current container requests) from workloads table
-	workloads, err := storage.Stg.GetWorkloadsInCluster(clusterID)
+	workloads, err := deps.Storage.GetWorkloadsInCluster(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -68,7 +67,7 @@ func HandleWorkloadDetail(c *gin.Context) {
 	workloadType := stat.Kind
 
 	// 2. Get pod recommendations for this workload
-	rows, err := storage.Stg.GetPodRecommendationsForWorkload(clusterID, workloadID)
+	rows, err := deps.Storage.GetPodRecommendationsForWorkload(clusterID, workloadID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get pod recommendations for workload %s: %v", workloadID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{

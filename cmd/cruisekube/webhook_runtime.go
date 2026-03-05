@@ -1,32 +1,42 @@
 package main
 
 import (
-	"context"
+	"net/http"
+	"time"
 
+	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/handlers"
-	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/middleware"
 	"github.com/truefoundry/cruisekube/pkg/server"
 )
 
-func startWebhookRuntime(ctx context.Context, cfg *config.Config) {
+func startWebhookRuntime(runtimeManager *runtimeManager, cfg *config.Config) {
 	webhookPort := cfg.Webhook.Port
 	certDir := cfg.Webhook.CertsDir
 
-	handlers.InitRecommenderServiceClient(cfg)
-	webhookEngine := server.SetupWebhookServerEngine(middleware.Common(nil, cfg)...)
+	handlerDeps, err := handlers.NewWebhookHandlerDependencies(
+		cfg,
+		client.NewRecommenderServiceClientWithClusterToken(
+			cfg.Webhook.StatsURL.Host,
+			cfg.Webhook.StatsURL.TfyClusterToken,
+		),
+	)
+	if err != nil {
+		panic(err)
+	}
 
-	go func() {
+	webhookEngine := server.SetupWebhookServerEngine(handlerDeps, middleware.Common()...)
+	webhookServer := &http.Server{
+		Addr:              ":" + webhookPort,
+		Handler:           webhookEngine,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	startHTTPServer(runtimeManager, "webhook server", "Starting webhook server on :"+webhookPort, webhookServer, func(server *http.Server) error {
 		if certDir == "dev" {
-			if err := webhookEngine.Run(":" + webhookPort); err != nil {
-				logging.Fatalf(ctx, "HTTP server failed: %v", err)
-			}
-			return
+			return server.ListenAndServe()
 		}
 
-		if err := webhookEngine.RunTLS(":"+webhookPort, certDir+"/tls.crt", certDir+"/tls.key"); err != nil {
-			logging.Fatalf(ctx, "HTTPS server failed: %v", err)
-		}
-	}()
+		return server.ListenAndServeTLS(certDir+"/tls.crt", certDir+"/tls.key")
+	})
 }

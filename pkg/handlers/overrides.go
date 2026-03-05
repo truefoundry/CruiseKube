@@ -8,11 +8,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
-func UpdateWorkloadOverridesHandler(c *gin.Context) {
+func (deps HandlerDependencies) UpdateWorkloadOverridesHandler(c *gin.Context) {
 	clusterID := c.Param("clusterID")
 	workloadID := c.Param("workloadID")
 	var overrides *types.Overrides
@@ -24,7 +23,7 @@ func UpdateWorkloadOverridesHandler(c *gin.Context) {
 		return
 	}
 
-	if err := storage.Stg.UpdateWorkloadOverrides(clusterID, workloadID, overrides); err != nil {
+	if err := deps.Storage.UpdateWorkloadOverrides(clusterID, workloadID, overrides); err != nil {
 		logging.Errorf(c.Request.Context(), "Failed to update workload overrides: %v", err)
 		if strings.Contains(err.Error(), "workload not found") {
 			c.JSON(http.StatusNotFound, gin.H{

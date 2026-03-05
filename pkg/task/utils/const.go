@@ -45,7 +45,6 @@ const (
 
 const (
 	CPULookbackWindow        = 10 * time.Minute
-	CPU7DayLookbackWindow    = 7 * 24 * time.Hour
 	ReplicaLookbackWindow    = 7 * 24 * time.Hour
 	MemoryLookbackWindow     = 30 * time.Minute
 	Memory7DayLookbackWindow = 7 * 24 * time.Hour

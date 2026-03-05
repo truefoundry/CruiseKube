@@ -15,7 +15,6 @@ type ContainerStats = types.ContainerStats
 type CPUStats = types.CPUStats
 type MemoryStats = types.MemoryStats
 type Memory7DayStats = types.Memory7DayStats
-type CPU7DayStats = types.CPU7DayStats
 type MLPercentilesCPU = types.MLPercentilesCPU
 type MLPercentilesCPUPSIAdjusted = types.MLPercentilesCPUPSIAdjusted
 type MLPercentilesMemory = types.MLPercentilesMemory
