@@ -19,10 +19,11 @@ type OverviewCoverage struct {
 }
 
 type OverviewResourceStats struct {
-	Allocatable float64 `json:"allocatable"`
-	Requested   float64 `json:"requested"`
-	Usage       float64 `json:"usage"`
-	Recommended float64 `json:"recommended"`
+	Allocatable       float64 `json:"allocatable"`
+	Requested         float64 `json:"requested"`
+	WorkloadRequested float64 `json:"workloadRequested"`
+	Usage             float64 `json:"usage"`
+	Recommended       float64 `json:"recommended"`
 }
 
 type OverviewResponse struct {
