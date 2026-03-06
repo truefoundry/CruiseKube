@@ -263,7 +263,11 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 			continue
 		}
 		detail := buildWorkloadDetail(w, stat)
-		agg := aggregateRecsForWorkload(recsByWorkload[w.WorkloadID])
+		isGPU := stat.IsGPUWorkload()
+		var agg workloadRecAgg
+		if !isGPU {
+			agg = aggregateRecsForWorkload(recsByWorkload[w.WorkloadID])
+		}
 		recAgg[w.WorkloadID] = agg
 
 		workloadPodCPURequest := stat.CalculateTotalCPURequest()
@@ -281,16 +285,21 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		////////////////////////////////////////////////////////////
 		clusterReqCPU += currentCPUPerPod * float64(replicas)
 		clusterReqMem += currentMemPerPod * float64(replicas)
-		clusterRecCPU += agg.TotalCPU
-		clusterRecMem += agg.TotalMem
+		if !isGPU {
+			clusterRecCPU += agg.TotalCPU
+			clusterRecMem += agg.TotalMem
+		}
 
-		// The difference needs to be per pod
-		aggCPUPerPod := agg.TotalCPU / float64(replicas)
-		aggMemPerPod := agg.TotalMem / float64(replicas)
-		cpuChange := aggCPUPerPod - currentCPUPerPod
-		memChange := aggMemPerPod - currentMemPerPod
-		if stat.Replicas <= 0 {
-			cpuChange, memChange = 0, 0
+		// The difference needs to be per pod (no recommendation for GPU workloads)
+		var cpuChange, memChange float64
+		if !isGPU {
+			aggCPUPerPod := agg.TotalCPU / float64(replicas)
+			aggMemPerPod := agg.TotalMem / float64(replicas)
+			cpuChange = aggCPUPerPod - currentCPUPerPod
+			memChange = aggMemPerPod - currentMemPerPod
+			if stat.Replicas <= 0 {
+				cpuChange, memChange = 0, 0
+			}
 		}
 
 		detail.CPU = types.WorkloadCPU{
@@ -323,6 +332,9 @@ func (deps HandlerDependencies) WorkloadSummaryHandler(c *gin.Context) {
 
 	p := deps.getEffectivePricing(ctx, clusterID)
 	for i := range details {
+		if details[i].Constraints.IsGPUWorkload {
+			continue
+		}
 		fillWorkloadDetailDollars(&details[i], recAgg[details[i].WorkloadID], p)
 	}
 
