@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -19,7 +20,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/task"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
-
+	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -76,6 +77,12 @@ func HandleMutatingPatch(c *gin.Context) {
 
 	stat, err := storage.Stg.GetStatForWorkload(clusterID, workloadKey)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logging.Warnf(ctx, "Workload %s not found, skipping patch for pod %s/%s", workloadKey, pod.Namespace, pod.Name)
+			c.JSON(http.StatusOK, []client.JSONPatchOp{})
+			return
+		}
+
 		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadKey, err)
 		c.JSON(http.StatusOK, []client.JSONPatchOp{})
 		return
@@ -190,8 +197,11 @@ func adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, cfg
 	workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 	workloadStat, err := storage.Stg.GetStatForWorkload(clusterID, workloadID)
 	if err != nil {
-		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
-		return []map[string]any{}, nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			logging.Warnf(ctx, "Workload %s not found in storage, skipping adjustment for pod %s/%s", workloadID, pod.Namespace, pod.Name)
+			return []map[string]any{}, nil
+		}
+		return []map[string]any{}, fmt.Errorf("failed to adjust resources for pod %s/%s: %w", pod.Namespace, pod.Name, err)
 	}
 
 	containers := make([]corev1.Container, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))

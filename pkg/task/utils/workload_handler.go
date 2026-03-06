@@ -88,8 +88,11 @@ func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, kubeClient *ku
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
 	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil || len(pods.Items) == 0 {
+	if err != nil {
 		logging.Errorf(ctx, "Error getting pods for deployment %s/%s: %v", d.Namespace, d.Name, err)
+		return workload
+	}
+	if len(pods.Items) == 0 {
 		return workload
 	}
 
@@ -142,8 +145,11 @@ func (d StatefulSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *k
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
 	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil || len(pods.Items) == 0 {
+	if err != nil {
 		logging.Errorf(ctx, "Error getting pods for statefulset %s/%s: %v", d.Namespace, d.Name, err)
+		return workload
+	}
+	if len(pods.Items) == 0 {
 		return workload
 	}
 
@@ -196,8 +202,11 @@ func (d DaemonSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kub
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
 	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil || len(pods.Items) == 0 {
+	if err != nil {
 		logging.Errorf(ctx, "Error getting pods for daemonset %s/%s: %v", d.Namespace, d.Name, err)
+		return workload
+	}
+	if len(pods.Items) == 0 {
 		return workload
 	}
 

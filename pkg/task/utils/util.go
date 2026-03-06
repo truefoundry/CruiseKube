@@ -414,7 +414,7 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 	workloadKey := GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 	containerMetrics, exists := workloadKeyVsContainerMetrics[workloadKey]
 	if !exists {
-		logging.Errorf(ctx, "[CreateStats] No container metrics found for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
+		logging.Warnf(ctx, "[CreateStats] No container metrics found for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 		return nil
 	}
 
@@ -488,7 +488,7 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 	}
 
 	if len(containerStats) == 0 {
-		logging.Errorf(ctx, "[CreateStats] No valid container recommendations for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
+		logging.Warnf(ctx, "[CreateStats] No valid container recommendations for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 		return nil
 	}
 
