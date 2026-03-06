@@ -140,8 +140,10 @@ func (deps HandlerDependencies) resolveMutatingPatchContext(ctx context.Context,
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			logging.Warnf(ctx, "Workload %s not found, skipping patch for pod %s/%s", workloadKey, pod.Namespace, pod.Name)
-			c.JSON(http.StatusOK, []client.JSONPatchOp{})
-			return
+			return nil, &mutatingPatchResult{
+				statusCode: http.StatusOK,
+				patches:    emptyPatchList(),
+			}
 		}
 
 		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadKey, err)
@@ -314,14 +316,18 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 
 	logging.Infof(ctx, "Pod %s/%s belongs to workload: %s", pod.Namespace, getPodName(pod), utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 
-	workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-	workloadStat, err := storage.Stg.GetStatForWorkload(clusterID, workloadID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logging.Warnf(ctx, "Workload %s not found in storage, skipping adjustment for pod %s/%s", workloadID, pod.Namespace, pod.Name)
+	if workloadStat == nil {
+		workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
+		var err error
+		workloadStat, err = deps.Storage.GetStatForWorkload(clusterID, workloadID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				logging.Warnf(ctx, "No stat found for workload %s, skipping patch", workloadID)
+				return []map[string]any{}, nil
+			}
+			logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
 			return []map[string]any{}, nil
 		}
-		return []map[string]any{}, fmt.Errorf("failed to adjust resources for pod %s/%s: %w", pod.Namespace, pod.Name, err)
 	}
 
 	containers := make([]corev1.Container, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
