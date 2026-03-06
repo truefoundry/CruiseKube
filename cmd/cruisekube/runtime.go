@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -11,76 +15,88 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func runCruiseKube(cmd *cobra.Command, args []string) {
+func runCruiseKube(cmd *cobra.Command, args []string) (runErr error) {
 	ctx := cmd.Context()
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	cfg := loadRuntimeConfig(ctx)
 
-	if shutdownTelemetry := setupTelemetry(ctx, cfg); shutdownTelemetry != nil {
-		defer shutdownTelemetry()
+	runtime := newRuntimeManager(ctx)
+	defer func() {
+		if shutdownErr := runtime.Shutdown(); shutdownErr != nil {
+			if runErr == nil {
+				runErr = fmt.Errorf("shutdown failed: %w", shutdownErr)
+				return
+			}
+
+			logging.Errorf(context.Background(), "Failed to shutdown runtime: %v", shutdownErr)
+		}
+	}()
+
+	cfg, err := loadRuntimeConfig(ctx)
+	if err != nil {
+		return err
 	}
-	startMetricsServer(ctx, cfg)
+
+	if err := setupTelemetry(runtime, cfg); err != nil {
+		return err
+	}
+	startMetricsServer(runtime, cfg)
 
 	if shouldStartWebhook(cfg.ExecutionMode) {
-		startWebhookRuntime(ctx, cfg)
+		startWebhookRuntime(runtime, cfg)
 	}
 
 	if shouldStartController(cfg.ExecutionMode) {
-		startControllerRuntime(ctx, cfg)
+		if err := startControllerRuntime(runtime, cfg); err != nil {
+			return err
+		}
 	}
 
-	if shouldBlockForever(cfg.ExecutionMode) {
-		blockForever()
-	}
+	return runtime.Wait()
 }
 
-func loadRuntimeConfig(ctx context.Context) *config.Config {
+func loadRuntimeConfig(ctx context.Context) (*config.Config, error) {
 	cfg, err := config.LoadWithViperInstance(ctx, v, configFilePath)
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to load config: %v", err)
+		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
 	if err := cfg.Validate(); err != nil {
-		logging.Fatalf(ctx, "Invalid configuration: %v", err)
+		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
 	logging.Infof(ctx, "Configuration loaded: controllerMode=%s executionMode=%s", cfg.ControllerMode, cfg.ExecutionMode)
-	return cfg
+	return cfg, nil
 }
 
-func setupTelemetry(ctx context.Context, cfg *config.Config) func() {
+func setupTelemetry(runtime *runtimeManager, cfg *config.Config) error {
 	if !cfg.Telemetry.Enabled {
 		return nil
 	}
 
-	shutdown, err := telemetry.Init(ctx, cfg.Telemetry)
+	shutdown, err := telemetry.Init(runtime.ctx, cfg.Telemetry)
 	if err != nil {
-		logging.Fatalf(ctx, "Failed to initialize telemetry: %v", err)
+		return fmt.Errorf("failed to initialize telemetry: %w", err)
 	}
 
-	return func() {
-		if err := shutdown(ctx); err != nil {
-			logging.Errorf(ctx, "Failed to shutdown telemetry: %v", err)
-		}
-	}
+	runtime.AddCleanup(shutdown)
+	return nil
 }
 
-func startMetricsServer(ctx context.Context, cfg *config.Config) {
+func startMetricsServer(runtime *runtimeManager, cfg *config.Config) {
 	if !cfg.Metrics.Enabled {
 		return
 	}
 
-	metricsEngine := server.SetupMetricsServerEngine()
-	metricsPort := cfg.Metrics.Port
-
-	go func() {
-		logging.Infof(ctx, "Starting metrics server on :%s", metricsPort)
-		if err := metricsEngine.Run(":" + metricsPort); err != nil {
-			logging.Fatalf(ctx, "Metrics server failed: %v", err)
-		}
-	}()
+	metricsServer := &http.Server{
+		Addr:              ":" + cfg.Metrics.Port,
+		Handler:           server.SetupMetricsServerEngine(),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	startHTTPServer(runtime, "metrics server", "Starting metrics server on :"+cfg.Metrics.Port, metricsServer, func(server *http.Server) error {
+		return server.ListenAndServe()
+	})
 }
 
 func shouldStartWebhook(mode config.ExecutionMode) bool {
@@ -91,6 +107,19 @@ func shouldStartController(mode config.ExecutionMode) bool {
 	return mode == config.ExecutionModeController || mode == config.ExecutionModeBoth
 }
 
-func shouldBlockForever(mode config.ExecutionMode) bool {
-	return mode == config.ExecutionModeWebhook
+func startHTTPServer(runtime *runtimeManager, name string, startupMessage string, httpServer *http.Server, serve func(*http.Server) error) {
+	runtime.AddCleanup(func(ctx context.Context) error {
+		return httpServer.Shutdown(ctx)
+	})
+
+	runtime.Go(name, func(ctx context.Context) error {
+		logging.Infof(ctx, "%s", startupMessage)
+
+		err := serve(httpServer)
+		if err == nil || errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+
+		return err
+	})
 }

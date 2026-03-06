@@ -222,6 +222,15 @@ func (s *Storage) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	return nil
 }
 
+// GetSnapshotsInRange returns snapshots for the cluster in [startTime, endTime].
+func (s *Storage) GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error) {
+	snapshots, err := s.DB.GetSnapshotsInRange(clusterID, startTime, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get snapshots for cluster %s in range: %w", clusterID, err)
+	}
+	return snapshots, nil
+}
+
 func (s *Storage) GetSettings(clusterID string) (*types.ClusterSettings, error) {
 	settings, err := s.DB.GetClusterSettings(clusterID)
 	if err != nil {
@@ -235,4 +244,22 @@ func (s *Storage) UpdateSettings(clusterID string, settings *types.ClusterSettin
 		return fmt.Errorf("failed to upsert settings: %w", err)
 	}
 	return nil
+}
+
+// GetAuditEvents returns audit events for the cluster since the given time.
+func (s *Storage) GetAuditEvents(clusterID string, since time.Time) ([]types.AuditEventRecord, error) {
+	events, err := s.DB.GetAuditEvents(clusterID, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get audit events for cluster %s: %w", clusterID, err)
+	}
+	return events, nil
+}
+
+// GetAuditEventsForWorkload returns audit events for the given workload in the cluster since the given time.
+func (s *Storage) GetAuditEventsForWorkload(clusterID, workloadID string, since time.Time) ([]types.AuditEventRecord, error) {
+	events, err := s.DB.GetAuditEventsForWorkload(clusterID, workloadID, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get audit events for workload %s: %w", workloadID, err)
+	}
+	return events, nil
 }

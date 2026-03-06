@@ -30,7 +30,6 @@ type ContainerMetrics struct {
 	OOMMemory float64
 
 	Memory7Day Memory7DayStats
-	CPU7Day    CPU7DayStats
 
 	MedianReplicas float64
 

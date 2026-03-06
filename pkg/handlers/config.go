@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"go.opentelemetry.io/otel/attribute"
@@ -12,7 +11,7 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-func GetConfigHandler(c *gin.Context) {
+func (deps HandlerDependencies) GetConfigHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
@@ -21,8 +20,8 @@ func GetConfigHandler(c *gin.Context) {
 
 	logging.Infof(ctx, "Getting Prometheus config for cluster %s", clusterID)
 
-	cfg := config.GetConfigFromGinContext(c)
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
+	cfg := deps.Config
+	mgr := deps.ClusterManager
 
 	var prometheusURL string
 	switch cfg.ControllerMode {

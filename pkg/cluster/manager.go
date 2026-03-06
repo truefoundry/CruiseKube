@@ -28,7 +28,8 @@ type Manager interface {
 	GetClusterMode() ClusterMode
 	AddTask(task task.Task)
 	GetTask(taskName string) (task.Task, error)
-	ScheduleAllTasks() error
+	ScheduleAllTasks(ctx context.Context) error
+	StopScheduler(ctx context.Context)
 }
 
 type ClusterClients struct {
