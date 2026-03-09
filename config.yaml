@@ -82,3 +82,7 @@ telemetry:
   exporterOTLPHeaders: ""
   serviceName: ""
   traceRatio: 0.1
+sentry:
+  enabled: false
+  dsn: ""
+  environment: ""

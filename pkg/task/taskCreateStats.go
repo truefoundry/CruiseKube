@@ -270,7 +270,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 
 	workloadObj, err := utils.GetWorkloadObject(ctx, kubeClient, workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 	if err != nil {
-		logging.Errorf(ctx, "Error getting workload %s: %v", workloadKey, err)
+		logging.Warnf(ctx, "Error getting workload %s: %v", workloadKey, err)
 		return nil
 	}
 
@@ -281,7 +281,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 
 	workloadStat := utils.BuildContainerStatFromCache(ctx, workloadInfo, workloadKeyVsContainerMetrics, containerResources)
 	if workloadStat == nil {
-		logging.Errorf(ctx, "Could not build container stat for %s", workloadKey)
+		logging.Warnf(ctx, "Could not build container stat for %s", workloadKey)
 		return nil
 	}
 

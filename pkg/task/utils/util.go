@@ -394,7 +394,7 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 	workloadKey := GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 	containerMetrics, exists := workloadKeyVsContainerMetrics[workloadKey]
 	if !exists {
-		logging.Errorf(ctx, "[CreateStats] No container metrics found for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
+		logging.Warnf(ctx, "[CreateStats] No container metrics found for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 		return nil
 	}
 
@@ -459,7 +459,7 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 	}
 
 	if len(containerStats) == 0 {
-		logging.Errorf(ctx, "[CreateStats] No valid container recommendations for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
+		logging.Warnf(ctx, "[CreateStats] No valid container recommendations for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 		return nil
 	}
 
@@ -468,16 +468,9 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 		Kind:                       workloadInfo.Kind,
 		Namespace:                  workloadInfo.Namespace,
 		Name:                       workloadInfo.Name,
-		ContinuousOptimization:     true,
 		Replicas:                   int32(medianReplicas),
 		ContainerStats:             containerStats,
 		OriginalContainerResources: containerResources,
-	}
-
-	totalMaxCPU := workloadStat.CalculateTotalCPUStats(100)
-	totalP50CPU := workloadStat.CalculateTotalCPUStats(50)
-	if totalMaxCPU/totalP50CPU < ContinuousOptimizationRatioThreshold || totalMaxCPU-totalP50CPU < ContinuousOptimizationDiffThreshold {
-		workloadStat.ContinuousOptimization = false
 	}
 
 	return workloadStat

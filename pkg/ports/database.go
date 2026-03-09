@@ -1,9 +1,16 @@
 package ports
 
 import (
+	"errors"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/types"
+)
+
+var (
+	ErrWorkloadNotFound = errors.New("workload not found")
+	ErrOOMEventNotFound = errors.New("OOM event not found")
+	ErrSettingsNotFound = errors.New("cluster settings not found")
 )
 
 type Database interface {

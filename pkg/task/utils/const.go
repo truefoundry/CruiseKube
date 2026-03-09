@@ -3,11 +3,9 @@ package utils
 import "time"
 
 const (
-	ExcludedAnnotation                   = "cruisekube.truefoundry.com/excluded"
-	ContinuousOptimizationRatioThreshold = 3.0
-	ContinuousOptimizationDiffThreshold  = 0.001
-	BytesToMBDivisor                     = 1000_000
-	CPUClampValue                        = 20.0
+	ExcludedAnnotation = "cruisekube.truefoundry.com/excluded"
+	BytesToMBDivisor   = 1000_000
+	CPUClampValue      = 20.0
 )
 
 const (

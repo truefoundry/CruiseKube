@@ -34,12 +34,11 @@ type PodInfo struct {
 	// Sum of cpu request for all containers in the pod
 	RequestedCPU float64 `json:"requested_cpu"`
 	// Sum of memory request for all containers in the pod
-	RequestedMemory        float64               `json:"requested_memory"`
-	LimitCPU               float64               `json:"limit_cpu"`
-	LimitMemory            float64               `json:"limit_memory"`
-	ContinuousOptimization bool                  `json:"continuous_optimization"`
-	Stats                  *WorkloadStat         `json:"stats,omitempty"`
-	ContainerResources     []*ContainerResources `json:"container_resources,omitempty"`
+	RequestedMemory    float64               `json:"requested_memory"`
+	LimitCPU           float64               `json:"limit_cpu"`
+	LimitMemory        float64               `json:"limit_memory"`
+	Stats              *WorkloadStat         `json:"stats,omitempty"`
+	ContainerResources []*ContainerResources `json:"container_resources,omitempty"`
 }
 
 func (p *PodInfo) IsBestEffortPod() bool {
