@@ -190,6 +190,12 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 	}
 	inDisruptionWindow := stat.Metadata != nil && stat.Metadata.InDisruptionWindow
 	cruiseEnabled := effective.Enabled && !stat.IsGPUWorkload() // do not enable for GPU workloads
+	hpaEnabled := stat.IsHorizontallyAutoscaledOnCPU || stat.IsHorizontallyAutoscaledOnMem
+	var excludedCodes []types.ExcludedCode
+	if stat.Metadata != nil && len(stat.Metadata.ExcludedCodes) > 0 {
+		excludedCodes = make([]types.ExcludedCode, len(stat.Metadata.ExcludedCodes))
+		copy(excludedCodes, stat.Metadata.ExcludedCodes)
+	}
 	return types.WorkloadDetail{
 		WorkloadID:  w.WorkloadID,
 		Kind:        stat.Kind,
@@ -203,6 +209,8 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 			CruiseEnabled:      cruiseEnabled,
 			DisruptionSchedule: disruptionSchedule,
 			InDisruptionWindow: inDisruptionWindow,
+			HPAEnabled:         hpaEnabled,
+			ExcludedCodes:      excludedCodes,
 		},
 	}
 }
