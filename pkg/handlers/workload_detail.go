@@ -171,7 +171,7 @@ func (deps HandlerDependencies) HandleWorkloadDetail(c *gin.Context) {
 			logging.Warnf(ctx, "workload_detail dedup: duplicate container row for pod %s container %s (skipping); values from upstream buildPodRecommendationRows/SavePodRecommendations: cpuReq=%.4f cpuRec=%.4f memReq=%.1f memRec=%.1f",
 				row.Pod, row.Container, p.cpuReq, p.cpuRec, p.memReq, p.memRec)
 		} else {
-			// Apply same rounding as recommendation-analysis API (analyzeWorkloadStats) so values match previous response
+			// Apply the established rounding so values match previous response behavior
 			cpuReqRounded := math.Round(p.cpuReq*1000) / 1000
 			cpuRecRounded := math.Round(p.cpuRec*1000) / 1000
 			memReqRounded := math.Round(p.memReq)

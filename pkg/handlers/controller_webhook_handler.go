@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/client"
+	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -21,10 +22,29 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
+type mutatingPatchInput struct {
+	pod *corev1.Pod
+}
+
+type mutatingPatchResolvedContext struct {
+	pod          *corev1.Pod
+	clients      *cluster.ClusterClients
+	workloadInfo *utils.WorkloadInfo
+	workloadKey  string
+	stat         *types.WorkloadStat
+	overrides    *types.Overrides
+}
+
+type mutatingPatchResult struct {
+	statusCode   int
+	errorMessage string
+	patches      []map[string]any
+	audit        *mutatingPatchResolvedContext
+}
+
 func (deps HandlerDependencies) HandleMutatingPatch(c *gin.Context) {
-	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
-	ctx = contextutils.WithCluster(ctx, clusterID)
+	ctx := contextutils.WithCluster(c.Request.Context(), clusterID)
 
 	var req client.MutatingPatchRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -32,40 +52,85 @@ func (deps HandlerDependencies) HandleMutatingPatch(c *gin.Context) {
 		return
 	}
 
+	deps.writeMutatingPatchResponse(c, clusterID, deps.evaluateMutatingPatch(ctx, clusterID, req))
+}
+
+func (deps HandlerDependencies) evaluateMutatingPatch(ctx context.Context, clusterID string, req client.MutatingPatchRequest) mutatingPatchResult {
+	input, result := extractMutatingPatchInput(ctx, req)
+	if result != nil {
+		return *result
+	}
+
+	resolved, result := deps.resolveMutatingPatchContext(ctx, clusterID, input.pod)
+	if result != nil {
+		return *result
+	}
+
+	if !deps.shouldApplyMutatingPatch(ctx, clusterID, resolved) {
+		return emptyMutatingPatchResult()
+	}
+
+	patches, err := deps.buildMutatingPatches(ctx, clusterID, resolved)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to adjust resources for pod %s/%s: %v", resolved.pod.Namespace, getPodName(resolved.pod), err)
+		return emptyMutatingPatchResult()
+	}
+
+	return mutatingPatchResult{
+		statusCode: http.StatusOK,
+		patches:    patches,
+		audit:      resolved,
+	}
+}
+
+func extractMutatingPatchInput(ctx context.Context, req client.MutatingPatchRequest) (*mutatingPatchInput, *mutatingPatchResult) {
 	review := req.Review
 	if review.Request == nil {
 		logging.Warnf(ctx, "Admission review has no request")
-		c.JSON(http.StatusOK, []client.JSONPatchOp{})
-		return
+		return nil, &mutatingPatchResult{
+			statusCode: http.StatusOK,
+			patches:    emptyPatchList(),
+		}
 	}
 
-	// Only mutate Pods
+	// Only mutate Pods.
 	if review.Request.Kind.Kind != "Pod" {
 		logging.Warnf(ctx, "Admission review request is not a Pod, skipping")
-		c.JSON(http.StatusOK, []client.JSONPatchOp{})
-		return
+		return nil, &mutatingPatchResult{
+			statusCode: http.StatusOK,
+			patches:    emptyPatchList(),
+		}
 	}
 
 	var pod corev1.Pod
 	if err := json.Unmarshal(review.Request.Object.Raw, &pod); err != nil {
 		logging.Errorf(ctx, "Failed to decode pod from admission request: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid pod object"})
-		return
+		return nil, &mutatingPatchResult{
+			statusCode:   http.StatusBadRequest,
+			errorMessage: "invalid pod object",
+		}
 	}
 
-	cfg := deps.Config
+	return &mutatingPatchInput{pod: &pod}, nil
+}
+
+func (deps HandlerDependencies) resolveMutatingPatchContext(ctx context.Context, clusterID string, pod *corev1.Pod) (*mutatingPatchResolvedContext, *mutatingPatchResult) {
+	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
+	if workloadInfo == nil {
+		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, pod.Name)
+		return nil, &mutatingPatchResult{
+			statusCode: http.StatusOK,
+			patches:    emptyPatchList(),
+		}
+	}
+
 	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
-		c.JSON(http.StatusOK, []client.JSONPatchOp{})
-		return
-	}
-
-	workloadInfo := utils.GetWorkloadInfoFromPod(&pod)
-	if workloadInfo == nil {
-		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, pod.Name)
-		c.JSON(http.StatusOK, []client.JSONPatchOp{})
-		return
+		return nil, &mutatingPatchResult{
+			statusCode: http.StatusOK,
+			patches:    emptyPatchList(),
+		}
 	}
 
 	workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
@@ -73,69 +138,119 @@ func (deps HandlerDependencies) HandleMutatingPatch(c *gin.Context) {
 	stat, err := deps.Storage.GetStatForWorkload(clusterID, workloadKey)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadKey, err)
-		c.JSON(http.StatusOK, []client.JSONPatchOp{})
-		return
+		return nil, &mutatingPatchResult{
+			statusCode: http.StatusOK,
+			patches:    emptyPatchList(),
+		}
 	}
 	if stat == nil {
 		logging.Infof(ctx, "No stats for workload %s, skipping", workloadKey)
-		c.JSON(http.StatusOK, []client.JSONPatchOp{})
-		return
+		return nil, &mutatingPatchResult{
+			statusCode: http.StatusOK,
+			patches:    emptyPatchList(),
+		}
 	}
 
 	overrides, err := deps.Storage.GetWorkloadOverrides(clusterID, workloadKey)
 	if err != nil {
 		logging.Warnf(ctx, "Failed to get workload overrides for %s in cluster %s: %v; proceeding without overrides", workloadKey, clusterID, err)
 	}
-	overrideInfo := buildWorkloadOverrideInfo(workloadKey, stat, overrides)
 
-	podInfo := utils.BuildPodInfoFromPod(&pod, workloadInfo, stat)
-	k8sGE133 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 33)
-	k8sMemoryGE134 := utils.CheckIfClusterVersionAbove(ctx, clusterID, clients.KubeClient, 1, 34)
+	return &mutatingPatchResolvedContext{
+		pod:          pod,
+		clients:      clients,
+		workloadInfo: workloadInfo,
+		workloadKey:  workloadKey,
+		stat:         stat,
+		overrides:    overrides,
+	}, nil
+}
+
+func (deps HandlerDependencies) shouldApplyMutatingPatch(ctx context.Context, clusterID string, resolved *mutatingPatchResolvedContext) bool {
+	cfg := deps.Config
+	overrideInfo := buildWorkloadOverrideInfo(resolved.workloadKey, resolved.stat, resolved.overrides)
+	podInfo := utils.BuildPodInfoFromPod(resolved.pod, resolved.workloadInfo, resolved.stat)
 	input := utils.ApplyCheckInput{
 		ApplyBlacklistedNamespaces: cfg.RecommendationSettings.ApplyBlacklistedNamespaces,
-		K8sVersionGE133:            k8sGE133,
-		K8sMemoryGE134:             k8sMemoryGE134,
+		K8sVersionGE133:            utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 33),
+		K8sMemoryGE134:             utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 34),
 		OptimizeGuaranteedPods:     cfg.RecommendationSettings.OptimizeGuaranteedPods,
 		DisableMemoryApplication:   cfg.RecommendationSettings.DisableMemoryApplication,
 		NewWorkloadThresholdHours:  cfg.RecommendationSettings.NewWorkloadThresholdHours,
 		SkipMemory:                 false,
-		PodExcludedByAnnotation:    utils.PodExcludedByAnnotation(&pod),
+		PodExcludedByAnnotation:    utils.PodExcludedByAnnotation(resolved.pod),
 	}
 
 	apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overrideInfo, input)
 	if !apply {
-		logging.Infof(ctx, "Skipping recommendation for pod %s/%s: %s", pod.Namespace, getPodName(&pod), reason)
-		c.JSON(http.StatusOK, []client.JSONPatchOp{})
-		return
+		logging.Infof(ctx, "Skipping recommendation for pod %s/%s: %s", resolved.pod.Namespace, getPodName(resolved.pod), reason)
 	}
+	return apply
+}
 
-	patches, err := deps.adjustResources(ctx, &pod, clusterID)
+func (deps HandlerDependencies) buildMutatingPatches(ctx context.Context, clusterID string, resolved *mutatingPatchResolvedContext) ([]map[string]any, error) {
+	patches, err := deps.adjustResources(ctx, resolved.pod, clusterID, resolved.workloadInfo, resolved.stat)
 	if err != nil {
-		logging.Errorf(ctx, "Failed to adjust resources for pod %s/%s: %v", pod.Namespace, getPodName(&pod), err)
-		c.JSON(http.StatusOK, []client.JSONPatchOp{})
+		return nil, err
+	}
+
+	disruptionPatches := buildDisruptionAnnotationPatches(ctx, resolved.pod, resolved.stat, resolved.overrides)
+	patches = append(patches, disruptionPatches...)
+	if patches == nil {
+		return emptyPatchList(), nil
+	}
+	return patches, nil
+}
+
+func (deps HandlerDependencies) writeMutatingPatchResponse(c *gin.Context, clusterID string, result mutatingPatchResult) {
+	ctx := contextutils.WithCluster(c.Request.Context(), clusterID)
+	if result.errorMessage != "" {
+		c.JSON(result.statusCode, gin.H{"error": result.errorMessage})
 		return
 	}
 
-	disruptionPatches := buildDisruptionAnnotationPatches(ctx, &pod, stat, overrides)
-	patches = append(patches, disruptionPatches...)
-
-	if len(patches) > 0 && deps.AuditRecorder != nil {
+	if len(result.patches) > 0 && deps.AuditRecorder != nil && result.audit != nil {
+		message := fmt.Sprintf("Pod %s/%s mutated with disruption annotation changes", result.audit.pod.Namespace, getPodName(result.audit.pod))
+		if hasResourcePatch(result.patches) {
+			message = fmt.Sprintf("Pod %s/%s mutated with resource recommendations", result.audit.pod.Namespace, getPodName(result.audit.pod))
+		}
 		deps.AuditRecorder.Record(ctx, clusterID, types.AuditEvent{
 			Type:     types.EventTypeNormal,
 			Category: types.EventCategoryWebhookMutation,
 			Payload: types.AuditPayload{
-				Message: fmt.Sprintf("Pod %s/%s mutated with resource recommendations", pod.Namespace, getPodName(&pod)),
-				Target:  map[string]interface{}{"kind": pod.Kind, "namespace": pod.Namespace, "name": getPodName(&pod)},
+				Message: message,
+				Target:  map[string]interface{}{"kind": result.audit.pod.Kind, "namespace": result.audit.pod.Namespace, "name": getPodName(result.audit.pod)},
 				Details: map[string]interface{}{
-					"workloadId": workloadKey,
-					"node":       pod.Spec.NodeName,
-					"patches":    patches,
+					"workloadId": result.audit.workloadKey,
+					"node":       result.audit.pod.Spec.NodeName,
+					"patches":    result.patches,
 				},
 			},
 		})
 	}
 
-	c.JSON(http.StatusOK, patches)
+	c.JSON(result.statusCode, result.patches)
+}
+
+func emptyMutatingPatchResult() mutatingPatchResult {
+	return mutatingPatchResult{
+		statusCode: http.StatusOK,
+		patches:    emptyPatchList(),
+	}
+}
+
+func emptyPatchList() []map[string]any {
+	return []map[string]any{}
+}
+
+func hasResourcePatch(patches []map[string]any) bool {
+	for _, patch := range patches {
+		path, _ := patch["path"].(string)
+		if strings.Contains(path, "/resources/requests") || strings.Contains(path, "/resources/limits") {
+			return true
+		}
+	}
+	return false
 }
 
 func getPodName(pod *corev1.Pod) string {
@@ -180,9 +295,11 @@ func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, over
 // Keep this helper on HandlerDependencies because it still needs injected services
 // from the webhook flow, and moving it off the receiver would reintroduce globals
 // or add avoidable plumbing parameters.
-func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string) ([]map[string]any, error) {
+func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, workloadInfo *utils.WorkloadInfo, workloadStat *types.WorkloadStat) ([]map[string]any, error) {
 	cfg := deps.Config
-	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
+	if workloadInfo == nil {
+		workloadInfo = utils.GetWorkloadInfoFromPod(pod)
+	}
 	if workloadInfo == nil {
 		logging.Warnf(ctx, "Could not determine workload for pod %s/%s, allowing without adjustment", pod.Namespace, getPodName(pod))
 		return []map[string]any{}, nil
@@ -190,10 +307,16 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 
 	logging.Infof(ctx, "Pod %s/%s belongs to workload: %s", pod.Namespace, getPodName(pod), utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 
-	workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-	workloadStat, err := deps.Storage.GetStatForWorkload(clusterID, workloadID)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
+	if workloadStat == nil {
+		workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
+		var err error
+		workloadStat, err = deps.Storage.GetStatForWorkload(clusterID, workloadID)
+		if err != nil {
+			logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
+			return []map[string]any{}, nil
+		}
+	}
+	if workloadStat == nil {
 		return []map[string]any{}, nil
 	}
 
@@ -356,7 +479,7 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 	if applyTaskConfig == nil {
 		return nil, fmt.Errorf("missing task config for %s", config.ApplyRecommendationKey)
 	}
-	err = applyTaskConfig.ConvertMetadataToStruct(&metadata)
+	err := applyTaskConfig.ConvertMetadataToStruct(&metadata)
 	if err != nil {
 		return nil, fmt.Errorf("convert metadata to struct: %w", err)
 	}

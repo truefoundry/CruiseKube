@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -40,31 +39,6 @@ type ClientConfig struct {
 
 type HealthResponse struct {
 	Status string `json:"status"`
-}
-
-type RootResponse struct {
-	Message   string            `json:"message"`
-	Endpoints map[string]string `json:"endpoints"`
-}
-
-type ClustersResponse struct {
-	Clusters    []ClusterInfo `json:"clusters"`
-	Count       int           `json:"count"`
-	ClusterMode string        `json:"cluster_mode"`
-}
-
-type ClusterInfo struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	StatsAvailable bool   `json:"stats_available"`
-}
-
-type PrometheusProxyRequest struct {
-	Method      string
-	ProxyPath   string
-	QueryParams url.Values
-	Headers     map[string]string
-	Body        io.Reader
 }
 
 // MutatingPatchRequest is the request body for mutating patch
@@ -181,45 +155,9 @@ func (c *RecommenderServiceClient) makeRequest(ctx context.Context, method, endp
 	return nil
 }
 
-func (c *RecommenderServiceClient) makeRawRequest(ctx context.Context, method, endpoint string, headers map[string]string, body io.Reader) (*http.Response, error) {
-	fullURL := c.host + endpoint
-	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	for key, value := range headers {
-		req.Header.Set(key, value)
-	}
-
-	if c.clusterToken != "" {
-		req.Header.Set("x-cluster-token", c.clusterToken)
-	} else if c.username != "" && c.password != "" {
-		req.SetBasicAuth(c.username, c.password)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute HTTP request: %w", err)
-	}
-	return resp, nil
-}
-
 func (c *RecommenderServiceClient) Health(ctx context.Context) (*HealthResponse, error) {
 	var result HealthResponse
 	err := c.makeRequest(ctx, "GET", "/health", nil, &result)
-	return &result, err
-}
-
-func (c *RecommenderServiceClient) Root(ctx context.Context) (*RootResponse, error) {
-	var result RootResponse
-	err := c.makeRequest(ctx, "GET", "/api/v1/", nil, &result)
-	return &result, err
-}
-
-func (c *RecommenderServiceClient) ListClusters(ctx context.Context) (*ClustersResponse, error) {
-	var result ClustersResponse
-	err := c.makeRequest(ctx, "GET", "/api/v1/clusters", nil, &result)
 	return &result, err
 }
 
@@ -230,43 +168,11 @@ func (c *RecommenderServiceClient) GetClusterStats(ctx context.Context, clusterI
 	return &result, err
 }
 
-func (c *RecommenderServiceClient) GetRecommendationAnalysis(ctx context.Context, clusterID string) (interface{}, error) {
-	var result interface{}
-	endpoint := fmt.Sprintf("/api/v1/clusters/%s/recommendation-analysis", clusterID)
-	err := c.makeRequest(ctx, "GET", endpoint, nil, &result)
-	return result, err
-}
-
-func (c *RecommenderServiceClient) PrometheusProxy(ctx context.Context, clusterID string, proxyReq PrometheusProxyRequest) (*http.Response, error) {
-	endpoint := fmt.Sprintf("/api/v1/clusters/%s/prometheus-proxy/%s", clusterID, strings.TrimPrefix(proxyReq.ProxyPath, "/"))
-
-	if len(proxyReq.QueryParams) > 0 {
-		endpoint += "?" + proxyReq.QueryParams.Encode()
-	}
-
-	return c.makeRawRequest(ctx, proxyReq.Method, endpoint, proxyReq.Headers, proxyReq.Body)
-}
-
-func (c *RecommenderServiceClient) Killswitch(ctx context.Context, clusterID string, dryRun bool) (*types.KillswitchResponse, error) {
-	var result types.KillswitchResponse
-	endpoint := fmt.Sprintf("/api/v1/clusters/%s/killswitch", clusterID)
-	if dryRun {
-		endpoint += "?dry_run=true"
-	}
-	err := c.makeRequest(ctx, "POST", endpoint, nil, &result)
-	return &result, err
-}
-
 func (c *RecommenderServiceClient) ListWorkloads(ctx context.Context, clusterID string) ([]types.WorkloadOverrideInfo, error) {
 	var result []types.WorkloadOverrideInfo
 	endpoint := fmt.Sprintf("/api/v1/clusters/%s/workloads", clusterID)
 	err := c.makeRequest(ctx, "GET", endpoint, nil, &result)
 	return result, err
-}
-
-func (c *RecommenderServiceClient) UpdateWorkloadOverrides(ctx context.Context, clusterID, workloadID string, overrides *types.Overrides) error {
-	endpoint := fmt.Sprintf("/api/v1/clusters/%s/workloads/%s/overrides", clusterID, workloadID)
-	return c.makeRequest(ctx, "POST", endpoint, overrides, nil)
 }
 
 // WebhookMutatingPatch POSTs the given body to the controller's mutatingPatch endpoint and returns the response body (JSON patch array).

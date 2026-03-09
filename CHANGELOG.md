@@ -9,12 +9,23 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+
+## v0.2.1 (2026-03-05)
+
 ### Breaking Changes
 
 * Rename stats table to workloads and modify corresponding functions to load workloads instead of stats by @innoavator in https://github.com/truefoundry/CruiseKube/pull/112
+* feat: add snapshot for cluster by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/123
+* feat: audit system by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/127
+* Remove unused recommender endpoints by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/148
+* Change project license to BUSL-1.1 by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/140
 
 
 ### What's Changed
+* Update getting started docs by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/94
+* feat: dry run fix by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/96
+* Excluding best effort pods from optimisation by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/95
+* release: v0.1.11-rc.1 by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/97
 * release v0.1.11-rc.2 by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/99
 * Improved development docs by @innoavator in https://github.com/truefoundry/CruiseKube/pull/103
 * Removed the extra overrides API and combined it with the workloads api by @innoavator in https://github.com/truefoundry/CruiseKube/pull/105
@@ -29,8 +40,34 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * disable dry run by default and set default mode to recommend only by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/116
 * feat: add workload details api by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/117
 * fix pdb annotation labels in task disruption force by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/118
+* Clarify HPA limitations in CruiseKube documentation by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/122
+* delete stale workloads from db by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/120
+* Simplification of code for workload summary by @innoavator in https://github.com/truefoundry/CruiseKube/pull/124
+* Consolidate AdmissionWebhook and controller via proxy API by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/109
+* bump frontend to main by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/126
+* move config to db by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/119
+* implement disruption window changes in webhook by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/128
+* fix selector matching for pdbs and workloads by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/129
+* add disruption window state to workload metadata by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/132
+* fix disruption force task stat constraint check by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/131
+* storing recommended but disabled recommendations as well by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/133
+* fix: replace panic() calls with proper error handling by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/134
+* Tighten config validation and task config guardrails by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/135
+* Update frontend submodule to main by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/138
+* Refactor: extract startup assembly from main by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/137
+* update only minAvailable or maxUnavailable for pdb based on original … by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/139
+* Update frontend submodule to main by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/143
+* Add runtime lifecycle manager by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/141
+* Isolate scheduler lifecycle ownership by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/144
+* feat: add api for snapshot and audit events by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/130
+* Introduce first handler dependency container slice by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/145
+* Remove CPU 7-day stats and workload analysis API by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/146
+* return error if workloads listing fails by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/150
+* Add webhook patching tests by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/147
+* feat: update worklaod summary by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/152
 
-## New Contributors
+
+### New Contributors
 * @innoavator made their first contribution in https://github.com/truefoundry/CruiseKube/pull/103
 
 
