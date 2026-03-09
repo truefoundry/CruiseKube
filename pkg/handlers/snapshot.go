@@ -119,7 +119,7 @@ func (deps HandlerDependencies) GetOverviewHistoricalTimelineHandler(c *gin.Cont
 			threshold := snapshot.Data.CPU.CurrentAllocatable
 			addTimelinePoint(&response.Data, "Allocatable", "#2563eb", threshold, snapshot.CreatedAt, snapshot.Data.CPU.CurrentAllocatable)
 			addTimelinePoint(&response.Data, "Requested", "#f59e0b", threshold, snapshot.CreatedAt, snapshot.Data.CPU.CurrentRequested)
-			addTimelinePoint(&response.Data, "Workload Requested", "#b45309", threshold, snapshot.CreatedAt, snapshot.Data.CPU.WorkloadRequested)
+			addTimelinePoint(&response.Data, "Original Requested", "#b45309", threshold, snapshot.CreatedAt, snapshot.Data.CPU.WorkloadRequested)
 			addTimelinePoint(&response.Data, "Usage", "#16a34a", threshold, snapshot.CreatedAt, snapshot.Data.CPU.CurrentUtilized)
 			addTimelinePoint(&response.Data, "Recommended", "#7c3aed", threshold, snapshot.CreatedAt, snapshot.Data.CPU.RecommendedRequested)
 		}
@@ -128,7 +128,7 @@ func (deps HandlerDependencies) GetOverviewHistoricalTimelineHandler(c *gin.Cont
 			threshold := snapshot.Data.Memory.CurrentAllocatable
 			addTimelinePoint(&response.Data, "Allocatable", "#2563eb", threshold, snapshot.CreatedAt, snapshot.Data.Memory.CurrentAllocatable)
 			addTimelinePoint(&response.Data, "Requested", "#f59e0b", threshold, snapshot.CreatedAt, snapshot.Data.Memory.CurrentRequested)
-			addTimelinePoint(&response.Data, "Workload Requested", "#b45309", threshold, snapshot.CreatedAt, snapshot.Data.Memory.WorkloadRequested)
+			addTimelinePoint(&response.Data, "Original Requested", "#b45309", threshold, snapshot.CreatedAt, snapshot.Data.Memory.WorkloadRequested)
 			addTimelinePoint(&response.Data, "Usage", "#16a34a", threshold, snapshot.CreatedAt, snapshot.Data.Memory.CurrentUtilized)
 			addTimelinePoint(&response.Data, "Recommended", "#7c3aed", threshold, snapshot.CreatedAt, snapshot.Data.Memory.RecommendedRequested)
 		}
