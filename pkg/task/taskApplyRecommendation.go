@@ -446,8 +446,6 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	// We use to set the max limit
 	allocatableCPU := 0.0
 	_, recommendedMemoryRequest, _, recommendedMemoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
-	recommendedMemoryRequest = math.Round(recommendedMemoryRequest)
-	recommendedMemoryLimit = math.Round(recommendedMemoryLimit)
 
 	containerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
 	if err != nil {
@@ -532,8 +530,6 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 	currentCPULimit := float64(currentCPULimitQuantity.MilliValue()) / 1000.0
 
 	recommendedCPURequest, _, recommendedCPULimit, _ := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
-	recommendedCPURequest = math.Round(recommendedCPURequest*1000) / 1000
-	recommendedCPULimit = math.Round(recommendedCPULimit*1000) / 1000
 	if currentCPULimit == 0.0 {
 		recommendedCPULimit = 0.0
 	}

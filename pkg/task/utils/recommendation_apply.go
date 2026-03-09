@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"fmt"
+	"math"
 	"slices"
 	"time"
 
@@ -109,6 +110,11 @@ func ComputeRecommendedResourceValues(ctx context.Context, rec PodContainerRecom
 	} else {
 		logging.Warnf(ctx, "No stats for container %s", rec.ContainerName)
 	}
+
+	cpuRequest = math.Round(cpuRequest*1000) / 1000
+	cpuLimit = math.Round(cpuLimit*1000) / 1000
+	memoryRequest = math.Round(memoryRequest)
+	memoryLimit = math.Round(memoryLimit)
 	return cpuRequest, memoryRequest, cpuLimit, memoryLimit
 }
 
