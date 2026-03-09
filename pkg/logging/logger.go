@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 )
@@ -105,11 +106,13 @@ func Println(ctx context.Context, args ...any) {
 
 func Fatal(ctx context.Context, msg string, args ...any) {
 	Error(ctx, msg, args...)
+	FlushReporter(2 * time.Second)
 	os.Exit(1)
 }
 
 func Fatalf(ctx context.Context, format string, args ...any) {
 	Errorf(ctx, format, args...)
+	FlushReporter(2 * time.Second)
 	os.Exit(1)
 }
 

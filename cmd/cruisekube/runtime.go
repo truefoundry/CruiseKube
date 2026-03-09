@@ -22,6 +22,16 @@ func runCruiseKube(cmd *cobra.Command, args []string) (runErr error) {
 	}
 
 	runtime := newRuntimeManager(ctx)
+
+	cfg, err := loadRuntimeConfig(ctx)
+	if err != nil {
+		return err
+	}
+
+	setupSentry(ctx, cfg)
+
+	defer logging.FlushReporter(2 * time.Second)
+
 	defer func() {
 		if shutdownErr := runtime.Shutdown(); shutdownErr != nil {
 			if runErr == nil {
@@ -32,14 +42,6 @@ func runCruiseKube(cmd *cobra.Command, args []string) (runErr error) {
 			logging.Errorf(context.Background(), "Failed to shutdown runtime: %v", shutdownErr)
 		}
 	}()
-
-	cfg, err := loadRuntimeConfig(ctx)
-	if err != nil {
-		return err
-	}
-
-	setupSentry(ctx, cfg)
-	defer logging.FlushReporter(2 * time.Second)
 
 	if err := setupTelemetry(runtime, cfg); err != nil {
 		return err
