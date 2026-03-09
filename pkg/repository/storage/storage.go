@@ -16,6 +16,8 @@ var (
 	ErrSettingsNotFound = ports.ErrSettingsNotFound
 )
 
+const BytesPerMB = 1_000_000
+
 var Stg *Storage
 
 type Storage struct {
@@ -171,7 +173,8 @@ func (s *Storage) UpdateOOMMemoryForContainer(clusterID, workloadID, containerNa
 		if stat.ContainerStats[i].MemoryStats == nil {
 			stat.ContainerStats[i].MemoryStats = &types.MemoryStats{}
 		}
-		stat.ContainerStats[i].MemoryStats.OOMMemory = float64(oomMemoryBytes) / (1024 * 1024)
+		stat.ContainerStats[i].MemoryStats.OOMMemory = float64(oomMemoryBytes) / BytesPerMB
+
 		containerFound = true
 		break
 	}

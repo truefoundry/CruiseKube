@@ -120,6 +120,7 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 
 	details, _, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := deps.getWorkloadsData(ctx, clusterID)
 	if err != nil {
+		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -210,16 +211,18 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 			},
 		},
 		CPUStats: types.OverviewResourceStats{
-			Allocatable: clusterRes.CPU.Allocatable,
-			Requested:   clusterRes.CPU.Requested,
-			Usage:       clusterRes.CPU.Utilised,
-			Recommended: clusterRecCPU,
+			Allocatable:       clusterRes.CPU.Allocatable,
+			Requested:         clusterRes.CPU.Requested,
+			WorkloadRequested: clusterReqCPU,
+			Usage:             clusterRes.CPU.Utilised,
+			Recommended:       clusterRecCPU,
 		},
 		MemoryStats: types.OverviewResourceStats{
-			Allocatable: clusterRes.Memory.Allocatable,
-			Requested:   clusterRes.Memory.Requested,
-			Usage:       clusterRes.Memory.Utilised,
-			Recommended: recommendedMemGB,
+			Allocatable:       clusterRes.Memory.Allocatable,
+			Requested:         clusterRes.Memory.Requested,
+			WorkloadRequested: requestedMemGB,
+			Usage:             clusterRes.Memory.Utilised,
+			Recommended:       recommendedMemGB,
 		},
 	})
 }
