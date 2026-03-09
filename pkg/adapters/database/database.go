@@ -371,6 +371,7 @@ func (s *GormDB) BatchUpdateStatOverridesForWorkloads(clusterID string, workload
 	}
 
 	if len(foundIDs) == 0 {
+		logging.Debugf(context.Background(), "No workloads found for batch update overrides, cluster: %s", clusterID)
 		return foundIDs, nil
 	}
 

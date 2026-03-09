@@ -63,6 +63,13 @@ type batchOverridesRequest struct {
 	Overrides   *types.Overrides `json:"overrides"`
 }
 
+type batchOverridesResponse struct {
+	Message   string   `json:"message"`
+	ClusterID string   `json:"cluster_id"`
+	Updated   []string `json:"updated"`
+	NotFound  []string `json:"not_found"`
+}
+
 func (deps HandlerDependencies) BatchUpdateWorkloadOverridesHandler(c *gin.Context) {
 	clusterID := c.Param("clusterID")
 
@@ -103,10 +110,10 @@ func (deps HandlerDependencies) BatchUpdateWorkloadOverridesHandler(c *gin.Conte
 
 	logging.Infof(c.Request.Context(), "Batch overrides update in cluster %s: %d updated, %d not found", clusterID, len(updated), len(notFound))
 
-	c.JSON(http.StatusOK, gin.H{
-		"message":    "Batch update completed",
-		"cluster_id": clusterID,
-		"updated":    updated,
-		"not_found":  notFound,
+	c.JSON(http.StatusOK, batchOverridesResponse{
+		Message:   "Batch update completed",
+		ClusterID: clusterID,
+		Updated:   updated,
+		NotFound:  notFound,
 	})
 }
