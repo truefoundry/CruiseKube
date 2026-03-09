@@ -30,6 +30,7 @@ type Database interface {
 
 	// Update
 	UpdateStatOverridesForWorkload(clusterID, workloadID string, overrides *types.Overrides) error
+	BatchUpdateStatOverridesForWorkloads(clusterID string, workloadIDs []string, overrides *types.Overrides) (updatedIDs []string, err error)
 
 	// OOM Events
 	InsertOOMEvent(event *types.OOMEvent) error

@@ -57,3 +57,56 @@ func (deps HandlerDependencies) UpdateWorkloadOverridesHandler(c *gin.Context) {
 
 	logging.Infof(c.Request.Context(), "Successfully updated overrides for workload %s in cluster %s", workloadID, clusterID)
 }
+
+type batchOverridesRequest struct {
+	WorkloadIDs []string         `json:"workload_ids"`
+	Overrides   *types.Overrides `json:"overrides"`
+}
+
+func (deps HandlerDependencies) BatchUpdateWorkloadOverridesHandler(c *gin.Context) {
+	clusterID := c.Param("clusterID")
+
+	var req batchOverridesRequest
+	if err := json.NewDecoder(c.Request.Body).Decode(&req); err != nil {
+		logging.Errorf(c.Request.Context(), "Failed to decode request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("Invalid request body: %v", err),
+		})
+		return
+	}
+
+	if len(req.WorkloadIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "workload_ids must not be empty"})
+		return
+	}
+
+	if req.Overrides == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "overrides must not be null"})
+		return
+	}
+
+	updated, notFound, err := deps.Storage.BatchUpdateWorkloadOverrides(clusterID, req.WorkloadIDs, req.Overrides)
+	if err != nil {
+		logging.Errorf(c.Request.Context(), "Failed to batch update workload overrides: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to batch update workload overrides",
+		})
+		return
+	}
+
+	if updated == nil {
+		updated = []string{}
+	}
+	if notFound == nil {
+		notFound = []string{}
+	}
+
+	logging.Infof(c.Request.Context(), "Batch overrides update in cluster %s: %d updated, %d not found", clusterID, len(updated), len(notFound))
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":    "Batch update completed",
+		"cluster_id": clusterID,
+		"updated":    updated,
+		"not_found":  notFound,
+	})
+}

@@ -20,6 +20,7 @@ type storageReader interface {
 	GetPodRecommendationsForWorkload(clusterID, workloadID string) ([]types.PodResourceRecommendationRow, error)
 	GetAllStatsForCluster(clusterID string) ([]types.WorkloadStat, error)
 	UpdateWorkloadOverrides(clusterID, workloadID string, overrides *types.Overrides) error
+	BatchUpdateWorkloadOverrides(clusterID string, workloadIDs []string, overrides *types.Overrides) (updated []string, notFound []string, err error)
 	GetAuditEvents(clusterID string, since time.Time) ([]types.AuditEventRecord, error)
 	GetAuditEventsForWorkload(clusterID, workloadID string, since time.Time) ([]types.AuditEventRecord, error)
 	GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error)

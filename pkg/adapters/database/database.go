@@ -352,6 +352,37 @@ func (s *GormDB) UpdateStatOverridesForWorkload(clusterID, workloadID string, ov
 	return nil
 }
 
+func (s *GormDB) BatchUpdateStatOverridesForWorkloads(clusterID string, workloadIDs []string, overrides *types.Overrides) ([]string, error) {
+	if len(workloadIDs) == 0 {
+		return nil, nil
+	}
+
+	overridesJSON, err := json.Marshal(overrides)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal overrides: %w", err)
+	}
+
+	var foundIDs []string
+	if err := s.db.Model(&Workload{}).
+		Select("workload_id").
+		Where("cluster_id = ? AND workload_id IN ?", clusterID, workloadIDs).
+		Pluck("workload_id", &foundIDs).Error; err != nil {
+		return nil, fmt.Errorf("failed to query workloads: %w", err)
+	}
+
+	if len(foundIDs) == 0 {
+		return foundIDs, nil
+	}
+
+	if err := s.db.Model(&Workload{}).
+		Where("cluster_id = ? AND workload_id IN ?", clusterID, foundIDs).
+		Update("overrides", string(overridesJSON)).Error; err != nil {
+		return nil, fmt.Errorf("failed to batch update workload overrides: %w", err)
+	}
+
+	return foundIDs, nil
+}
+
 func (s *GormDB) InsertOOMEvent(event *types.OOMEvent) error {
 	dbEvent := OOMEvent{
 		ClusterID:          event.ClusterID,

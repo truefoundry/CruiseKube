@@ -30,6 +30,7 @@ func SetupServerEngine(handlerDeps handlers.HandlerDependencies, authAPI gin.Han
 		clusterGroup.GET("/workloads/summary", handlerDeps.WorkloadSummaryHandler)
 		clusterGroup.GET("/workloads/:namespace/:workloadName/detail", handlerDeps.HandleWorkloadDetail)
 		clusterGroup.POST("/workloads/:workloadID/overrides", handlerDeps.UpdateWorkloadOverridesHandler)
+		clusterGroup.POST("/workloads/batch-overrides", handlerDeps.BatchUpdateWorkloadOverridesHandler)
 		// Audit Events
 		clusterGroup.GET("/audit-events", handlerDeps.GetAuditEventsHandler)
 		clusterGroup.GET("/audit-events/:workloadID", handlerDeps.GetAuditEventsForWorkloadHandler)

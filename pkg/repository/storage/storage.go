@@ -87,6 +87,26 @@ func (s *Storage) UpdateWorkloadOverrides(clusterID, workloadID string, override
 	return nil
 }
 
+func (s *Storage) BatchUpdateWorkloadOverrides(clusterID string, workloadIDs []string, overrides *types.Overrides) (updated []string, notFound []string, err error) {
+	updatedIDs, err := s.DB.BatchUpdateStatOverridesForWorkloads(clusterID, workloadIDs, overrides)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to batch update workload overrides: %w", err)
+	}
+
+	updatedSet := make(map[string]struct{}, len(updatedIDs))
+	for _, id := range updatedIDs {
+		updatedSet[id] = struct{}{}
+	}
+
+	for _, id := range workloadIDs {
+		if _, ok := updatedSet[id]; !ok {
+			notFound = append(notFound, id)
+		}
+	}
+
+	return updatedIDs, notFound, nil
+}
+
 func (s *Storage) GetWorkloadOverrides(clusterID, workloadID string) (*types.Overrides, error) {
 	overrides, err := s.DB.GetStatOverridesForWorkload(clusterID, workloadID)
 	if err != nil {
