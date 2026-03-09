@@ -151,10 +151,10 @@ func (s *Storage) GetOOMEventsByWorkload(clusterID, workloadID string, since tim
 func (s *Storage) GetLatestOOMEventForContainer(clusterID, containerID, podName string) (*types.OOMEvent, error) {
 	event, err := s.DB.GetLatestOOMEventForContainer(clusterID, containerID, podName)
 	if errors.Is(err, ports.ErrOOMEventNotFound) {
-		return nil, fmt.Errorf("no OOM event for container %s: %w", containerID, ErrOOMEventNotFound)
+		return nil, fmt.Errorf("no OOM event for container %s in pod %s: %w", containerID, podName, ErrOOMEventNotFound)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get latest OOM event for container %s: %w", containerID, err)
+		return nil, fmt.Errorf("get latest OOM event for container %s in pod %s: %w", containerID, podName, err)
 	}
 	return event, nil
 }
