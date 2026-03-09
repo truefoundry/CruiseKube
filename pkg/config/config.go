@@ -28,6 +28,7 @@ type Config struct {
 	RecommendationSettings RecommendationSettings `yaml:"recommendationSettings" mapstructure:"recommendationSettings"`
 	Telemetry              TelemetryConfig        `yaml:"telemetry" mapstructure:"telemetry"`
 	Metrics                MetricsConfig          `yaml:"metrics" mapstructure:"metrics"`
+	Sentry                 SentryConfig           `yaml:"sentry" mapstructure:"sentry"`
 	Custom                 map[string]interface{} `yaml:",inline" mapstructure:",remain"`
 }
 
@@ -125,6 +126,12 @@ type TelemetryConfig struct {
 type MetricsConfig struct {
 	Enabled bool   `yaml:"enabled" mapstructure:"enabled"`
 	Port    string `yaml:"port" mapstructure:"port"`
+}
+
+type SentryConfig struct {
+	Enabled     bool   `yaml:"enabled" mapstructure:"enabled"`
+	DSN         string `yaml:"dsn" mapstructure:"dsn"`
+	Environment string `yaml:"environment" mapstructure:"environment"`
 }
 
 type ControllerMode string

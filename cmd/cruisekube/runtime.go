@@ -22,6 +22,16 @@ func runCruiseKube(cmd *cobra.Command, args []string) (runErr error) {
 	}
 
 	runtime := newRuntimeManager(ctx)
+
+	cfg, err := loadRuntimeConfig(ctx)
+	if err != nil {
+		return err
+	}
+
+	setupSentry(ctx, cfg)
+
+	defer logging.FlushReporter(2 * time.Second)
+
 	defer func() {
 		if shutdownErr := runtime.Shutdown(); shutdownErr != nil {
 			if runErr == nil {
@@ -32,11 +42,6 @@ func runCruiseKube(cmd *cobra.Command, args []string) (runErr error) {
 			logging.Errorf(context.Background(), "Failed to shutdown runtime: %v", shutdownErr)
 		}
 	}()
-
-	cfg, err := loadRuntimeConfig(ctx)
-	if err != nil {
-		return err
-	}
 
 	if err := setupTelemetry(runtime, cfg); err != nil {
 		return err
@@ -68,6 +73,19 @@ func loadRuntimeConfig(ctx context.Context) (*config.Config, error) {
 
 	logging.Infof(ctx, "Configuration loaded: controllerMode=%s executionMode=%s", cfg.ControllerMode, cfg.ExecutionMode)
 	return cfg, nil
+}
+
+func setupSentry(ctx context.Context, cfg *config.Config) {
+	if !cfg.Sentry.Enabled || cfg.Sentry.DSN == "" {
+		return
+	}
+	reporter, err := logging.NewSentryReporter(cfg.Sentry.DSN, cfg.Sentry.Environment)
+	if err != nil {
+		logging.Warnf(ctx, "Failed to initialize Sentry: %v", err)
+		return
+	}
+	logging.SetErrorReporter(reporter)
+	logging.Infof(ctx, "Sentry initialized (environment=%s)", cfg.Sentry.Environment)
 }
 
 func setupTelemetry(runtime *runtimeManager, cfg *config.Config) error {

@@ -137,7 +137,6 @@ type WorkloadStat struct {
 	Name                          string                `json:"name"`
 	CreationTime                  time.Time             `json:"creation_time"`
 	UpdatedAt                     time.Time             `json:"updated_at"`
-	ContinuousOptimization        bool                  `json:"continuous_optimization"`
 	IsHorizontallyAutoscaledOnCPU bool                  `json:"is_horizontally_autoscaled_on_cpu"`
 	IsHorizontallyAutoscaledOnMem bool                  `json:"is_horizontally_autoscaled_on_memory"`
 	Constraints                   *WorkloadConstraints  `json:"constraints,omitempty"`
