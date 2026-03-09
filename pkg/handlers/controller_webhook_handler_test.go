@@ -58,6 +58,10 @@ func (s testStorage) UpdateWorkloadOverrides(clusterID, workloadID string, overr
 	panic(fmt.Sprintf("unexpected call to testStorage.UpdateWorkloadOverrides(%q, %q)", clusterID, workloadID))
 }
 
+func (s testStorage) BatchUpdateWorkloadOverrides(clusterID string, workloadIDs []string, overrides *types.Overrides) ([]string, []string, error) {
+	panic(fmt.Sprintf("unexpected call to testStorage.BatchUpdateWorkloadOverrides(%q)", clusterID))
+}
+
 func (s testStorage) GetAuditEvents(clusterID string, since time.Time) ([]types.AuditEventRecord, error) {
 	panic(fmt.Sprintf("unexpected call to testStorage.GetAuditEvents(%q)", clusterID))
 }
