@@ -11,6 +11,10 @@ import (
 type sentryReporter struct{}
 
 func (s *sentryReporter) CaptureErrors(errs []error, msg string, tags map[string]string) {
+	if len(errs) == 0 {
+		return
+	}
+
 	sentry.WithScope(func(scope *sentry.Scope) {
 		for k, v := range tags {
 			scope.SetTag(k, v)
@@ -27,16 +31,11 @@ func (s *sentryReporter) CaptureErrors(errs []error, msg string, tags map[string
 		event.Level = sentry.LevelError
 		event.Message = msg
 
-		stackTrace := sentry.NewStacktrace()
-		if len(stackTrace.Frames) > 2 {
-			stackTrace.Frames = stackTrace.Frames[:len(stackTrace.Frames)-2]
-		}
-
 		event.Exception = []sentry.Exception{
 			{
 				Type:       msg,
 				Value:      combined.Error(),
-				Stacktrace: stackTrace,
+				Stacktrace: sentry.NewStacktrace(),
 			},
 		}
 		sentry.CaptureEvent(event)
