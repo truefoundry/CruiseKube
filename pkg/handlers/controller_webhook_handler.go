@@ -15,10 +15,10 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/task"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
-	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -137,23 +137,15 @@ func (deps HandlerDependencies) resolveMutatingPatchContext(ctx context.Context,
 	workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 
 	stat, err := deps.Storage.GetStatForWorkload(clusterID, workloadKey)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			logging.Warnf(ctx, "Workload %s not found, skipping patch for pod %s/%s", workloadKey, pod.Namespace, pod.Name)
-			return nil, &mutatingPatchResult{
-				statusCode: http.StatusOK,
-				patches:    emptyPatchList(),
-			}
-		}
-
-		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadKey, err)
+	if errors.Is(err, storage.ErrWorkloadNotFound) {
+		logging.Infof(ctx, "No stats for workload %s yet, skipping patch for pod %s/%s", workloadKey, pod.Namespace, pod.Name)
 		return nil, &mutatingPatchResult{
 			statusCode: http.StatusOK,
 			patches:    emptyPatchList(),
 		}
 	}
-	if stat == nil {
-		logging.Infof(ctx, "No stats for workload %s, skipping", workloadKey)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadKey, err)
 		return nil, &mutatingPatchResult{
 			statusCode: http.StatusOK,
 			patches:    emptyPatchList(),
@@ -320,11 +312,11 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 		workloadID := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 		var err error
 		workloadStat, err = deps.Storage.GetStatForWorkload(clusterID, workloadID)
+		if errors.Is(err, storage.ErrWorkloadNotFound) {
+			logging.Infof(ctx, "No stat found for workload %s yet, skipping patch", workloadID)
+			return []map[string]any{}, nil
+		}
 		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				logging.Warnf(ctx, "No stat found for workload %s, skipping patch", workloadID)
-				return []map[string]any{}, nil
-			}
 			logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
 			return []map[string]any{}, nil
 		}

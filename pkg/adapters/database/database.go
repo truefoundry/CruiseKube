@@ -235,7 +235,7 @@ func (s *GormDB) GetStatForWorkload(clusterID, workloadID string) (*types.Worklo
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("workload stat not found for cluster %s, workload %s: %w", clusterID, workloadID, err)
+			return nil, fmt.Errorf("workload stat not found for cluster %s, workload %s: %w: %w", clusterID, workloadID, ports.ErrWorkloadNotFound, err)
 		}
 		return nil, fmt.Errorf("failed to query workload stat: %w", err)
 	}
@@ -283,7 +283,7 @@ func (s *GormDB) GetStatOverridesForWorkload(clusterID, workloadID string) (*typ
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("workload overrides not found for cluster %s, workload %s", clusterID, workloadID)
+			return nil, fmt.Errorf("workload overrides not found for cluster %s, workload %s: %w: %w", clusterID, workloadID, ports.ErrWorkloadNotFound, err)
 		}
 		return nil, fmt.Errorf("failed to query workload overrides: %w", err)
 	}
@@ -383,6 +383,9 @@ func (s *GormDB) GetLatestOOMEventForContainer(clusterID, containerID, podName s
 		Order("timestamp DESC").
 		First(&dbEvent).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("OOM event not found for container %s: %w: %w", containerID, ports.ErrOOMEventNotFound, err)
+		}
 		return nil, fmt.Errorf("failed to get OOM event for container %s: %w", containerID, err)
 	}
 
@@ -673,7 +676,7 @@ func (s *GormDB) GetClusterSettings(clusterID string) (*types.ClusterSettings, e
 	err := s.db.Where("cluster_id = ?", clusterID).First(&row).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil //nolint:nilnil // nil means no settings row yet; callers use application defaults
+			return nil, fmt.Errorf("settings not found for cluster %s: %w: %w", clusterID, ports.ErrSettingsNotFound, err)
 		}
 		return nil, fmt.Errorf("failed to get settings for cluster %s: %w", clusterID, err)
 	}

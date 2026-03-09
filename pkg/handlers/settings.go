@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
@@ -13,17 +15,15 @@ func (deps HandlerDependencies) GetSettingsHandler(c *gin.Context) {
 	clusterID := c.Param("clusterID")
 
 	settings, err := deps.Storage.GetSettings(clusterID)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to get settings for cluster %s: %v", clusterID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	if settings == nil {
+	if errors.Is(err, storage.ErrSettingsNotFound) {
 		settings = &types.ClusterSettings{
 			CPUPricePerCorePerHour:  defaultCPUPricePerCorePerHour,
 			MemoryPricePerGBPerHour: defaultMemoryPricePerGBPerHour,
 		}
+	} else if err != nil {
+		logging.Errorf(ctx, "Failed to get settings for cluster %s: %v", clusterID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, settings)
