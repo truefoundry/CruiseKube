@@ -15,7 +15,6 @@ func (s *sentryReporter) CaptureErrors(errs []error, msg string, tags map[string
 		for k, v := range tags {
 			scope.SetTag(k, v)
 		}
-		scope.SetExtra("message", msg)
 
 		var combined error
 		if len(errs) == 1 {
@@ -23,7 +22,24 @@ func (s *sentryReporter) CaptureErrors(errs []error, msg string, tags map[string
 		} else {
 			combined = errors.Join(errs...)
 		}
-		sentry.CaptureException(combined)
+
+		event := sentry.NewEvent()
+		event.Level = sentry.LevelError
+		event.Message = msg
+
+		stackTrace := sentry.NewStacktrace()
+		if len(stackTrace.Frames) > 2 {
+			stackTrace.Frames = stackTrace.Frames[:len(stackTrace.Frames)-2]
+		}
+
+		event.Exception = []sentry.Exception{
+			{
+				Type:       msg,
+				Value:      combined.Error(),
+				Stacktrace: stackTrace,
+			},
+		}
+		sentry.CaptureEvent(event)
 	})
 }
 
