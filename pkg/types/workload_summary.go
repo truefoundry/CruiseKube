@@ -52,8 +52,8 @@ type WorkloadConfig struct {
 	CruiseEnabled      bool                       `json:"cruiseEnabled"`
 	DisruptionSchedule []DisruptionScheduleWindow `json:"disruptionSchedule"`
 	InDisruptionWindow bool                       `json:"inDisruptionWindow"`
-	HPAEnabled        bool                       `json:"hpaEnabled"`
-	ExcludedCodes     []ExcludedCode              `json:"excludedCodes,omitempty"`
+	HPAEnabled         bool                       `json:"hpaEnabled"`
+	ExcludedCodes      []ExcludedCode             `json:"excludedCodes,omitempty"`
 }
 
 type WorkloadCPU struct {
@@ -73,6 +73,7 @@ type WorkloadDetail struct {
 	Name                      string                     `json:"name"`
 	UpdatedAt                 int64                      `json:"updatedAt"`
 	PodsCount                 int                        `json:"podsCount"`
+	ScaledDown                bool                       `json:"scaledDown"`
 	Constraints               WorkloadSummaryConstraints `json:"constraints"`
 	CPU                       WorkloadCPU                `json:"cpu"`
 	Memory                    WorkloadMemory             `json:"memory"`

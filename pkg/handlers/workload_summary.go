@@ -203,6 +203,7 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 		Name:        stat.Name,
 		UpdatedAt:   stat.UpdatedAt.Unix(),
 		PodsCount:   int(stat.Replicas),
+		ScaledDown:  stat.Replicas <= 0,
 		Constraints: constraints,
 		Config: types.WorkloadConfig{
 			Priority:           priority,
