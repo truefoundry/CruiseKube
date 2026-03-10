@@ -288,6 +288,7 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		if len(recsByWorkload[w.WorkloadID]) == 0 {
 			stat.Replicas = 0
 		} else {
+			// #nosec G115 -- replica count from len() is bounded in practice
 			stat.Replicas = int32(len(recsByWorkload[w.WorkloadID]))
 		}
 
@@ -317,7 +318,6 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 			aggMemPerPod := agg.TotalMem / float64(stat.Replicas)
 			cpuChange = aggCPUPerPod - currentCPUPerPod
 			memChange = aggMemPerPod - currentMemPerPod
-
 		}
 
 		detail.CPU = types.WorkloadCPU{
@@ -350,7 +350,6 @@ func (deps HandlerDependencies) WorkloadSummaryHandler(c *gin.Context) {
 
 	p := deps.getEffectivePricing(ctx, clusterID)
 	for i := range details {
-
 		// No need to calculate savings for GPU workloads, scaled down workloads, or workloads with HPA enabled
 		if details[i].Constraints.IsGPUWorkload ||
 			details[i].PodsCount == 0 ||
