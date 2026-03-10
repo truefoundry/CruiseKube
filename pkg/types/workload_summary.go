@@ -12,9 +12,9 @@ type ClusterResourcesDTO struct {
 }
 
 type ImpactSummary struct {
-	DollarCurrentCost     int                 `json:"dollarCurrentCost"`
-	DollarCurrentSavings  int                 `json:"dollarCurrentSavings"`
-	DollarPossibleSavings int                 `json:"dollarPossibleSavings"`
+	DollarCurrentCost     float64             `json:"dollarCurrentCost"`
+	DollarCurrentSavings  float64             `json:"dollarCurrentSavings"`
+	DollarPossibleSavings float64             `json:"dollarPossibleSavings"`
 	ClusterResources      ClusterResourcesDTO `json:"clusterResources"`
 }
 
@@ -77,8 +77,8 @@ type WorkloadDetail struct {
 	Constraints               WorkloadSummaryConstraints `json:"constraints"`
 	CPU                       WorkloadCPU                `json:"cpu"`
 	Memory                    WorkloadMemory             `json:"memory"`
-	DollarSavingsPerMonth     int                        `json:"dollarSavingsPerMonth"`
-	DollarExpenditurePerMonth int                        `json:"dollarExpenditurePerMonth"`
+	DollarSavingsPerMonth     float64                    `json:"dollarSavingsPerMonth"`
+	DollarExpenditurePerMonth float64                    `json:"dollarExpenditurePerMonth"`
 	Config                    WorkloadConfig             `json:"config"`
 }
 
