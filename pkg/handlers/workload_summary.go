@@ -128,9 +128,9 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 
 	if len(recs) == 0 {
 		return workloadRecAgg{
-			CPUMin:   0,
+			CPUMin:   stat.CalculateTotalCPURequest(),
 			CPUMax:   stat.CalculateTotalCPURequest(),
-			MemMin:   0,
+			MemMin:   stat.CalculateTotalMemoryRequest(),
 			MemMax:   stat.CalculateTotalMemoryRequest(),
 			TotalCPU: stat.CalculateTotalCPURequest(),
 			TotalMem: stat.CalculateTotalMemoryRequest()}
