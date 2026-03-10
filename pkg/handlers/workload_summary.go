@@ -356,6 +356,7 @@ func (deps HandlerDependencies) WorkloadSummaryHandler(c *gin.Context) {
 			details[i].ScaledDown ||
 			details[i].Config.HPAEnabled {
 			details[i].DollarExpenditurePerMonth = 0
+			details[i].DollarSavingsPerMonth = 0
 			continue
 		}
 
