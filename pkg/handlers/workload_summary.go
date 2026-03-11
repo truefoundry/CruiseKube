@@ -165,16 +165,16 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 // buildWorkloadDetail builds a single WorkloadDetail from a workload and its stat.
 func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) types.WorkloadDetail {
 	effective := w.OverridesWithDefaults()
-	priority := "medium"
+	criticalityLevel := "medium"
 	switch effective.EvictionRanking {
 	case types.EvictionRankingDisabled:
-		priority = "non-evictable"
+		criticalityLevel = "non-evictable"
 	case types.EvictionRankingLow:
-		priority = "low"
+		criticalityLevel = "low"
 	case types.EvictionRankingMedium:
-		priority = "medium"
+		criticalityLevel = "medium"
 	case types.EvictionRankingHigh:
-		priority = "high"
+		criticalityLevel = "high"
 	}
 	var constraints types.WorkloadSummaryConstraints
 	if stat.Constraints != nil {
@@ -217,7 +217,7 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 		ScaledDown:  stat.Replicas <= 0,
 		Constraints: constraints,
 		Config: types.WorkloadConfig{
-			Priority:           priority,
+			CriticalityLevel:   criticalityLevel,
 			CruiseEnabled:      cruiseEnabled,
 			DisruptionSchedule: disruptionSchedule,
 			InDisruptionWindow: inDisruptionWindow,
