@@ -287,9 +287,6 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		// If no recommendations are found, set the replicas to 0
 		if len(recsByWorkload[w.WorkloadID]) == 0 {
 			stat.Replicas = 0
-		} else {
-			// #nosec G115 -- replica count from len() is bounded in practice
-			stat.Replicas = int32(len(recsByWorkload[w.WorkloadID]))
 		}
 
 		detail := buildWorkloadDetail(w, stat)
