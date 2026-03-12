@@ -324,4 +324,6 @@ cruisekubeFrontend:
       memory: 64Mi
   ## @param cruisekubeFrontend.env [object] Environment variables to configure CruiseKube Frontend
   env:
+    VITE_SENTRY_ENABLED: "false"
     VITE_SENTRY_DSN: ""
+    VITE_SENTRY_ENV: ""
