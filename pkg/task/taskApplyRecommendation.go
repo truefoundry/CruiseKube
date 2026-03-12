@@ -222,7 +222,9 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 		}
 
-		allOptimizablePods := append(optimizablePods, optimizableButExcludedPods...)
+		allOptimizablePods := make([]utils.PodInfo, 0, len(optimizablePods)+len(optimizableButExcludedPods))
+		allOptimizablePods = append(allOptimizablePods, optimizablePods...)
+		allOptimizablePods = append(allOptimizablePods, optimizableButExcludedPods...)
 
 		result, err := strategy.OptimizeNode(ctx, a.kubeClient, overridesMap, utils.NodeOptimizationData{
 			NodeName:          nodeName,
