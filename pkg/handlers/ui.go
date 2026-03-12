@@ -29,6 +29,9 @@ func (deps HandlerDependencies) ListWorkloadsHandler(c *gin.Context) {
 	for _, workload := range workloadsInCluster {
 		overrides := workload.OverridesWithDefaults()
 		stat := workload.Stat
+		if stat == nil {
+			continue
+		}
 		if stat.IsGPUWorkload() {
 			continue
 		}
