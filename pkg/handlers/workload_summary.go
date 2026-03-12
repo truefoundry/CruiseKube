@@ -168,7 +168,7 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 	criticalityLevel := "medium"
 	switch effective.EvictionRanking {
 	case types.EvictionRankingDisabled:
-		criticalityLevel = "non-evictable"
+		criticalityLevel = "very-high"
 	case types.EvictionRankingLow:
 		criticalityLevel = "low"
 	case types.EvictionRankingMedium:
