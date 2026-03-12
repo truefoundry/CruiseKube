@@ -208,10 +208,6 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			availableMemory -= nonOptimizablePod.RequestedMemory
 			availableCPU -= nonOptimizablePod.RequestedCPU
 		}
-		for _, optimizableButExcludedPod := range optimizableButExcludedPods {
-			availableMemory -= optimizableButExcludedPod.RequestedMemory
-			availableCPU -= optimizableButExcludedPod.RequestedCPU
-		}
 
 		// adding dummy recommendations for non-optimizable pods and optimizable but excluded pods
 		for _, nonOptimizablePod := range nonOptimizablePods {
@@ -226,31 +222,13 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 		}
 
-		for _, optimizableButExcludedPod := range optimizableButExcludedPods {
-			for _, container := range optimizableButExcludedPod.ContainerResources {
-				containerStat, err := optimizableButExcludedPod.Stats.GetContainerStats(container.Name)
-				if err != nil {
-					logging.Errorf(ctx, "Error getting container stats for container %s: %v", container.Name, err)
-					continue
-				}
-				recommendedCPU, restCPU := strategy.GetRecommendedAndRestCPU(ctx, optimizableButExcludedPod, *containerStat)
-				recommendedMemory, restMemory := strategy.GetRecommendedAndRestMemory(ctx, optimizableButExcludedPod, *containerStat)
-
-				recommendationResult.PodContainerRecommendations = append(recommendationResult.PodContainerRecommendations, utils.PodContainerRecommendation{
-					PodInfo:       optimizableButExcludedPod,
-					ContainerName: container.Name,
-					CPU:           recommendedCPU + restCPU,
-					Memory:        recommendedMemory + restMemory,
-					Evict:         false,
-				})
-			}
-		}
+		allOptimizablePods := append(optimizablePods, optimizableButExcludedPods...)
 
 		result, err := strategy.OptimizeNode(ctx, a.kubeClient, overridesMap, utils.NodeOptimizationData{
 			NodeName:          nodeName,
 			AllocatableCPU:    availableCPU,
 			AllocatableMemory: availableMemory,
-			PodInfos:          optimizablePods,
+			PodInfos:          allOptimizablePods,
 		})
 		if err != nil {
 			logging.Errorf(ctx, "Error optimizing node %s: %v", nodeName, err)
