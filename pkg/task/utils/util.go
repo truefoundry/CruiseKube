@@ -417,7 +417,7 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 
 		medianReplicas = metrics.MedianReplicas
 		if !metrics.HasCPUData || !metrics.HasMemoryData {
-			logging.Errorf(ctx, "[CreateStats] Error: Incomplete metrics for container %s in workload %s (CPU: %v, Memory: %v)",
+			logging.Debugf(ctx, "[CreateStats] Error: Incomplete metrics for container %s in workload %s (CPU: %v, Memory: %v)",
 				containerName, GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name),
 				metrics.HasCPUData, metrics.HasMemoryData)
 			continue
