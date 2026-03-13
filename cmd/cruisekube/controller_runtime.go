@@ -243,7 +243,6 @@ func registerControllerTasks(
 ) {
 	for clusterID, clusterClients := range clusterManager.GetAllClusters() {
 		registerCreateStatsTask(ctx, cfg, clusterManager, clusterClients, clusterID, promClient, storageRepo)
-		registerModifyEqualCPUResourcesTask(ctx, cfg, clusterManager, clusterClients, clusterID, promClient)
 		registerApplyRecommendationTask(ctx, cfg, clusterManager, clusterClients, clusterID, promClient, storageRepo)
 		registerFetchMetricsTask(ctx, cfg, clusterManager, clusterClients, clusterID, promClient, storageRepo)
 		registerNodeLoadMonitoringTask(ctx, cfg, clusterManager, clusterClients, clusterID, promClient)
@@ -281,31 +280,6 @@ func registerCreateStatsTask(
 			MLLookbackWindow:           1 * time.Hour,
 		},
 		createStatsTaskConfig,
-	))
-}
-
-func registerModifyEqualCPUResourcesTask(
-	ctx context.Context,
-	cfg *config.Config,
-	clusterManager cluster.Manager,
-	clusterClients *cluster.ClusterClients,
-	clusterID string,
-	promClient *prometheus.PrometheusProvider,
-) {
-	modifyEqualCPUResourcesTaskConfig := cfg.GetTaskConfig(config.ModifyEqualCPUResourcesKey)
-
-	clusterManager.AddTask(task.NewModifyEqualCPUResourcesTask(
-		ctx,
-		clusterClients.KubeClient,
-		clusterClients.DynamicClient,
-		promClient,
-		&task.ModifyEqualCPUResourcesTaskConfig{
-			Name:                     clusterID + "_" + config.ModifyEqualCPUResourcesKey,
-			Enabled:                  modifyEqualCPUResourcesTaskConfig.Enabled,
-			Schedule:                 modifyEqualCPUResourcesTaskConfig.Schedule,
-			ClusterID:                clusterID,
-			IsClusterWriteAuthorized: cfg.IsClusterWriteAuthorized(clusterID),
-		},
 	))
 }
 
