@@ -100,16 +100,10 @@ func initDatabaseAdapter(runtimeManager *runtimeManager, cfg *config.Config) (po
 		SSLMode:  cfg.DB.SSLMode,
 	}
 
-	var databaseAdapter ports.Database
-	_, err := backoff.Retry(
+	databaseAdapter, err := backoff.Retry(
 		runtimeManager.ctx,
-		func() (struct{}, error) {
-			var err error
-			databaseAdapter, err = database.NewDatabase(dbCfg)
-			if err != nil {
-				return struct{}{}, fmt.Errorf("failed to initialize db: %w", err)
-			}
-			return struct{}{}, nil
+		func() (ports.Database, error) {
+			return database.NewDatabase(dbCfg)
 		},
 		backoff.WithMaxElapsedTime(time.Minute),
 		backoff.WithNotify(func(err error, d time.Duration) {

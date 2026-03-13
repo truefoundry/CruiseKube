@@ -47,8 +47,8 @@ spec:
               path: /health
               port: {{ .Values.cruisekubeController.service.httpPort }}
             initialDelaySeconds: 5
-            periodSeconds: 5
-            failureThreshold: 12
+            periodSeconds: 15
+            failureThreshold: 6
           resources:
             {{- toYaml .Values.cruisekubeController.resources | nindent 12 }}
           env:
