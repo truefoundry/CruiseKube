@@ -175,6 +175,12 @@ func CreateNodeStatsMapping(
 				podInfo.ContainerResources = append(podInfo.ContainerResources, getCurrentContainerResources(&container))
 			}
 
+			for _, container := range pod.Spec.InitContainers {
+				if IsSidecarContainer(container) {
+					podInfo.ContainerResources = append(podInfo.ContainerResources, getCurrentContainerResources(&container))
+				}
+			}
+
 			nodeInfo.Pods = append(nodeInfo.Pods, podInfo)
 		}
 
@@ -363,6 +369,11 @@ func BuildPodInfoFromPod(pod *corev1.Pod, workloadInfo *WorkloadInfo, stat *Work
 	}
 	for i := range pod.Spec.Containers {
 		info.ContainerResources = append(info.ContainerResources, getCurrentContainerResources(&pod.Spec.Containers[i]))
+	}
+	for i := range pod.Spec.InitContainers {
+		if IsSidecarContainer(pod.Spec.InitContainers[i]) {
+			info.ContainerResources = append(info.ContainerResources, getCurrentContainerResources(&pod.Spec.InitContainers[i]))
+		}
 	}
 	return info
 }

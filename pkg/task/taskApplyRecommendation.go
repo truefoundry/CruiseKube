@@ -273,7 +273,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 			freshPod, found := podsOnNode[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]
 			if !found {
-				logging.Errorf(ctx, "Pod %s/%s not found on node %s", rec.PodInfo.Namespace, rec.PodInfo.Name, nodeName)
+				logging.Warnf(ctx, "Pod %s/%s not found on node %s", rec.PodInfo.Namespace, rec.PodInfo.Name, nodeName)
 				continue
 			}
 
@@ -465,7 +465,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 				return false, false, errors.New(errStr)
 			}
 			if !applied {
-				return false, false, fmt.Errorf("update call returned false for pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				return false, false, nil
 			}
 			logging.Infof(ctx, "pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
 			return true, false, nil
@@ -525,7 +525,7 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 				return false, errors.New(errStr)
 			}
 			if !applied {
-				return false, fmt.Errorf("update call returned false for pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				return false, nil
 			}
 			logging.Infof(ctx, "pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
 			return true, nil
