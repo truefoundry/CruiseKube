@@ -110,17 +110,6 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 	for _, workloadInfo := range workloadList {
 		workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 
-		hasRecent, err := c.storage.HasRecentStats(c.config.ClusterID, workloadKey, utils.RecentStatsLookbackMinutes)
-		if err != nil {
-			logging.Errorf(ctx, "Error checking recent stats for workload %s: %v", workloadKey, err)
-			continue
-		}
-
-		if hasRecent {
-			filteredCount++
-			continue
-		}
-
 		uniqueWorkloads[workloadKey] = workloadInfo
 	}
 

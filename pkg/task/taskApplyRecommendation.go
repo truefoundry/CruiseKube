@@ -296,7 +296,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 			freshPod, found := podsOnNode[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]
 			if !found {
-				logging.Errorf(ctx, "Pod %s/%s not found on node %s", rec.PodInfo.Namespace, rec.PodInfo.Name, nodeName)
+				logging.Warnf(ctx, "Pod %s/%s not found on node %s", rec.PodInfo.Namespace, rec.PodInfo.Name, nodeName)
 				continue
 			}
 
