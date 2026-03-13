@@ -96,9 +96,11 @@ type parsedPodRecommendation struct {
 
 type workloadRecAgg struct {
 	CPUMin   float64
+	CPUAvg   float64
 	CPUMax   float64
 	MemMin   float64
 	MemMax   float64
+	MemAvg   float64
 	TotalCPU float64
 	TotalMem float64
 }
@@ -123,15 +125,17 @@ func (deps HandlerDependencies) getPodRecommendationsForCluster(ctx context.Cont
 // aggregateRecsForWorkload aggregates pod recommendations for a single workload into min/max/total CPU and memory.
 // Assumes at most one row per pod per workload (no duplicate pod names in recs).
 func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.WorkloadStat) workloadRecAgg {
-	var cpuMin, cpuMax, memMin, memMax, totalCPU, totalMem float64
+	var cpuMin, cpuMax, cpuAvg, memMin, memMax, memAvg, totalCPU, totalMem float64
 	first := true
 
 	if len(recs) == 0 {
 		return workloadRecAgg{
 			CPUMin:   stat.CalculateTotalCPURequest(),
 			CPUMax:   stat.CalculateTotalCPURequest(),
+			CPUAvg:   stat.CalculateTotalCPURequest(),
 			MemMin:   stat.CalculateTotalMemoryRequest(),
 			MemMax:   stat.CalculateTotalMemoryRequest(),
+			MemAvg:   stat.CalculateTotalMemoryRequest(),
 			TotalCPU: stat.CalculateTotalCPURequest(),
 			TotalMem: stat.CalculateTotalMemoryRequest()}
 	}
@@ -159,7 +163,9 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 			}
 		}
 	}
-	return workloadRecAgg{CPUMin: cpuMin, CPUMax: cpuMax, MemMin: memMin, MemMax: memMax, TotalCPU: totalCPU, TotalMem: totalMem}
+	cpuAvg = totalCPU / float64(len(recs))
+	memAvg = totalMem / float64(len(recs))
+	return workloadRecAgg{CPUMin: cpuMin, CPUMax: cpuMax, CPUAvg: cpuAvg, MemMin: memMin, MemMax: memMax, MemAvg: memAvg, TotalCPU: totalCPU, TotalMem: totalMem}
 }
 
 // buildWorkloadDetail builds a single WorkloadDetail from a workload and its stat.
@@ -311,22 +317,20 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 			clusterRecMem += agg.TotalMem
 
 			// Per Pod Level
-			aggCPUPerPod := agg.TotalCPU / float64(stat.Replicas)
-			aggMemPerPod := agg.TotalMem / float64(stat.Replicas)
-			cpuChange = aggCPUPerPod - currentCPUPerPod
-			memChange = aggMemPerPod - currentMemPerPod
+			cpuChange = agg.CPUAvg - currentCPUPerPod
+			memChange = agg.MemAvg - currentMemPerPod
 		}
 
 		detail.CPU = types.WorkloadCPU{
 			CurrentPerPod: currentCPUPerPod,
 			Recommended: types.CPURecommended{
-				Min: agg.CPUMin, Max: agg.CPUMax, Change: cpuChange,
+				Min: agg.CPUMin, Max: agg.CPUMax, Avg: agg.CPUAvg, Change: cpuChange,
 			},
 		}
 		detail.Memory = types.WorkloadMemory{
 			CurrentPerPod: currentMemPerPod,
 			Recommended: types.MemoryRecommended{
-				Min: agg.MemMin, Max: agg.MemMax, Change: memChange,
+				Min: agg.MemMin, Max: agg.MemMax, Avg: agg.MemAvg, Change: memChange,
 			},
 		}
 		details = append(details, detail)

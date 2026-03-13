@@ -33,12 +33,14 @@ type WorkloadSummaryConstraints struct {
 type CPURecommended struct {
 	Min    float64 `json:"min"`
 	Max    float64 `json:"max"`
+	Avg    float64 `json:"avg"`
 	Change float64 `json:"change"`
 }
 
 type MemoryRecommended struct {
 	Min    float64 `json:"min"`
 	Max    float64 `json:"max"`
+	Avg    float64 `json:"avg"`
 	Change float64 `json:"change"`
 }
 
