@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/cenkalti/backoff/v5"
 	"github.com/truefoundry/cruisekube/pkg/adapters/database"
 	"github.com/truefoundry/cruisekube/pkg/adapters/kube"
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
@@ -89,7 +90,7 @@ func buildControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) 
 }
 
 func initDatabaseAdapter(runtimeManager *runtimeManager, cfg *config.Config) (ports.Database, error) {
-	databaseAdapter, err := database.NewDatabase(database.DatabaseConfig{
+	dbCfg := database.DatabaseConfig{
 		Type:     cfg.DB.Type,
 		Host:     cfg.DB.Host,
 		Port:     cfg.DB.Port,
@@ -97,10 +98,25 @@ func initDatabaseAdapter(runtimeManager *runtimeManager, cfg *config.Config) (po
 		Username: cfg.DB.Username,
 		Password: cfg.DB.Password,
 		SSLMode:  cfg.DB.SSLMode,
-	})
+	}
+
+	var databaseAdapter ports.Database
+	_, err := backoff.Retry(
+		runtimeManager.ctx,
+		func() (any, error) {
+			var dbErr error
+			databaseAdapter, dbErr = database.NewDatabase(dbCfg)
+			return struct{}{}, dbErr
+		},
+		backoff.WithMaxElapsedTime(time.Minute),
+		backoff.WithNotify(func(err error, d time.Duration) {
+			logging.Debugf(runtimeManager.ctx, "Failed to initialize database, retrying in %s: %v", d, err)
+		}),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
+
 	logging.Infof(runtimeManager.ctx, "Database initialized")
 	runtimeManager.AddCleanup(func(context.Context) error {
 		return databaseAdapter.Close()
