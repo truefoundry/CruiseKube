@@ -473,6 +473,9 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 		// cannot set memory limit when it is unset
 		recommendedMemoryLimit = 0
 	}
+	if recommendedMemoryLimit != 0 && recommendedMemoryLimit < recommendedMemoryRequest {
+		recommendedMemoryLimit = recommendedMemoryRequest
+	}
 
 	if math.Abs(recommendedMemoryRequest-currentMemoryRequest) > 0 {
 		if applyChanges {
