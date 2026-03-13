@@ -6,6 +6,14 @@ timeout: 30
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: cruisekube-controller
+  namespace: cruisekube-system
+status:
+  readyReplicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: stress-deployment
   namespace: test-oom
 status:

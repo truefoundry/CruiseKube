@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/types"
@@ -16,54 +15,35 @@ func (deps HandlerDependencies) ListWorkloadsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 	logging.Infof(ctx, "Listing workloads for cluster %s", clusterID)
-	stats, err := deps.Storage.GetAllStatsForCluster(clusterID)
+
+	workloadsInCluster, err := deps.Storage.GetWorkloadsInCluster(clusterID)
 	if err != nil {
-		logging.Errorf(ctx, "Failed to get stats for cluster %s: %v", clusterID, err)
+		logging.Errorf(ctx, "Failed to get workloads in cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": fmt.Sprintf("Failed to get workloads for cluster %s: %v", clusterID, err),
+			"error": fmt.Sprintf("Failed to get workloads in cluster %s: %v", clusterID, err),
 		})
 		return
 	}
 
 	var workloads = make([]types.WorkloadOverrideInfo, 0)
-	for _, stat := range stats {
+	for _, workload := range workloadsInCluster {
+		overrides := workload.OverridesWithDefaults()
+		stat := workload.Stat
+		if stat == nil {
+			continue
+		}
 		if stat.IsGPUWorkload() {
 			continue
 		}
-		workloadColumnId := strings.ReplaceAll(stat.WorkloadIdentifier, "/", ":")
-		overrides, err := deps.Storage.GetWorkloadOverrides(clusterID, workloadColumnId)
-		if err != nil {
-			logging.Errorf(ctx, "Failed to get overrides for workload %s: %v", stat.WorkloadIdentifier, err)
-		}
 
-		evictionRanking := stat.EvictionRanking
-		enabled := false
-		var disruptionWindows []types.DisruptionWindow
-		if overrides != nil {
-			if overrides.EvictionRanking != nil {
-				evictionRanking = *overrides.EvictionRanking
-			}
-			if overrides.Enabled != nil {
-				enabled = *overrides.Enabled
-			}
-			if len(overrides.DisruptionWindows) > 0 {
-				disruptionWindows = overrides.DisruptionWindows
-			}
-		}
-
-		workloadExternalId := strings.ReplaceAll(stat.WorkloadIdentifier, "/", ":")
-		workload := types.WorkloadOverrideInfo{
-			WorkloadID: workloadExternalId,
+		output := types.WorkloadOverrideInfo{
+			WorkloadID: workload.WorkloadID,
 			Name:       stat.Name,
 			Namespace:  stat.Namespace,
 			Kind:       stat.Kind,
-			Overrides: &types.WorkloadOverridesEffective{
-				EvictionRanking:   evictionRanking,
-				Enabled:           enabled,
-				DisruptionWindows: disruptionWindows,
-			},
+			Overrides:  overrides,
 		}
-		workloads = append(workloads, workload)
+		workloads = append(workloads, output)
 	}
 
 	c.Header("Content-Type", "application/json")

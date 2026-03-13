@@ -122,9 +122,20 @@ func (deps HandlerDependencies) getPodRecommendationsForCluster(ctx context.Cont
 
 // aggregateRecsForWorkload aggregates pod recommendations for a single workload into min/max/total CPU and memory.
 // Assumes at most one row per pod per workload (no duplicate pod names in recs).
-func aggregateRecsForWorkload(recs []parsedPodRecommendation) workloadRecAgg {
+func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.WorkloadStat) workloadRecAgg {
 	var cpuMin, cpuMax, memMin, memMax, totalCPU, totalMem float64
 	first := true
+
+	if len(recs) == 0 {
+		return workloadRecAgg{
+			CPUMin:   stat.CalculateTotalCPURequest(),
+			CPUMax:   stat.CalculateTotalCPURequest(),
+			MemMin:   stat.CalculateTotalMemoryRequest(),
+			MemMax:   stat.CalculateTotalMemoryRequest(),
+			TotalCPU: stat.CalculateTotalCPURequest(),
+			TotalMem: stat.CalculateTotalMemoryRequest()}
+	}
+
 	for _, p := range recs {
 		cpu, mem := p.Rec.CPURequest, p.Rec.MemoryRequest
 		totalCPU += cpu
@@ -154,16 +165,16 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation) workloadRecAgg {
 // buildWorkloadDetail builds a single WorkloadDetail from a workload and its stat.
 func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) types.WorkloadDetail {
 	effective := w.OverridesWithDefaults()
-	priority := "medium"
+	criticalityLevel := "medium"
 	switch effective.EvictionRanking {
 	case types.EvictionRankingDisabled:
-		priority = "non-evictable"
+		criticalityLevel = "very-high"
 	case types.EvictionRankingLow:
-		priority = "low"
+		criticalityLevel = "low"
 	case types.EvictionRankingMedium:
-		priority = "medium"
+		criticalityLevel = "medium"
 	case types.EvictionRankingHigh:
-		priority = "high"
+		criticalityLevel = "high"
 	}
 	var constraints types.WorkloadSummaryConstraints
 	if stat.Constraints != nil {
@@ -190,6 +201,12 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 	}
 	inDisruptionWindow := stat.Metadata != nil && stat.Metadata.InDisruptionWindow
 	cruiseEnabled := effective.Enabled && !stat.IsGPUWorkload() // do not enable for GPU workloads
+	hpaEnabled := stat.IsHorizontallyAutoscaledOnCPU || stat.IsHorizontallyAutoscaledOnMem
+	var excludedCodes []types.ExcludedCode
+	if stat.Metadata != nil && len(stat.Metadata.ExcludedCodes) > 0 {
+		excludedCodes = make([]types.ExcludedCode, len(stat.Metadata.ExcludedCodes))
+		copy(excludedCodes, stat.Metadata.ExcludedCodes)
+	}
 	return types.WorkloadDetail{
 		WorkloadID:  w.WorkloadID,
 		Kind:        stat.Kind,
@@ -197,12 +214,15 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 		Name:        stat.Name,
 		UpdatedAt:   stat.UpdatedAt.Unix(),
 		PodsCount:   int(stat.Replicas),
+		ScaledDown:  stat.Replicas <= 0,
 		Constraints: constraints,
 		Config: types.WorkloadConfig{
-			Priority:           priority,
+			CriticalityLevel:   criticalityLevel,
 			CruiseEnabled:      cruiseEnabled,
 			DisruptionSchedule: disruptionSchedule,
 			InDisruptionWindow: inDisruptionWindow,
+			HPAEnabled:         hpaEnabled,
+			ExcludedCodes:      excludedCodes,
 		},
 	}
 }
@@ -222,7 +242,7 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p wo
 	if totalCurrentMem > totalRecMem {
 		memSavings = (totalCurrentMem - totalRecMem) / 1024 * p.MemPerGBPerHour * defaultHoursPerMonth
 	}
-	d.DollarSavingsPerMonth = int(cpuSavings + memSavings)
+	d.DollarSavingsPerMonth = cpuSavings + memSavings
 	cpuExpenditure := 0.0
 	if totalRecCPU > totalCurrentCPU {
 		cpuExpenditure = (totalRecCPU - totalCurrentCPU) * p.CPUPerCorePerHour * defaultHoursPerMonth
@@ -231,7 +251,7 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p wo
 	if totalRecMem > totalCurrentMem {
 		memExpenditure = (totalRecMem - totalCurrentMem) / 1024 * p.MemPerGBPerHour * defaultHoursPerMonth
 	}
-	d.DollarExpenditurePerMonth = int(cpuExpenditure + memExpenditure)
+	d.DollarExpenditurePerMonth = cpuExpenditure + memExpenditure
 }
 
 // getWorkloadsData fetches workloads and pod recommendations for a cluster, then for each workload
@@ -248,6 +268,7 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 	if err != nil {
 		return nil, nil, 0, 0, 0, 0, fmt.Errorf("get pod recommendations for cluster %s: %w", clusterID, err)
 	}
+
 	// Index recommendations by workload ID for fast lookup
 	recsByWorkload := make(map[string][]parsedPodRecommendation)
 	for _, p := range parsedRecs {
@@ -262,44 +283,38 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		if stat == nil {
 			continue
 		}
-		detail := buildWorkloadDetail(w, stat)
-		isGPU := stat.IsGPUWorkload()
-		var agg workloadRecAgg
-		if !isGPU {
-			agg = aggregateRecsForWorkload(recsByWorkload[w.WorkloadID])
+
+		// If no recommendations are found, set the replicas to 0
+		if len(recsByWorkload[w.WorkloadID]) == 0 {
+			stat.Replicas = 0
 		}
+
+		detail := buildWorkloadDetail(w, stat)
+		agg := aggregateRecsForWorkload(recsByWorkload[w.WorkloadID], stat)
+
 		recAgg[w.WorkloadID] = agg
 
-		workloadPodCPURequest := stat.CalculateTotalCPURequest()
-		workloadTotalMemoryRequest := stat.CalculateTotalMemoryRequest()
-		replicas := stat.Replicas
-		if replicas <= 0 {
-			replicas = 1
-		}
 		// Per Pod Current Request
-		currentCPUPerPod := workloadPodCPURequest
-		currentMemPerPod := workloadTotalMemoryRequest
+		currentCPUPerPod := stat.CalculateTotalCPURequest()
+		currentMemPerPod := stat.CalculateTotalMemoryRequest()
 
-		////////////////////////////////////////////////////////////
-		// Added to global cluster request and recommendation
-		////////////////////////////////////////////////////////////
-		clusterReqCPU += currentCPUPerPod * float64(replicas)
-		clusterReqMem += currentMemPerPod * float64(replicas)
-		if !isGPU {
+		cpuChange, memChange := 0.0, 0.0
+		// If replicas are greater than 0, add the total CPU and memory to the cluster request and recommendation
+		if stat.Replicas > 0 {
+			////////////////////////////////////////////////////////////
+			// Added to global cluster request and recommendation
+			////////////////////////////////////////////////////////////
+			clusterReqCPU += currentCPUPerPod * float64(stat.Replicas)
+			clusterReqMem += currentMemPerPod * float64(stat.Replicas)
+
 			clusterRecCPU += agg.TotalCPU
 			clusterRecMem += agg.TotalMem
-		}
 
-		// The difference needs to be per pod (no recommendation for GPU workloads)
-		var cpuChange, memChange float64
-		if !isGPU {
-			aggCPUPerPod := agg.TotalCPU / float64(replicas)
-			aggMemPerPod := agg.TotalMem / float64(replicas)
+			// Per Pod Level
+			aggCPUPerPod := agg.TotalCPU / float64(stat.Replicas)
+			aggMemPerPod := agg.TotalMem / float64(stat.Replicas)
 			cpuChange = aggCPUPerPod - currentCPUPerPod
 			memChange = aggMemPerPod - currentMemPerPod
-			if stat.Replicas <= 0 {
-				cpuChange, memChange = 0, 0
-			}
 		}
 
 		detail.CPU = types.WorkloadCPU{
@@ -332,9 +347,16 @@ func (deps HandlerDependencies) WorkloadSummaryHandler(c *gin.Context) {
 
 	p := deps.getEffectivePricing(ctx, clusterID)
 	for i := range details {
-		if details[i].Constraints.IsGPUWorkload {
+		// No need to calculate savings for GPU workloads, scaled down workloads, or workloads with HPA enabled
+		if details[i].Constraints.IsGPUWorkload ||
+			details[i].PodsCount == 0 ||
+			details[i].ScaledDown ||
+			details[i].Config.HPAEnabled {
+			details[i].DollarExpenditurePerMonth = 0
+			details[i].DollarSavingsPerMonth = 0
 			continue
 		}
+
 		fillWorkloadDetailDollars(&details[i], recAgg[details[i].WorkloadID], p)
 	}
 
@@ -354,9 +376,9 @@ func (deps HandlerDependencies) WorkloadSummaryHandler(c *gin.Context) {
 	optimizedCostDollars := (clusterRecCPU/reqAllocRatioCpu)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 	c.JSON(http.StatusOK, types.WorkloadSummaryResponse{
 		ImpactSummary: types.ImpactSummary{
-			DollarCurrentCost:     int(currentCostDollars),
-			DollarCurrentSavings:  int(workloadCostDollars - currentCostDollars),
-			DollarPossibleSavings: int(workloadCostDollars - optimizedCostDollars),
+			DollarCurrentCost:     currentCostDollars,
+			DollarCurrentSavings:  workloadCostDollars - currentCostDollars,
+			DollarPossibleSavings: workloadCostDollars - optimizedCostDollars,
 			ClusterResources:      clusterRes,
 		},
 		WorkloadDetails: details,

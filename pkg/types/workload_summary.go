@@ -12,9 +12,9 @@ type ClusterResourcesDTO struct {
 }
 
 type ImpactSummary struct {
-	DollarCurrentCost     int                 `json:"dollarCurrentCost"`
-	DollarCurrentSavings  int                 `json:"dollarCurrentSavings"`
-	DollarPossibleSavings int                 `json:"dollarPossibleSavings"`
+	DollarCurrentCost     float64             `json:"dollarCurrentCost"`
+	DollarCurrentSavings  float64             `json:"dollarCurrentSavings"`
+	DollarPossibleSavings float64             `json:"dollarPossibleSavings"`
 	ClusterResources      ClusterResourcesDTO `json:"clusterResources"`
 }
 
@@ -48,10 +48,12 @@ type DisruptionScheduleWindow struct {
 }
 
 type WorkloadConfig struct {
-	Priority           string                     `json:"priority"`
+	CriticalityLevel   string                     `json:"criticalityLevel"`
 	CruiseEnabled      bool                       `json:"cruiseEnabled"`
 	DisruptionSchedule []DisruptionScheduleWindow `json:"disruptionSchedule"`
 	InDisruptionWindow bool                       `json:"inDisruptionWindow"`
+	HPAEnabled         bool                       `json:"hpaEnabled"`
+	ExcludedCodes      []ExcludedCode             `json:"excludedCodes,omitempty"`
 }
 
 type WorkloadCPU struct {
@@ -71,11 +73,12 @@ type WorkloadDetail struct {
 	Name                      string                     `json:"name"`
 	UpdatedAt                 int64                      `json:"updatedAt"`
 	PodsCount                 int                        `json:"podsCount"`
+	ScaledDown                bool                       `json:"scaledDown"`
 	Constraints               WorkloadSummaryConstraints `json:"constraints"`
 	CPU                       WorkloadCPU                `json:"cpu"`
 	Memory                    WorkloadMemory             `json:"memory"`
-	DollarSavingsPerMonth     int                        `json:"dollarSavingsPerMonth"`
-	DollarExpenditurePerMonth int                        `json:"dollarExpenditurePerMonth"`
+	DollarSavingsPerMonth     float64                    `json:"dollarSavingsPerMonth"`
+	DollarExpenditurePerMonth float64                    `json:"dollarExpenditurePerMonth"`
 	Config                    WorkloadConfig             `json:"config"`
 }
 

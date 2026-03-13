@@ -266,7 +266,7 @@ func getPodName(pod *corev1.Pod) string {
 
 func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, overrides *types.Overrides) *types.WorkloadOverrideInfo {
 	effective := &types.WorkloadOverridesEffective{
-		Enabled:         true,
+		Enabled:         false,
 		EvictionRanking: types.EvictionRankingMedium,
 	}
 	if stat != nil {

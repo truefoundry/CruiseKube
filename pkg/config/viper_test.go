@@ -83,10 +83,6 @@ func validControllerConfig() *Config {
 					Enabled:  true,
 					Schedule: "5m",
 				},
-				ModifyEqualCPUResourcesKey: {
-					Enabled:  false,
-					Schedule: "10m",
-				},
 				NodeLoadMonitoringKey: {
 					Enabled:  false,
 					Schedule: "60s",

@@ -42,6 +42,13 @@ spec:
             - name: metrics
               containerPort: {{ .Values.cruisekubeController.service.metricsPort }}
               protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.cruisekubeController.service.httpPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            failureThreshold: 6
           resources:
             {{- toYaml .Values.cruisekubeController.resources | nindent 12 }}
           env:

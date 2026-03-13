@@ -230,7 +230,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			for _, container := range optimizableButExcludedPod.ContainerResources {
 				containerStat, err := optimizableButExcludedPod.Stats.GetContainerStats(container.Name)
 				if err != nil {
-					logging.Errorf(ctx, "Error getting container stats for container %s: %v", container.Name, err)
+					logging.Warnf(ctx, "Error getting container stats for container %s: %v", container.Name, err)
 					continue
 				}
 				recommendedCPU, restCPU := strategy.GetRecommendedAndRestCPU(ctx, optimizableButExcludedPod, *containerStat)
@@ -296,7 +296,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 			freshPod, found := podsOnNode[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]
 			if !found {
-				logging.Errorf(ctx, "Pod %s/%s not found on node %s", rec.PodInfo.Namespace, rec.PodInfo.Name, nodeName)
+				logging.Warnf(ctx, "Pod %s/%s not found on node %s", rec.PodInfo.Namespace, rec.PodInfo.Name, nodeName)
 				continue
 			}
 
@@ -320,7 +320,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 							Category: types.EventCategoryPODEviction,
 							Payload: types.AuditPayload{
 								Message: fmt.Sprintf("Pod %s/%s evicted for resource optimization", rec.PodInfo.Namespace, rec.PodInfo.Name),
-								Target:  map[string]interface{}{"kind": rec.PodInfo.WorkloadKind, "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
 								Details: map[string]interface{}{
 									"workloadId":    workloadID,
 									"node":          nodeName,
@@ -363,7 +363,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						Category: types.EventCategoryCPURecommendationApplied,
 						Payload: types.AuditPayload{
 							Message: fmt.Sprintf("CPU recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
-							Target:  map[string]interface{}{"kind": rec.PodInfo.WorkloadKind, "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+							Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
 							Details: map[string]interface{}{
 								"workloadId":    utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName),
 								"node":          nodeName,
@@ -399,7 +399,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 							Category: types.EventCategoryMemoryRecommendationApplied,
 							Payload: types.AuditPayload{
 								Message: fmt.Sprintf("Memory recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
-								Target:  map[string]interface{}{"kind": rec.PodInfo.WorkloadKind, "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
 								Details: map[string]interface{}{
 									"workloadId":    utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName),
 									"node":          nodeName,
@@ -488,7 +488,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 				return false, false, errors.New(errStr)
 			}
 			if !applied {
-				return false, false, fmt.Errorf("update call returned false for pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				return false, false, nil
 			}
 			logging.Infof(ctx, "pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
 			return true, false, nil
@@ -548,7 +548,7 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 				return false, errors.New(errStr)
 			}
 			if !applied {
-				return false, fmt.Errorf("update call returned false for pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				return false, nil
 			}
 			logging.Infof(ctx, "pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
 			return true, nil
