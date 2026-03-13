@@ -379,9 +379,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	}
 
 	workloadMetrics, exists := nsVsWorkloadMetrics[workloadInfo.Namespace][workloadKey]
-	if !exists {
-		logging.Errorf(ctx, "No workload metrics found for %s", workloadKey)
-	} else {
+	if exists {
 		workloadStat.Replicas = int32(workloadMetrics.MedianReplicas)
 	}
 
