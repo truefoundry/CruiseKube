@@ -230,7 +230,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			for _, container := range optimizableButExcludedPod.ContainerResources {
 				containerStat, err := optimizableButExcludedPod.Stats.GetContainerStats(container.Name)
 				if err != nil {
-					logging.Errorf(ctx, "Error getting container stats for container %s: %v", container.Name, err)
+					logging.Warnf(ctx, "Error getting container stats for container %s: %v", container.Name, err)
 					continue
 				}
 				recommendedCPU, restCPU := strategy.GetRecommendedAndRestCPU(ctx, optimizableButExcludedPod, *containerStat)
@@ -488,7 +488,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 				return false, false, errors.New(errStr)
 			}
 			if !applied {
-				return false, false, fmt.Errorf("update call returned false for pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				return false, false, nil
 			}
 			logging.Infof(ctx, "pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
 			return true, false, nil
@@ -548,7 +548,7 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 				return false, errors.New(errStr)
 			}
 			if !applied {
-				return false, fmt.Errorf("update call returned false for pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				return false, nil
 			}
 			logging.Infof(ctx, "pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
 			return true, nil
