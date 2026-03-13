@@ -1,7 +1,15 @@
 ---
 apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
-timeout: 30
+timeout: 120
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cruisekube-controller
+  namespace: cruisekube-system
+status:
+  readyReplicas: 1
 ---
 apiVersion: apps/v1
 kind: Deployment
