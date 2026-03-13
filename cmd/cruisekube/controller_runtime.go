@@ -103,14 +103,17 @@ func initDatabaseAdapter(runtimeManager *runtimeManager, cfg *config.Config) (po
 	var databaseAdapter ports.Database
 	_, err := backoff.Retry(
 		runtimeManager.ctx,
-		func() (any, error) {
+		func() (struct{}, error) {
 			var err error
 			databaseAdapter, err = database.NewDatabase(dbCfg)
-			return struct{}{}, fmt.Errorf("failed to initialize database: %w", err)
+			if err != nil {
+				return struct{}{}, fmt.Errorf("failed to initialize db: %w", err)
+			}
+			return struct{}{}, nil
 		},
 		backoff.WithMaxElapsedTime(time.Minute),
 		backoff.WithNotify(func(err error, d time.Duration) {
-			logging.Debugf(runtimeManager.ctx, "Failed to initialize database, retrying in %s: %v", d, err)
+			logging.Infof(runtimeManager.ctx, "Failed to initialize database, retrying in %s: %v", d, err)
 		}),
 	)
 	if err != nil {
