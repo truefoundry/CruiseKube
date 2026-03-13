@@ -30,13 +30,14 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 		MaxRestMemory:               0,
 	}
 
-	podInfosClone := make([]utils.PodInfo, len(data.PodInfos))
-	copy(podInfosClone, data.PodInfos)
+	allPodInfo := make([]utils.PodInfo, 0, len(data.OptimizablePods)+len(data.OptimizableButExcludedPods))
+	allPodInfo = append(allPodInfo, data.OptimizablePods...)
+	allPodInfo = append(allPodInfo, data.OptimizableButExcludedPods...)
 
 	podMetricsCache := make(map[string]utils.PodMetrics)
 
 	// Calculate the recommendation for each pod
-	for _, podInfo := range podInfosClone {
+	for _, podInfo := range allPodInfo {
 		podKey := utils.GetPodKey(podInfo.Namespace, podInfo.Name)
 		var totalRecommendedCPU, totalRecommendedMemory, maxRestCPU, maxRestMemory float64
 		for _, containerRec := range podInfo.Stats.ContainerStats {
@@ -102,15 +103,15 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 	}
 
 	// Sort and perform eviction based on memory
-	sort.Slice(podInfosClone, func(i, j int) bool {
-		if podInfosClone[i].WorkloadKind == utils.DaemonSetKind && podInfosClone[j].WorkloadKind != utils.DaemonSetKind {
+	sort.Slice(data.OptimizablePods, func(i, j int) bool {
+		if data.OptimizablePods[i].WorkloadKind == utils.DaemonSetKind && data.OptimizablePods[j].WorkloadKind != utils.DaemonSetKind {
 			return false
 		}
-		if podInfosClone[i].WorkloadKind != utils.DaemonSetKind && podInfosClone[j].WorkloadKind == utils.DaemonSetKind {
+		if data.OptimizablePods[i].WorkloadKind != utils.DaemonSetKind && data.OptimizablePods[j].WorkloadKind == utils.DaemonSetKind {
 			return true
 		}
-		podKey_i := utils.GetPodKey(podInfosClone[i].Namespace, podInfosClone[i].Name)
-		podKey_j := utils.GetPodKey(podInfosClone[j].Namespace, podInfosClone[j].Name)
+		podKey_i := utils.GetPodKey(data.OptimizablePods[i].Namespace, data.OptimizablePods[i].Name)
+		podKey_j := utils.GetPodKey(data.OptimizablePods[j].Namespace, data.OptimizablePods[j].Name)
 		metrics_i := podMetricsCache[podKey_i]
 		metrics_j := podMetricsCache[podKey_j]
 
@@ -122,22 +123,22 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 		}
 		return metrics_i.MaxRestMemory > metrics_j.MaxRestMemory
 	})
-	podInfosClone = s.performEvictionLoop(podInfosClone, podMetricsCache, data.AllocatableMemory,
+	s.performEvictionLoop(data.OptimizablePods, podMetricsCache, data.AllocatableMemory,
 		func(metrics utils.PodMetrics) float64 { return metrics.TotalRecommendedMemory },
 		func(metrics utils.PodMetrics) float64 { return metrics.MaxRestMemory },
 		&result)
 
 	// Sort and perform eviction based on CPU
-	sort.Slice(podInfosClone, func(i, j int) bool {
-		if podInfosClone[i].WorkloadKind == utils.DaemonSetKind && podInfosClone[j].WorkloadKind != utils.DaemonSetKind {
+	sort.Slice(data.OptimizablePods, func(i, j int) bool {
+		if data.OptimizablePods[i].WorkloadKind == utils.DaemonSetKind && data.OptimizablePods[j].WorkloadKind != utils.DaemonSetKind {
 			return false
 		}
-		if podInfosClone[i].WorkloadKind != utils.DaemonSetKind && podInfosClone[j].WorkloadKind == utils.DaemonSetKind {
+		if data.OptimizablePods[i].WorkloadKind != utils.DaemonSetKind && data.OptimizablePods[j].WorkloadKind == utils.DaemonSetKind {
 			return true
 		}
 
-		podKey_i := utils.GetPodKey(podInfosClone[i].Namespace, podInfosClone[i].Name)
-		podKey_j := utils.GetPodKey(podInfosClone[j].Namespace, podInfosClone[j].Name)
+		podKey_i := utils.GetPodKey(data.OptimizablePods[i].Namespace, data.OptimizablePods[i].Name)
+		podKey_j := utils.GetPodKey(data.OptimizablePods[j].Namespace, data.OptimizablePods[j].Name)
 
 		metrics_i := podMetricsCache[podKey_i]
 		metrics_j := podMetricsCache[podKey_j]
@@ -151,7 +152,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 
 		return metrics_i.MaxRestCPU > metrics_j.MaxRestCPU
 	})
-	podInfosClone = s.performEvictionLoop(podInfosClone, podMetricsCache, data.AllocatableCPU,
+	data.OptimizablePods = s.performEvictionLoop(data.OptimizablePods, podMetricsCache, data.AllocatableCPU,
 		func(metrics utils.PodMetrics) float64 { return metrics.TotalRecommendedCPU },
 		func(metrics utils.PodMetrics) float64 { return metrics.MaxRestCPU },
 		&result)
@@ -174,7 +175,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 		recommendedMemory float64
 	}, 0)
 
-	for _, pod := range podInfosClone {
+	for _, pod := range allPodInfo {
 		if pod.Stats.ContainerStats != nil {
 			for _, containerStat := range pod.Stats.ContainerStats {
 				if containerStat.ContainerType == types.InitContainer {
@@ -270,7 +271,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 		result.PodContainerRecommendations = append(result.PodContainerRecommendations, podContainerRec)
 	}
 
-	for _, pod := range podInfosClone {
+	for _, pod := range allPodInfo {
 		if pod.Stats.ContainerStats == nil {
 			logging.Errorf(ctx, "No container recommendations found for pod %s/%s", pod.Namespace, pod.Name)
 		}

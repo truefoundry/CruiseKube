@@ -222,15 +222,12 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 		}
 
-		allOptimizablePods := make([]utils.PodInfo, 0, len(optimizablePods)+len(optimizableButExcludedPods))
-		allOptimizablePods = append(allOptimizablePods, optimizablePods...)
-		allOptimizablePods = append(allOptimizablePods, optimizableButExcludedPods...)
-
 		result, err := strategy.OptimizeNode(ctx, a.kubeClient, overridesMap, utils.NodeOptimizationData{
-			NodeName:          nodeName,
-			AllocatableCPU:    availableCPU,
-			AllocatableMemory: availableMemory,
-			PodInfos:          allOptimizablePods,
+			NodeName:                   nodeName,
+			AllocatableCPU:             availableCPU,
+			AllocatableMemory:          availableMemory,
+			OptimizablePods:            optimizablePods,
+			OptimizableButExcludedPods: optimizableButExcludedPods,
 		})
 		if err != nil {
 			logging.Errorf(ctx, "Error optimizing node %s: %v", nodeName, err)

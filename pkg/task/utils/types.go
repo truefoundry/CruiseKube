@@ -105,10 +105,11 @@ type PodContainerRecommendation struct {
 }
 
 type NodeOptimizationData struct {
-	NodeName          string
-	AllocatableCPU    float64
-	AllocatableMemory float64
-	PodInfos          []PodInfo
+	NodeName                   string
+	AllocatableCPU             float64
+	AllocatableMemory          float64
+	OptimizablePods            []PodInfo
+	OptimizableButExcludedPods []PodInfo
 }
 
 type OptimizationResult struct {
