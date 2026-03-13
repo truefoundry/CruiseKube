@@ -8,13 +8,12 @@ import (
 )
 
 const (
-	ApplyRecommendationKey     = "applyrecommendation"
-	FetchMetricsKey            = "fetchmetrics"
-	CreateStatsKey             = "createstats"
-	ModifyEqualCPUResourcesKey = "modifyequalcpuresources"
-	NodeLoadMonitoringKey      = "nodeloadmonitoring"
-	CleanupOOMEventsKey        = "cleanupoomevent"
-	DisruptionForceKey         = "disruptionforce"
+	ApplyRecommendationKey = "applyrecommendation"
+	FetchMetricsKey        = "fetchmetrics"
+	CreateStatsKey         = "createstats"
+	NodeLoadMonitoringKey  = "nodeloadmonitoring"
+	CleanupOOMEventsKey    = "cleanupoomevent"
+	DisruptionForceKey     = "disruptionforce"
 )
 
 type Config struct {
@@ -44,7 +43,6 @@ func RequiredTaskKeys() []string {
 	return []string{
 		CreateStatsKey,
 		ApplyRecommendationKey,
-		ModifyEqualCPUResourcesKey,
 		NodeLoadMonitoringKey,
 		FetchMetricsKey,
 		CleanupOOMEventsKey,
