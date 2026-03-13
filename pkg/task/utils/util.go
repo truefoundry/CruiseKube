@@ -11,6 +11,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/metrics"
 	"github.com/truefoundry/cruisekube/pkg/types"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -110,6 +111,9 @@ func updatePodResources(
 	)
 
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, ""
+		}
 		logging.Errorf(ctx, "Strategic merge patch failed for pod %s container %s %s update: %v", pod.Name, containerName, resourceTypeName, err)
 		return false, fmt.Sprintf("failed to update container %s %s resources: %v", containerName, resourceTypeName, err)
 	}
