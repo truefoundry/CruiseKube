@@ -51,7 +51,7 @@ Kubernetes VPA recommends resource values. CruiseKube goes further:
 
 ## How it works
 
-![architecture](./docs/images/cruisekube_architecture.svg)
+![architecture](./docs/images/cruisekube_architecture.png)
 
 1. **Collect** — Fetches CPU and memory metrics from Prometheus every minute
 2. **Analyze** — Computes per-container recommendations using percentile analysis and time-series predictions every 15 minutes
