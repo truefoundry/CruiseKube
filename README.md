@@ -84,7 +84,7 @@ kubectl get pods -n cruisekube-system
 kubectl port-forward -n cruisekube-system svc/cruisekube-frontend 3000:3000
 ```
 
-Open `http://localhost:3000` to see recommendations for your workloads.
+Open [http://localhost:3000](http://localhost:3000) to see recommendations for your workloads.
 
 ![frontend_app](./docs/images/demo_recommendation.png)
 
