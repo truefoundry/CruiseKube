@@ -163,8 +163,13 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 			}
 		}
 	}
-	cpuAvg = totalCPU / float64(stat.Replicas)
-	memAvg = totalMem / float64(stat.Replicas)
+	if stat.Replicas > 0 {
+		cpuAvg = totalCPU / float64(stat.Replicas)
+		memAvg = totalMem / float64(stat.Replicas)
+	} else {
+		cpuAvg = totalCPU / float64(len(recs))
+		memAvg = totalMem / float64(len(recs))
+	}
 	return workloadRecAgg{CPUMin: cpuMin, CPUAvg: cpuAvg, CPUMax: cpuMax, MemMin: memMin, MemAvg: memAvg, MemMax: memMax, TotalCPU: totalCPU, TotalMem: totalMem}
 }
 
