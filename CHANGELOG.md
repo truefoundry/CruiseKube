@@ -9,6 +9,30 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.2.2 (2026-03-18)
+
+* fix incorrect conversion for oom memory by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/151
+* feat: add workload fixes, gpu workloads, workload requested etc by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/155
+* rounding memory and cpu recommendations before applying by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/157
+* remove incorrectly labelled errors by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/156
+* Remove continuous_optimization from codebase by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/153
+* sentry integration for error reporting by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/149
+* implement api to batch update overrides for workloads by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/158
+* Batch update workload overrides API fix by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/160
+* feat: Include HPA excluded code to summary api by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/159
+* Minor fixe in webhook and fetch workloads | Update priority to critical  by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/161
+* move incomplete metrics case in create stats to debug by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/163
+* add sidecar containers to pod container resources by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/165
+* remove recent workload filtering by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/166
+* reduce log level for non critical errors by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/167
+* remove taskModifyEqualCPUResources by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/170
+* add retries with backoff for database initialization by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/169
+* fix cpu change issue by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/173
+* update values.yaml with sentry env values by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/162
+* handle eviction failure due to pod not found by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/174
+* build(deps): bump go.opentelemetry.io/otel/sdk from 1.38.0 to 1.40.0 by @dependabot[bot] in https://github.com/truefoundry/CruiseKube/pull/136
+* feat: update frontend by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/177
+
 
 ## v0.2.1 (2026-03-05)
 
