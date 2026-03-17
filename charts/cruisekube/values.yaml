@@ -248,6 +248,9 @@ cruisekubeWebhook:
   env:
     CRUISEKUBE_WEBHOOK_DRYRUN: "true"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "true"
+    CRUISEKUBE_SENTRY_ENABLED: "false"
+    CRUISEKUBE_SENTRY_DSN: ""
+    CRUISEKUBE_SENTRY_ENVIRONMENT: ""
 
 ## @section PostgreSQL parameters
 
@@ -318,4 +321,7 @@ cruisekubeFrontend:
       ## @param cruisekubeFrontend.resources.requests.memory The requested resources (memory) for the CruiseKube Frontend containers
       memory: 64Mi
   ## @param cruisekubeFrontend.env [object] Environment variables to configure CruiseKube Frontend
-  env: {}
+  env:
+    VITE_SENTRY_ENABLED: "false"
+    VITE_SENTRY_DSN: ""
+    VITE_SENTRY_ENV: ""
