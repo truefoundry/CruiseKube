@@ -160,6 +160,9 @@ func EvictPod(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.
 
 	err := kubeClient.PolicyV1().Evictions(pod.Namespace).Evict(ctx, eviction)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return true, ""
+		}
 		return false, fmt.Sprintf("failed to evict pod: %v", err)
 	}
 
