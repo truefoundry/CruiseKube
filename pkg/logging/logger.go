@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 )
@@ -47,6 +48,7 @@ func Error(ctx context.Context, msg string, args ...any) {
 	allAttrs = append(allAttrs, attrs...)
 	allAttrs = append(allAttrs, argsToAttrs(args...)...)
 	defaultLogger.LogAttrs(ctx, slog.LevelError, msg, allAttrs...)
+	CaptureToReporter(ctx, msg, args...)
 }
 
 func Warn(ctx context.Context, msg string, args ...any) {
@@ -76,6 +78,7 @@ func Errorf(ctx context.Context, format string, args ...any) {
 	attrs := getContextualAttrs(ctx)
 	msg := fmt.Sprintf(format, args...)
 	defaultLogger.LogAttrs(ctx, slog.LevelError, msg, attrs...)
+	CaptureToReporter(ctx, msg, args...)
 }
 
 func Warnf(ctx context.Context, format string, args ...any) {
@@ -103,11 +106,13 @@ func Println(ctx context.Context, args ...any) {
 
 func Fatal(ctx context.Context, msg string, args ...any) {
 	Error(ctx, msg, args...)
+	FlushReporter(2 * time.Second)
 	os.Exit(1)
 }
 
 func Fatalf(ctx context.Context, format string, args ...any) {
 	Errorf(ctx, format, args...)
+	FlushReporter(2 * time.Second)
 	os.Exit(1)
 }
 

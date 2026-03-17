@@ -1,9 +1,16 @@
 package ports
 
 import (
+	"errors"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/types"
+)
+
+var (
+	ErrWorkloadNotFound = errors.New("workload not found")
+	ErrOOMEventNotFound = errors.New("OOM event not found")
+	ErrSettingsNotFound = errors.New("cluster settings not found")
 )
 
 type Database interface {
@@ -30,6 +37,7 @@ type Database interface {
 
 	// Update
 	UpdateStatOverridesForWorkload(clusterID, workloadID string, overrides *types.Overrides) error
+	BatchUpdateStatOverridesForWorkloads(clusterID string, workloadIDs []string, overrides *types.Overrides) (updatedIDs []string, err error)
 
 	// OOM Events
 	InsertOOMEvent(event *types.OOMEvent) error
@@ -44,8 +52,11 @@ type Database interface {
 
 	// Audit
 	InsertAuditEvent(clusterID string, event types.AuditEvent) error
+	GetAuditEvents(clusterID string, since time.Time) ([]types.AuditEventRecord, error)
+	GetAuditEventsForWorkload(clusterID, workloadID string, since time.Time) ([]types.AuditEventRecord, error)
 	// Node Snapshots
 	InsertSnapshot(snapshot *types.SnapshotPayload) error
+	GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error)
 	// Settings
 	GetClusterSettings(clusterID string) (*types.ClusterSettings, error)
 	UpdateClusterSettings(clusterID string, settings *types.ClusterSettings) error

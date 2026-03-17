@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/truefoundry/cruisekube/pkg/audit"
-	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
@@ -19,9 +17,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func KillswitchHandler(c *gin.Context) {
+func (deps HandlerDependencies) KillswitchHandler(c *gin.Context) {
 	ctx := c.Request.Context()
-	mgr := c.MustGet("clusterManager").(cluster.Manager)
 	clusterID := c.Param("clusterID")
 
 	dryRun := c.Query("dry_run") == "true"
@@ -31,7 +28,7 @@ func KillswitchHandler(c *gin.Context) {
 		logging.Infof(ctx, "Starting killswitch operation for cluster %s", clusterID)
 	}
 
-	clients, err := mgr.GetClusterClients(clusterID)
+	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Unable to fetch cluster clients for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -54,7 +51,7 @@ func KillswitchHandler(c *gin.Context) {
 	}
 
 	// Step 2: kill pods with adjusted resources
-	podsAnalyzed, podsKilled, killedPods, errors := analyzeAndKillPods(ctx, clients.KubeClient, clusterID, dryRun)
+	podsAnalyzed, podsKilled, killedPods, errors := deps.analyzeAndKillPods(ctx, clients.KubeClient, clusterID, dryRun)
 	response.PodsAnalyzed = podsAnalyzed
 	response.PodsKilled = podsKilled
 	response.KilledPods = append(response.KilledPods, killedPods...)
@@ -96,7 +93,7 @@ func deleteMutatingWebhookConfiguration(ctx context.Context, kubeClient *kuberne
 	return nil
 }
 
-func analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, clusterID string, dryRun bool) (int, int, []string, []string) {
+func (deps HandlerDependencies) analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, clusterID string, dryRun bool) (int, int, []string, []string) {
 	var errors []string
 	var killedPods []string
 	podsAnalyzed := 0
@@ -147,8 +144,8 @@ func analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, c
 				killedPodName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
 				killedPods = append(killedPods, killedPodName)
 				logging.Infof(ctx, "Killed pod %s (reason: %s)", killedPodName, reason)
-				if !dryRun && audit.Recorder != nil {
-					audit.Recorder.Record(ctx, clusterID, types.AuditEvent{
+				if !dryRun && deps.AuditRecorder != nil {
+					deps.AuditRecorder.Record(ctx, clusterID, types.AuditEvent{
 						Type:     types.EventTypeNormal,
 						Category: types.EventCategoryPODEviction,
 						Payload: types.AuditPayload{

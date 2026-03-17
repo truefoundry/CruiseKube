@@ -8,7 +8,7 @@
 <img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/cruisekube" align="center" alt="Artifact Hub">
 </a>
  <a href="./LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg" align="center">
+    <img src="https://img.shields.io/badge/license-BUSL--1.1-orange.svg" align="center" alt="License: BUSL-1.1">
  </a>
  <a href="https://github.com/truefoundry/cruisekube/releases/latest">
     <img src="https://img.shields.io/github/v/release/truefoundry/cruisekube?label=latest%20release" align="center">

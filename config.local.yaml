@@ -26,9 +26,6 @@ controller:
           host: "http://localhost:8080"
         overridesURL:
           host: "http://localhost:8080"
-    modifyEqualCPUResources:
-      enabled: false
-      schedule: "10m"
     nodeLoadMonitoring:
       enabled: false
       schedule: "60s"
@@ -82,3 +79,7 @@ telemetry:
   exporterOTLPHeaders: ""
   serviceName: ""
   traceRatio: 0.1
+sentry:
+  enabled: false
+  dsn: ""
+  environment: ""

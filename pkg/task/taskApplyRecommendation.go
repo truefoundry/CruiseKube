@@ -152,7 +152,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		return err
 	}
 
-	if err := a.buildAndSaveSnapshot(ctx, recommendationResults); err != nil {
+	if err := a.buildAndSaveSnapshot(ctx, nodeRecommendationMap, recommendationResults); err != nil {
 		logging.Errorf(ctx, "Error saving node snapshot: %v", err)
 		return err
 	}
@@ -230,7 +230,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			for _, container := range optimizableButExcludedPod.ContainerResources {
 				containerStat, err := optimizableButExcludedPod.Stats.GetContainerStats(container.Name)
 				if err != nil {
-					logging.Errorf(ctx, "Error getting container stats for container %s: %v", container.Name, err)
+					logging.Warnf(ctx, "Error getting container stats for container %s: %v", container.Name, err)
 					continue
 				}
 				recommendedCPU, restCPU := strategy.GetRecommendedAndRestCPU(ctx, optimizableButExcludedPod, *containerStat)
@@ -296,7 +296,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 			freshPod, found := podsOnNode[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]
 			if !found {
-				logging.Errorf(ctx, "Pod %s/%s not found on node %s", rec.PodInfo.Namespace, rec.PodInfo.Name, nodeName)
+				logging.Warnf(ctx, "Pod %s/%s not found on node %s", rec.PodInfo.Namespace, rec.PodInfo.Name, nodeName)
 				continue
 			}
 
@@ -320,7 +320,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 							Category: types.EventCategoryPODEviction,
 							Payload: types.AuditPayload{
 								Message: fmt.Sprintf("Pod %s/%s evicted for resource optimization", rec.PodInfo.Namespace, rec.PodInfo.Name),
-								Target:  map[string]interface{}{"kind": rec.PodInfo.WorkloadKind, "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
 								Details: map[string]interface{}{
 									"workloadId":    workloadID,
 									"node":          nodeName,
@@ -363,7 +363,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						Category: types.EventCategoryCPURecommendationApplied,
 						Payload: types.AuditPayload{
 							Message: fmt.Sprintf("CPU recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
-							Target:  map[string]interface{}{"kind": rec.PodInfo.WorkloadKind, "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+							Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
 							Details: map[string]interface{}{
 								"workloadId":    utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName),
 								"node":          nodeName,
@@ -399,7 +399,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 							Category: types.EventCategoryMemoryRecommendationApplied,
 							Payload: types.AuditPayload{
 								Message: fmt.Sprintf("Memory recommendation applied for pod %s/%s container %s", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName),
-								Target:  map[string]interface{}{"kind": rec.PodInfo.WorkloadKind, "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
 								Details: map[string]interface{}{
 									"workloadId":    utils.GetWorkloadKey(rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName),
 									"node":          nodeName,
@@ -488,7 +488,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 				return false, false, errors.New(errStr)
 			}
 			if !applied {
-				return false, false, fmt.Errorf("update call returned false for pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				return false, false, nil
 			}
 			logging.Infof(ctx, "pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
 			return true, false, nil
@@ -548,7 +548,7 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 				return false, errors.New(errStr)
 			}
 			if !applied {
-				return false, fmt.Errorf("update call returned false for pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				return false, nil
 			}
 			logging.Infof(ctx, "pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
 			return true, nil
@@ -628,38 +628,41 @@ func (a *ApplyRecommendationTask) countPodsByStatus(ctx context.Context) types.S
 	return counts
 }
 
-// buildAndSaveSnapshot aggregates cluster-level CPU/Memory metrics from recommendationResults
-// and persists one row to the node_snapshots table (timestamp in GMT).
-// Current = total allocatable/requested; WorkloadRequested = user's original manifest; RecommendedRequested = our recommendation.
-func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, recommendationResults []*RecommendationResult) error {
+// buildAndSaveSnapshot aggregates cluster-level CPU/Memory metrics from nodeRecommendationMap
+// (allocatable, requested) and recommendationResults (workload/recommended request totals), then
+// persists one row to the node_snapshots table (timestamp in GMT).
+func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, nodeRecommendationMap map[string]utils.NodeResourceInfo, recommendationResults []*RecommendationResult) error {
 	var currentAllocatableCPU, currentAllocatableMemory float64
 	var currentRequestedCPU, currentRequestedMemory float64
 	var currentUtilizedCPU, currentUtilizedMemory float64
 	var workloadRequestedCPU, workloadRequestedMemory float64
 	var recommendedRequestedCPU, recommendedRequestedMemory float64
 
-	currentUtilizedCPU = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterCPUUtilizationExpression())
-	currentUtilizedMemory = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterMemoryUtilizationExpression())
-
-	podKeys := make(map[string]struct{})
-	for _, res := range recommendationResults {
-		ni := res.NodeInfo
+	// Use nodeRecommendationMap for cluster allocatable and requested (all nodes).
+	for _, ni := range nodeRecommendationMap {
 		currentAllocatableCPU += ni.AllocatableCPU
 		currentAllocatableMemory += ni.AllocatableMemory
 		currentRequestedCPU += ni.RequestedCPU
 		currentRequestedMemory += ni.RequestedMemory
 
-		for _, rec := range res.PodContainerRecommendations {
-			podKeys[rec.PodInfo.Namespace+"/"+rec.PodInfo.Name] = struct{}{}
-			recommendedRequestedCPU += rec.CPU
-			recommendedRequestedMemory += rec.Memory
-			cr, err := rec.PodInfo.GetContainerResource(rec.ContainerName)
-			if err != nil {
-				logging.Warnf(ctx, "snapshot: skip workload requested for %s/%s container %s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
+		for _, pod := range ni.Pods {
+			if pod.Stats == nil {
 				continue
 			}
-			workloadRequestedCPU += cr.CPURequest
-			workloadRequestedMemory += cr.MemoryRequest
+			workloadRequestedCPU += pod.Stats.CalculateTotalCPURequest()
+			workloadRequestedMemory += pod.Stats.CalculateTotalMemoryRequest()
+		}
+	}
+
+	currentUtilizedCPU = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterCPUUtilizationExpression())
+	currentUtilizedMemory = utils.QueryAndParsePrometheusScalar(ctx, a.promClient.GetClient(), utils.BuildClusterMemoryUtilizationExpression())
+
+	recommendedPods := 0
+	for _, res := range recommendationResults {
+		for _, rec := range res.PodContainerRecommendations {
+			recommendedPods++
+			recommendedRequestedCPU += rec.CPU
+			recommendedRequestedMemory += rec.Memory
 		}
 	}
 
@@ -683,7 +686,7 @@ func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, reco
 		return nil
 	}
 
-	if len(podKeys) == 0 {
+	if recommendedPods == 0 {
 		logging.Warnf(ctx, "snapshot: no pods were recommended, skipping snapshot")
 		return nil
 	}

@@ -12,9 +12,9 @@ type ClusterResourcesDTO struct {
 }
 
 type ImpactSummary struct {
-	DollarCurrentCost     int                 `json:"dollarCurrentCost"`
-	DollarCurrentSavings  int                 `json:"dollarCurrentSavings"`
-	DollarPossibleSavings int                 `json:"dollarPossibleSavings"`
+	DollarCurrentCost     float64             `json:"dollarCurrentCost"`
+	DollarCurrentSavings  float64             `json:"dollarCurrentSavings"`
+	DollarPossibleSavings float64             `json:"dollarPossibleSavings"`
 	ClusterResources      ClusterResourcesDTO `json:"clusterResources"`
 }
 
@@ -27,16 +27,19 @@ type WorkloadSummaryConstraints struct {
 	TopologySpreadConstraint bool `json:"topologySpreadConstraint"`
 	PodAntiAffinity          bool `json:"podAntiAffinity"`
 	ExcludedAnnotation       bool `json:"excludedAnnotation"`
+	IsGPUWorkload            bool `json:"isGPUWorkload"`
 }
 
 type CPURecommended struct {
 	Min    float64 `json:"min"`
+	Avg    float64 `json:"avg"`
 	Max    float64 `json:"max"`
 	Change float64 `json:"change"`
 }
 
 type MemoryRecommended struct {
 	Min    float64 `json:"min"`
+	Avg    float64 `json:"avg"`
 	Max    float64 `json:"max"`
 	Change float64 `json:"change"`
 }
@@ -47,20 +50,22 @@ type DisruptionScheduleWindow struct {
 }
 
 type WorkloadConfig struct {
-	Priority           string                     `json:"priority"`
+	CriticalityLevel   string                     `json:"criticalityLevel"`
 	CruiseEnabled      bool                       `json:"cruiseEnabled"`
 	DisruptionSchedule []DisruptionScheduleWindow `json:"disruptionSchedule"`
 	InDisruptionWindow bool                       `json:"inDisruptionWindow"`
+	HPAEnabled         bool                       `json:"hpaEnabled"`
+	ExcludedCodes      []ExcludedCode             `json:"excludedCodes,omitempty"`
 }
 
 type WorkloadCPU struct {
-	Current     float64        `json:"current"`
-	Recommended CPURecommended `json:"recommended"`
+	CurrentPerPod float64        `json:"current"`
+	Recommended   CPURecommended `json:"recommended"`
 }
 
 type WorkloadMemory struct {
-	Current     float64           `json:"current"`
-	Recommended MemoryRecommended `json:"recommended"`
+	CurrentPerPod float64           `json:"current"`
+	Recommended   MemoryRecommended `json:"recommended"`
 }
 
 type WorkloadDetail struct {
@@ -70,11 +75,12 @@ type WorkloadDetail struct {
 	Name                      string                     `json:"name"`
 	UpdatedAt                 int64                      `json:"updatedAt"`
 	PodsCount                 int                        `json:"podsCount"`
+	ScaledDown                bool                       `json:"scaledDown"`
 	Constraints               WorkloadSummaryConstraints `json:"constraints"`
 	CPU                       WorkloadCPU                `json:"cpu"`
 	Memory                    WorkloadMemory             `json:"memory"`
-	DollarSavingsPerMonth     int                        `json:"dollarSavingsPerMonth"`
-	DollarExpenditurePerMonth int                        `json:"dollarExpenditurePerMonth"`
+	DollarSavingsPerMonth     float64                    `json:"dollarSavingsPerMonth"`
+	DollarExpenditurePerMonth float64                    `json:"dollarExpenditurePerMonth"`
 	Config                    WorkloadConfig             `json:"config"`
 }
 

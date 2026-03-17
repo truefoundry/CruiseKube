@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/spf13/viper"
-	"github.com/truefoundry/cruisekube/pkg/logging"
 )
 
 // LoadWithViper loads configuration using Viper from a single config file.
@@ -79,23 +78,19 @@ func (c *Config) Validate() error {
 }
 
 func (c *Config) ValidateWebhookExecutionMode() error {
-	valueMissing := false
+	var missing []string
 	if c.Webhook.Port == "" {
-		fmt.Println("webhook.port is required for webhook execution mode")
-		valueMissing = true
+		missing = append(missing, "webhook.port")
 	}
 	if c.Webhook.StatsURL.Host == "" {
-		fmt.Println("webhook.statsURL.host is required for webhook execution mode")
-		valueMissing = true
+		missing = append(missing, "webhook.statsURL.host")
 	}
 	if c.Webhook.CertsDir == "" {
-		fmt.Println("webhook.certsDir is required for webhook execution mode")
-		valueMissing = true
+		missing = append(missing, "webhook.certsDir")
 	}
 
-	if valueMissing {
-		fmt.Println("Please provide all required webhook configuration values")
-		return fmt.Errorf("some required webhook configuration values are missing")
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required webhook configuration values: %s", strings.Join(missing, ", "))
 	}
 	return nil
 }
@@ -112,8 +107,17 @@ func (c *Config) ValidateControllerExecutionMode() error {
 			return fmt.Errorf("dependencies.inCluster.prometheusURL is required in inCluster mode")
 		}
 	default:
-		logging.Errorf(context.Background(), "invalid controller-mode: %s (expected local|inCluster)", controllerMode)
-		return nil
+		return fmt.Errorf("invalid controller-mode: %s (expected local|in-cluster)", controllerMode)
+	}
+
+	var missingTaskConfigs []string
+	for _, taskKey := range RequiredTaskKeys() {
+		if c.GetTaskConfig(taskKey) == nil {
+			missingTaskConfigs = append(missingTaskConfigs, taskKey)
+		}
+	}
+	if len(missingTaskConfigs) > 0 {
+		return fmt.Errorf("missing required controller task configurations: %s", strings.Join(missingTaskConfigs, ", "))
 	}
 
 	return nil

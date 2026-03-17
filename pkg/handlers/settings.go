@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,28 +10,26 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 )
 
-func GetSettingsHandler(c *gin.Context) {
+func (deps HandlerDependencies) GetSettingsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
-	settings, err := storage.Stg.GetSettings(clusterID)
-	if err != nil {
+	settings, err := deps.Storage.GetSettings(clusterID)
+	if errors.Is(err, storage.ErrSettingsNotFound) {
+		settings = &types.ClusterSettings{
+			CPUPricePerCorePerHour:  defaultCPUPricePerCorePerHour,
+			MemoryPricePerGBPerHour: defaultMemoryPricePerGBPerHour,
+		}
+	} else if err != nil {
 		logging.Errorf(ctx, "Failed to get settings for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	if settings == nil {
-		settings = &types.ClusterSettings{
-			CPUPricePerCorePerHour:  defaultCPUPricePerCorePerHour,
-			MemoryPricePerGBPerHour: defaultMemoryPricePerGBPerHour,
-		}
-	}
-
 	c.JSON(http.StatusOK, settings)
 }
 
-func UpdateSettingsHandler(c *gin.Context) {
+func (deps HandlerDependencies) UpdateSettingsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
@@ -40,7 +39,7 @@ func UpdateSettingsHandler(c *gin.Context) {
 		return
 	}
 
-	if err := storage.Stg.UpdateSettings(clusterID, &settings); err != nil {
+	if err := deps.Storage.UpdateSettings(clusterID, &settings); err != nil {
 		logging.Errorf(ctx, "Failed to update settings for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

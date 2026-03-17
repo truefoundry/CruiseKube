@@ -11,6 +11,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/metrics"
 	"github.com/truefoundry/cruisekube/pkg/types"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -110,6 +111,9 @@ func updatePodResources(
 	)
 
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, ""
+		}
 		logging.Errorf(ctx, "Strategic merge patch failed for pod %s container %s %s update: %v", pod.Name, containerName, resourceTypeName, err)
 		return false, fmt.Sprintf("failed to update container %s %s resources: %v", containerName, resourceTypeName, err)
 	}
@@ -156,6 +160,9 @@ func EvictPod(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.
 
 	err := kubeClient.PolicyV1().Evictions(pod.Namespace).Evict(ctx, eviction)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return true, ""
+		}
 		return false, fmt.Sprintf("failed to evict pod: %v", err)
 	}
 
@@ -294,8 +301,6 @@ func updateStandardMetrics(metrics *ContainerMetrics, value float64, metricType 
 		metrics.HasCPUData = true
 	case updateMemoryMetrics(metrics, value, metricType):
 		metrics.HasMemoryData = true
-	case updateCPU7DayMetrics(metrics, value, metricType):
-		metrics.HasCPUData = true
 	case updateMemory7DayMetrics(metrics, value, metricType):
 		metrics.HasMemoryData = true
 	case metricType == "median_replicas":
@@ -353,24 +358,6 @@ func updateMemoryMetrics(metrics *ContainerMetrics, value float64, metricType st
 	return true
 }
 
-func updateCPU7DayMetrics(metrics *ContainerMetrics, value float64, metricType string) bool {
-	switch metricType {
-	case "cpu_p50_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.P50, value)
-	case "cpu_p75_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.P75, value)
-	case "cpu_p90_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.P90, value)
-	case "cpu_p99_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.P99, value)
-	case "cpu_max_cpu_7day":
-		updateMaxValue(&metrics.CPU7Day.Max, value)
-	default:
-		return false
-	}
-	return true
-}
-
 func updateMemory7DayMetrics(metrics *ContainerMetrics, value float64, metricType string) bool {
 	switch metricType {
 	case "memory_max_7day":
@@ -414,7 +401,7 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 	workloadKey := GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 	containerMetrics, exists := workloadKeyVsContainerMetrics[workloadKey]
 	if !exists {
-		logging.Errorf(ctx, "[CreateStats] No container metrics found for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
+		logging.Warnf(ctx, "[CreateStats] No container metrics found for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 		return nil
 	}
 
@@ -437,7 +424,7 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 
 		medianReplicas = metrics.MedianReplicas
 		if !metrics.HasCPUData || !metrics.HasMemoryData {
-			logging.Errorf(ctx, "[CreateStats] Error: Incomplete metrics for container %s in workload %s (CPU: %v, Memory: %v)",
+			logging.Debugf(ctx, "[CreateStats] Error: Incomplete metrics for container %s in workload %s (CPU: %v, Memory: %v)",
 				containerName, GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name),
 				metrics.HasCPUData, metrics.HasMemoryData)
 			continue
@@ -459,14 +446,6 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 			Max: metrics.Memory7Day.Max,
 		}
 
-		cpu7Day := &CPU7DayStats{
-			Max: metrics.CPU7Day.Max,
-			P50: metrics.CPU7Day.P50,
-			P75: metrics.CPU7Day.P75,
-			P90: metrics.CPU7Day.P90,
-			P99: metrics.CPU7Day.P99,
-		}
-
 		var psiAdjustedUsageStats *PSIAdjustedUsageStats
 		if metrics.PSIAdjustedUsage != nil {
 			psiAdjustedUsageStats = &PSIAdjustedUsageStats{
@@ -482,13 +461,12 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 			CPUStats:         cpuStats,
 			MemoryStats:      memoryStats,
 			Memory7Day:       memory7Day,
-			CPU7Day:          cpu7Day,
 			PSIAdjustedUsage: psiAdjustedUsageStats,
 		})
 	}
 
 	if len(containerStats) == 0 {
-		logging.Errorf(ctx, "[CreateStats] No valid container recommendations for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
+		logging.Warnf(ctx, "[CreateStats] No valid container recommendations for workload %s", GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
 		return nil
 	}
 
@@ -497,16 +475,9 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 		Kind:                       workloadInfo.Kind,
 		Namespace:                  workloadInfo.Namespace,
 		Name:                       workloadInfo.Name,
-		ContinuousOptimization:     true,
 		Replicas:                   int32(medianReplicas),
 		ContainerStats:             containerStats,
 		OriginalContainerResources: containerResources,
-	}
-
-	totalMaxCPU := workloadStat.CalculateTotalCPUStats(100)
-	totalP50CPU := workloadStat.CalculateTotalCPUStats(50)
-	if totalMaxCPU/totalP50CPU < ContinuousOptimizationRatioThreshold || totalMaxCPU-totalP50CPU < ContinuousOptimizationDiffThreshold {
-		workloadStat.ContinuousOptimization = false
 	}
 
 	return workloadStat

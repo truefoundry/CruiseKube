@@ -5,21 +5,12 @@ import (
 	"net/http"
 
 	"github.com/truefoundry/cruisekube/pkg/cluster"
-	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
-
-func Dependencies(mgr cluster.Manager, cfg *config.Config) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Set("clusterManager", mgr)
-		c.Set("appConfig", cfg)
-		c.Next()
-	}
-}
 
 func AuthWebhook() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -74,14 +65,13 @@ func Logger() gin.HandlerFunc {
 	})
 }
 
-func EnsureClusterExists() gin.HandlerFunc {
+func EnsureClusterExists(mgr cluster.Manager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Param("clusterID") == cluster.SingleClusterID {
 			c.Next()
 			return
 		}
 
-		mgr := c.MustGet("clusterManager").(cluster.Manager)
 		clusterID := c.Param("clusterID")
 
 		if clusterID == "" {
@@ -100,12 +90,11 @@ func EnsureClusterExists() gin.HandlerFunc {
 	}
 }
 
-func Common(mgr cluster.Manager, cfg *config.Config) []gin.HandlerFunc {
+func Common() []gin.HandlerFunc {
 	return []gin.HandlerFunc{
 		Logger(),
 		gin.Recovery(),
 		CorsMiddleware(),
-		Dependencies(mgr, cfg),
 		RequestContext(),
 	}
 }

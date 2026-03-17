@@ -1,12 +1,14 @@
 package database
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/adapters/database/clients"
+	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/ports"
 	"github.com/truefoundry/cruisekube/pkg/types"
 	"gorm.io/gorm"
@@ -233,7 +235,7 @@ func (s *GormDB) GetStatForWorkload(clusterID, workloadID string) (*types.Worklo
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("workload stat not found for cluster %s, workload %s: %w", clusterID, workloadID, err)
+			return nil, fmt.Errorf("workload stat not found for cluster %s, workload %s: %w", clusterID, workloadID, ports.ErrWorkloadNotFound)
 		}
 		return nil, fmt.Errorf("failed to query workload stat: %w", err)
 	}
@@ -281,7 +283,7 @@ func (s *GormDB) GetStatOverridesForWorkload(clusterID, workloadID string) (*typ
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("workload overrides not found for cluster %s, workload %s", clusterID, workloadID)
+			return nil, fmt.Errorf("workload overrides not found for cluster %s, workload %s: %w", clusterID, workloadID, ports.ErrWorkloadNotFound)
 		}
 		return nil, fmt.Errorf("failed to query workload overrides: %w", err)
 	}
@@ -350,6 +352,38 @@ func (s *GormDB) UpdateStatOverridesForWorkload(clusterID, workloadID string, ov
 	return nil
 }
 
+func (s *GormDB) BatchUpdateStatOverridesForWorkloads(clusterID string, workloadIDs []string, overrides *types.Overrides) ([]string, error) {
+	if len(workloadIDs) == 0 {
+		return nil, nil
+	}
+
+	overridesJSON, err := json.Marshal(overrides)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal overrides: %w", err)
+	}
+
+	var foundIDs []string
+	if err := s.db.Model(&Workload{}).
+		Select("workload_id").
+		Where("cluster_id = ? AND workload_id IN ?", clusterID, workloadIDs).
+		Pluck("workload_id", &foundIDs).Error; err != nil {
+		return nil, fmt.Errorf("failed to query workloads: %w", err)
+	}
+
+	if len(foundIDs) == 0 {
+		logging.Debugf(context.Background(), "No workloads found for batch update overrides, cluster: %s", clusterID)
+		return foundIDs, nil
+	}
+
+	if err := s.db.Model(&Workload{}).
+		Where("cluster_id = ? AND workload_id IN ?", clusterID, foundIDs).
+		Update("overrides", string(overridesJSON)).Error; err != nil {
+		return nil, fmt.Errorf("failed to batch update workload overrides: %w", err)
+	}
+
+	return foundIDs, nil
+}
+
 func (s *GormDB) InsertOOMEvent(event *types.OOMEvent) error {
 	dbEvent := OOMEvent{
 		ClusterID:          event.ClusterID,
@@ -381,6 +415,9 @@ func (s *GormDB) GetLatestOOMEventForContainer(clusterID, containerID, podName s
 		Order("timestamp DESC").
 		First(&dbEvent).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("OOM event not found for container %s: %w", containerID, ports.ErrOOMEventNotFound)
+		}
 		return nil, fmt.Errorf("failed to get OOM event for container %s: %w", containerID, err)
 	}
 
@@ -542,6 +579,83 @@ func (s *GormDB) InsertAuditEvent(clusterID string, event types.AuditEvent) erro
 	return nil
 }
 
+func (s *GormDB) GetAuditEvents(clusterID string, since time.Time) ([]types.AuditEventRecord, error) {
+	var rows []AuditEventRow
+	if err := s.db.Where("cluster_id = ? AND created_at >= ?", clusterID, since).
+		Order("created_at DESC").
+		Find(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to get audit events for cluster %s: %w", clusterID, err)
+	}
+	out := make([]types.AuditEventRecord, 0, len(rows))
+	for _, row := range rows {
+		var payload types.AuditPayload
+		if err := json.Unmarshal([]byte(row.Payload), &payload); err != nil {
+			logging.Errorf(context.Background(), "failed to unmarshal audit payload id: %d: %v", row.ID, err)
+			continue
+		}
+		out = append(out, types.AuditEventRecord{
+			AuditEvent: types.AuditEvent{
+				ClusterID: row.ClusterID,
+				Type:      types.EventType(row.Type),
+				Category:  types.EventCategory(row.Category),
+				Payload:   payload,
+			},
+			CreatedAt: row.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
+func (s *GormDB) GetAuditEventsForWorkload(clusterID, workloadID string, since time.Time) ([]types.AuditEventRecord, error) {
+	var rows []AuditEventRow
+	// Filter by workload in SQL using JSON extraction on payload (no extra column).
+	var workloadCond string
+	switch s.db.Name() {
+	case "postgres":
+		workloadCond = "payload::jsonb->'details'->>'workloadId' = ?"
+	case "sqlite":
+		workloadCond = "json_extract(payload, '$.details.workloadId') = ?"
+	default:
+		// Fallback: load cluster events and filter in memory
+		events, err := s.GetAuditEvents(clusterID, since)
+		if err != nil {
+			return nil, err
+		}
+		filtered := make([]types.AuditEventRecord, 0)
+		for _, e := range events {
+			if e.Payload.Details != nil {
+				if id, ok := e.Payload.Details["workloadId"].(string); ok && id == workloadID {
+					filtered = append(filtered, e)
+				}
+			}
+		}
+		return filtered, nil
+	}
+	if err := s.db.Where("cluster_id = ? AND "+workloadCond+" AND created_at >= ?", clusterID, workloadID, since).
+		Order("created_at DESC").
+		Find(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to get audit events for cluster %s workload %s: %w", clusterID, workloadID, err)
+	}
+	out := make([]types.AuditEventRecord, 0, len(rows))
+	for _, row := range rows {
+		var payload types.AuditPayload
+		if err := json.Unmarshal([]byte(row.Payload), &payload); err != nil {
+			logging.Errorf(context.Background(), "failed to unmarshal audit payload id: %d: %v", row.ID, err)
+			continue
+		}
+		out = append(out, types.AuditEventRecord{
+			AuditEvent: types.AuditEvent{
+				ClusterID: row.ClusterID,
+				Type:      types.EventType(row.Type),
+				Category:  types.EventCategory(row.Category),
+				Payload:   payload,
+			},
+			CreatedAt: row.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
 func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	if snapshot == nil {
 		return fmt.Errorf("snapshot cannot be nil")
@@ -564,12 +678,37 @@ func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	return nil
 }
 
+func (s *GormDB) GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error) {
+	var rows []Snapshot
+	if err := s.db.Where("cluster_id = ? AND created_at >= ? AND created_at <= ?", clusterID, startTime, endTime).
+		Order("created_at ASC").
+		Find(&rows).Error; err != nil {
+		return nil, fmt.Errorf("failed to get snapshots for cluster %s in range [%s, %s]: %w", clusterID, startTime.UTC().Format(time.RFC3339), endTime.UTC().Format(time.RFC3339), err)
+	}
+	out := make([]types.SnapshotRecord, 0, len(rows))
+	for _, row := range rows {
+		var data types.SnapshotData
+		if err := json.Unmarshal([]byte(row.Data), &data); err != nil {
+			logging.Errorf(context.Background(), "failed to unmarshal snapshot data id: %d: %v", row.ID, err)
+			continue
+		}
+		out = append(out, types.SnapshotRecord{
+			SnapshotPayload: types.SnapshotPayload{
+				ClusterID: row.ClusterID,
+				Data:      data,
+			},
+			CreatedAt: row.CreatedAt,
+		})
+	}
+	return out, nil
+}
+
 func (s *GormDB) GetClusterSettings(clusterID string) (*types.ClusterSettings, error) {
 	var row Cluster
 	err := s.db.Where("cluster_id = ?", clusterID).First(&row).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil //nolint:nilnil // nil means no settings row yet; callers use application defaults
+			return nil, fmt.Errorf("settings not found for cluster %s: %w", clusterID, ports.ErrSettingsNotFound)
 		}
 		return nil, fmt.Errorf("failed to get settings for cluster %s: %w", clusterID, err)
 	}

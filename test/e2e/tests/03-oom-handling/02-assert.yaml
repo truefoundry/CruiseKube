@@ -4,7 +4,7 @@ kind: TestAssert
 timeout: 30
 ---
 # Original memory: 300Mi request, 600Mi limit
-# After OOM webhook should apply 572M request, 1144M limit
+# After OOM webhook should apply 600M request, 1200M limit
 apiVersion: v1
 kind: Pod
 metadata:
@@ -16,9 +16,9 @@ spec:
   - name: stress
     resources:
       requests:
-        memory: "572M"
+        memory: "600M"
       limits:
-        memory: "1144M"
+        memory: "1200M"
 status:
   phase: Running
   containerStatuses:

@@ -8,8 +8,15 @@ import (
 
 	"github.com/truefoundry/cruisekube/pkg/ports"
 	"github.com/truefoundry/cruisekube/pkg/types"
-	"gorm.io/gorm"
 )
+
+var (
+	ErrWorkloadNotFound = ports.ErrWorkloadNotFound
+	ErrOOMEventNotFound = ports.ErrOOMEventNotFound
+	ErrSettingsNotFound = ports.ErrSettingsNotFound
+)
+
+const BytesPerMB = 1_000_000
 
 var Stg *Storage
 
@@ -42,15 +49,15 @@ func (s *Storage) ReadClusterStats(clusterID string, target *types.StatsResponse
 	return nil
 }
 
-// GetStatForWorkload returns a single workload stat for the cluster and workload, or (nil, nil) if not found.
+// GetStatForWorkload returns a single workload stat for the cluster and workload.
 // workloadID is the colon-separated identifier (e.g. Deployment:namespace:name).
 func (s *Storage) GetStatForWorkload(clusterID, workloadID string) (*types.WorkloadStat, error) {
 	stat, err := s.DB.GetStatForWorkload(clusterID, workloadID)
+	if errors.Is(err, ports.ErrWorkloadNotFound) {
+		return nil, fmt.Errorf("workload %s not found in cluster %s: %w", workloadID, clusterID, ErrWorkloadNotFound)
+	}
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("workload stat not found for cluster %s, workload %s: %w", clusterID, workloadID, err)
-		}
-		return nil, fmt.Errorf("failed to get stat for workload %s: %w", workloadID, err)
+		return nil, fmt.Errorf("get stat for workload %s in cluster %s: %w", workloadID, clusterID, err)
 	}
 	return stat, nil
 }
@@ -77,12 +84,33 @@ func (s *Storage) UpdateWorkloadOverrides(clusterID, workloadID string, override
 		return fmt.Errorf("failed to get stats record: %w", err)
 	}
 	if !exists {
-		return fmt.Errorf("stats record not found")
+		return fmt.Errorf("workload %s not found in cluster %s: %w", workloadID, clusterID, ErrWorkloadNotFound)
 	}
 	if err := s.DB.UpdateStatOverridesForWorkload(clusterID, workloadID, overrides); err != nil {
 		return fmt.Errorf("failed to update workload overrides: %w", err)
 	}
 	return nil
+}
+
+func (s *Storage) BatchUpdateWorkloadOverrides(clusterID string, workloadIDs []string, overrides *types.Overrides) ([]string, []string, error) {
+	updatedIDs, err := s.DB.BatchUpdateStatOverridesForWorkloads(clusterID, workloadIDs, overrides)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to batch update workload overrides: %w", err)
+	}
+
+	updatedSet := make(map[string]struct{}, len(updatedIDs))
+	for _, id := range updatedIDs {
+		updatedSet[id] = struct{}{}
+	}
+
+	notFound := make([]string, 0)
+	for _, id := range workloadIDs {
+		if _, ok := updatedSet[id]; !ok {
+			notFound = append(notFound, id)
+		}
+	}
+
+	return updatedIDs, notFound, nil
 }
 
 func (s *Storage) GetWorkloadOverrides(clusterID, workloadID string) (*types.Overrides, error) {
@@ -143,19 +171,19 @@ func (s *Storage) GetOOMEventsByWorkload(clusterID, workloadID string, since tim
 
 func (s *Storage) GetLatestOOMEventForContainer(clusterID, containerID, podName string) (*types.OOMEvent, error) {
 	event, err := s.DB.GetLatestOOMEventForContainer(clusterID, containerID, podName)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("failed to get latest OOM event for container: %w", err)
+	if errors.Is(err, ports.ErrOOMEventNotFound) {
+		return nil, fmt.Errorf("no OOM event for container %s in pod %s: %w", containerID, podName, ErrOOMEventNotFound)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get latest OOM event for container %s in pod %s: %w", containerID, podName, err)
 	}
 	return event, nil
 }
 
 func (s *Storage) UpdateOOMMemoryForContainer(clusterID, workloadID, containerName string, oomMemoryBytes int64) error {
-	stat, err := s.DB.GetStatForWorkload(clusterID, workloadID)
+	stat, err := s.GetStatForWorkload(clusterID, workloadID)
 	if err != nil {
 		return fmt.Errorf("failed to get stat for workload: %w", err)
-	}
-	if stat == nil {
-		return fmt.Errorf("no stat found for workload %s", workloadID)
 	}
 
 	containerFound := false
@@ -166,7 +194,8 @@ func (s *Storage) UpdateOOMMemoryForContainer(clusterID, workloadID, containerNa
 		if stat.ContainerStats[i].MemoryStats == nil {
 			stat.ContainerStats[i].MemoryStats = &types.MemoryStats{}
 		}
-		stat.ContainerStats[i].MemoryStats.OOMMemory = float64(oomMemoryBytes) / (1024 * 1024)
+		stat.ContainerStats[i].MemoryStats.OOMMemory = float64(oomMemoryBytes) / BytesPerMB
+
 		containerFound = true
 		break
 	}
@@ -222,10 +251,22 @@ func (s *Storage) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	return nil
 }
 
+// GetSnapshotsInRange returns snapshots for the cluster in [startTime, endTime].
+func (s *Storage) GetSnapshotsInRange(clusterID string, startTime, endTime time.Time) ([]types.SnapshotRecord, error) {
+	snapshots, err := s.DB.GetSnapshotsInRange(clusterID, startTime, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get snapshots for cluster %s in range: %w", clusterID, err)
+	}
+	return snapshots, nil
+}
+
 func (s *Storage) GetSettings(clusterID string) (*types.ClusterSettings, error) {
 	settings, err := s.DB.GetClusterSettings(clusterID)
+	if errors.Is(err, ports.ErrSettingsNotFound) {
+		return nil, fmt.Errorf("no settings for cluster %s: %w", clusterID, ErrSettingsNotFound)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get settings: %w", err)
+		return nil, fmt.Errorf("get settings for cluster %s: %w", clusterID, err)
 	}
 	return settings, nil
 }
@@ -235,4 +276,22 @@ func (s *Storage) UpdateSettings(clusterID string, settings *types.ClusterSettin
 		return fmt.Errorf("failed to upsert settings: %w", err)
 	}
 	return nil
+}
+
+// GetAuditEvents returns audit events for the cluster since the given time.
+func (s *Storage) GetAuditEvents(clusterID string, since time.Time) ([]types.AuditEventRecord, error) {
+	events, err := s.DB.GetAuditEvents(clusterID, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get audit events for cluster %s: %w", clusterID, err)
+	}
+	return events, nil
+}
+
+// GetAuditEventsForWorkload returns audit events for the given workload in the cluster since the given time.
+func (s *Storage) GetAuditEventsForWorkload(clusterID, workloadID string, since time.Time) ([]types.AuditEventRecord, error) {
+	events, err := s.DB.GetAuditEventsForWorkload(clusterID, workloadID, since)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get audit events for workload %s: %w", workloadID, err)
+	}
+	return events, nil
 }

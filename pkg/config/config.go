@@ -8,13 +8,12 @@ import (
 )
 
 const (
-	ApplyRecommendationKey     = "applyrecommendation"
-	FetchMetricsKey            = "fetchmetrics"
-	CreateStatsKey             = "createstats"
-	ModifyEqualCPUResourcesKey = "modifyequalcpuresources"
-	NodeLoadMonitoringKey      = "nodeloadmonitoring"
-	CleanupOOMEventsKey        = "cleanupoomevent"
-	DisruptionForceKey         = "disruptionforce"
+	ApplyRecommendationKey = "applyrecommendation"
+	FetchMetricsKey        = "fetchmetrics"
+	CreateStatsKey         = "createstats"
+	NodeLoadMonitoringKey  = "nodeloadmonitoring"
+	CleanupOOMEventsKey    = "cleanupoomevent"
+	DisruptionForceKey     = "disruptionforce"
 )
 
 type Config struct {
@@ -28,11 +27,27 @@ type Config struct {
 	RecommendationSettings RecommendationSettings `yaml:"recommendationSettings" mapstructure:"recommendationSettings"`
 	Telemetry              TelemetryConfig        `yaml:"telemetry" mapstructure:"telemetry"`
 	Metrics                MetricsConfig          `yaml:"metrics" mapstructure:"metrics"`
+	Sentry                 SentryConfig           `yaml:"sentry" mapstructure:"sentry"`
 	Custom                 map[string]interface{} `yaml:",inline" mapstructure:",remain"`
 }
 
 func (c *Config) GetTaskConfig(taskName string) *TaskConfig {
+	if c == nil || c.Controller.Tasks == nil {
+		return nil
+	}
+
 	return c.Controller.Tasks[taskName]
+}
+
+func RequiredTaskKeys() []string {
+	return []string{
+		CreateStatsKey,
+		ApplyRecommendationKey,
+		NodeLoadMonitoringKey,
+		FetchMetricsKey,
+		CleanupOOMEventsKey,
+		DisruptionForceKey,
+	}
 }
 
 type Dependencies struct {
@@ -109,6 +124,12 @@ type TelemetryConfig struct {
 type MetricsConfig struct {
 	Enabled bool   `yaml:"enabled" mapstructure:"enabled"`
 	Port    string `yaml:"port" mapstructure:"port"`
+}
+
+type SentryConfig struct {
+	Enabled     bool   `yaml:"enabled" mapstructure:"enabled"`
+	DSN         string `yaml:"dsn" mapstructure:"dsn"`
+	Environment string `yaml:"environment" mapstructure:"environment"`
 }
 
 type ControllerMode string

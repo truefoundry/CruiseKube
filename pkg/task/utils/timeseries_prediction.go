@@ -259,11 +259,15 @@ func PredictSimpleStatsFromTimeSeriesModel(ctx context.Context, namespaces []str
 			}
 
 			logging.Infof(ctx, "Querying prometheus for simple %s predictions with query: %s", resourceType, CompressQueryForLogging(query))
+			queryStart := time.Now()
 			val, _, err := promClient.QueryRange(ctx, query, r)
+			queryDuration := time.Since(queryStart)
 			if err != nil {
+				logging.Errorf(ctx, "Prometheus range query for simple %s predictions in namespace %s failed in %v", resourceType, namespace, queryDuration)
 				logging.Errorf(ctx, "Error querying prometheus for simple %s predictions: %v", resourceType, err)
 				return nil, fmt.Errorf("failed to query prometheus for simple %s predictions: %w", resourceType, err)
 			}
+			logging.Infof(ctx, "Prometheus range query for simple %s predictions in namespace %s completed in %v", resourceType, namespace, queryDuration)
 
 			var ok bool
 			matrix, ok = val.(model.Matrix)
@@ -304,10 +308,14 @@ func fetchMemoryMatrix(ctx context.Context, promClient v1.API, namespace string,
 	), MemoryDecimalPlaces)
 
 	logging.Infof(ctx, "Querying prometheus for memory predictions with query: %s", CompressQueryForLogging(memoryQuery))
+	queryStart := time.Now()
 	memoryVal, _, err := promClient.QueryRange(ctx, memoryQuery, r)
+	queryDuration := time.Since(queryStart)
 	if err != nil {
+		logging.Errorf(ctx, "Prometheus range query for memory predictions in namespace %s failed in %v", namespace, queryDuration)
 		return nil, fmt.Errorf("error querying prometheus for memory predictions: %w", err)
 	}
+	logging.Infof(ctx, "Prometheus range query for memory predictions in namespace %s completed in %v", namespace, queryDuration)
 
 	memoryMatrix, ok := memoryVal.(model.Matrix)
 	if !ok {

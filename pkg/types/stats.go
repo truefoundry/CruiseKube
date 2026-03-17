@@ -137,7 +137,6 @@ type WorkloadStat struct {
 	Name                          string                `json:"name"`
 	CreationTime                  time.Time             `json:"creation_time"`
 	UpdatedAt                     time.Time             `json:"updated_at"`
-	ContinuousOptimization        bool                  `json:"continuous_optimization"`
 	IsHorizontallyAutoscaledOnCPU bool                  `json:"is_horizontally_autoscaled_on_cpu"`
 	IsHorizontallyAutoscaledOnMem bool                  `json:"is_horizontally_autoscaled_on_memory"`
 	Constraints                   *WorkloadConstraints  `json:"constraints,omitempty"`
@@ -163,7 +162,6 @@ type ContainerStats struct {
 
 	MemoryStats *MemoryStats     `json:"memory_stats"`
 	Memory7Day  *Memory7DayStats `json:"memory_7day"`
-	CPU7Day     *CPU7DayStats    `json:"cpu_7day"`
 
 	MLPercentilesCPU            *MLPercentilesCPU            `json:"ml_percentiles_cpu,omitempty"`
 	MLPercentilesCPUPSIAdjusted *MLPercentilesCPUPSIAdjusted `json:"ml_percentiles_cpu_psi_adjusted,omitempty"`
@@ -187,14 +185,6 @@ type MemoryStats struct {
 
 type Memory7DayStats struct {
 	Max float64 `json:"max"`
-}
-
-type CPU7DayStats struct {
-	Max float64 `json:"max"`
-	P50 float64 `json:"p50"`
-	P75 float64 `json:"p75"`
-	P90 float64 `json:"p90"`
-	P99 float64 `json:"p99"`
 }
 
 type MLPercentilesCPU struct {
