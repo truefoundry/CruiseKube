@@ -213,8 +213,6 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		recommendationResultToApply.OptimizableButExcludedPods = optimizableButExcludedPods
 		recommendationResultToApply.OptimizablePods = optimizablePods
 
-		recommendationResultToApply.OptimizableButExcludedPods = optimizableButExcludedPods
-
 		metrics.ClusterNonOptimizablePodsCount.WithLabelValues(a.config.ClusterID, nodeName).Set(float64(len(nonOptimizablePods)))
 		metrics.ClusterOptimizablePodsCount.WithLabelValues(a.config.ClusterID, nodeName).Set(float64(len(optimizablePods)))
 		metrics.ClusterOptimizableButExcludedPodsCount.WithLabelValues(a.config.ClusterID, nodeName).Set(float64(len(optimizableButExcludedPods)))
