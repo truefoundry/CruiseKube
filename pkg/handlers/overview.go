@@ -185,11 +185,12 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 			enabledRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
 		}
 
-		if d.Constraints.IsGPUWorkload || d.Config.HPAEnabled {
+		switch {
+		case d.Constraints.IsGPUWorkload || d.Config.HPAEnabled:
 			nonOptimizableWorkloads++
-		} else if d.Config.CruiseEnabled {
+		case d.Config.CruiseEnabled:
 			optimizableWorkloads++
-		} else {
+		default:
 			optimizableButExcludedWorkloads++
 		}
 	}
