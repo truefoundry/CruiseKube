@@ -166,7 +166,6 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 
 	// Adoption coverage is workload-count based, while CPU/memory coverage is weighted by current requested resources.
 	totalWorkloads := len(details)
-	enabledWorkloads := 0.0
 	totalRequestedCPU := 0.0
 	totalRequestedMem := 0.0
 	enabledRequestedCPU := 0.0
@@ -179,17 +178,15 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 		d := details[i]
 		totalRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
 		totalRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
-		if d.Config.CruiseEnabled {
-			enabledWorkloads++
-			enabledRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
-			enabledRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
-		}
-
 		switch {
 		case d.Constraints.IsGPUWorkload || d.Config.HPAEnabled:
+			totalRequestedCPU -= d.CPU.CurrentPerPod * float64(d.PodsCount)
+			totalRequestedMem -= d.Memory.CurrentPerPod * float64(d.PodsCount)
 			nonOptimizableWorkloads++
 		case d.Config.CruiseEnabled:
 			optimizableWorkloads++
+			enabledRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
+			enabledRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
 		default:
 			optimizableButExcludedWorkloads++
 		}

@@ -1,6 +1,5 @@
 package types
 
-// OverviewCoverageBreakdown represents enabled/disabled split values in percentage terms.
 type OverviewCoverageBreakdown struct {
 	Optimizable            int `json:"optimizable"`
 	NonOptimizable         int `json:"nonOptimizable"`
