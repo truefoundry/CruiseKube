@@ -91,7 +91,7 @@ func validControllerConfig() *Config {
 					Enabled:  true,
 					Schedule: "1m",
 				},
-				CleanupOOMEventsKey: {
+				CleanupKey: {
 					Enabled:  false,
 					Schedule: "24h",
 				},

@@ -656,6 +656,14 @@ func (s *GormDB) GetAuditEventsForWorkload(clusterID, workloadID string, since t
 	return out, nil
 }
 
+func (s *GormDB) DeleteOldAuditEvents(clusterID string, olderThan time.Time) (int64, error) {
+	result := s.db.Where("cluster_id = ? AND created_at < ?", clusterID, olderThan).Delete(&AuditEventRow{})
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to delete old audit events: %w", result.Error)
+	}
+	return result.RowsAffected, nil
+}
+
 func (s *GormDB) InsertSnapshot(snapshot *types.SnapshotPayload) error {
 	if snapshot == nil {
 		return fmt.Errorf("snapshot cannot be nil")
@@ -701,6 +709,14 @@ func (s *GormDB) GetSnapshotsInRange(clusterID string, startTime, endTime time.T
 		})
 	}
 	return out, nil
+}
+
+func (s *GormDB) DeleteOldSnapshots(clusterID string, olderThan time.Time) (int64, error) {
+	result := s.db.Where("cluster_id = ? AND created_at < ?", clusterID, olderThan).Delete(&Snapshot{})
+	if result.Error != nil {
+		return 0, fmt.Errorf("failed to delete old snapshots: %w", result.Error)
+	}
+	return result.RowsAffected, nil
 }
 
 func (s *GormDB) GetClusterSettings(clusterID string) (*types.ClusterSettings, error) {

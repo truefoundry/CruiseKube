@@ -12,7 +12,7 @@ const (
 	FetchMetricsKey        = "fetchmetrics"
 	CreateStatsKey         = "createstats"
 	NodeLoadMonitoringKey  = "nodeloadmonitoring"
-	CleanupOOMEventsKey    = "cleanupoomevent"
+	CleanupKey             = "cleanup"
 	DisruptionForceKey     = "disruptionforce"
 )
 
@@ -45,7 +45,7 @@ func RequiredTaskKeys() []string {
 		ApplyRecommendationKey,
 		NodeLoadMonitoringKey,
 		FetchMetricsKey,
-		CleanupOOMEventsKey,
+		CleanupKey,
 		DisruptionForceKey,
 	}
 }

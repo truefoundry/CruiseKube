@@ -221,6 +221,26 @@ func (s *Storage) DeleteOldOOMEvents(clusterID string, retentionDays int) (int64
 	return rowsAffected, nil
 }
 
+func (s *Storage) DeleteOldAuditEvents(clusterID string, retentionDays int) (int64, error) {
+	cutoffTime := time.Now().Add(-time.Duration(retentionDays) * 24 * time.Hour)
+
+	rowsAffected, err := s.DB.DeleteOldAuditEvents(clusterID, cutoffTime)
+	if err != nil {
+		return rowsAffected, fmt.Errorf("failed to delete old audit events: %w", err)
+	}
+	return rowsAffected, nil
+}
+
+func (s *Storage) DeleteOldSnapshots(clusterID string, retentionDays int) (int64, error) {
+	cutoffTime := time.Now().Add(-time.Duration(retentionDays) * 24 * time.Hour)
+
+	rowsAffected, err := s.DB.DeleteOldSnapshots(clusterID, cutoffTime)
+	if err != nil {
+		return rowsAffected, fmt.Errorf("failed to delete old snapshots: %w", err)
+	}
+	return rowsAffected, nil
+}
+
 func (s *Storage) SavePodRecommendations(clusterID string, rows []types.PodResourceRecommendationRow) error {
 	if err := s.DB.SavePodRecommendations(clusterID, rows); err != nil {
 		return fmt.Errorf("failed to save pod recommendations: %w", err)
