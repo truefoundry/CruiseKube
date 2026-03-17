@@ -138,7 +138,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 
 	supportsMemoryLimitReduction := utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 34)
 
-	recommendationResults, err := a.ApplyRecommendationsWithStrategy(
+	recommendationResultsToApply, _, err := a.ApplyRecommendationsWithStrategy(
 		ctx,
 		nodeRecommendationMap,
 		overridesMap,
@@ -152,7 +152,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		return err
 	}
 
-	if err := a.buildAndSaveSnapshot(ctx, nodeRecommendationMap, recommendationResults); err != nil {
+	if err := a.buildAndSaveSnapshot(ctx, nodeRecommendationMap, recommendationResultsToApply); err != nil {
 		logging.Errorf(ctx, "Error saving node snapshot: %v", err)
 		return err
 	}
@@ -168,20 +168,21 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 	applyChanges bool,
 	generateRecommendationOnly bool,
 	supportsMemoryReduction bool,
-) ([]*RecommendationResult, error) {
+) ([]*RecommendationResult, []*RecommendationResult, error) {
 	logging.Infof(ctx, "Starting recommendation application using strategy: %s", strategy.GetName())
 	if !applyChanges {
 		logging.Infof(ctx, "DRY RUN MODE: Changes will be calculated but not applied")
 	}
 
-	recommendationResults := []*RecommendationResult{}
+	// We have two recommendation results to save and apply.
+	// The recommendation results saved are the inclusive or all optimizable pods, even if they are disabled.
+	// The recommendation results applied are the exclusive or only the optimizable pods that are enabled.
+	recommendationResultsToSave := []*RecommendationResult{}
+	recommendationResultsToApply := []*RecommendationResult{}
 	for nodeName, nodeInfo := range nodeStatsMap {
-		// if nodeName != "ip-10-99-47-228.ec2.internal" {
-		// 	continue
-		// }
 		logging.Infof(ctx, "Processing node: %s", nodeName)
 
-		recommendationResult := &RecommendationResult{
+		recommendationResultToSave := &RecommendationResult{
 			NodeName:                    nodeName,
 			NodeInfo:                    nodeInfo,
 			PodContainerRecommendations: make([]utils.PodContainerRecommendation, 0),
@@ -189,13 +190,30 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			NonOptimizablePods:          make([]utils.PodInfo, 0),
 			OptimizableButExcludedPods:  make([]utils.PodInfo, 0),
 		}
-		recommendationResults = append(recommendationResults, recommendationResult)
+		recommendationResultToApply := &RecommendationResult{
+			NodeName:                    nodeName,
+			NodeInfo:                    nodeInfo,
+			PodContainerRecommendations: make([]utils.PodContainerRecommendation, 0),
+			OptimizablePods:             make([]utils.PodInfo, 0),
+			NonOptimizablePods:          make([]utils.PodInfo, 0),
+			OptimizableButExcludedPods:  make([]utils.PodInfo, 0),
+		}
+		recommendationResultsToSave = append(recommendationResultsToSave, recommendationResultToSave)
+		recommendationResultsToApply = append(recommendationResultsToApply, recommendationResultToApply)
 
 		optimizablePods, optimizableButExcludedPods, nonOptimizablePods := a.segregateOptimizableNonOptimizablePods(ctx, nodeInfo.Pods, overridesMap)
+		allOptimizablePods := make([]utils.PodInfo, 0, len(optimizablePods)+len(optimizableButExcludedPods))
+		allOptimizablePods = append(allOptimizablePods, optimizablePods...)
+		allOptimizablePods = append(allOptimizablePods, optimizableButExcludedPods...)
 
-		recommendationResult.NonOptimizablePods = nonOptimizablePods
-		recommendationResult.OptimizableButExcludedPods = optimizableButExcludedPods
-		recommendationResult.OptimizablePods = optimizablePods
+		recommendationResultToSave.NonOptimizablePods = nonOptimizablePods
+		recommendationResultToSave.OptimizablePods = allOptimizablePods
+
+		recommendationResultToApply.NonOptimizablePods = nonOptimizablePods
+		recommendationResultToApply.OptimizableButExcludedPods = optimizableButExcludedPods
+		recommendationResultToApply.OptimizablePods = optimizablePods
+
+		recommendationResultToApply.OptimizableButExcludedPods = optimizableButExcludedPods
 
 		metrics.ClusterNonOptimizablePodsCount.WithLabelValues(a.config.ClusterID, nodeName).Set(float64(len(nonOptimizablePods)))
 		metrics.ClusterOptimizablePodsCount.WithLabelValues(a.config.ClusterID, nodeName).Set(float64(len(optimizablePods)))
@@ -208,24 +226,37 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			availableMemory -= nonOptimizablePod.RequestedMemory
 			availableCPU -= nonOptimizablePod.RequestedCPU
 		}
-		for _, optimizableButExcludedPod := range optimizableButExcludedPods {
-			availableMemory -= optimizableButExcludedPod.RequestedMemory
-			availableCPU -= optimizableButExcludedPod.RequestedCPU
-		}
 
-		// adding dummy recommendations for non-optimizable pods and optimizable but excluded pods
+		// adding default recommendations for non-optimizable pods | Added to both recommendation results
 		for _, nonOptimizablePod := range nonOptimizablePods {
 			for _, container := range nonOptimizablePod.ContainerResources {
-				recommendationResult.PodContainerRecommendations = append(recommendationResult.PodContainerRecommendations, utils.PodContainerRecommendation{
+				recom := utils.PodContainerRecommendation{
 					PodInfo:       nonOptimizablePod,
 					ContainerName: container.Name,
 					CPU:           container.CPURequest,
 					Memory:        container.MemoryRequest,
 					Evict:         false,
-				})
+				}
+				recommendationResultToApply.PodContainerRecommendations = append(recommendationResultToApply.PodContainerRecommendations, recom)
+				recommendationResultToSave.PodContainerRecommendations = append(recommendationResultToSave.PodContainerRecommendations, recom)
 			}
 		}
 
+		resultToSave, err := strategy.OptimizeNode(ctx, a.kubeClient, overridesMap, utils.NodeOptimizationData{
+			NodeName:          nodeName,
+			AllocatableCPU:    availableCPU,
+			AllocatableMemory: availableMemory,
+			PodInfos:          allOptimizablePods,
+		})
+		if err != nil {
+			logging.Errorf(ctx, "Error optimizing node %s: %v", nodeName, err)
+			continue
+		}
+		recommendationResultToSave.PodContainerRecommendations = append(recommendationResultToSave.PodContainerRecommendations, resultToSave.PodContainerRecommendations...)
+		recommendationResultToSave.MaxRestCPU = resultToSave.MaxRestCPU
+		recommendationResultToSave.MaxRestMemory = resultToSave.MaxRestMemory
+
+		// Adding recommendations for optimizable but excluded pods | Added to only recommendation result to apply
 		for _, optimizableButExcludedPod := range optimizableButExcludedPods {
 			for _, container := range optimizableButExcludedPod.ContainerResources {
 				containerStat, err := optimizableButExcludedPod.Stats.GetContainerStats(container.Name)
@@ -236,7 +267,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				recommendedCPU, restCPU := strategy.GetRecommendedAndRestCPU(ctx, optimizableButExcludedPod, *containerStat)
 				recommendedMemory, restMemory := strategy.GetRecommendedAndRestMemory(ctx, optimizableButExcludedPod, *containerStat)
 
-				recommendationResult.PodContainerRecommendations = append(recommendationResult.PodContainerRecommendations, utils.PodContainerRecommendation{
+				recommendationResultToApply.PodContainerRecommendations = append(recommendationResultToApply.PodContainerRecommendations, utils.PodContainerRecommendation{
 					PodInfo:       optimizableButExcludedPod,
 					ContainerName: container.Name,
 					CPU:           recommendedCPU + restCPU,
@@ -246,7 +277,12 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 		}
 
-		result, err := strategy.OptimizeNode(ctx, a.kubeClient, overridesMap, utils.NodeOptimizationData{
+		// Subtracting the resources of the optimizable but excluded pods from the available resources
+		for _, optimizableButExcludedPod := range optimizableButExcludedPods {
+			availableMemory -= optimizableButExcludedPod.RequestedMemory
+			availableCPU -= optimizableButExcludedPod.RequestedCPU
+		}
+		resultToApply, err := strategy.OptimizeNode(ctx, a.kubeClient, overridesMap, utils.NodeOptimizationData{
 			NodeName:          nodeName,
 			AllocatableCPU:    availableCPU,
 			AllocatableMemory: availableMemory,
@@ -256,23 +292,24 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			logging.Errorf(ctx, "Error optimizing node %s: %v", nodeName, err)
 			continue
 		}
-		recommendationResult.PodContainerRecommendations = append(recommendationResult.PodContainerRecommendations, result.PodContainerRecommendations...)
-		recommendationResult.MaxRestCPU = result.MaxRestCPU
-		recommendationResult.MaxRestMemory = result.MaxRestMemory
+
+		recommendationResultToApply.PodContainerRecommendations = append(recommendationResultToApply.PodContainerRecommendations, resultToApply.PodContainerRecommendations...)
+		recommendationResultToApply.MaxRestCPU = resultToApply.MaxRestCPU
+		recommendationResultToApply.MaxRestMemory = resultToApply.MaxRestMemory
 	}
 
-	rows := a.buildPodRecommendationRows(ctx, recommendationResults)
+	rows := a.buildPodRecommendationRows(ctx, recommendationResultsToSave)
 	if err := a.storage.SavePodRecommendations(a.config.ClusterID, rows); err != nil {
-		return nil, fmt.Errorf("failed to save pod recommendations: %w", err)
+		return nil, nil, fmt.Errorf("failed to save pod recommendations: %w", err)
 	}
 
 	optimizableWorkloadIDs := make(map[string]struct{})
-	for _, recommendationResult := range recommendationResults {
+	for _, recommendationResult := range recommendationResultsToApply {
 		for _, pod := range recommendationResult.OptimizablePods {
 			optimizableWorkloadIDs[pod.Stats.WorkloadIdentifier] = struct{}{}
 		}
 	}
-	for _, recommendationResult := range recommendationResults {
+	for _, recommendationResult := range recommendationResultsToApply {
 		nodeName := recommendationResult.NodeName
 		nodeInfo := recommendationResult.NodeInfo
 		podContainerRecommendation := recommendationResult.PodContainerRecommendations
@@ -424,7 +461,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 
 	totalSpikeCPU := 0.0
 	totalSpikeMemory := 0.0
-	for _, result := range recommendationResults {
+	for _, result := range recommendationResultsToApply {
 		totalSpikeCPU += result.MaxRestCPU
 		totalSpikeMemory += result.MaxRestMemory
 	}
@@ -432,7 +469,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 	metrics.ClusterSpikeCPU.WithLabelValues(a.config.ClusterID).Set(totalSpikeCPU)
 	metrics.ClusterSpikeMemory.WithLabelValues(a.config.ClusterID).Set(totalSpikeMemory * 1000 * 1000)
 
-	return recommendationResults, nil
+	return recommendationResultsToApply, recommendationResultsToSave, nil
 }
 
 func (a *ApplyRecommendationTask) applyMemoryRecommendation(
