@@ -198,8 +198,6 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			NonOptimizablePods:          make([]utils.PodInfo, 0),
 			OptimizableButExcludedPods:  make([]utils.PodInfo, 0),
 		}
-		recommendationResultsToSave = append(recommendationResultsToSave, recommendationResultToSave)
-		recommendationResultsToApply = append(recommendationResultsToApply, recommendationResultToApply)
 
 		optimizablePods, optimizableButExcludedPods, nonOptimizablePods := a.segregateOptimizableNonOptimizablePods(ctx, nodeInfo.Pods, overridesMap)
 		allOptimizablePods := make([]utils.PodInfo, 0, len(optimizablePods)+len(optimizableButExcludedPods))
@@ -294,6 +292,9 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		recommendationResultToApply.PodContainerRecommendations = append(recommendationResultToApply.PodContainerRecommendations, resultToApply.PodContainerRecommendations...)
 		recommendationResultToApply.MaxRestCPU = resultToApply.MaxRestCPU
 		recommendationResultToApply.MaxRestMemory = resultToApply.MaxRestMemory
+
+		recommendationResultsToSave = append(recommendationResultsToSave, recommendationResultToSave)
+		recommendationResultsToApply = append(recommendationResultsToApply, recommendationResultToApply)
 	}
 
 	rows := a.buildPodRecommendationRows(ctx, recommendationResultsToSave)
