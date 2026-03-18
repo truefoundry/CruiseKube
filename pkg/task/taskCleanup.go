@@ -26,9 +26,7 @@ type CleanupTask struct {
 }
 
 type CleanupMetadata struct {
-	OOMEventsRetentionDays   int `mapstructure:"oomEventsRetentionDays"`
-	AuditEventsRetentionDays int `mapstructure:"auditEventsRetentionDays"`
-	SnapshotsRetentionDays   int `mapstructure:"snapshotsRetentionDays"`
+	RetentionDays int `mapstructure:"retentionDays"`
 }
 
 func NewCleanupTask(ctx context.Context, storage *storage.Storage, config *CleanupTaskConfig, taskConfig *config.TaskConfig) *CleanupTask {
@@ -38,14 +36,8 @@ func NewCleanupTask(ctx context.Context, storage *storage.Storage, config *Clean
 		return nil
 	}
 
-	if metadata.OOMEventsRetentionDays <= 0 {
-		metadata.OOMEventsRetentionDays = DefaultRetentionDays
-	}
-	if metadata.AuditEventsRetentionDays <= 0 {
-		metadata.AuditEventsRetentionDays = DefaultRetentionDays
-	}
-	if metadata.SnapshotsRetentionDays <= 0 {
-		metadata.SnapshotsRetentionDays = DefaultRetentionDays
+	if metadata.RetentionDays <= 0 {
+		metadata.RetentionDays = DefaultRetentionDays
 	}
 
 	config.Metadata = metadata
@@ -75,21 +67,25 @@ func (t *CleanupTask) Run(ctx context.Context) error {
 	ctx = contextutils.WithTask(ctx, t.config.Name)
 	ctx = contextutils.WithCluster(ctx, t.config.ClusterID)
 
+	var errs []error
 	if err := t.cleanupOOMEvents(ctx); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 	if err := t.cleanupAuditEvents(ctx); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 	if err := t.cleanupSnapshots(ctx); err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to cleanup: %v", errs)
+	}
 	return nil
 }
 
 func (t *CleanupTask) cleanupOOMEvents(ctx context.Context) error {
-	deletedCount, err := t.storage.DeleteOldOOMEvents(t.config.ClusterID, t.config.Metadata.OOMEventsRetentionDays)
+	deletedCount, err := t.storage.DeleteOldOOMEvents(t.config.ClusterID, t.config.Metadata.RetentionDays)
 	if err != nil {
 		return fmt.Errorf("failed to cleanup old OOM events: %w", err)
 	}
@@ -103,7 +99,7 @@ func (t *CleanupTask) cleanupOOMEvents(ctx context.Context) error {
 }
 
 func (t *CleanupTask) cleanupAuditEvents(ctx context.Context) error {
-	deletedCount, err := t.storage.DeleteOldAuditEvents(t.config.ClusterID, t.config.Metadata.AuditEventsRetentionDays)
+	deletedCount, err := t.storage.DeleteOldAuditEvents(t.config.ClusterID, t.config.Metadata.RetentionDays)
 	if err != nil {
 		return fmt.Errorf("failed to cleanup old audit events: %w", err)
 	}
@@ -117,7 +113,7 @@ func (t *CleanupTask) cleanupAuditEvents(ctx context.Context) error {
 }
 
 func (t *CleanupTask) cleanupSnapshots(ctx context.Context) error {
-	deletedCount, err := t.storage.DeleteOldSnapshots(t.config.ClusterID, t.config.Metadata.SnapshotsRetentionDays)
+	deletedCount, err := t.storage.DeleteOldSnapshots(t.config.ClusterID, t.config.Metadata.RetentionDays)
 	if err != nil {
 		return fmt.Errorf("failed to cleanup old snapshots: %w", err)
 	}
