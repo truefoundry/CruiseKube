@@ -182,8 +182,8 @@ func buildLocalClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.
 	promClient, err := prometheus.NewPrometheusProvider(
 		clusterCtx,
 		prometheus.GetPrometheusClientConfig(
-			cfg.Dependencies.Local.PrometheusURL,
-			cfg.Dependencies.Local.InsecureSkipTLSVerify,
+			cfg.Prometheus.URL,
+			cfg.Prometheus.InsecureSkipTLSVerify,
 		),
 	)
 	if err != nil {
@@ -211,8 +211,8 @@ func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Man
 	promClient, err := prometheus.NewPrometheusProvider(
 		clusterCtx,
 		prometheus.GetPrometheusClientConfig(
-			cfg.Dependencies.InCluster.PrometheusURL,
-			cfg.Dependencies.InCluster.InsecureSkipTLSVerify,
+			cfg.Prometheus.URL,
+			cfg.Prometheus.InsecureSkipTLSVerify,
 		),
 	)
 	if err != nil {

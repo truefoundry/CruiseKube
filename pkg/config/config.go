@@ -19,6 +19,7 @@ const (
 type Config struct {
 	ControllerMode         ControllerMode         `yaml:"controllerMode" mapstructure:"controllerMode"`
 	Dependencies           Dependencies           `yaml:"dependencies" mapstructure:"dependencies"`
+	Prometheus             PrometheusConfig       `yaml:"prometheus" mapstructure:"prometheus"`
 	ExecutionMode          ExecutionMode          `yaml:"executionMode" mapstructure:"executionMode"`
 	Controller             ControllerConfig       `yaml:"controller" mapstructure:"controller"`
 	Server                 ServerConfig           `yaml:"server" mapstructure:"server"`
@@ -56,13 +57,13 @@ type Dependencies struct {
 }
 
 type LocalDeps struct {
-	KubeconfigPath        string `yaml:"kubeconfigPath" mapstructure:"kubeconfigPath"`
-	PrometheusURL         string `yaml:"prometheusURL" mapstructure:"prometheusURL"`
-	InsecureSkipTLSVerify bool   `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
+	KubeconfigPath string `yaml:"kubeconfigPath" mapstructure:"kubeconfigPath"`
 }
 
-type InClusterDeps struct {
-	PrometheusURL         string `yaml:"prometheusURL" mapstructure:"prometheusURL"`
+type InClusterDeps struct{}
+
+type PrometheusConfig struct {
+	URL                   string `yaml:"url" mapstructure:"url"`
 	InsecureSkipTLSVerify bool   `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
 }
 
