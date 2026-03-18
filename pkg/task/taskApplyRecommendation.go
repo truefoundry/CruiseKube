@@ -138,7 +138,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 
 	supportsMemoryLimitReduction := utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 34)
 
-	recommendationResultsToApply, _, err := a.ApplyRecommendationsWithStrategy(
+	_, recommendationResultsToSave, err := a.ApplyRecommendationsWithStrategy(
 		ctx,
 		nodeRecommendationMap,
 		overridesMap,
@@ -152,7 +152,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		return err
 	}
 
-	if err := a.buildAndSaveSnapshot(ctx, nodeRecommendationMap, recommendationResultsToApply); err != nil {
+	if err := a.buildAndSaveSnapshot(ctx, nodeRecommendationMap, recommendationResultsToSave); err != nil {
 		logging.Errorf(ctx, "Error saving node snapshot: %v", err)
 		return err
 	}
@@ -769,22 +769,13 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 			kind, namespace, name := rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName
 			workloadID := utils.GetWorkloadKey(kind, namespace, name)
 			cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
-			recommendationType := types.RecommendationTypeNonOptimizable
-			if _, ok := optimizableWorkloadIds[workloadID]; ok {
-				recommendationType = types.RecommendationTypeOptimizable
-			} else if _, ok := nonOptimizableWorkloadIds[workloadID]; ok {
-				recommendationType = types.RecommendationTypeNonOptimizable
-			} else if _, ok := optimizableButExcludedWorkloadIds[workloadID]; ok {
-				recommendationType = types.RecommendationTypeOptimizableButExcluded
-			}
 
 			payload := types.PodResourceRecommendation{
-				RecommendationType: recommendationType,
-				CPURequest:         cpuRequest,
-				MemoryRequest:      memoryRequest,
-				CPULimit:           cpuLimit,
-				MemoryLimit:        memoryLimit,
-				ToBeEvicted:        utils.ToBeEvicted(rec),
+				CPURequest:    cpuRequest,
+				MemoryRequest: memoryRequest,
+				CPULimit:      cpuLimit,
+				MemoryLimit:   memoryLimit,
+				ToBeEvicted:   utils.ToBeEvicted(rec),
 			}
 			recJSON, err := json.Marshal(payload)
 			if err != nil {
