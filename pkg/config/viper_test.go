@@ -70,7 +70,8 @@ func validControllerConfig() *Config {
 		ExecutionMode:  ExecutionModeController,
 		Dependencies: Dependencies{
 			InCluster: InClusterDeps{
-				PrometheusURL: "http://prometheus:9090",
+				PrometheusURL:         "http://prometheus:9090",
+				InsecureSkipTLSVerify: false,
 			},
 		},
 		Controller: ControllerConfig{

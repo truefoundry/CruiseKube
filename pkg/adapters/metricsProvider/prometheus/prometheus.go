@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,6 +27,7 @@ type PrometheusClientConfig struct {
 	DialTimeout         time.Duration
 	KeepAlive           time.Duration
 	TLSHandshakeTimeout time.Duration
+	InsecureSkipVerify  bool
 
 	// For Provider
 	MaxQueryRetries      int
@@ -54,6 +56,11 @@ func NewPrometheusProvider(ctx context.Context, config *PrometheusClientConfig) 
 		ExpectContinueTimeout: 1 * time.Second,
 		ResponseHeaderTimeout: config.ResponseTimeout,
 		DisableCompression:    false, // Enable compression for better performance
+	}
+	if config.InsecureSkipVerify {
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
 	}
 
 	// Wrap transport with bearer token if provided
@@ -87,6 +94,7 @@ func NewPrometheusProvider(ctx context.Context, config *PrometheusClientConfig) 
 	logging.Infof(ctx, "  - Max connections per host: %d", config.MaxConnsPerHost)
 	logging.Infof(ctx, "  - Max idle connections: %d", config.MaxIdleConns)
 	logging.Infof(ctx, "  - Idle connection timeout: %v", config.IdleConnTimeout)
+	logging.Infof(ctx, "  - Insecure TLS skip verify: %t", config.InsecureSkipVerify)
 
 	return &PrometheusProvider{
 		client: client,

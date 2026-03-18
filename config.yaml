@@ -3,8 +3,10 @@ dependencies:
   local:
     kubeconfigPath: ""
     prometheusURL: "http://localhost:9090"
+    insecureSkipTLSVerify: false
   inCluster:
     prometheusURL: ""
+    insecureSkipTLSVerify: false
 executionMode: controller
 controller:
   targetNamespace: ""

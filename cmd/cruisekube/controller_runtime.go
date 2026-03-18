@@ -179,7 +179,13 @@ func buildLocalClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.
 		return nil, nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	promClient, err := prometheus.NewPrometheusProvider(clusterCtx, prometheus.GetPrometheusClientConfig(cfg.Dependencies.Local.PrometheusURL))
+	promClient, err := prometheus.NewPrometheusProvider(
+		clusterCtx,
+		prometheus.GetPrometheusClientConfig(
+			cfg.Dependencies.Local.PrometheusURL,
+			cfg.Dependencies.Local.InsecureSkipTLSVerify,
+		),
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create prometheus client: %w", err)
 	}
@@ -202,7 +208,13 @@ func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Man
 		return nil, nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	promClient, err := prometheus.NewPrometheusProvider(clusterCtx, prometheus.GetPrometheusClientConfig(cfg.Dependencies.InCluster.PrometheusURL))
+	promClient, err := prometheus.NewPrometheusProvider(
+		clusterCtx,
+		prometheus.GetPrometheusClientConfig(
+			cfg.Dependencies.InCluster.PrometheusURL,
+			cfg.Dependencies.InCluster.InsecureSkipTLSVerify,
+		),
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create prometheus client: %w", err)
 	}
