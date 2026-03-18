@@ -100,7 +100,7 @@ helm upgrade --install prometheus \
 
   Keep this running in a separate terminal. Use **`http://localhost:9090`** in your config (or the host/port you actually use).
 
-Set **`prometheus.url`** in your config to this URL so CruiseKube can reach Prometheus.
+Set **`dependencies.local.prometheusURL`** (or `dependencies.inCluster.prometheusURL` if running in-cluster) in your config to this URL so CruiseKube can reach Prometheus.
 
 ---
 
@@ -130,8 +130,8 @@ You can override any config value with flags, for example:
 | Section | Purpose |
 |--------|---------|
 | **controllerMode** | `local` = run on your machine using kubeconfig; `inCluster` = run inside the cluster. Use `local` for dev. |
-| **dependencies.local** | `kubeconfigPath`: path to kubeconfig (empty = current context). |
-| **prometheus** | `url`: Prometheus URL (for example `http://localhost:9090` or an in-cluster service URL). `insecureSkipTLSVerify`: disable TLS certificate verification for Prometheus when needed. |
+| **dependencies.local** | `kubeconfigPath`: path to kubeconfig (empty = current context). `prometheusURL`: Prometheus URL (e.g. `http://localhost:9090`) — **must match your port-forward or Kind port**. |
+| **dependencies.inCluster** | Used when `controllerMode` is `inCluster`; set `prometheusURL` to the in-cluster Prometheus service URL. `insecureSkipTLSVerify` disables TLS certificate verification for the in-cluster Prometheus connection when needed. |
 | **executionMode** | `controller`, `webhook`, or `both`. For local dev you typically use `controller`. |
 | **controller.tasks** | Enable/disable and schedule tasks: `createStats`, `fetchMetrics`, `applyRecommendation`, etc. For dev, `createStats` and `fetchMetrics` are usually enabled. |
 | **server** | HTTP API port (e.g. 8080), optional `basicAuth` for the stats/API. |
@@ -141,7 +141,7 @@ You can override any config value with flags, for example:
 | **metrics** | Optional metrics server (e.g. port 8081). |
 | **telemetry** | Optional OpenTelemetry (tracing). |
 
-For minimal local dev, the critical parts are: **controllerMode: local**, **prometheus.url** set to your Prometheus URL, and **db** pointing to a local SQLite file (e.g. `stats-data/cruisekube.db`).
+For minimal local dev, the critical parts are: **controllerMode: local**, **dependencies.local.prometheusURL** set to your Prometheus URL, and **db** pointing to a local SQLite file (e.g. `stats-data/cruisekube.db`).
 
 ---
 
@@ -248,7 +248,7 @@ If you prefer to run CruiseKube inside the cluster instead of on your machine:
        --set cruisekubeController.image.repository=cruisekube \
        --set cruisekubeController.image.tag=latest \
        --set cruisekubeController.image.pullPolicy=Never \
-       --set cruisekubeController.env.CRUISEKUBE_PROMETHEUS_URL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
+       --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
        --set cruisekubeController.env.CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED=true \
        --set cruisekubeWebhook.image.repository=cruisekube \
        --set cruisekubeWebhook.image.tag=latest \

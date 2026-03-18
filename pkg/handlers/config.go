@@ -23,9 +23,12 @@ func (deps HandlerDependencies) GetConfigHandler(c *gin.Context) {
 	cfg := deps.Config
 	mgr := deps.ClusterManager
 
-	prometheusURL := cfg.Prometheus.URL
+	var prometheusURL string
 	switch cfg.ControllerMode {
-	case config.ClusterModeLocal, config.ClusterModeInCluster:
+	case config.ClusterModeLocal:
+		prometheusURL = cfg.Dependencies.Local.PrometheusURL
+	case config.ClusterModeInCluster:
+		prometheusURL = cfg.Dependencies.InCluster.PrometheusURL
 	default:
 		logging.Errorf(ctx, "Unknown controller mode: %s", cfg.ControllerMode)
 		c.JSON(500, gin.H{

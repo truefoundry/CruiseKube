@@ -20,8 +20,9 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("controllerMode", string(ClusterModeInCluster))
 	v.SetDefault("executionMode", string(ExecutionModeBoth))
 	v.SetDefault("dependencies.local.kubeconfigPath", "")
-	v.SetDefault("prometheus.url", "")
-	v.SetDefault("prometheus.insecureSkipTLSVerify", false)
+	v.SetDefault("dependencies.local.prometheusURL", "")
+	v.SetDefault("dependencies.inCluster.prometheusURL", "")
+	v.SetDefault("dependencies.inCluster.insecureSkipTLSVerify", false)
 	v.SetDefault("controller.tasks.applyRecommendation.enabled", true)
 	v.SetDefault("controller.tasks.applyRecommendation.schedule", "5m")
 	v.SetDefault("controller.tasks.applyRecommendation.nodeStatsURL.host", "localhost:8080")
@@ -100,13 +101,15 @@ func (c *Config) ValidateControllerExecutionMode() error {
 	controllerMode := strings.TrimSpace(string(c.ControllerMode))
 	switch controllerMode {
 	case string(ClusterModeLocal):
+		if strings.TrimSpace(c.Dependencies.Local.PrometheusURL) == "" {
+			return fmt.Errorf("dependencies.local.prometheusURL is required in local mode")
+		}
 	case string(ClusterModeInCluster):
+		if strings.TrimSpace(c.Dependencies.InCluster.PrometheusURL) == "" {
+			return fmt.Errorf("dependencies.inCluster.prometheusURL is required in inCluster mode")
+		}
 	default:
 		return fmt.Errorf("invalid controller-mode: %s (expected local|in-cluster)", controllerMode)
-	}
-
-	if strings.TrimSpace(c.Prometheus.URL) == "" {
-		return fmt.Errorf("prometheus.url is required in controller mode")
 	}
 
 	var missingTaskConfigs []string

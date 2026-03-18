@@ -2,10 +2,10 @@ controllerMode: in-cluster
 dependencies:
   local:
     kubeconfigPath: ""
+    prometheusURL: "http://localhost:9090"
   inCluster:
-prometheus:
-  url: ""
-  insecureSkipTLSVerify: false
+    prometheusURL: ""
+    insecureSkipTLSVerify: false
 executionMode: controller
 controller:
   targetNamespace: ""

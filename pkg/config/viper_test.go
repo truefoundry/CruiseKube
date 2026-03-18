@@ -47,16 +47,16 @@ func TestValidateRejectsMissingTaskConfigs(t *testing.T) {
 	}
 }
 
-func TestValidateRejectsMissingPrometheusURL(t *testing.T) {
+func TestValidateRejectsMissingInClusterPrometheusURL(t *testing.T) {
 	cfg := validControllerConfig()
-	cfg.Prometheus.URL = ""
+	cfg.Dependencies.InCluster.PrometheusURL = ""
 
 	err := cfg.Validate()
 	if err == nil {
 		t.Fatal("expected validation error for missing prometheus URL")
 	}
-	if !strings.Contains(err.Error(), "prometheus.url is required") {
-		t.Fatalf("expected missing prometheus.url error, got %v", err)
+	if !strings.Contains(err.Error(), "dependencies.inCluster.prometheusURL is required") {
+		t.Fatalf("expected missing dependencies.inCluster.prometheusURL error, got %v", err)
 	}
 }
 
@@ -81,9 +81,11 @@ func validControllerConfig() *Config {
 	return &Config{
 		ControllerMode: ClusterModeInCluster,
 		ExecutionMode:  ExecutionModeController,
-		Prometheus: PrometheusConfig{
-			URL:                   "http://prometheus:9090",
-			InsecureSkipTLSVerify: false,
+		Dependencies: Dependencies{
+			InCluster: InClusterDeps{
+				PrometheusURL:         "http://prometheus:9090",
+				InsecureSkipTLSVerify: false,
+			},
 		},
 		Controller: ControllerConfig{
 			Tasks: map[string]*TaskConfig{
