@@ -21,6 +21,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("executionMode", string(ExecutionModeBoth))
 	v.SetDefault("dependencies.local.kubeconfigPath", "")
 	v.SetDefault("dependencies.local.prometheusURL", "")
+	v.SetDefault("dependencies.local.insecureSkipTLSVerify", false)
 	v.SetDefault("dependencies.inCluster.prometheusURL", "")
 	v.SetDefault("dependencies.inCluster.insecureSkipTLSVerify", false)
 	v.SetDefault("controller.tasks.applyRecommendation.enabled", true)

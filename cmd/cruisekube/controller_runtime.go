@@ -183,7 +183,7 @@ func buildLocalClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.
 		clusterCtx,
 		prometheus.GetPrometheusClientConfig(
 			cfg.Dependencies.Local.PrometheusURL,
-			false,
+			cfg.Dependencies.Local.InsecureSkipTLSVerify,
 		),
 	)
 	if err != nil {
