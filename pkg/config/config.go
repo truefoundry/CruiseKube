@@ -56,12 +56,14 @@ type Dependencies struct {
 }
 
 type LocalDeps struct {
-	KubeconfigPath string `yaml:"kubeconfigPath" mapstructure:"kubeconfigPath"`
-	PrometheusURL  string `yaml:"prometheusURL" mapstructure:"prometheusURL"`
+	KubeconfigPath        string `yaml:"kubeconfigPath" mapstructure:"kubeconfigPath"`
+	PrometheusURL         string `yaml:"prometheusURL" mapstructure:"prometheusURL"`
+	InsecureSkipTLSVerify bool   `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
 }
 
 type InClusterDeps struct {
-	PrometheusURL string `yaml:"prometheusURL" mapstructure:"prometheusURL"`
+	PrometheusURL         string `yaml:"prometheusURL" mapstructure:"prometheusURL"`
+	InsecureSkipTLSVerify bool   `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
 }
 
 type ControllerConfig struct {

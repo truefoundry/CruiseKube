@@ -130,8 +130,8 @@ You can override any config value with flags, for example:
 | Section | Purpose |
 |--------|---------|
 | **controllerMode** | `local` = run on your machine using kubeconfig; `inCluster` = run inside the cluster. Use `local` for dev. |
-| **dependencies.local** | `kubeconfigPath`: path to kubeconfig (empty = current context). `prometheusURL`: Prometheus URL (e.g. `http://localhost:9090`) — **must match your port-forward or Kind port**. |
-| **dependencies.inCluster** | Used when `controllerMode` is `inCluster`; set `prometheusURL` to the in-cluster Prometheus service URL. |
+| **dependencies.local** | `kubeconfigPath`: path to kubeconfig (empty = current context). `prometheusURL`: Prometheus URL (e.g. `http://localhost:9090`) — **must match your port-forward or Kind port**. `insecureSkipTLSVerify` disables TLS certificate verification for the local Prometheus connection (insecure; use only for trusted/dev setups such as self-signed certs, and prefer proper certificates in production). |
+| **dependencies.inCluster** | Used when `controllerMode` is `inCluster`; set `prometheusURL` to the in-cluster Prometheus service URL. `insecureSkipTLSVerify` disables TLS certificate verification for the in-cluster Prometheus connection (insecure; use only for trusted/dev setups such as self-signed certs, and prefer proper certificates in production). |
 | **executionMode** | `controller`, `webhook`, or `both`. For local dev you typically use `controller`. |
 | **controller.tasks** | Enable/disable and schedule tasks: `createStats`, `fetchMetrics`, `applyRecommendation`, etc. For dev, `createStats` and `fetchMetrics` are usually enabled. |
 | **server** | HTTP API port (e.g. 8080), optional `basicAuth` for the stats/API. |

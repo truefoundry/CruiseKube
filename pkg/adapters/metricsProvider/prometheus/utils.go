@@ -23,8 +23,8 @@ func (rt *BearerTokenRoundTripper) RoundTrip(req *http.Request) (*http.Response,
 	return resp, nil
 }
 
-// GetPrometheusClientConfig returns optimized default configuration
-func GetPrometheusClientConfig(prometheusURL string) *PrometheusClientConfig {
+// GetPrometheusClientConfig returns optimized default configuration.
+func GetPrometheusClientConfig(prometheusURL string, insecureSkipVerify bool) *PrometheusClientConfig {
 	return &PrometheusClientConfig{
 		PrometheusURL:       prometheusURL,
 		BearerToken:         "",
@@ -36,6 +36,7 @@ func GetPrometheusClientConfig(prometheusURL string) *PrometheusClientConfig {
 		DialTimeout:         10 * time.Second, // Connection establishment timeout
 		KeepAlive:           30 * time.Second, // TCP keep-alive
 		TLSHandshakeTimeout: 10 * time.Second, // TLS handshake timeout
+		InsecureSkipVerify:  insecureSkipVerify,
 
 		// For Provider
 		MaxQueryRetries:      3,

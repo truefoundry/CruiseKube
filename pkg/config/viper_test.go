@@ -47,6 +47,33 @@ func TestValidateRejectsMissingTaskConfigs(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsMissingInClusterPrometheusURL(t *testing.T) {
+	cfg := validControllerConfig()
+	cfg.Dependencies.InCluster.PrometheusURL = ""
+
+	err := cfg.Validate()
+	if err == nil {
+		t.Fatal("expected validation error for missing prometheus URL")
+	}
+	if !strings.Contains(err.Error(), "dependencies.inCluster.prometheusURL is required") {
+		t.Fatalf("expected missing dependencies.inCluster.prometheusURL error, got %v", err)
+	}
+}
+
+func TestValidateRejectsMissingLocalPrometheusURL(t *testing.T) {
+	cfg := validControllerConfig()
+	cfg.ControllerMode = ClusterModeLocal
+	cfg.Dependencies.Local.PrometheusURL = ""
+
+	err := cfg.Validate()
+	if err == nil {
+		t.Fatal("expected validation error for missing local prometheus URL")
+	}
+	if !strings.Contains(err.Error(), "dependencies.local.prometheusURL is required") {
+		t.Fatalf("expected missing dependencies.local.prometheusURL error, got %v", err)
+	}
+}
+
 func TestValidateRejectsMissingWebhookFields(t *testing.T) {
 	cfg := validWebhookConfig()
 	cfg.Webhook.Port = ""
@@ -69,8 +96,13 @@ func validControllerConfig() *Config {
 		ControllerMode: ClusterModeInCluster,
 		ExecutionMode:  ExecutionModeController,
 		Dependencies: Dependencies{
+			Local: LocalDeps{
+				PrometheusURL:         "http://localhost:9090",
+				InsecureSkipTLSVerify: false,
+			},
 			InCluster: InClusterDeps{
-				PrometheusURL: "http://prometheus:9090",
+				PrometheusURL:         "http://prometheus:9090",
+				InsecureSkipTLSVerify: false,
 			},
 		},
 		Controller: ControllerConfig{
