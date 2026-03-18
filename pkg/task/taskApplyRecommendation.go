@@ -748,22 +748,6 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 	for _, res := range recommendationResults {
 		nodeName := res.NodeName
 		allocatableCPU := res.NodeInfo.AllocatableCPU
-		optimizableWorkloadIds := make(map[string]struct{})
-		nonOptimizableWorkloadIds := make(map[string]struct{})
-		optimizableButDisabledWorkloadIds := make(map[string]struct{})
-
-		for _, pod := range res.OptimizablePods {
-			optimizableWorkloadIds[pod.Stats.WorkloadIdentifier] = struct{}{}
-		}
-		for _, pod := range res.NonOptimizablePods {
-			if pod.Stats == nil {
-				continue
-			}
-			nonOptimizableWorkloadIds[pod.Stats.WorkloadIdentifier] = struct{}{}
-		}
-		for _, pod := range res.OptimizableButExcludedPods {
-			optimizableButDisabledWorkloadIds[pod.Stats.WorkloadIdentifier] = struct{}{}
-		}
 
 		for _, rec := range res.PodContainerRecommendations {
 			kind, namespace, name := rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName
