@@ -750,7 +750,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 		allocatableCPU := res.NodeInfo.AllocatableCPU
 		optimizableWorkloadIds := make(map[string]struct{})
 		nonOptimizableWorkloadIds := make(map[string]struct{})
-		optimizableButExcludedWorkloadIds := make(map[string]struct{})
+		optimizableButDisabledWorkloadIds := make(map[string]struct{})
 
 		for _, pod := range res.OptimizablePods {
 			optimizableWorkloadIds[pod.Stats.WorkloadIdentifier] = struct{}{}
@@ -762,7 +762,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 			nonOptimizableWorkloadIds[pod.Stats.WorkloadIdentifier] = struct{}{}
 		}
 		for _, pod := range res.OptimizableButExcludedPods {
-			optimizableButExcludedWorkloadIds[pod.Stats.WorkloadIdentifier] = struct{}{}
+			optimizableButDisabledWorkloadIds[pod.Stats.WorkloadIdentifier] = struct{}{}
 		}
 
 		for _, rec := range res.PodContainerRecommendations {
