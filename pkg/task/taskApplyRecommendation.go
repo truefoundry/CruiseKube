@@ -236,6 +236,11 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				recommendedCPU, restCPU := strategy.GetRecommendedAndRestCPU(ctx, optimizableButExcludedPod, *containerStat)
 				recommendedMemory, restMemory := strategy.GetRecommendedAndRestMemory(ctx, optimizableButExcludedPod, *containerStat)
 
+				if optimizableButExcludedPod.WorkloadKind == utils.DaemonSetKind {
+					recommendedCPU = min(recommendedCPU, container.CPURequest)
+					restCPU = 0
+				}
+
 				recommendationResult.PodContainerRecommendations = append(recommendationResult.PodContainerRecommendations, utils.PodContainerRecommendation{
 					PodInfo:       optimizableButExcludedPod,
 					ContainerName: container.Name,
