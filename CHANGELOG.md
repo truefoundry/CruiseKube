@@ -9,6 +9,13 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.2.3 (2026-03-18)
+
+* Make Prometheus insecure TLS configurable by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/181
+* refactor cleanup task for audits and snapshots by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/179
+* fix: negative possible savings issue by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/175
+
+
 ## v0.2.2 (2026-03-18)
 
 * fix incorrect conversion for oom memory by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/151
