@@ -34,7 +34,7 @@ controller:
     fetchMetrics:
       enabled: true
       schedule: "1m"
-    cleanupOOMEvent:
+    cleanup:
       enabled: false
       schedule: "24h"
       metadata:

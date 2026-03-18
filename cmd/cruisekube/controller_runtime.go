@@ -271,7 +271,7 @@ func registerControllerTasks(
 		registerApplyRecommendationTask(ctx, cfg, clusterManager, clusterClients, clusterID, promClient, storageRepo)
 		registerFetchMetricsTask(ctx, cfg, clusterManager, clusterClients, clusterID, promClient, storageRepo)
 		registerNodeLoadMonitoringTask(ctx, cfg, clusterManager, clusterClients, clusterID, promClient)
-		registerCleanupOOMEventsTask(ctx, cfg, clusterManager, clusterID, storageRepo)
+		registerCleanupTask(ctx, cfg, clusterManager, clusterID, storageRepo)
 		registerDisruptionForceTask(ctx, cfg, clusterManager, clusterClients, clusterID, storageRepo)
 	}
 }
@@ -391,25 +391,25 @@ func registerNodeLoadMonitoringTask(
 	))
 }
 
-func registerCleanupOOMEventsTask(
+func registerCleanupTask(
 	ctx context.Context,
 	cfg *config.Config,
 	clusterManager cluster.Manager,
 	clusterID string,
 	storageRepo *storage.Storage,
 ) {
-	cleanupOOMEventsTaskConfig := cfg.GetTaskConfig(config.CleanupOOMEventsKey)
+	cleanupTaskConfig := cfg.GetTaskConfig(config.CleanupKey)
 
-	clusterManager.AddTask(task.NewCleanupOOMEventsTask(
+	clusterManager.AddTask(task.NewCleanupTask(
 		ctx,
 		storageRepo,
-		&task.CleanupOOMEventsTaskConfig{
-			Name:      clusterID + "_" + config.CleanupOOMEventsKey,
-			Enabled:   cleanupOOMEventsTaskConfig.Enabled,
-			Schedule:  cleanupOOMEventsTaskConfig.Schedule,
+		&task.CleanupTaskConfig{
+			Name:      clusterID + "_" + config.CleanupKey,
+			Enabled:   cleanupTaskConfig.Enabled,
+			Schedule:  cleanupTaskConfig.Schedule,
 			ClusterID: clusterID,
 		},
-		cleanupOOMEventsTaskConfig,
+		cleanupTaskConfig,
 	))
 }
 
