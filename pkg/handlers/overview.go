@@ -165,26 +165,33 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 	}
 
 	// Adoption coverage is workload-count based, while CPU/memory coverage is weighted by current requested resources.
-	totalWorkloads := float64(len(details))
-	enabledWorkloads := 0.0
+	totalWorkloads := len(details)
 	totalRequestedCPU := 0.0
 	totalRequestedMem := 0.0
 	enabledRequestedCPU := 0.0
 	enabledRequestedMem := 0.0
+	optimizableWorkloads := 0
+	nonOptimizableWorkloads := 0
+	optimizableButExcludedWorkloads := 0
 
 	for i := range details {
 		d := details[i]
 		totalRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
 		totalRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
-		if d.Config.CruiseEnabled {
-			enabledWorkloads++
+		switch {
+		case d.Constraints.IsGPUWorkload || d.Config.HPAEnabled:
+			totalRequestedCPU -= d.CPU.CurrentPerPod * float64(d.PodsCount)
+			totalRequestedMem -= d.Memory.CurrentPerPod * float64(d.PodsCount)
+			nonOptimizableWorkloads++
+		case d.Config.CruiseEnabled:
+			optimizableWorkloads++
 			enabledRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
 			enabledRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
+		default:
+			optimizableButExcludedWorkloads++
 		}
 	}
 
-	enabledAdoption := enabledWorkloads
-	disabledAdoption := totalWorkloads - enabledWorkloads
 	enabledCPUCoverage := percent(enabledRequestedCPU, totalRequestedCPU)
 	disabledCPUCoverage := percent(totalRequestedCPU-enabledRequestedCPU, totalRequestedCPU)
 	enabledMemoryCoverage := percent(enabledRequestedMem, totalRequestedMem)
@@ -198,8 +205,10 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 		NodeCount:          deps.getClusterNodeCount(ctx, clusterID),
 		Coverage: types.OverviewCoverage{
 			Adoption: types.OverviewCoverageBreakdown{
-				Enabled:  enabledAdoption,
-				Disabled: disabledAdoption,
+				Optimizable:            optimizableWorkloads,
+				NonOptimizable:         nonOptimizableWorkloads,
+				OptimizableButExcluded: optimizableButExcludedWorkloads,
+				Total:                  totalWorkloads,
 			},
 			CPUCoverage: types.OverviewCoverageBreakdownTypo{
 				Enabed:   enabledCPUCoverage,

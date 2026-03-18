@@ -1,9 +1,10 @@
 package types
 
-// OverviewCoverageBreakdown represents enabled/disabled split values in percentage terms.
 type OverviewCoverageBreakdown struct {
-	Enabled  float64 `json:"enabled"`
-	Disabled float64 `json:"disabled"`
+	Optimizable            int `json:"optimizable"`
+	NonOptimizable         int `json:"nonOptimizable"`
+	OptimizableButExcluded int `json:"optimizableButExcluded"`
+	Total                  int `json:"total"`
 }
 
 // OverviewCoverageBreakdownTypo mirrors contract keys where "enabed" is expected.
