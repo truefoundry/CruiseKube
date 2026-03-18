@@ -87,9 +87,13 @@ cruisekubeController:
   ## @param cruisekubeController.env [object] Environment variables to configure CruiseKube Controller. It is used to update the default values in the config file.
   env:
     CRUISEKUBE_DEPENDENCIES_LOCAL_KUBECONFIGPATH: ""
+    ## @param cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_LOCAL_PROMETHEUSURL Local Prometheus URL
     CRUISEKUBE_DEPENDENCIES_LOCAL_PROMETHEUSURL: "http://localhost:9090"
+    ## @param cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY Skip TLS verification for local Prometheus ("true" or "false", default "false"; insecure, use only when necessary)
     CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY: "false"
+    ## @param cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL In-cluster Prometheus URL
     CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
+    ## @param cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY Skip TLS verification for in-cluster Prometheus ("true" or "false", default "false"; insecure, use only when necessary)
     CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY: "false"
     CRUISEKUBE_EXECUTIONMODE: "controller"
     CRUISEKUBE_CONTROLLER_TARGETNAMESPACE: ""

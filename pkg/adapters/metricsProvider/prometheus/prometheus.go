@@ -27,7 +27,10 @@ type PrometheusClientConfig struct {
 	DialTimeout         time.Duration
 	KeepAlive           time.Duration
 	TLSHandshakeTimeout time.Duration
-	InsecureSkipVerify  bool
+	// InsecureSkipVerify disables TLS certificate verification, which can expose
+	// connections to MITM attacks. Avoid this in production and prefer valid
+	// certificates or other secure alternatives when possible.
+	InsecureSkipVerify bool
 
 	// For Provider
 	MaxQueryRetries      int
@@ -58,8 +61,10 @@ func NewPrometheusProvider(ctx context.Context, config *PrometheusClientConfig) 
 		DisableCompression:    false, // Enable compression for better performance
 	}
 	if config.InsecureSkipVerify {
+		// #nosec G402 -- opt-in for environments using self-signed certs in CI/dev.
 		transport.TLSClientConfig = &tls.Config{
 			InsecureSkipVerify: true,
+			MinVersion:         tls.VersionTLS12,
 		}
 	}
 

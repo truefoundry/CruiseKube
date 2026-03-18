@@ -180,7 +180,7 @@ install_cruisekube_chart() {
         --set cruisekubeWebhook.image.repository=$IMAGE_NAME \
         --set cruisekubeWebhook.image.tag=$IMAGE_TAG \
         --set cruisekubeWebhook.image.pullPolicy=IfNotPresent \
-        --set cruisekubeWebhook.webhook.statsURL.host="https//localhost:8080" \
+        --set cruisekubeWebhook.webhook.statsURL.host="https://localhost:8080" \
         --set postgresql.enabled=true \
         --set cruisekubeFrontend.enabled=false \
         --wait --timeout=60s
