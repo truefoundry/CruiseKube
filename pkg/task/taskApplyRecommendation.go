@@ -182,7 +182,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 	for nodeName, nodeInfo := range nodeStatsMap {
 		logging.Infof(ctx, "Processing node: %s", nodeName)
 
-		recommendationResultToSave := &RecommendationResult{
+		recResultToSave := &RecommendationResult{
 			NodeName:                    nodeName,
 			NodeInfo:                    nodeInfo,
 			PodContainerRecommendations: make([]utils.PodContainerRecommendation, 0),
@@ -190,7 +190,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			NonOptimizablePods:          make([]utils.PodInfo, 0),
 			OptimizableButExcludedPods:  make([]utils.PodInfo, 0),
 		}
-		recommendationResultToApply := &RecommendationResult{
+		recResultToApply := &RecommendationResult{
 			NodeName:                    nodeName,
 			NodeInfo:                    nodeInfo,
 			PodContainerRecommendations: make([]utils.PodContainerRecommendation, 0),
@@ -204,12 +204,12 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		allOptimizablePods = append(allOptimizablePods, optimizablePods...)
 		allOptimizablePods = append(allOptimizablePods, optimizableButExcludedPods...)
 
-		recommendationResultToSave.NonOptimizablePods = nonOptimizablePods
-		recommendationResultToSave.OptimizablePods = allOptimizablePods
+		recResultToSave.NonOptimizablePods = nonOptimizablePods
+		recResultToSave.OptimizablePods = allOptimizablePods
 
-		recommendationResultToApply.NonOptimizablePods = nonOptimizablePods
-		recommendationResultToApply.OptimizableButExcludedPods = optimizableButExcludedPods
-		recommendationResultToApply.OptimizablePods = optimizablePods
+		recResultToApply.NonOptimizablePods = nonOptimizablePods
+		recResultToApply.OptimizableButExcludedPods = optimizableButExcludedPods
+		recResultToApply.OptimizablePods = optimizablePods
 
 		metrics.ClusterNonOptimizablePodsCount.WithLabelValues(a.config.ClusterID, nodeName).Set(float64(len(nonOptimizablePods)))
 		metrics.ClusterOptimizablePodsCount.WithLabelValues(a.config.ClusterID, nodeName).Set(float64(len(optimizablePods)))
@@ -233,8 +233,8 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 					Memory:        container.MemoryRequest,
 					Evict:         false,
 				}
-				recommendationResultToApply.PodContainerRecommendations = append(recommendationResultToApply.PodContainerRecommendations, recom)
-				recommendationResultToSave.PodContainerRecommendations = append(recommendationResultToSave.PodContainerRecommendations, recom)
+				recResultToApply.PodContainerRecommendations = append(recResultToApply.PodContainerRecommendations, recom)
+				recResultToSave.PodContainerRecommendations = append(recResultToSave.PodContainerRecommendations, recom)
 			}
 		}
 
@@ -248,9 +248,9 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			logging.Errorf(ctx, "Error optimizing node %s: %v", nodeName, err)
 			continue
 		}
-		recommendationResultToSave.PodContainerRecommendations = append(recommendationResultToSave.PodContainerRecommendations, resultToSave.PodContainerRecommendations...)
-		recommendationResultToSave.MaxRestCPU = resultToSave.MaxRestCPU
-		recommendationResultToSave.MaxRestMemory = resultToSave.MaxRestMemory
+		recResultToSave.PodContainerRecommendations = append(recResultToSave.PodContainerRecommendations, resultToSave.PodContainerRecommendations...)
+		recResultToSave.MaxRestCPU = resultToSave.MaxRestCPU
+		recResultToSave.MaxRestMemory = resultToSave.MaxRestMemory
 
 		// Adding recommendations for optimizable but excluded pods | Added to only recommendation result to apply
 		for _, optimizableButExcludedPod := range optimizableButExcludedPods {
@@ -263,7 +263,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				recommendedCPU, restCPU := strategy.GetRecommendedAndRestCPU(ctx, optimizableButExcludedPod, *containerStat)
 				recommendedMemory, restMemory := strategy.GetRecommendedAndRestMemory(ctx, optimizableButExcludedPod, *containerStat)
 
-				recommendationResultToApply.PodContainerRecommendations = append(recommendationResultToApply.PodContainerRecommendations, utils.PodContainerRecommendation{
+				recResultToApply.PodContainerRecommendations = append(recResultToApply.PodContainerRecommendations, utils.PodContainerRecommendation{
 					PodInfo:       optimizableButExcludedPod,
 					ContainerName: container.Name,
 					CPU:           recommendedCPU + restCPU,
@@ -289,12 +289,12 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			continue
 		}
 
-		recommendationResultToApply.PodContainerRecommendations = append(recommendationResultToApply.PodContainerRecommendations, resultToApply.PodContainerRecommendations...)
-		recommendationResultToApply.MaxRestCPU = resultToApply.MaxRestCPU
-		recommendationResultToApply.MaxRestMemory = resultToApply.MaxRestMemory
+		recResultToApply.PodContainerRecommendations = append(recResultToApply.PodContainerRecommendations, resultToApply.PodContainerRecommendations...)
+		recResultToApply.MaxRestCPU = resultToApply.MaxRestCPU
+		recResultToApply.MaxRestMemory = resultToApply.MaxRestMemory
 
-		recommendationResultsToSave = append(recommendationResultsToSave, recommendationResultToSave)
-		recommendationResultsToApply = append(recommendationResultsToApply, recommendationResultToApply)
+		recommendationResultsToSave = append(recommendationResultsToSave, recResultToSave)
+		recommendationResultsToApply = append(recommendationResultsToApply, recResultToApply)
 	}
 
 	rows := a.buildPodRecommendationRows(ctx, recommendationResultsToSave)
