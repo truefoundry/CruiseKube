@@ -766,7 +766,15 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 			cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
 			if _, skip := nonOptKeys[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]; skip {
 				// if pod is non-optimizable, we don't compute recommended values
-				cpuRequest, memoryRequest, cpuLimit = rec.CPU, rec.Memory, allocatableCPU
+				for _, container := range rec.PodInfo.ContainerResources {
+					if container.Name == rec.ContainerName {
+						memoryLimit = container.MemoryLimit
+						cpuRequest = container.CPURequest
+						cpuLimit = container.CPULimit
+						memoryRequest = container.MemoryRequest
+						break
+					}
+				}
 			}
 			payload := types.PodResourceRecommendation{
 				CPURequest:    cpuRequest,
