@@ -34,14 +34,14 @@ Based on the pricing from [Instance](https://instances.vantage.sh/aws/ec2/c5a.xl
 - The average price (or instance price) is what you pass in the frontend dashboard, and internally we do the below calculation.
 - We then assume half of the instance cost is for CPU and half for memory. So the effective rates used in the product are:
     - Price per core/hour = $0.029 ÷ 2 = $0.0145/hour
-    - Price per GB/hour = $0.0145 ÷ 2 = $0.00725/hour
+    - Price per GB/hour = $0.0145 ÷ 2 = $0.00724/hour
 
 ## Default prices
 
 | Resource | Default used in calculations |
 | --- | --- |
 | CPU | **0.0145** $/core/hour |
-| Memory | **0.00725** $/GB/hour |
+| Memory | **0.00724** $/GB/hour |
 
 ### What prices are used for
 

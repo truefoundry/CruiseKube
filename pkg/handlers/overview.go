@@ -132,8 +132,8 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 	reqAllocRatioMem := dbRes.ReqAllocRatioMem
 
 	// Memory request/recommendation from workload stats are in MiB; convert to GiB to align with pricing units.
-	requestedMemGB := clusterReqMem / 1024
-	recommendedMemGB := clusterRecMem / 1024
+	requestedMemGB := clusterReqMem / 1000
+	recommendedMemGB := clusterRecMem / 1000
 
 	// Cost and savings mirror the summary API: current infra cost, current savings vs workload request, and possible savings vs recommendation.
 	currentCostDollars := (clusterRes.CPU.Allocatable*p.CPUPerCorePerHour + clusterRes.Memory.Allocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
