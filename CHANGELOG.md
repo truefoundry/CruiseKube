@@ -9,6 +9,15 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.2.4 (2026-03-19)
+* Add Google Analytics configuration to mkdocs.yml by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/185
+* Fix analytics property key in google tag by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/186
+* Mi -> MB by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/187
+* frontend update by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/188
+* using the latest ratio for calculating original requested allocatable by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/189
+* fix e2e for decimal memory unit fixtures by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/190
+* fix: don't update recommendation generated for nonOptimizable workloads by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/191
+
 ## v0.2.3 (2026-03-18)
 
 * Make Prometheus insecure TLS configurable by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/181
