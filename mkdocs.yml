@@ -116,7 +116,7 @@ extra:
       link: https://x.com/truefoundry
   analytics:
     provider: google
-    property_id: G-M8EDCBCCHY
+    property: G-M8EDCBCCHY
   structured_data:
     organization:
       "@context": "https://schema.org"
