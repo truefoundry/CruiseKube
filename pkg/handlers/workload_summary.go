@@ -14,7 +14,7 @@ import (
 
 const (
 	defaultCPUPricePerCorePerHour  = 0.0145
-	defaultMemoryPricePerGBPerHour = 0.00725
+	defaultMemoryPricePerGBPerHour = 0.00724
 	defaultHoursPerMonth           = 720
 )
 
@@ -251,7 +251,7 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p wo
 	}
 	memSavings := 0.0
 	if totalCurrentMem > totalRecMem {
-		memSavings = (totalCurrentMem - totalRecMem) / 1024 * p.MemPerGBPerHour * defaultHoursPerMonth
+		memSavings = (totalCurrentMem - totalRecMem) / 1000 * p.MemPerGBPerHour * defaultHoursPerMonth
 	}
 	d.DollarSavingsPerMonth = cpuSavings + memSavings
 	cpuExpenditure := 0.0
@@ -260,7 +260,7 @@ func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p wo
 	}
 	memExpenditure := 0.0
 	if totalRecMem > totalCurrentMem {
-		memExpenditure = (totalRecMem - totalCurrentMem) / 1024 * p.MemPerGBPerHour * defaultHoursPerMonth
+		memExpenditure = (totalRecMem - totalCurrentMem) / 1000 * p.MemPerGBPerHour * defaultHoursPerMonth
 	}
 	d.DollarExpenditurePerMonth = cpuExpenditure + memExpenditure
 }
@@ -378,8 +378,8 @@ func (deps HandlerDependencies) WorkloadSummaryHandler(c *gin.Context) {
 	if clusterRes.Memory.Allocatable > 0 {
 		reqAllocRatioMem = clusterRes.Memory.Requested / clusterRes.Memory.Allocatable
 	}
-	requestedMemGB := clusterReqMem / 1024
-	recommendedMemGB := clusterRecMem / 1024
+	requestedMemGB := clusterReqMem / 1000
+	recommendedMemGB := clusterRecMem / 1000
 	currentCostDollars := (clusterRes.CPU.Allocatable*p.CPUPerCorePerHour + clusterRes.Memory.Allocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
 	workloadCostDollars := (clusterReqCPU/reqAllocRatioCpu)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 	optimizedCostDollars := (clusterRecCPU/reqAllocRatioCpu)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth

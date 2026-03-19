@@ -3,7 +3,7 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestAssert
 timeout: 30
 ---
-# Original memory: 300Mi request, 600Mi limit
+# Original memory: 300MB request, 600MB limit
 # After OOM webhook should apply 600M request, 1200M limit
 apiVersion: v1
 kind: Pod

@@ -28,10 +28,10 @@ spec:
         - containerPort: 80
         resources:
           requests:
-            memory: "128Mi"
+            memory: "128MB"
             cpu: "500m"
           limits:
-            memory: "256Mi"
+            memory: "256MB"
             cpu: "1000m"
 ---
 apiVersion: apps/v1
@@ -57,8 +57,8 @@ spec:
         command: ["sh", "-c", "while true; do sleep 3600; done"]
         resources:
           requests:
-            memory: "64Mi"
+            memory: "64MB"
             cpu: "200m"
           limits:
-            memory: "128Mi"
+            memory: "128MB"
             cpu: "500m"

@@ -97,7 +97,7 @@ func testStorage(t *testing.T, storage ports.Database) {
 	}
 
 	rows := []types.PodResourceRecommendationRow{
-		{WorkloadID: "Deployment/default/test-app/nginx", NodeName: "node-1", Namespace: "default", Pod: "test-app-abc", Container: "nginx", Recommendation: `{"cpu_request":0.5,"memory_request":512,"cpu_limit":1,"memory_limit":1024,"to_be_evicted":false}`},
+		{WorkloadID: "Deployment/default/test-app/nginx", NodeName: "node-1", Namespace: "default", Pod: "test-app-abc", Container: "nginx", Recommendation: `{"cpu_request":0.5,"memory_request":512,"cpu_limit":1,"memory_limit":1000,"to_be_evicted":false}`},
 		{WorkloadID: "Deployment/default/test-app/sidecar", NodeName: "node-1", Namespace: "default", Pod: "test-app-abc", Container: "sidecar", Recommendation: ""},
 	}
 	err = storage.SavePodRecommendations(clusterID, rows)
