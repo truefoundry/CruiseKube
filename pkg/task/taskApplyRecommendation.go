@@ -744,17 +744,30 @@ func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, node
 	return nil
 }
 
+// nonOptimizablePodKeySet returns namespace/name keys for pods that must not receive stored recommendations.
+func nonOptimizablePodKeySet(pods []utils.PodInfo) map[string]struct{} {
+	m := make(map[string]struct{}, len(pods))
+	for _, p := range pods {
+		m[utils.GetPodKey(p.Namespace, p.Name)] = struct{}{}
+	}
+	return m
+}
+
 func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context, recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {
 	rows := make([]types.PodResourceRecommendationRow, 0)
 	for _, res := range recommendationResults {
 		nodeName := res.NodeName
 		allocatableCPU := res.NodeInfo.AllocatableCPU
+		nonOptKeys := nonOptimizablePodKeySet(res.NonOptimizablePods)
 
 		for _, rec := range res.PodContainerRecommendations {
 			kind, namespace, name := rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName
 			workloadID := utils.GetWorkloadKey(kind, namespace, name)
 			cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
-
+			if _, skip := nonOptKeys[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]; skip {
+				// if pod is non-optimizable, we don't compute recommended values
+				cpuRequest, memoryRequest, cpuLimit = rec.CPU, rec.Memory, allocatableCPU
+			}
 			payload := types.PodResourceRecommendation{
 				CPURequest:    cpuRequest,
 				MemoryRequest: memoryRequest,
