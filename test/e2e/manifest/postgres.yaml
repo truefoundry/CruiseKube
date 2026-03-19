@@ -64,10 +64,10 @@ spec:
           mountPath: /docker-entrypoint-initdb.d
         resources:
           requests:
-            memory: "256MB"
+            memory: "256M"
             cpu: "100m"
           limits:
-            memory: "512MB"
+            memory: "512M"
             cpu: "500m"
         readinessProbe:
           exec:
