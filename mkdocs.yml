@@ -114,6 +114,9 @@ extra:
       link: https://github.com/truefoundry
     - icon: fontawesome/brands/x-twitter
       link: https://x.com/truefoundry
+  analytics:
+    provider: google
+    property_id: G-M8EDCBCCHY
   structured_data:
     organization:
       "@context": "https://schema.org"
