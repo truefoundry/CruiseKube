@@ -61,7 +61,7 @@ func (deps HandlerDependencies) getClusterResourcesFromDatabase(ctx context.Cont
 	if deps.Storage == nil {
 		return out
 	}
-	
+
 	endTime := time.Now().UTC()
 	startTime := endTime.AddDate(0, 0, -ratioLookbackDays)
 	snapshots, err := deps.Storage.GetSnapshotsInRange(clusterID, startTime, endTime)
@@ -113,6 +113,9 @@ func (deps HandlerDependencies) getClusterResourcesFromDatabase(ctx context.Cont
 	out.Resources.Memory.Requested = latest.Data.Memory.CurrentRequested
 	out.Resources.Memory.Utilised = latest.Data.Memory.CurrentUtilized
 
+	if latest.Data.CPU.CurrentAllocatable == 0 || latest.Data.Memory.CurrentAllocatable == 0 {
+		return out
+	}
 	out.ReqAllocRatioCPU = latest.Data.CPU.CurrentRequested / latest.Data.CPU.CurrentAllocatable
 	out.ReqAllocRatioMem = latest.Data.Memory.CurrentRequested / latest.Data.Memory.CurrentAllocatable
 
