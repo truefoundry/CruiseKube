@@ -28,10 +28,10 @@ spec:
         - containerPort: 6379
         resources:
           requests:
-            memory: "64Mi"
+            memory: "64M"
             cpu: "100m"
           limits:
-            memory: "128Mi"
+            memory: "128M"
             cpu: "200m"
 ---
 apiVersion: apps/v1
@@ -59,8 +59,8 @@ spec:
         - containerPort: 11211
         resources:
           requests:
-            memory: "32Mi"
+            memory: "32M"
             cpu: "50m"
           limits:
-            memory: "64Mi"
+            memory: "64M"
             cpu: "100m"

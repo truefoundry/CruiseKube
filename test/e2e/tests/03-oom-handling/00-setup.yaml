@@ -29,7 +29,7 @@ spec:
         - -c
         - |
           import time
-          data = bytearray(800 * 1024 * 1024)  # 800MB
+          data = bytearray(800 * 1000 * 1000)  # 800MB
           print(f"Allocated 800MB, limit is 600MB")
           time.sleep(300)
         resources:
