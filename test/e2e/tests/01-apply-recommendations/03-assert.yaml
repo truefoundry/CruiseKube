@@ -38,6 +38,8 @@ spec:
       requests:
         cpu: "509m"
         memory: "68M"
+      limits:
+        memory: "256M"
 status:
   phase: Running
 ---
@@ -78,5 +80,7 @@ spec:
       requests:
         cpu: "113m"
         memory: "34M"
+      limits:
+        memory: "128M"
 status:
   phase: Running
