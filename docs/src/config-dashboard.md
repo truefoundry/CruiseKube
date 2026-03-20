@@ -41,8 +41,10 @@ You can configure optimization policies and settings for your workloads through 
 
 ## Configure Options For Workloads
 
-1. **Recomment Mode** (Disabled): No optimization is applied to the workload.
-2. **Cruise Mode** (Enabled): CruiseKube applies optimization to the workload based on the configured policies.
+1. **Recommend mode** (*disabled* in the UI): No optimization is applied to the workload—CruiseKube still ingests metrics for guidance.
+2. **Cruise mode** (*enabled*): CruiseKube applies optimization to the workload based on the configured policies.
+
+For dry-run behavior at the Helm layer, see [Installation](gs-installation.md) and [Policies & modes](dev-cost.md).
 3. **Priority**: We use a notion of per-workload priority to make sure the lower priority workloads are evicted first if possible. Workloads with single replica or part of a statefulset are kept at a higher priority by default.
       - **Low**: Low priority workloads are evicted first. This is the priority for most workloads by default
       - **Medium**: Medium priority workloads are evicted next. Single replica or statefulset workloads are set to this value by default

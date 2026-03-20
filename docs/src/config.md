@@ -1,14 +1,72 @@
 ---
-title: "CruiseKube Configuration"
-description: "Learn how to configure CruiseKube using Helm values. Customize optimization settings, resource limits, and operational parameters."
+title: "Configuration"
+description: "How CruiseKube is configured in production: Helm values, environment variables, and pointers to the full chart README."
 keywords:
   - CruiseKube configuration
   - Helm values
-  - Kubernetes configuration
-  - optimization settings
-  - resource management
+  - environment variables
 ---
 
 # Configuration
 
-You can refer to the [Helm values documentation](https://github.com/truefoundry/cruiseKube/blob/main/charts/cruisekube/README.md) for configuration options.
+Production deployments configure CruiseKube through the **Helm chart**. Values set keys under `cruisekubeController.env` and `cruisekubeWebhook.env`, which map to the application’s **environment-variable config** (Viper-style `CRUISEKUBE_*` keys).
+
+---
+
+## Start here
+
+1. **[Helm chart reference](reference-helm-chart.md)** — components, OCI coordinates, upgrade flow.  
+2. **[charts/cruisekube/README.md](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/README.md)** — full parameter matrix with defaults.  
+3. **[values.yaml](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml)** — source of truth for your forked GitOps repo.
+
+---
+
+## Configuration surfaces
+
+```mermaid
+flowchart LR
+  V[values.yaml / -f file] --> H[Helm templates]
+  H --> E[Pod env: CRUISEKUBE_*]
+  E --> A[Controller / Webhook / Frontend]
+```
+
+| Surface | Purpose |
+|---------|---------|
+| **Helm values** | Replicas, images, resources, ServiceMonitor, webhook certs, Postgres subchart. |
+| **`cruisekubeController.env`** | Controller-only: Prometheus URL, task schedules, dry-run, DB, server port, telemetry. |
+| **`cruisekubeWebhook.env`** | Webhook-only: dry-run, memory toggles, stats API host. |
+| **`cruisekubeFrontend.*`** | UI image, `backendURL`, service ports. |
+| **`global.postgresql.auth.*`** | External DB connection when `postgresql.enabled=false`. |
+
+---
+
+## Frequently adjusted environment keys
+
+Exact names must match your chart version—verify in `values.yaml` on the tag you run.
+
+| Concern | Representative env vars |
+|---------|-------------------------|
+| **Prometheus** | `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL`, `CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY` |
+| **Apply loop** | `CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_*` (enable, schedule, dry-run, skip memory) |
+| **Stats** | `CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_*` |
+| **Metrics export** | `CRUISEKUBE_CONTROLLER_TASKS_FETCHMETRICS_*` |
+| **HTTP API** | `CRUISEKUBE_SERVER_PORT`, `CRUISEKUBE_SERVER_BASICAUTH_*` |
+| **DB** | `CRUISEKUBE_DB_*` |
+| **Recommendation policy** | `CRUISEKUBE_RECOMMENDATIONSETTINGS_*` (e.g. new workload threshold, OOM cooldown) |
+| **Webhook** | `CRUISEKUBE_WEBHOOK_DRYRUN`, stats URL host mapping |
+
+Local development may use a **`config.local.yaml`** file instead—see [Dev environment](dev-env.md).
+
+---
+
+## Operational policy (not Helm)
+
+Per-workload **mode**, **priority**, and **resource pricing** in the UI are stored in the **application database** (and browser local storage for pricing)—see [Policies & modes](dev-cost.md) and [Resource pricing](operate-resource-pricing.md).
+
+---
+
+## Next steps
+
+- [Installation](gs-installation.md)  
+- [Dashboard](config-dashboard.md)  
+- [Troubleshooting](operate-troubleshooting.md)

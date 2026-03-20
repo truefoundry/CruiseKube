@@ -26,6 +26,24 @@ CruiseKube answers a different question:
 
 - **What should this specific pod request right now, on this node, given current conditions?**
 
+```mermaid
+flowchart LR
+  subgraph vpa[VPA mental model]
+    W[Workload template]
+    R[Recommender]
+    W --> R
+    R -->|"Periodic target requests"| W
+  end
+  subgraph ck[CruiseKube mental model]
+    N[Node + neighbors]
+    P[This pod]
+    L[Control loop]
+    P --> L
+    N --> L
+    L -->|"In-place updates"| P
+  end
+```
+
 ---
 
 ### How They Differ

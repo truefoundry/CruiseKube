@@ -30,7 +30,7 @@ Ensure you have the following installed:
 
 | Tool | Purpose |
 |------|---------|
-| **Go** 1.21+ | Build and run CruiseKube |
+| **Go** 1.24+ | Build and run CruiseKube |
 | **Docker** | For Kind (if you use it) |
 | **kubectl** | Cluster access |
 | **Helm** | Install Prometheus (and optionally CruiseKube in-cluster) |
@@ -223,7 +223,7 @@ Typical development flow:
 - Run with `go run cmd/cruisekube/main.go --config-file-path config.local.yaml`.
 - Use the SQLite DB in `stats-data/` and the frontend to verify behavior.
 
-For testing and contribution process (PRs, changelog, etc.), see [CONTRIBUTING.md](../../CONTRIBUTING.md) and [DEVELOPMENT.md](../../DEVELOPMENT.md).
+For testing and contribution process (PRs, changelog, etc.), see [CONTRIBUTING.md](https://github.com/truefoundry/CruiseKube/blob/main/CONTRIBUTING.md) and [DEVELOPMENT.md](https://github.com/truefoundry/CruiseKube/blob/main/DEVELOPMENT.md).
 
 ---
 

@@ -198,22 +198,30 @@ extra:
 # Page tree
 nav:
   - Home: index.md
-  - Getting started:
+  - Overview: 
+      - Introduction: src/overview.md
+      - Use Cases: src/overview-use-cases.md
+      - CruiseKube vs VPA: src/comp-vs-vpa.md
+      - FAQ: src/overview-faq.md
+  - Install:
+      - Pre-Requisites: src/gs-prerequisites.md
       - Installation: src/gs-installation.md
-      - Configuration: 
-        - Overview: src/config.md
-        - Dashboard: src/config-dashboard.md
-  - Architecture:
-      - Introduction: src/arch-introduction.md
-      - Overview: src/arch-overview.md
+  - Operate:
+      - Dashboard: src/config-dashboard.md
+      - Policies & Modes: src/dev-cost.md
+      - Resource Pricing: src/operate-resource-pricing.md
+      - Troubleshooting: src/operate-troubleshooting.md
+  - Concepts:
+      - Architecture: src/arch-introduction.md
       - Algorithm: src/arch-algorithm.md
       - TradeOffs: src/arch-tradeoffs.md
-      - FAQ: src/arch-faq.md
-  - Development:
+  - Reference: 
+      - Helm Chart: src/reference-helm-chart.md
+      - Configuration: src/config.md
+  - Contribute:
       - Dev Environment: src/dev-env.md
-      - Cost Calculation: src/dev-cost.md
+      - Release Process: src/dev-release.md
+      - Security: src/dev-security.md
       - Contributors: src/dev-contributors.md
-  - Comparison:
-      - CruiseKube vs VPA: src/comp-vs-vpa.md
   - Blog:
       - CruiseKube Announcement: blog/index.md
