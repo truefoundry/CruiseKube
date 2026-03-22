@@ -250,7 +250,6 @@ cruisekubeWebhook:
       memory: 128Mi
   ## @param cruisekubeWebhook.env [object] Environment variables to configure CruiseKube Webhook
   env:
-    CRUISEKUBE_WEBHOOK_DRYRUN: "true"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "true"
     CRUISEKUBE_SENTRY_ENABLED: "false"
     CRUISEKUBE_SENTRY_DSN: ""

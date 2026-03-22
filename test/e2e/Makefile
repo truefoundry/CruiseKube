@@ -66,7 +66,7 @@ kind-down: ## Delete Kind cluster
 .PHONY: apply-deps
 apply-deps: ## Install all dependencies
 	@echo "Creating namespace..."
-	@kubectl get namespace $(NAMESPACE) >/dev/null 2>&1 || kubectl create namespace $(NAMESPACE)
+	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
 	@echo "Building Helm dependencies..."
 	@cd ../../charts/cruisekube && helm dependency build
 	@echo "Installing CruiseKube via Helm..."
@@ -85,7 +85,7 @@ reload-images: ## Reload images into kind and restart deployments
 ick: install-ck
 
 install-ck: ## Update helm chart
-	@kubectl get namespace $(NAMESPACE) >/dev/null 2>&1 || kubectl create namespace $(NAMESPACE)
+	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
 	@cd ../../charts/cruisekube && helm dependency build
 	@helm upgrade --wait --timeout $(TIMEOUT) --install --create-namespace cruisekube ../../charts/cruisekube -n $(NAMESPACE) -f ./manifest/global/values-cruisekube.yaml
 

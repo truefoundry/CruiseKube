@@ -322,7 +322,8 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			continue
 		}
 
-		podsToEvict := make(map[string]bool)
+		plannedEvictions := make(map[string]bool)
+		executedEvictions := make(map[string]bool)
 		appliedRecommendations := make(map[string]utils.PodContainerRecommendation)
 
 		for _, rec := range podContainerRecommendation {
@@ -336,7 +337,8 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 
 			if utils.ToBeEvicted(rec) {
-				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
+				podKey := fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				plannedEvictions[podKey] = true
 				logging.Infof(ctx, "[Decision] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				if applyChanges {
 					logging.Infof(ctx, "[Action] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
@@ -345,6 +347,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						logging.Errorf(ctx, "Error evicting pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, errStr)
 						continue
 					}
+					executedEvictions[podKey] = true
 					if audit.Recorder != nil {
 						workloadID := ""
 						if rec.PodInfo.Stats != nil {
@@ -454,7 +457,11 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 		}
 
-		logging.Infof(ctx, "Successfully applied %d recommendations and evicted %d pods", len(appliedRecommendations), len(podsToEvict))
+		if applyChanges {
+			logging.Infof(ctx, "Successfully applied %d recommendations and evicted %d pods", len(appliedRecommendations), len(executedEvictions))
+		} else {
+			logging.Infof(ctx, "Calculated %d recommendations and planned %d evictions without applying changes", len(appliedRecommendations), len(plannedEvictions))
+		}
 	}
 
 	totalSpikeCPU := 0.0

@@ -86,9 +86,8 @@ Read more about configuration in the [Configuration Dashboard](config-dashboard.
 
 ### **4. Apply Recommendations**
 
-CruiseKube now applies supported recommendations directly. If you want memory changes enabled as well, set the memory application flags to `false`.
-
-Following flags need to be set to enable memory application completely.
+CruiseKube now applies supported recommendations directly. Memory recommendation application remains disabled by default.
+To enable memory recommendation application, set both of the following disable flags to `false`:
 
   - cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
   - cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
