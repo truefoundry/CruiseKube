@@ -312,18 +312,6 @@ func updateCPUMetrics(metrics *ContainerMetrics, value float64, metricType strin
 	switch metricType {
 	case "cpu_p75":
 		updateMaxValue(&metrics.CPUP75, value)
-	case "cpu_p90":
-		updateMaxValue(&metrics.CPUP90, value)
-	case "cpu_p95":
-		updateMaxValue(&metrics.CPUP95, value)
-	case "cpu_p99":
-		updateMaxValue(&metrics.CPUP99, value)
-	case "cpu_p999":
-		updateMaxValue(&metrics.CPUP999, value)
-	case "startup_cpu_max":
-		updateMaxValue(&metrics.StartupCPUMax, value)
-	case "non_startup_cpu_max":
-		updateMaxValue(&metrics.NonStartupCPUMax, value)
 	default:
 		return false
 	}
@@ -332,18 +320,8 @@ func updateCPUMetrics(metrics *ContainerMetrics, value float64, metricType strin
 
 func updateMemoryMetrics(metrics *ContainerMetrics, value float64, metricType string) bool {
 	switch metricType {
-	case "memory_p50":
-		updateMaxValue(&metrics.MemoryP50, value)
 	case "memory_p75":
 		updateMaxValue(&metrics.MemoryP75, value)
-	case "memory_p90":
-		updateMaxValue(&metrics.MemoryP90, value)
-	case "memory_p95":
-		updateMaxValue(&metrics.MemoryP95, value)
-	case "memory_p99":
-		updateMaxValue(&metrics.MemoryP99, value)
-	case "memory_p999":
-		updateMaxValue(&metrics.MemoryP999, value)
 	case "oom_memory":
 		updateMaxValue(&metrics.OOMMemory, value)
 	default:
@@ -370,14 +348,6 @@ func updatePSIAdjustedMetrics(metrics *ContainerMetrics, value float64, metricTy
 	switch metricType {
 	case "cpu_p75":
 		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP75, value)
-	case "cpu_p90":
-		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP90, value)
-	case "cpu_p95":
-		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP95, value)
-	case "cpu_p99":
-		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP99, value)
-	case "cpu_p999":
-		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP999, value)
 	}
 }
 
@@ -420,30 +390,25 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 			continue
 		}
 
-		cpuStats := &CPUStats{
-			Max: metrics.CPUMax,
-			P50: metrics.CPUP50,
-			P75: metrics.CPUP75,
-		}
+			cpuStats := &CPUStats{
+				P75: metrics.CPUP75,
+			}
 
-		memoryStats := &MemoryStats{
-			Max:       metrics.MemoryMax,
-			P75:       metrics.MemoryP75,
-			OOMMemory: metrics.OOMMemory,
-		}
+			memoryStats := &MemoryStats{
+				P75:       metrics.MemoryP75,
+				OOMMemory: metrics.OOMMemory,
+			}
 
 		memory7Day := &Memory7DayStats{
 			Max: metrics.Memory7Day.Max,
 		}
 
-		var psiAdjustedUsageStats *PSIAdjustedUsageStats
-		if metrics.PSIAdjustedUsage != nil {
-			psiAdjustedUsageStats = &PSIAdjustedUsageStats{
-				Max: metrics.PSIAdjustedUsage.CPUMax,
-				P75: metrics.PSIAdjustedUsage.CPUP75,
-				P50: metrics.PSIAdjustedUsage.CPUP50,
+			var psiAdjustedUsageStats *PSIAdjustedUsageStats
+			if metrics.PSIAdjustedUsage != nil {
+				psiAdjustedUsageStats = &PSIAdjustedUsageStats{
+					P75: metrics.PSIAdjustedUsage.CPUP75,
+				}
 			}
-		}
 
 		containerStats = append(containerStats, ContainerStats{
 			ContainerName:    containerName,
