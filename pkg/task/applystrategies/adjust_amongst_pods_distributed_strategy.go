@@ -340,10 +340,10 @@ func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestMemory(ctx c
 	}
 	if containerStat.SimplePredictionsMemory == nil {
 		logging.Errorf(ctx, "Error: No simple predictions found for %s/%s/%s", pod.Namespace, pod.Name, containerStat.ContainerName)
-		return containerStat.MemoryStats.P75, containerStat.MemoryStats.Max - containerStat.MemoryStats.P75
-	} else {
-		return containerStat.MemoryStats.P75, containerStat.SimplePredictionsMemory.MaxValue - containerStat.MemoryStats.P75
+		return containerStat.MemoryStats.P75, 0.0
 	}
+
+	return containerStat.MemoryStats.P75, containerStat.SimplePredictionsMemory.MaxValue - containerStat.MemoryStats.P75
 }
 
 func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestCPU(ctx context.Context, pod utils.PodInfo, containerStat utils.ContainerStats) (float64, float64) {
@@ -352,9 +352,11 @@ func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestCPU(ctx cont
 		recommendedCPU = containerStat.PSIAdjustedUsage.P75
 	}
 
-	pmax := containerStat.CPUStats.Max
+	pmax := recommendedCPU
 	if containerStat.SimplePredictionsCPU != nil {
 		pmax = containerStat.SimplePredictionsCPU.MaxValue
+	} else {
+		logging.Errorf(ctx, "Error: No simple predictions found for %s/%s/%s", pod.Namespace, pod.Name, containerStat.ContainerName)
 	}
 
 	rest := (pmax - recommendedCPU)

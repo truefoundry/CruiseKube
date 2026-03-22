@@ -358,19 +358,14 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 			continue
 		}
 
-		recommendedCPU := containerStat.CPUStats.Max
-		if containerStat.SimplePredictionsCPU != nil && containerStat.SimplePredictionsCPU.MaxValue > 0 {
-			recommendedCPU = containerStat.SimplePredictionsCPU.MaxValue
-		}
+		recommendedCPU := containerStat.SimplePredictionsCPU.MaxValue
 		if recommendedCPU > utils.CPUClampValue {
 			recommendedCPU = utils.CPUClampValue
 		}
 
-		recommendedMemory := containerStat.MemoryStats.Max
-		if containerStat.MemoryStats.OOMMemory > 0 && containerStat.MemoryStats.OOMMemory > containerStat.MemoryStats.Max {
+		recommendedMemory := containerStat.SimplePredictionsMemory.MaxValue
+		if containerStat.MemoryStats.OOMMemory > 0 && containerStat.MemoryStats.OOMMemory > recommendedMemory {
 			recommendedMemory = containerStat.MemoryStats.OOMMemory
-		} else if containerStat.SimplePredictionsMemory != nil && containerStat.SimplePredictionsMemory.MaxValue > 0 {
-			recommendedMemory = containerStat.SimplePredictionsMemory.MaxValue
 		}
 
 		recommendedMemoryLimit := 2 * recommendedMemory
@@ -380,7 +375,7 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 
 		recommendedMemoryLimitBytes := int64(math.Max(recommendedMemoryLimit, 512) * utils.BytesToMBDivisor)
 
-		logging.Infof(ctx, "Container %s - Recommended CPU: %s (max: %f)", container.Name, cpuCoresToMillicores(recommendedCPU), containerStat.CPUStats.Max)
+		logging.Infof(ctx, "Container %s - Recommended CPU: %s", container.Name, cpuCoresToMillicores(recommendedCPU))
 		logging.Infof(ctx, "Container %s - Recommended Memory: %s", container.Name, memoryBytesToMB(int64(recommendedMemory*utils.BytesToMBDivisor)))
 
 		var currentCPURequest resource.Quantity

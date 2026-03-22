@@ -310,8 +310,6 @@ func updateStandardMetrics(metrics *ContainerMetrics, value float64, metricType 
 
 func updateCPUMetrics(metrics *ContainerMetrics, value float64, metricType string) bool {
 	switch metricType {
-	case "cpu_p50":
-		updateMaxValue(&metrics.CPUP50, value)
 	case "cpu_p75":
 		updateMaxValue(&metrics.CPUP75, value)
 	case "cpu_p90":
@@ -322,8 +320,6 @@ func updateCPUMetrics(metrics *ContainerMetrics, value float64, metricType strin
 		updateMaxValue(&metrics.CPUP99, value)
 	case "cpu_p999":
 		updateMaxValue(&metrics.CPUP999, value)
-	case "cpu_max":
-		updateMaxValue(&metrics.CPUMax, value)
 	case "startup_cpu_max":
 		updateMaxValue(&metrics.StartupCPUMax, value)
 	case "non_startup_cpu_max":
@@ -348,8 +344,6 @@ func updateMemoryMetrics(metrics *ContainerMetrics, value float64, metricType st
 		updateMaxValue(&metrics.MemoryP99, value)
 	case "memory_p999":
 		updateMaxValue(&metrics.MemoryP999, value)
-	case "memory_max":
-		updateMaxValue(&metrics.MemoryMax, value)
 	case "oom_memory":
 		updateMaxValue(&metrics.OOMMemory, value)
 	default:
@@ -374,8 +368,6 @@ func updatePSIAdjustedMetrics(metrics *ContainerMetrics, value float64, metricTy
 	}
 
 	switch metricType {
-	case "cpu_p50":
-		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP50, value)
 	case "cpu_p75":
 		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP75, value)
 	case "cpu_p90":
@@ -386,8 +378,6 @@ func updatePSIAdjustedMetrics(metrics *ContainerMetrics, value float64, metricTy
 		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP99, value)
 	case "cpu_p999":
 		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP999, value)
-	case "cpu_max":
-		updateMaxValue(&metrics.PSIAdjustedUsage.CPUMax, value)
 	}
 }
 
