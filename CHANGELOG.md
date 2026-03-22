@@ -63,7 +63,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ### What's Changed
 * Update getting started docs by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/94
-* feat: dry run fix by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/96
+* feat: recommendation application fix by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/96
 * Excluding best effort pods from optimisation by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/95
 * release: v0.1.11-rc.1 by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/97
 * release v0.1.11-rc.2 by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/99
@@ -77,7 +77,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * consolidating workloads summary call by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/110
 * implement disruption force task by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/107
 * implement workload level disruption window override by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/115
-* disable dry run by default and set default mode to recommend only by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/116
+* simplify recommendation application defaults and set default mode to recommend only by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/116
 * feat: add workload details api by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/117
 * fix pdb annotation labels in task disruption force by @maanas-23 in https://github.com/truefoundry/CruiseKube/pull/118
 * Clarify HPA limitations in CruiseKube documentation by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/122
@@ -142,7 +142,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * Relaxing cpu clamp value to 20 by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/89
 * Added handling for daemonset pods to not increase resources by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/90
 * fix: ignore if totalRestMemory is zero for a container by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/91
-* fix: update dry run fix by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/92
+* fix: update recommendation application fix by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/92
 
 
 
@@ -176,5 +176,4 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * removed topology and affinity removal from webhook by @shubhamrai1993 in [#57](https://github.com/truefoundry/CruiseKube/pull/57)
 * removed ref to kubeelasti with cruisekube by @shubhamrai1993 in [#58](https://github.com/truefoundry/CruiseKube/pull/58)
 * Update github actions & add helm index.yaml by @ramantehlan in [#60](https://github.com/truefoundry/CruiseKube/pull/60)
-
 

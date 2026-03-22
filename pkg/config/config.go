@@ -92,7 +92,6 @@ type BasicAuthConfig struct {
 type WebhookConfig struct {
 	Port     string    `yaml:"port" mapstructure:"port"`
 	CertsDir string    `yaml:"certsDir" mapstructure:"certsDir"`
-	DryRun   bool      `yaml:"dryRun" mapstructure:"dryRun"`
 	StatsURL URLConfig `yaml:"statsURL" mapstructure:"statsURL"`
 }
 

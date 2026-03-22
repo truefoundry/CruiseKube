@@ -12,11 +12,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
-	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
-	"github.com/truefoundry/cruisekube/pkg/task"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/types"
 	corev1 "k8s.io/api/core/v1"
@@ -474,21 +472,6 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 		} else if cfg.RecommendationSettings.DisableMemoryApplication {
 			logging.Infof(ctx, "Skipping memory recommendation application for container %s since memory recommendation application is disabled", container.Name)
 		}
-	}
-
-	metadata := task.ApplyRecommendationMetadata{}
-	applyTaskConfig := cfg.GetTaskConfig(config.ApplyRecommendationKey)
-	if applyTaskConfig == nil {
-		return nil, fmt.Errorf("missing task config for %s", config.ApplyRecommendationKey)
-	}
-	err := applyTaskConfig.ConvertMetadataToStruct(&metadata)
-	if err != nil {
-		return nil, fmt.Errorf("convert metadata to struct: %w", err)
-	}
-
-	if metadata.DryRun {
-		logging.Infof(ctx, "Dry run mode enabled, skipping applying patches")
-		return patches, nil
 	}
 
 	return patches, nil

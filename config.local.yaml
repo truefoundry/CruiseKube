@@ -20,7 +20,6 @@ controller:
       enabled: true
       schedule: "5m"
       metadata:
-        dryRun: false
         skipMemory: false
         nodeStatsURL:
           host: "http://localhost:8080"
@@ -51,7 +50,6 @@ server:
 webhook:
   port: "8443"
   certsDir: "/tmp/webhook-certs"
-  dryRun: false
   statsURL:
     host: "http://localhost:8080"
     tfyClusterToken: "<cluster-token>"

@@ -37,7 +37,6 @@ type RecommendationResult struct {
 }
 
 type ApplyRecommendationMetadata struct {
-	DryRun       bool             `yaml:"dryRun" json:"dryRun" mapstructure:"dryRun"`
 	NodeStatsURL config.URLConfig `yaml:"nodeStatsURL" json:"nodeStatsURL" mapstructure:"nodeStatsURL"`
 	OverridesURL config.URLConfig `yaml:"overridesURL" json:"overridesURL" mapstructure:"overridesURL"`
 	SkipMemory   bool             `yaml:"skipMemory" json:"skipMemory" mapstructure:"skipMemory"`
@@ -101,7 +100,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	ctx = contextutils.WithTask(ctx, a.config.Name)
 	ctx = contextutils.WithCluster(ctx, a.config.ClusterID)
 
-	applyChanges := !a.config.Metadata.DryRun
+	applyChanges := true
 
 	if !a.config.IsClusterWriteAuthorized {
 		logging.Infof(ctx, "Cluster %s is not write authorized, skipping ApplyRecommendation task", a.config.ClusterID)
@@ -110,7 +109,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 
 	if !utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 33) {
 		applyChanges = false
-		logging.Infof(ctx, "Cluster version is not above 1.33, running in dry run mode")
+		logging.Infof(ctx, "Cluster version is not above 1.33, skipping recommendation application")
 	}
 
 	nodeRecommendationMap, err := a.GenerateNodeStatsForCluster(ctx)
@@ -171,7 +170,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 ) ([]*RecommendationResult, []*RecommendationResult, error) {
 	logging.Infof(ctx, "Starting recommendation application using strategy: %s", strategy.GetName())
 	if !applyChanges {
-		logging.Infof(ctx, "DRY RUN MODE: Changes will be calculated but not applied")
+		logging.Infof(ctx, "Changes will be calculated and recorded, but not applied")
 	}
 
 	// We have two recommendation results to save and apply.
@@ -529,7 +528,7 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 			logging.Infof(ctx, "pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
 			return true, false, nil
 		} else {
-			logging.Debugf(ctx, "[dry run] pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
+			logging.Debugf(ctx, "Skipping memory update for pod %v/%v: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
 			return false, false, nil
 		}
 	} else {
@@ -589,7 +588,7 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 			logging.Infof(ctx, "pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
 			return true, nil
 		} else {
-			logging.Infof(ctx, "[dry run] pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
+			logging.Infof(ctx, "Skipping CPU update for pod %v/%v: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
 			return false, nil
 		}
 	} else {

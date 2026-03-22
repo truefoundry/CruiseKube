@@ -118,10 +118,10 @@ setup_namespaces() {
     kubectl cluster-info --context kind-$CLUSTER_NAME
     
     # Create cruisekube namespace if it doesn't exist
-    kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+    kubectl get namespace $NAMESPACE >/dev/null 2>&1 || kubectl create namespace $NAMESPACE
     
     # Create monitoring namespace if it doesn't exist
-    kubectl create namespace $PROMETHEUS_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+    kubectl get namespace $PROMETHEUS_NAMESPACE >/dev/null 2>&1 || kubectl create namespace $PROMETHEUS_NAMESPACE
     
     log_success "Namespaces setup completed"
 }

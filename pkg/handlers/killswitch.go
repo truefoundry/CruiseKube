@@ -21,12 +21,7 @@ func (deps HandlerDependencies) KillswitchHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
-	dryRun := c.Query("dry_run") == "true"
-	if dryRun {
-		logging.Infof(ctx, "[Dry Run] Starting dry run for cluster %s", clusterID)
-	} else {
-		logging.Infof(ctx, "Starting killswitch operation for cluster %s", clusterID)
-	}
+	logging.Infof(ctx, "Starting killswitch operation for cluster %s", clusterID)
 
 	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
 	if err != nil {
@@ -43,7 +38,7 @@ func (deps HandlerDependencies) KillswitchHandler(c *gin.Context) {
 	}
 
 	// Step 1: delete MutatingWebhookConfiguration for this cluster
-	if err := deleteMutatingWebhookConfiguration(ctx, clients.KubeClient, clusterID, dryRun); err != nil {
+	if err := deleteMutatingWebhookConfiguration(ctx, clients.KubeClient, clusterID); err != nil {
 		response.Errors = append(response.Errors, fmt.Sprintf("Failed to delete MutatingWebhookConfiguration: %v", err))
 		response.DeletedMutatingWebhook = false
 	} else {
@@ -51,7 +46,7 @@ func (deps HandlerDependencies) KillswitchHandler(c *gin.Context) {
 	}
 
 	// Step 2: kill pods with adjusted resources
-	podsAnalyzed, podsKilled, killedPods, errors := deps.analyzeAndKillPods(ctx, clients.KubeClient, clusterID, dryRun)
+	podsAnalyzed, podsKilled, killedPods, errors := deps.analyzeAndKillPods(ctx, clients.KubeClient, clusterID)
 	response.PodsAnalyzed = podsAnalyzed
 	response.PodsKilled = podsKilled
 	response.KilledPods = append(response.KilledPods, killedPods...)
@@ -64,21 +59,8 @@ func (deps HandlerDependencies) KillswitchHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func deleteMutatingWebhookConfiguration(ctx context.Context, kubeClient *kubernetes.Clientset, clusterID string, dryRun bool) error {
+func deleteMutatingWebhookConfiguration(ctx context.Context, kubeClient *kubernetes.Clientset, clusterID string) error {
 	name := fmt.Sprintf("cruisekube-resource-adjuster-%s", clusterID)
-
-	if dryRun {
-		_, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				logging.Infof(ctx, "[Dry Run] MutatingWebhookConfiguration %s not found; nothing to delete", name)
-				return nil
-			}
-			return fmt.Errorf("[Dry Run] failed to get MutatingWebhookConfiguration %s: %w", name, err)
-		}
-		logging.Infof(ctx, "[Dry Run] MutatingWebhookConfiguration %s found, skipping delete", name)
-		return nil
-	}
 
 	err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
@@ -93,7 +75,7 @@ func deleteMutatingWebhookConfiguration(ctx context.Context, kubeClient *kuberne
 	return nil
 }
 
-func (deps HandlerDependencies) analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, clusterID string, dryRun bool) (int, int, []string, []string) {
+func (deps HandlerDependencies) analyzeAndKillPods(ctx context.Context, kubeClient *kubernetes.Clientset, clusterID string) (int, int, []string, []string) {
 	var errors []string
 	var killedPods []string
 	podsAnalyzed := 0
@@ -129,22 +111,14 @@ func (deps HandlerDependencies) analyzeAndKillPods(ctx context.Context, kubeClie
 
 		hasResourceDiff, reason := comparePodWithWorkload(ctx, kubeClient, pod, workloadObj)
 		if hasResourceDiff {
-			var success bool
-			var evictErr string
-
-			if !dryRun {
-				success, evictErr = utils.EvictPod(ctx, kubeClient, pod)
-			} else {
-				success = true
-				evictErr = ""
-			}
+			success, evictErr := utils.EvictPod(ctx, kubeClient, pod)
 
 			if success {
 				podsKilled++
 				killedPodName := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
 				killedPods = append(killedPods, killedPodName)
 				logging.Infof(ctx, "Killed pod %s (reason: %s)", killedPodName, reason)
-				if !dryRun && deps.AuditRecorder != nil {
+				if deps.AuditRecorder != nil {
 					deps.AuditRecorder.Record(ctx, clusterID, types.AuditEvent{
 						Type:     types.EventTypeNormal,
 						Category: types.EventCategoryPODEviction,

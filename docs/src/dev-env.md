@@ -123,7 +123,6 @@ You can override any config value with flags, for example:
 - `--server-port` — HTTP server port (default from config, e.g. 8080).
 - `--webhook-port`, `--webhook-certs-dir`, `--webhook-stats-url-host` — Webhook settings.
 - `--db-file-path` — SQLite DB path (overrides config).
-- `--apply-recommendation-dry-run` — Apply recommendation in dry-run (default: true for safety).
 
 ### Brief description of `config.local.yaml` sections
 
@@ -135,7 +134,7 @@ You can override any config value with flags, for example:
 | **executionMode** | `controller`, `webhook`, or `both`. For local dev you typically use `controller`. |
 | **controller.tasks** | Enable/disable and schedule tasks: `createStats`, `fetchMetrics`, `applyRecommendation`, etc. For dev, `createStats` and `fetchMetrics` are usually enabled. |
 | **server** | HTTP API port (e.g. 8080), optional `basicAuth` for the stats/API. |
-| **webhook** | Webhook port, certs dir, `dryRun`, and `statsURL.host` (e.g. `http://localhost:8080`) when the webhook calls back to your local server. |
+| **webhook** | Webhook port, certs dir, and `statsURL.host` (e.g. `http://localhost:8080`) when the webhook calls back to your local server. |
 | **db** | Database: `type: sqlite` with `database: "stats-data/cruisekube.db"` for local dev, or switch to `postgres` and set host/port/credentials. |
 | **recommendationSettings** | Thresholds and behavior for recommendations (e.g. `newWorkloadThresholdHours`, `disableMemoryApplication`). |
 | **metrics** | Optional metrics server (e.g. port 8081). |
