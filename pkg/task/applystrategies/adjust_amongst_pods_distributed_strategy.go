@@ -122,7 +122,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 		}
 		return metrics_i.MaxRestMemory > metrics_j.MaxRestMemory
 	})
-	podInfosClone = s.performEvictionLoop(podInfosClone, podMetricsCache, data.AllocatableMemory,
+	podInfosClone = s.performEvictionLoop(ctx, podInfosClone, podMetricsCache, data.AllocatableMemory,
 		func(metrics utils.PodMetrics) float64 { return metrics.TotalRecommendedMemory },
 		func(metrics utils.PodMetrics) float64 { return metrics.MaxRestMemory },
 		&result)
@@ -151,7 +151,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 
 		return metrics_i.MaxRestCPU > metrics_j.MaxRestCPU
 	})
-	podInfosClone = s.performEvictionLoop(podInfosClone, podMetricsCache, data.AllocatableCPU,
+	podInfosClone = s.performEvictionLoop(ctx, podInfosClone, podMetricsCache, data.AllocatableCPU,
 		func(metrics utils.PodMetrics) float64 { return metrics.TotalRecommendedCPU },
 		func(metrics utils.PodMetrics) float64 { return metrics.MaxRestCPU },
 		&result)
@@ -283,6 +283,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 }
 
 func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
+	ctx context.Context,
 	podInfosClone []utils.PodInfo,
 	podMetricsCache map[string]utils.PodMetrics,
 	allocatableResource float64,
@@ -319,7 +320,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
 				continue
 			}
 			if containerStat.SimplePredictionsCPU == nil || containerStat.SimplePredictionsMemory == nil {
-				logging.Errorf(context.Background(), "Skipping eviction for %s/%s/%s container %s: missing predictions", podInfo.Namespace, podInfo.Name, podInfo.WorkloadName, containerStat.ContainerName)
+				logging.Errorf(ctx, "Skipping eviction for %s/%s/%s container %s: missing predictions", podInfo.Namespace, podInfo.Name, podInfo.WorkloadName, containerStat.ContainerName)
 				continue
 			}
 			result.PodContainerRecommendations = append(result.PodContainerRecommendations, utils.PodContainerRecommendation{
