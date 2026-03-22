@@ -318,6 +318,10 @@ func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
 			if containerStat.ContainerType == types.InitContainer {
 				continue
 			}
+			if containerStat.SimplePredictionsCPU == nil || containerStat.SimplePredictionsMemory == nil {
+				logging.Errorf(context.Background(), "Skipping eviction for %s/%s/%s container %s: missing predictions", podInfo.Namespace, podInfo.Name, podInfo.WorkloadName, containerStat.ContainerName)
+				continue
+			}
 			result.PodContainerRecommendations = append(result.PodContainerRecommendations, utils.PodContainerRecommendation{
 				PodInfo:       podInfo,
 				ContainerName: containerStat.ContainerName,

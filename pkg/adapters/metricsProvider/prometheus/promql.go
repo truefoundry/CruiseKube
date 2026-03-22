@@ -285,6 +285,7 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 	}{
 		{0.75, "memory_p75"},
 	}
+	memory7DayKey := "memory_p75"
 
 	for _, q := range memoryQueries {
 		query := p.EncloseWithinMemoryCleanupFunction(p.buildBatchMemoryRecommendationQuery(namespace, q.percentile), MemoryDecimalPlaces)
@@ -297,7 +298,7 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 
 	query := p.EncloseWithinMemoryCleanupFunction(p.buildBatch7DayMemoryRecommendationQuery(namespace, 1.0), MemoryDecimalPlaces)
 	requests = append(requests, ParallelQueryRequest{
-		QueryID: fmt.Sprintf("%s-%s-memory-7day", namespace, "memory_max"),
+		QueryID: fmt.Sprintf("%s-%s-memory-7day", namespace, memory7DayKey),
 		Query:   query,
 	})
 	stats.MemoryRequests++
@@ -407,27 +408,23 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 		}
 	}
 
-	for _, q := range memoryQueries {
-		queryID := fmt.Sprintf("%s-%s-memory-7day", namespace, q.key)
-		if result, exists := results[queryID]; exists {
-			if result.Error != nil {
-				logging.Infof(ctx, "Error getting 7-day %s metrics for namespace %s: %v", q.key, namespace, result.Error)
-				continue
-			}
-
+	queryID := fmt.Sprintf("%s-%s-memory-7day", namespace, memory7DayKey)
+	if result, exists := results[queryID]; exists {
+		if result.Error != nil {
+			logging.Infof(ctx, "Error getting 7-day %s metrics for namespace %s: %v", memory7DayKey, namespace, result.Error)
+		} else {
 			if len(result.Warnings) > 0 {
-				logging.Infof(ctx, "Warnings from 7-day %s query for namespace %s: %v", q.key, namespace, result.Warnings)
+				logging.Infof(ctx, "Warnings from 7-day %s query for namespace %s: %v", memory7DayKey, namespace, result.Warnings)
 			}
 
 			parseQueryStart := time.Now()
 			rawResults, err := p.parsePrometheusVectorResultForContainer(result.Result)
 			memoryParseDuration += time.Since(parseQueryStart)
 			if err != nil {
-				logging.Infof(ctx, "Error parsing 7-day %s results for namespace %s: %v", q.key, namespace, err)
-				continue
+				logging.Infof(ctx, "Error parsing 7-day %s results for namespace %s: %v", memory7DayKey, namespace, err)
+			} else {
+				utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, memory7DayKey+"_7day", false)
 			}
-
-			utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, q.key+"_7day", false)
 		}
 	}
 
