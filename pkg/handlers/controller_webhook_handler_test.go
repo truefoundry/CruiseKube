@@ -102,11 +102,7 @@ func TestAdjustResourcesBuildsExpectedPatches(t *testing.T) {
 		Config: testHandlerConfig(false),
 	}
 
-	patches, err := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, nil)
-	if err != nil {
-		t.Fatalf("adjustResources returned error: %v", err)
-	}
-
+	patches := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, nil)
 	assertHasPatch(t, patches, "remove", "/spec/containers/0/resources/limits/cpu", nil)
 	assertHasPatch(t, patches, "replace", "/spec/containers/0/resources/requests/cpu", "300m")
 	assertHasPatch(t, patches, "replace", "/spec/containers/0/resources/requests/memory", "200M")
@@ -123,11 +119,7 @@ func TestAdjustResourcesSkipsMemoryPatchesWhenDisabled(t *testing.T) {
 		Config: testHandlerConfig(true),
 	}
 
-	patches, err := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, nil)
-	if err != nil {
-		t.Fatalf("adjustResources returned error: %v", err)
-	}
-
+	patches := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, nil)
 	assertHasPatch(t, patches, "remove", "/spec/containers/0/resources/limits/cpu", nil)
 	assertHasPatch(t, patches, "replace", "/spec/containers/0/resources/requests/cpu", "300m")
 	assertNoPatchAtPath(t, patches, "/spec/containers/0/resources/requests/memory")

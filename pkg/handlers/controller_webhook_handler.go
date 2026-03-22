@@ -69,11 +69,7 @@ func (deps HandlerDependencies) evaluateMutatingPatch(ctx context.Context, clust
 		return emptyMutatingPatchResult()
 	}
 
-	patches, err := deps.buildMutatingPatches(ctx, clusterID, resolved)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to adjust resources for pod %s/%s: %v", resolved.pod.Namespace, getPodName(resolved.pod), err)
-		return emptyMutatingPatchResult()
-	}
+	patches := deps.buildMutatingPatches(ctx, clusterID, resolved)
 
 	return mutatingPatchResult{
 		statusCode: http.StatusOK,
@@ -187,18 +183,14 @@ func (deps HandlerDependencies) shouldApplyMutatingPatch(ctx context.Context, cl
 	return apply
 }
 
-func (deps HandlerDependencies) buildMutatingPatches(ctx context.Context, clusterID string, resolved *mutatingPatchResolvedContext) ([]map[string]any, error) {
-	patches, err := deps.adjustResources(ctx, resolved.pod, clusterID, resolved.workloadInfo, resolved.stat)
-	if err != nil {
-		return nil, err
-	}
-
+func (deps HandlerDependencies) buildMutatingPatches(ctx context.Context, clusterID string, resolved *mutatingPatchResolvedContext) []map[string]any {
+	patches := deps.adjustResources(ctx, resolved.pod, clusterID, resolved.workloadInfo, resolved.stat)
 	disruptionPatches := buildDisruptionAnnotationPatches(ctx, resolved.pod, resolved.stat, resolved.overrides)
 	patches = append(patches, disruptionPatches...)
 	if patches == nil {
-		return emptyPatchList(), nil
+		return emptyPatchList()
 	}
-	return patches, nil
+	return patches
 }
 
 func (deps HandlerDependencies) writeMutatingPatchResponse(c *gin.Context, clusterID string, result mutatingPatchResult) {
@@ -294,14 +286,14 @@ func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, over
 // Keep this helper on HandlerDependencies because it still needs injected services
 // from the webhook flow, and moving it off the receiver would reintroduce globals
 // or add avoidable plumbing parameters.
-func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, workloadInfo *utils.WorkloadInfo, workloadStat *types.WorkloadStat) ([]map[string]any, error) {
+func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, workloadInfo *utils.WorkloadInfo, workloadStat *types.WorkloadStat) []map[string]any {
 	cfg := deps.Config
 	if workloadInfo == nil {
 		workloadInfo = utils.GetWorkloadInfoFromPod(pod)
 	}
 	if workloadInfo == nil {
 		logging.Warnf(ctx, "Could not determine workload for pod %s/%s, allowing without adjustment", pod.Namespace, getPodName(pod))
-		return []map[string]any{}, nil
+		return []map[string]any{}
 	}
 
 	logging.Infof(ctx, "Pod %s/%s belongs to workload: %s", pod.Namespace, getPodName(pod), utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name))
@@ -312,11 +304,11 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 		workloadStat, err = deps.Storage.GetStatForWorkload(clusterID, workloadID)
 		if errors.Is(err, storage.ErrWorkloadNotFound) {
 			logging.Infof(ctx, "No stat found for workload %s yet, skipping patch", workloadID)
-			return []map[string]any{}, nil
+			return []map[string]any{}
 		}
 		if err != nil {
 			logging.Errorf(ctx, "Failed to get stat for workload %s: %v", workloadID, err)
-			return []map[string]any{}, nil
+			return []map[string]any{}
 		}
 	}
 
@@ -474,7 +466,7 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 		}
 	}
 
-	return patches, nil
+	return patches
 }
 
 func memoryBytesToMB(memoryBytes int64) string {
