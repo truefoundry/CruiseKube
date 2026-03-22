@@ -326,15 +326,14 @@ func registerApplyRecommendationTask(
 		promClient,
 		storageRepo,
 		&task.ApplyRecommendationTaskConfig{
-			Name:                     clusterID + "_" + config.ApplyRecommendationKey,
-			Enabled:                  applyRecommendationTaskConfig.Enabled,
-			Schedule:                 applyRecommendationTaskConfig.Schedule,
-			ClusterID:                clusterID,
-			TargetClusterID:          cfg.Controller.TargetClusterID,
-			TargetNamespace:          cfg.Controller.TargetNamespace,
-			IsClusterWriteAuthorized: cfg.IsClusterWriteAuthorized(clusterID),
-			BasicAuth:                cfg.Server.BasicAuth,
-			RecommendationSettings:   cfg.RecommendationSettings,
+			Name:                   clusterID + "_" + config.ApplyRecommendationKey,
+			Enabled:                applyRecommendationTaskConfig.Enabled,
+			Schedule:               applyRecommendationTaskConfig.Schedule,
+			ClusterID:              clusterID,
+			TargetClusterID:        cfg.Controller.TargetClusterID,
+			TargetNamespace:        cfg.Controller.TargetNamespace,
+			BasicAuth:              cfg.Server.BasicAuth,
+			RecommendationSettings: cfg.RecommendationSettings,
 		},
 		applyRecommendationTaskConfig,
 	))
@@ -382,11 +381,10 @@ func registerNodeLoadMonitoringTask(
 		clusterClients.DynamicClient,
 		promClient,
 		&task.NodeLoadMonitoringTaskConfig{
-			Name:                     clusterID + "_" + config.NodeLoadMonitoringKey,
-			Enabled:                  nodeLoadMonitoringTaskConfig.Enabled,
-			Schedule:                 nodeLoadMonitoringTaskConfig.Schedule,
-			ClusterID:                clusterID,
-			IsClusterWriteAuthorized: cfg.IsClusterWriteAuthorized(clusterID),
+			Name:      clusterID + "_" + config.NodeLoadMonitoringKey,
+			Enabled:   nodeLoadMonitoringTaskConfig.Enabled,
+			Schedule:  nodeLoadMonitoringTaskConfig.Schedule,
+			ClusterID: clusterID,
 		},
 	))
 }
@@ -428,11 +426,10 @@ func registerDisruptionForceTask(
 		clusterClients.KubeClient,
 		storageRepo,
 		&task.DisruptionForceTaskConfig{
-			Name:                     clusterID + "_" + config.DisruptionForceKey,
-			Enabled:                  disruptionForceTaskConfig.Enabled,
-			Schedule:                 disruptionForceTaskConfig.Schedule,
-			ClusterID:                clusterID,
-			IsClusterWriteAuthorized: cfg.IsClusterWriteAuthorized(clusterID),
+			Name:      clusterID + "_" + config.DisruptionForceKey,
+			Enabled:   disruptionForceTaskConfig.Enabled,
+			Schedule:  disruptionForceTaskConfig.Schedule,
+			ClusterID: clusterID,
 		},
 	))
 }

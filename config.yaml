@@ -11,7 +11,6 @@ executionMode: controller
 controller:
   targetNamespace: ""
   targetClusterID: ""
-  writeAuthorizedClusters: []
   tasks:
     createStats:
       enabled: true
@@ -71,7 +70,6 @@ db:
 recommendationSettings:
   newWorkloadThresholdHours: 1
   disableMemoryApplication: false
-  applyBlacklistedNamespaces: []
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true
