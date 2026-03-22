@@ -3,9 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
-	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
 
@@ -15,54 +12,6 @@ import (
 )
 
 type NodeStatMap map[string]NodeResourceInfo
-
-func getLatestKarpenterNodeEvents(ctx context.Context, kubeClient *kubernetes.Clientset) map[string]struct{ NodeType, Reason, Message string } {
-	eventList, err := kubeClient.CoreV1().Events("default").List(ctx, metav1.ListOptions{
-		FieldSelector: "source=karpenter",
-	})
-	if err != nil {
-		logging.Errorf(ctx, "Failed to get events: %v", err)
-		return nil
-	}
-
-	fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
-
-	tempKarpenterNodeEvents := make(map[string]corev1.Event)
-
-	for _, event := range eventList.Items {
-		if !strings.EqualFold(event.Source.Component, "karpenter") {
-			continue
-		}
-		if !strings.EqualFold(event.InvolvedObject.Kind, "Node") {
-			continue
-		}
-
-		if event.LastTimestamp.Time.Before(fiveMinutesAgo) {
-			continue
-		}
-
-		nodeName := event.InvolvedObject.Name
-
-		if existingEvent, exists := tempKarpenterNodeEvents[nodeName]; exists {
-			if event.LastTimestamp.After(existingEvent.LastTimestamp.Time) {
-				tempKarpenterNodeEvents[nodeName] = event
-			}
-		} else {
-			tempKarpenterNodeEvents[nodeName] = event
-		}
-	}
-
-	karpenterNodeEvents := make(map[string]struct{ NodeType, Reason, Message string })
-	for nodeName, event := range tempKarpenterNodeEvents {
-		karpenterNodeEvents[nodeName] = struct{ NodeType, Reason, Message string }{
-			NodeType: event.Type,
-			Reason:   event.Reason,
-			Message:  event.Message,
-		}
-	}
-
-	return karpenterNodeEvents
-}
 
 func CreatePodToStatsMapping(ctx context.Context, podToWorkloadMap map[PodKey]WorkloadInfo, statMap map[string]*WorkloadStat) map[PodKey]*WorkloadStat {
 	podStats := make(map[PodKey]*WorkloadStat)
@@ -97,9 +46,8 @@ func CreateNodeStatsMapping(
 
 	nodeMap := make(NodeStatMap)
 
-	karpenterNodeEvents := getLatestKarpenterNodeEvents(ctx, kubeClient)
-
 	for _, node := range nodes.Items {
+		// TODO: can we centralise the check for GPUs?
 		if gpuQuantity, exists := node.Status.Allocatable["nvidia.com/gpu"]; exists && gpuQuantity.Value() > 0 {
 			logging.Infof(ctx, "Node %s has GPUs, skipping", node.Name)
 			continue
@@ -124,19 +72,6 @@ func CreateNodeStatsMapping(
 			RequestedCPU:      0,
 			RequestedMemory:   0,
 			Pods:              make([]PodInfo, 0),
-		}
-
-		// Get Karpenter nodepool from node labels
-		if karpenterNodePool, ok := node.Labels["karpenter.sh/nodepool"]; ok {
-			nodeInfo.KarpenterNodePool = karpenterNodePool
-		} else {
-			nodeInfo.KarpenterNodePool = "initial-nodepool"
-		}
-
-		if event, ok := karpenterNodeEvents[nodeName]; ok {
-			nodeInfo.NodeType = event.NodeType
-			nodeInfo.EventReason = event.Reason
-			nodeInfo.EventMessage = event.Message
 		}
 
 		for _, pod := range podsOnNode {
@@ -184,33 +119,6 @@ func CreateNodeStatsMapping(
 			nodeInfo.Pods = append(nodeInfo.Pods, podInfo)
 		}
 
-		nodeMap[nodeName] = nodeInfo
-
-		nodepoolInfo := ""
-		if nodeInfo.KarpenterNodePool != "" {
-			nodepoolInfo = fmt.Sprintf(", nodepool: %s", nodeInfo.KarpenterNodePool)
-		}
-
-		logging.Infof(ctx, "Processed node %s: %d pods, %.3f/%.3f CPU, %.1f/%.1f MB memory%s",
-			nodeName, len(nodeInfo.Pods), nodeInfo.RequestedCPU, nodeInfo.AllocatableCPU,
-			nodeInfo.RequestedMemory, nodeInfo.AllocatableMemory, nodepoolInfo)
-	}
-
-	for nodeName, nodeInfo := range nodeMap {
-		sort.Slice(nodeInfo.Pods, func(i, j int) bool {
-			podI := nodeInfo.Pods[i]
-			podJ := nodeInfo.Pods[j]
-
-			ratioI := calculateCPURatio(podI)
-			ratioJ := calculateCPURatio(podJ)
-			if ratioI == ratioJ {
-				if podI.Namespace == podJ.Namespace {
-					return podI.Name < podJ.Name
-				}
-				return podI.Namespace < podJ.Namespace
-			}
-			return ratioI > ratioJ
-		})
 		nodeMap[nodeName] = nodeInfo
 	}
 
@@ -272,18 +180,6 @@ func getCurrentPodMemoryLimit(pod *corev1.Pod) float64 {
 		}
 	}
 	return totalMemory
-}
-
-func calculateCPURatio(podInfo PodInfo) float64 {
-	if podInfo.Stats == nil {
-		return 0.0
-	}
-
-	if podInfo.Stats.CalculateTotalCPUStats(50) <= 0 {
-		return 0.0
-	}
-
-	return podInfo.Stats.CalculateTotalCPUStats(100) / podInfo.Stats.CalculateTotalCPUStats(50)
 }
 
 func getCurrentContainerResources(container *corev1.Container) *ContainerResources {
