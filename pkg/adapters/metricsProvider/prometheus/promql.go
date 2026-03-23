@@ -423,7 +423,7 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 			if err != nil {
 				logging.Infof(ctx, "Error parsing 7-day %s results for namespace %s: %v", memory7DayKey, namespace, err)
 			} else {
-				utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, memory7DayKey+"_7day", false)
+				utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, "memory_max_7day", false)
 			}
 		}
 	}
