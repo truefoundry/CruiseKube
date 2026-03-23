@@ -331,12 +331,11 @@ func updateMemoryMetrics(metrics *ContainerMetrics, value float64, metricType st
 }
 
 func updateMemory7DayMetrics(metrics *ContainerMetrics, value float64, metricType string) bool {
-	switch metricType {
-	case "memory_max_7day":
-		updateMaxValue(&metrics.Memory7Day.Max, value)
-	default:
+	if metricType != "memory_max_7day" {
 		return false
 	}
+
+	updateMaxValue(&metrics.Memory7Day.Max, value)
 	return true
 }
 
@@ -345,8 +344,7 @@ func updatePSIAdjustedMetrics(metrics *ContainerMetrics, value float64, metricTy
 		metrics.PSIAdjustedUsage = &PSIAdjustedUsage{}
 	}
 
-	switch metricType {
-	case "cpu_p75":
+	if metricType == "cpu_p75" {
 		updateMaxValue(&metrics.PSIAdjustedUsage.CPUP75, value)
 	}
 }
