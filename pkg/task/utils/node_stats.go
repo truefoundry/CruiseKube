@@ -11,11 +11,6 @@ type NodeResourceInfo struct {
 	RequestedCPU      float64   `json:"requested_cpu"`
 	RequestedMemory   float64   `json:"requested_memory"`
 	Pods              []PodInfo `json:"pods"`
-
-	NodeType          string `json:"node_type"`
-	EventReason       string `json:"event_reason"`
-	EventMessage      string `json:"event_message"`
-	KarpenterNodePool string `json:"karpenter_node_pool"`
 }
 
 type ContainerResources struct {
