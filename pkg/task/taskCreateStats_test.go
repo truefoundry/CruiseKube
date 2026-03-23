@@ -31,8 +31,43 @@ func TestHasCompleteSimplePredictions(t *testing.T) {
 		{Name: "init", Type: types.InitContainer},
 	}
 
+	if hasCompleteSimplePredictions(workloadStat, containerResources) {
+		t.Fatalf("expected workload stat missing init-container predictions to be rejected")
+	}
+}
+
+func TestHasCompleteSimplePredictionsAcceptsInitPredictions(t *testing.T) {
+	workloadStat := &utils.WorkloadStat{
+		ContainerStats: []utils.ContainerStats{
+			{
+				ContainerName:           "app",
+				ContainerType:           types.AppContainer,
+				SimplePredictionsCPU:    &types.SimplePrediction{MaxValue: 1},
+				SimplePredictionsMemory: &types.SimplePrediction{MaxValue: 512},
+			},
+			{
+				ContainerName:           "sidecar",
+				ContainerType:           types.SidecarContainer,
+				SimplePredictionsCPU:    &types.SimplePrediction{MaxValue: 0.2},
+				SimplePredictionsMemory: &types.SimplePrediction{MaxValue: 128},
+			},
+			{
+				ContainerName:           "init",
+				ContainerType:           types.InitContainer,
+				SimplePredictionsCPU:    &types.SimplePrediction{MaxValue: 0.1},
+				SimplePredictionsMemory: &types.SimplePrediction{MaxValue: 64},
+			},
+		},
+	}
+
+	containerResources := []utils.OriginalContainerResources{
+		{Name: "app", Type: types.AppContainer},
+		{Name: "sidecar", Type: types.SidecarContainer},
+		{Name: "init", Type: types.InitContainer},
+	}
+
 	if !hasCompleteSimplePredictions(workloadStat, containerResources) {
-		t.Fatalf("expected workload stat with predictions on all non-init containers to be accepted")
+		t.Fatalf("expected workload stat with predictions on all containers to be accepted")
 	}
 }
 
