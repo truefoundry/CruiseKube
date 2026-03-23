@@ -16,7 +16,6 @@ controller:
     applyRecommendation:
       enabled: false
       schedule: "5m"
-      dryRun: true
       nodeStatsURL:
         host: "localhost:8080"
       overridesURL:

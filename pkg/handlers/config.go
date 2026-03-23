@@ -68,9 +68,8 @@ func (deps HandlerDependencies) GetConfigHandler(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"url":                       prometheusURL,
-		"connected":                 connected,
-		"applyRecommendationDryRun": false,
+		"url":       prometheusURL,
+		"connected": connected,
 	}
 	if connectionError != "" {
 		response["error"] = connectionError

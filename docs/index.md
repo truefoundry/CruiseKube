@@ -49,7 +49,7 @@ hide:
         🔒
       </div>
       <h3>Safe Operations</h3>
-      <p>Built-in safeguards and dry-run modes ensure your workloads remain stable</p>
+      <p>Built-in safeguards ensure your workloads remain stable</p>
     </div>
   </div>
 </div>
@@ -139,4 +139,3 @@ hide:
     <a href="/src/gs-installation/" class="cta-button">Get Started Now</a>
   </div>
 </div>
-

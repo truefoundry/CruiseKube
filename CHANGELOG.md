@@ -9,6 +9,12 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+### Breaking Changes
+* CruiseKube and the Helm charts removed legacy dry-run config, CLI, and chart fields. Recommendation application mutates by default now. Before upgrading, remove all legacy dry-run keys from your values files, environment variables, and CLI flags.
+
+### Terminology Changes
+* Removed dry-run support from CruiseKube. Historical changelog entries may still refer to the previous dry-run flow.
+
 ## v0.2.4 (2026-03-19)
 * Add Google Analytics configuration to mkdocs.yml by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/185
 * Fix analytics property key in google tag by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/186
@@ -176,5 +182,3 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * removed topology and affinity removal from webhook by @shubhamrai1993 in [#57](https://github.com/truefoundry/CruiseKube/pull/57)
 * removed ref to kubeelasti with cruisekube by @shubhamrai1993 in [#58](https://github.com/truefoundry/CruiseKube/pull/58)
 * Update github actions & add helm index.yaml by @ramantehlan in [#60](https://github.com/truefoundry/CruiseKube/pull/60)
-
-
