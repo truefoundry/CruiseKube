@@ -99,11 +99,6 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	ctx = contextutils.WithTask(ctx, a.config.Name)
 	ctx = contextutils.WithCluster(ctx, a.config.ClusterID)
 
-	if !a.config.IsClusterWriteAuthorized {
-		logging.Infof(ctx, "Cluster %s is not write authorized, skipping ApplyRecommendation task", a.config.ClusterID)
-		return nil
-	}
-
 	if !utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 33) {
 		logging.Infof(ctx, "Cluster version is not above 1.33, skipping recommendation application")
 		return nil
@@ -785,14 +780,13 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 	nonOptimizablePods := make([]utils.PodInfo, 0)
 
 	input := utils.ApplyCheckInput{
-		ApplyBlacklistedNamespaces: a.config.RecommendationSettings.ApplyBlacklistedNamespaces,
-		K8sVersionGE133:            true,
-		K8sMemoryGE134:             true, // caller uses supportsMemoryReduction separately
-		OptimizeGuaranteedPods:     a.config.RecommendationSettings.OptimizeGuaranteedPods,
-		DisableMemoryApplication:   a.config.RecommendationSettings.DisableMemoryApplication,
-		NewWorkloadThresholdHours:  a.config.RecommendationSettings.NewWorkloadThresholdHours,
-		SkipMemory:                 a.config.Metadata.SkipMemory,
-		PodExcludedByAnnotation:    utils.PodExcludedByAnnotation(nil), // when podForExclusion is nil, value is taken from podInfo.Stats.Constraints
+		K8sVersionGE133:           true,
+		K8sMemoryGE134:            true, // caller uses supportsMemoryReduction separately
+		OptimizeGuaranteedPods:    a.config.RecommendationSettings.OptimizeGuaranteedPods,
+		DisableMemoryApplication:  a.config.RecommendationSettings.DisableMemoryApplication,
+		NewWorkloadThresholdHours: a.config.RecommendationSettings.NewWorkloadThresholdHours,
+		SkipMemory:                a.config.Metadata.SkipMemory,
+		PodExcludedByAnnotation:   utils.PodExcludedByAnnotation(nil), // when podForExclusion is nil, value is taken from podInfo.Stats.Constraints
 	}
 
 	for _, podInfo := range allPodInfos {

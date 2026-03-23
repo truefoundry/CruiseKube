@@ -9,6 +9,9 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+### Breaking Changes
+* CruiseKube and the Helm charts removed legacy dry-run config, CLI, and chart fields. Recommendation application mutates by default now. Before upgrading, remove all legacy dry-run keys from your values files, environment variables, and CLI flags.
+
 ### Terminology Changes
 * Removed dry-run support from CruiseKube. Historical changelog entries may still refer to the previous dry-run flow.
 
