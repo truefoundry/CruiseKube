@@ -314,7 +314,6 @@ func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
 			continue
 		}
 
-		evictionRecommendationsStart := len(result.PodContainerRecommendations)
 		for _, containerStat := range podInfo.Stats.ContainerStats {
 			if containerStat.ContainerType == types.InitContainer {
 				continue
@@ -326,11 +325,6 @@ func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
 				Memory:        containerStat.SimplePredictionsMemory.MaxValue,
 				Evict:         true,
 			})
-		}
-
-		if len(result.PodContainerRecommendations) == evictionRecommendationsStart {
-			i++
-			continue
 		}
 
 		podInfosClone = append(podInfosClone[:i], podInfosClone[i+1:]...)
