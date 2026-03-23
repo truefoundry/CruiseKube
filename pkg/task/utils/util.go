@@ -302,7 +302,6 @@ func updateStandardMetrics(metrics *ContainerMetrics, value float64, metricType 
 	case updateMemoryMetrics(metrics, value, metricType):
 		metrics.HasMemoryData = true
 	case updateMemory7DayMetrics(metrics, value, metricType):
-		metrics.HasMemoryData = true
 	case metricType == "median_replicas":
 		metrics.MedianReplicas = value
 	}
