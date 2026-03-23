@@ -390,25 +390,25 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 			continue
 		}
 
-			cpuStats := &CPUStats{
-				P75: metrics.CPUP75,
-			}
+		cpuStats := &CPUStats{
+			P75: metrics.CPUP75,
+		}
 
-			memoryStats := &MemoryStats{
-				P75:       metrics.MemoryP75,
-				OOMMemory: metrics.OOMMemory,
-			}
+		memoryStats := &MemoryStats{
+			P75:       metrics.MemoryP75,
+			OOMMemory: metrics.OOMMemory,
+		}
 
 		memory7Day := &Memory7DayStats{
 			Max: metrics.Memory7Day.Max,
 		}
 
-			var psiAdjustedUsageStats *PSIAdjustedUsageStats
-			if metrics.PSIAdjustedUsage != nil {
-				psiAdjustedUsageStats = &PSIAdjustedUsageStats{
-					P75: metrics.PSIAdjustedUsage.CPUP75,
-				}
+		var psiAdjustedUsageStats *PSIAdjustedUsageStats
+		if metrics.PSIAdjustedUsage != nil {
+			psiAdjustedUsageStats = &PSIAdjustedUsageStats{
+				P75: metrics.PSIAdjustedUsage.CPUP75,
 			}
+		}
 
 		containerStats = append(containerStats, ContainerStats{
 			ContainerName:    containerName,

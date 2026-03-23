@@ -10,7 +10,7 @@ type ContainerMetrics struct {
 	CPUP75           float64
 	PSIAdjustedUsage *PSIAdjustedUsage
 
-	MemoryP75  float64
+	MemoryP75 float64
 
 	OOMMemory float64
 
@@ -23,7 +23,7 @@ type ContainerMetrics struct {
 }
 
 type PSIAdjustedUsage struct {
-	CPUP75  float64
+	CPUP75 float64
 }
 
 type ContainerNameVsContainerMetrics map[string]*ContainerMetrics
