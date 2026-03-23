@@ -285,7 +285,7 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 	}{
 		{0.75, "memory_p75"},
 	}
-	memory7DayKey := "memory_p75"
+	memory7DayKey := "memory_max"
 
 	for _, q := range memoryQueries {
 		query := p.EncloseWithinMemoryCleanupFunction(p.buildBatchMemoryRecommendationQuery(namespace, q.percentile), MemoryDecimalPlaces)
