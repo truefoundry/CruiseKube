@@ -416,6 +416,10 @@ func hasCompleteSimplePredictions(workloadStat *utils.WorkloadStat, containerRes
 	}
 
 	for _, containerRes := range containerResources {
+		if containerRes.Type == types.InitContainer {
+			continue
+		}
+
 		containerStat, exists := containerStatsByName[containerRes.Name]
 		if !exists {
 			return false
