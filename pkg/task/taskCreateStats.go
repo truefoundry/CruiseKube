@@ -378,6 +378,11 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 		}
 	}
 
+	if !hasCompleteSimplePredictions(workloadStat, containerResources) {
+		logging.Warnf(ctx, "Skipping workload %s: missing simple predictions for one or more non-init containers", workloadKey)
+		return nil
+	}
+
 	workloadMetrics, exists := nsVsWorkloadMetrics[workloadInfo.Namespace][workloadKey]
 	if exists {
 		workloadStat.Replicas = int32(workloadMetrics.MedianReplicas)
@@ -397,6 +402,34 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	logging.Infof(ctx, "Successfully created container-level stat for %s with %d containers", workloadKey, len(workloadStat.ContainerStats))
 
 	return workloadStat
+}
+
+func hasCompleteSimplePredictions(workloadStat *utils.WorkloadStat, containerResources []utils.OriginalContainerResources) bool {
+	if workloadStat == nil {
+		return false
+	}
+
+	containerStatsByName := make(map[string]*utils.ContainerStats, len(workloadStat.ContainerStats))
+	for i := range workloadStat.ContainerStats {
+		containerStat := &workloadStat.ContainerStats[i]
+		containerStatsByName[containerStat.ContainerName] = containerStat
+	}
+
+	for _, containerRes := range containerResources {
+		if containerRes.Type == types.InitContainer {
+			continue
+		}
+
+		containerStat, exists := containerStatsByName[containerRes.Name]
+		if !exists {
+			return false
+		}
+		if containerStat.SimplePredictionsCPU == nil || containerStat.SimplePredictionsMemory == nil {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (c *CreateStatsTask) getAllContainerResourcesFromContainerSpecs(_ context.Context, containerSpecs []corev1.Container, initContainerSpecs []corev1.Container) []utils.OriginalContainerResources {
