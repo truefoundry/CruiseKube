@@ -9,7 +9,6 @@ executionMode: both
 controller:
   targetNamespace: "prometheus"
   targetClusterID: "dev
-  writeAuthorizedClusters: []
   tasks:
     createStats:
       enabled: true

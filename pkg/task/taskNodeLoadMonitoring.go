@@ -26,11 +26,10 @@ const (
 )
 
 type NodeLoadMonitoringTaskConfig struct {
-	Name                     string
-	Enabled                  bool
-	Schedule                 string
-	ClusterID                string
-	IsClusterWriteAuthorized bool
+	Name      string
+	Enabled   bool
+	Schedule  string
+	ClusterID string
 }
 
 type NodeLoadMonitoringTask struct {
@@ -68,11 +67,6 @@ func (n *NodeLoadMonitoringTask) IsEnabled() bool {
 func (n *NodeLoadMonitoringTask) Run(ctx context.Context) error {
 	ctx = contextutils.WithTask(ctx, n.config.Name)
 	ctx = contextutils.WithCluster(ctx, n.config.ClusterID)
-
-	if !n.config.IsClusterWriteAuthorized {
-		logging.Infof(ctx, "Cluster %s is not write authorized, skipping NodeLoadMonitoring task", n.config.ClusterID)
-		return nil
-	}
 
 	nodes, err := n.getAllNodes(ctx)
 	if err != nil {

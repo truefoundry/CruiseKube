@@ -67,10 +67,9 @@ type InClusterDeps struct {
 }
 
 type ControllerConfig struct {
-	TargetNamespace         string                 `yaml:"targetNamespace,omitempty" mapstructure:"targetNamespace"`
-	TargetClusterID         string                 `yaml:"targetClusterID,omitempty" mapstructure:"targetClusterID"`
-	WriteAuthorizedClusters []string               `yaml:"writeAuthorizedClusters" mapstructure:"writeAuthorizedClusters"`
-	Tasks                   map[string]*TaskConfig `yaml:"tasks" mapstructure:"tasks"`
+	TargetNamespace string                 `yaml:"targetNamespace,omitempty" mapstructure:"targetNamespace"`
+	TargetClusterID string                 `yaml:"targetClusterID,omitempty" mapstructure:"targetClusterID"`
+	Tasks           map[string]*TaskConfig `yaml:"tasks" mapstructure:"tasks"`
 }
 
 type URLConfig struct {
@@ -106,12 +105,11 @@ type DatabaseConfig struct {
 }
 
 type RecommendationSettings struct {
-	NewWorkloadThresholdHours  int      `yaml:"newWorkloadThresholdHours" mapstructure:"newWorkloadThresholdHours"`
-	DisableMemoryApplication   bool     `yaml:"disableMemoryApplication" mapstructure:"disableMemoryApplication"`
-	ApplyBlacklistedNamespaces []string `yaml:"applyBlacklistedNamespaces" mapstructure:"applyBlacklistedNamespaces"`
-	MaxConcurrentQueries       int      `yaml:"maxConcurrentQueries" mapstructure:"maxConcurrentQueries"`
-	OOMCooldownMinutes         int      `yaml:"oomCooldownMinutes" mapstructure:"oomCooldownMinutes"`
-	OptimizeGuaranteedPods     bool     `yaml:"optimizeGuaranteedPods" mapstructure:"optimizeGuaranteedPods"`
+	NewWorkloadThresholdHours int  `yaml:"newWorkloadThresholdHours" mapstructure:"newWorkloadThresholdHours"`
+	DisableMemoryApplication  bool `yaml:"disableMemoryApplication" mapstructure:"disableMemoryApplication"`
+	MaxConcurrentQueries      int  `yaml:"maxConcurrentQueries" mapstructure:"maxConcurrentQueries"`
+	OOMCooldownMinutes        int  `yaml:"oomCooldownMinutes" mapstructure:"oomCooldownMinutes"`
+	OptimizeGuaranteedPods    bool `yaml:"optimizeGuaranteedPods" mapstructure:"optimizeGuaranteedPods"`
 }
 
 type TelemetryConfig struct {
@@ -161,17 +159,4 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	return &config, nil
-}
-
-func (c *Config) IsClusterWriteAuthorized(clusterID string) bool {
-	if len(c.Controller.WriteAuthorizedClusters) == 0 {
-		return true
-	}
-
-	for _, authorizedCluster := range c.Controller.WriteAuthorizedClusters {
-		if authorizedCluster == clusterID {
-			return true
-		}
-	}
-	return false
 }

@@ -166,14 +166,13 @@ func (deps HandlerDependencies) shouldApplyMutatingPatch(ctx context.Context, cl
 	overrideInfo := buildWorkloadOverrideInfo(resolved.workloadKey, resolved.stat, resolved.overrides)
 	podInfo := utils.BuildPodInfoFromPod(resolved.pod, resolved.workloadInfo, resolved.stat)
 	input := utils.ApplyCheckInput{
-		ApplyBlacklistedNamespaces: cfg.RecommendationSettings.ApplyBlacklistedNamespaces,
-		K8sVersionGE133:            utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 33),
-		K8sMemoryGE134:             utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 34),
-		OptimizeGuaranteedPods:     cfg.RecommendationSettings.OptimizeGuaranteedPods,
-		DisableMemoryApplication:   cfg.RecommendationSettings.DisableMemoryApplication,
-		NewWorkloadThresholdHours:  cfg.RecommendationSettings.NewWorkloadThresholdHours,
-		SkipMemory:                 false,
-		PodExcludedByAnnotation:    utils.PodExcludedByAnnotation(resolved.pod),
+		K8sVersionGE133:           utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 33),
+		K8sMemoryGE134:            utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 34),
+		OptimizeGuaranteedPods:    cfg.RecommendationSettings.OptimizeGuaranteedPods,
+		DisableMemoryApplication:  cfg.RecommendationSettings.DisableMemoryApplication,
+		NewWorkloadThresholdHours: cfg.RecommendationSettings.NewWorkloadThresholdHours,
+		SkipMemory:                false,
+		PodExcludedByAnnotation:   utils.PodExcludedByAnnotation(resolved.pod),
 	}
 
 	apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overrideInfo, input)
