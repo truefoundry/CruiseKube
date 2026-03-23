@@ -25,7 +25,7 @@ cruisekubeController:
     ## @param cruisekubeController.image.imagePullPolicy CruiseKube Controller image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeController.image.tag CruiseKube Controller image tag (immutable tags are recommended)
-    tag: "f510e975483a2821aeb82d1608b7cacd8cea2d62"
+    tag: "e2159b2a465afc43172e39fcf08be7e82ced797a"
   ## @param cruisekubeController.imagePullSecrets [array] CruiseKube Controller image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeController.nameOverride String to partially override cruisekube.fullname
@@ -94,7 +94,6 @@ cruisekubeController:
     CRUISEKUBE_EXECUTIONMODE: "controller"
     CRUISEKUBE_CONTROLLER_TARGETNAMESPACE: ""
     CRUISEKUBE_CONTROLLER_TARGETCLUSTERID: ""
-    CRUISEKUBE_CONTROLLER_WRITEAUTHORIZEDCLUSTERS: ""
     CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED: "true"
     CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_SCHEDULE: "15m"
     CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_METADATA_SKIPMEMORY: "false"
@@ -122,7 +121,6 @@ cruisekubeController:
     CRUISEKUBE_DB_SSLMODE: "disable"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_NEWWORKLOADTHRESHOLDHOURS: "1"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "true"
-    CRUISEKUBE_RECOMMENDATIONSETTINGS_APPLYBLACKLISTEDNAMESPACES: ""
     CRUISEKUBE_RECOMMENDATIONSETTINGS_MAXCONCURRENTQUERIES: "30"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_OOMCOOLDOWNMINUTES: "5"
     CRUISEKUBE_TELEMETRY_ENABLED: "false"
@@ -145,7 +143,7 @@ cruisekubeWebhook:
     ## @param cruisekubeWebhook.image.imagePullPolicy CruiseKube Webhook image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeWebhook.image.tag CruiseKube Webhook image tag (immutable tags are recommended)
-    tag: "f510e975483a2821aeb82d1608b7cacd8cea2d62"
+    tag: "e2159b2a465afc43172e39fcf08be7e82ced797a"
   ## @param cruisekubeWebhook.imagePullSecrets [array] CruiseKube Webhook image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeWebhook.nameOverride String to partially override cruisekube.fullname
@@ -287,7 +285,7 @@ cruisekubeFrontend:
     ## @param cruisekubeFrontend.image.imagePullPolicy CruiseKube Frontend image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeFrontend.image.tag CruiseKube Frontend image tag (immutable tags are recommended)
-    tag: "f510e975483a2821aeb82d1608b7cacd8cea2d62"
+    tag: "e2159b2a465afc43172e39fcf08be7e82ced797a"
   ## @param cruisekubeFrontend.imagePullSecrets [array] CruiseKube Frontend image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeFrontend.nameOverride String to partially override cruisekube.fullname
