@@ -28,11 +28,10 @@ const (
 )
 
 type DisruptionForceTaskConfig struct {
-	Name                     string
-	Enabled                  bool
-	Schedule                 string
-	ClusterID                string
-	IsClusterWriteAuthorized bool
+	Name      string
+	Enabled   bool
+	Schedule  string
+	ClusterID string
 }
 
 type DisruptionForceTask struct {
@@ -68,11 +67,6 @@ func (t *DisruptionForceTask) IsEnabled() bool {
 func (t *DisruptionForceTask) Run(ctx context.Context) error {
 	ctx = contextutils.WithTask(ctx, t.config.Name)
 	ctx = contextutils.WithCluster(ctx, t.config.ClusterID)
-
-	if !t.config.IsClusterWriteAuthorized {
-		logging.Infof(ctx, "Cluster %s is not write authorized, skipping DisruptionForceTask", t.config.ClusterID)
-		return nil
-	}
 
 	logging.Infof(ctx, "Running disruption force task")
 
