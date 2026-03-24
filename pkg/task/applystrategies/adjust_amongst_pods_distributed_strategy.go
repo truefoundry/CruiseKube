@@ -37,6 +37,11 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 
 	// Calculate the recommendation for each pod
 	for _, podInfo := range podInfosClone {
+		if podInfo.Stats == nil || len(podInfo.Stats.ContainerStats) == 0 {
+			logging.Warnf(ctx, "Skipping pod %s/%s in distributed strategy: incomplete workload stats", podInfo.Namespace, podInfo.Name)
+			continue
+		}
+
 		podKey := utils.GetPodKey(podInfo.Namespace, podInfo.Name)
 		var totalRecommendedCPU, totalRecommendedMemory, maxRestCPU, maxRestMemory float64
 		for _, containerRec := range podInfo.Stats.ContainerStats {
@@ -175,7 +180,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 	}, 0)
 
 	for _, pod := range podInfosClone {
-		if pod.Stats.ContainerStats != nil {
+		if pod.Stats != nil && pod.Stats.ContainerStats != nil {
 			for _, containerStat := range pod.Stats.ContainerStats {
 				if containerStat.ContainerType == types.InitContainer {
 					continue
@@ -271,7 +276,7 @@ func (s *AdjustAmongstPodsDistributedStrategy) OptimizeNode(ctx context.Context,
 	}
 
 	for _, pod := range podInfosClone {
-		if pod.Stats.ContainerStats == nil {
+		if pod.Stats == nil || pod.Stats.ContainerStats == nil {
 			logging.Errorf(ctx, "No container recommendations found for pod %s/%s", pod.Namespace, pod.Name)
 		}
 	}
@@ -314,15 +319,39 @@ func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
 			continue
 		}
 
+		if podInfo.Stats == nil || len(podInfo.Stats.ContainerStats) == 0 {
+			for _, container := range podInfo.ContainerResources {
+				result.PodContainerRecommendations = append(result.PodContainerRecommendations, utils.PodContainerRecommendation{
+					PodInfo:       podInfo,
+					ContainerName: container.Name,
+					CPU:           container.CPURequest,
+					Memory:        container.MemoryRequest,
+					Evict:         true,
+				})
+			}
+			podInfosClone = append(podInfosClone[:i], podInfosClone[i+1:]...)
+			continue
+		}
+
 		for _, containerStat := range podInfo.Stats.ContainerStats {
 			if containerStat.ContainerType == types.InitContainer {
 				continue
 			}
+			predictedCPU := s.getPredictedCPUMax(containerStat)
+			predictedMemory := s.getPredictedMemoryMax(containerStat)
+			if containerResource, err := podInfo.GetContainerResource(containerStat.ContainerName); err == nil {
+				if predictedCPU == 0 {
+					predictedCPU = containerResource.CPURequest
+				}
+				if predictedMemory == 0 {
+					predictedMemory = containerResource.MemoryRequest
+				}
+			}
 			result.PodContainerRecommendations = append(result.PodContainerRecommendations, utils.PodContainerRecommendation{
 				PodInfo:       podInfo,
 				ContainerName: containerStat.ContainerName,
-				CPU:           s.getPredictedCPUMax(containerStat),
-				Memory:        s.getPredictedMemoryMax(containerStat),
+				CPU:           predictedCPU,
+				Memory:        predictedMemory,
 				Evict:         true,
 			})
 		}
@@ -333,6 +362,10 @@ func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
 }
 
 func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestMemory(ctx context.Context, pod utils.PodInfo, containerStat utils.ContainerStats) (float64, float64) {
+	if containerStat.MemoryStats == nil {
+		logging.Warnf(ctx, "Missing memory stats for %s/%s/%s", pod.Namespace, pod.Name, containerStat.ContainerName)
+		return 0.0, 0.0
+	}
 	if containerStat.MemoryStats.OOMMemory > 0 && containerStat.MemoryStats.OOMMemory > containerStat.MemoryStats.P75 {
 		logging.Infof(ctx, "Using OOM memory for %s/%s/%s: %v", pod.Namespace, pod.Name, containerStat.ContainerName, containerStat.MemoryStats.OOMMemory)
 		// We are not underestimating the memory requests here, we are just using the OOM memory as the total recommended memory with no extra headspace
@@ -346,7 +379,10 @@ func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestMemory(ctx c
 }
 
 func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestCPU(ctx context.Context, pod utils.PodInfo, containerStat utils.ContainerStats) (float64, float64) {
-	recommendedCPU := containerStat.CPUStats.P75
+	recommendedCPU := 0.0
+	if containerStat.CPUStats != nil {
+		recommendedCPU = containerStat.CPUStats.P75
+	}
 	if containerStat.PSIAdjustedUsage != nil {
 		recommendedCPU = containerStat.PSIAdjustedUsage.P75
 	}
@@ -363,14 +399,28 @@ func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestCPU(ctx cont
 }
 
 func (s *AdjustAmongstPodsDistributedStrategy) getPredictedCPUMax(containerStat utils.ContainerStats) float64 {
-	recommendedCPU := containerStat.CPUStats.P75
+	recommendedCPU := 0.0
+	if containerStat.CPUStats != nil {
+		recommendedCPU = containerStat.CPUStats.P75
+	}
 	if containerStat.PSIAdjustedUsage != nil {
 		recommendedCPU = containerStat.PSIAdjustedUsage.P75
+	}
+
+	if containerStat.SimplePredictionsCPU == nil {
+		return recommendedCPU
 	}
 
 	return max(containerStat.SimplePredictionsCPU.MaxValue, recommendedCPU)
 }
 
 func (s *AdjustAmongstPodsDistributedStrategy) getPredictedMemoryMax(containerStat utils.ContainerStats) float64 {
-	return max(containerStat.SimplePredictionsMemory.MaxValue, containerStat.MemoryStats.P75)
+	recommendedMemory := 0.0
+	if containerStat.MemoryStats != nil {
+		recommendedMemory = containerStat.MemoryStats.P75
+	}
+	if containerStat.SimplePredictionsMemory == nil {
+		return recommendedMemory
+	}
+	return max(containerStat.SimplePredictionsMemory.MaxValue, recommendedMemory)
 }
