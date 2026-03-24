@@ -208,7 +208,7 @@ nav:
       - Installation: src/gs-installation.md
   - Operate:
       - Dashboard: src/config-dashboard.md
-      - Policies & Modes: src/dev-cost.md
+      - Policies & Modes: src/operate-policies.md
       - Resource Pricing: src/operate-resource-pricing.md
       - Troubleshooting: src/operate-troubleshooting.md
   - Concepts:

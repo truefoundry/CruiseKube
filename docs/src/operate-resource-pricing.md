@@ -64,7 +64,7 @@ Values are stored **in the browser** for the cost views (they are not a substitu
 
 ## Related reading
 
-- **[Policies & modes](dev-cost.md)** — Recommend vs Cruise, eviction priority.  
+- **[Policies & modes](operate-policies.md)** — Recommend vs Cruise, eviction priority.  
 - **[Tradeoffs](arch-tradeoffs.md)** — eviction, HPA interaction, memory risk.  
 - **[Helm chart reference](reference-helm-chart.md)** — no direct “billing API”; pricing remains a UI concern.
 

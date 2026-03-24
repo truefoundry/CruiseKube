@@ -55,7 +55,7 @@ kubectl logs -n cruisekube-system deploy/cruisekube-webhook-server --tail=200
 
 | Check | Action |
 |-------|--------|
-| **Recommend vs Cruise** | The workload is still on **Recommend** (observe-only)—only **Cruise** applies changes. Confirm in **Policies & Configuration** ([Dashboard](config-dashboard.md), [Policies & modes](dev-cost.md)). |
+| **Recommend vs Cruise** | The workload is still on **Recommend** (observe-only)—only **Cruise** applies changes. Confirm in **Policies & Configuration** ([Dashboard](config-dashboard.md), [Policies & modes](operate-policies.md)). |
 | **HPA** | CPU/memory metric HPA targets are **skipped** entirely. |
 | **Best-effort pods** | Best-effort QoS classes may be excluded from optimization. |
 

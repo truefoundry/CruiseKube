@@ -61,7 +61,7 @@ Local development may use a **`config.local.yaml`** file instead—see [Dev envi
 
 ## Operational policy (not Helm)
 
-Per-workload **mode**, **priority**, and **resource pricing** in the UI are stored in the **application database** (and browser local storage for pricing)—see [Policies & modes](dev-cost.md) and [Resource pricing](operate-resource-pricing.md).
+Per-workload **mode**, **priority**, and **resource pricing** in the UI are stored in the **application database** (and browser local storage for pricing)—see [Policies & modes](operate-policies.md) and [Resource pricing](operate-resource-pricing.md).
 
 ---
 

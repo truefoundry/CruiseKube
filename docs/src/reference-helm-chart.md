@@ -63,7 +63,7 @@ flowchart TB
 | Area | Keys (examples) |
 |------|-----------------|
 | **Prometheus** | `cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` |
-| **Who applies changes** | **Recommend** vs **Cruise** per workload in the dashboard ([Policies & modes](dev-cost.md)); advanced task env vars remain in `values.yaml` if you customize controller/webhook behavior. |
+| **Who applies changes** | **Recommend** vs **Cruise** per workload in the dashboard ([Policies & modes](operate-policies.md)); advanced task env vars remain in `values.yaml` if you customize controller/webhook behavior. |
 | **Memory apply** | `CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION` (controller + webhook) |
 | **Webhook → API** | `cruisekubeWebhook.webhook.statsURL.host` must reach the controller Service from webhook pods |
 | **Frontend → API** | `cruisekubeFrontend.backendURL` |

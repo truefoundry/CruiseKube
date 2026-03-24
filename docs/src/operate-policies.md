@@ -80,7 +80,11 @@ The Helm chart supports **webhook namespace exclusions** (e.g. system namespaces
 
 ## Disruption windows and operational tasks
 
-Releases have introduced **disruption windows** and related controller tasks so optimization can respect **maintenance hours**. If your version includes these APIs, treat them as the bridge between **aggressive savings** and **change risk**. Details live in release notes and values—search `DISRUPTION` / `disruption` in [`values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml).
+Releases have introduced **disruption windows** and related controller tasks so optimization can respect **maintenance hours**. If your version includes these APIs, treat them as the bridge between **aggressive savings** and **change risk**. In the dashboard you can define windows with a visual builder (timezone, days, start/end time); schedules are stored as cron expressions, with local time summarized alongside the UTC values used by the controller.
+
+![Add Disruption Window — visual schedule builder and UTC cron summary](../images/demo-disruption-window.png)
+
+Details also live in release notes and Helm values—search `DISRUPTION` / `disruption` in [`values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml).
 
 ---
 

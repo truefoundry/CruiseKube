@@ -54,7 +54,7 @@ For a line-by-line comparison to Vertical Pod Autoscaler, see [CruiseKube vs VPA
 CruiseKube is built for **progressive trust**:
 
 1. **Install** with Helm, wire **Prometheus** and **PostgreSQL** (or use the bundled chart options).  
-2. **Explore** recommendations in the dashboard—workloads start in **Recommend** (observe-only) until you opt in; see [Installation](gs-installation.md) and [Policies & modes](dev-cost.md).  
+2. **Explore** recommendations in the dashboard—workloads start in **Recommend** (observe-only) until you opt in; see [Installation](gs-installation.md) and [Policies & modes](operate-policies.md).  
 3. **Enable Cruise mode** per workload when you are ready for applied changes.  
 4. **Tune priorities and pricing** so cost views and eviction behavior match your risk model—[Resource pricing](operate-resource-pricing.md) and [Tradeoffs](arch-tradeoffs.md).
 
@@ -88,7 +88,7 @@ flowchart LR
 | Compare to VPA | [CruiseKube vs VPA](comp-vs-vpa.md) |
 | Common questions | [FAQ](overview-faq.md) |
 | Install | [Pre-requisites](gs-prerequisites.md) → [Installation](gs-installation.md) |
-| Day-2 operations | [Dashboard](config-dashboard.md), [Policies & Modes](dev-cost.md), [Troubleshooting](operate-troubleshooting.md) |
+| Day-2 operations | [Dashboard](config-dashboard.md), [Policies & Modes](operate-policies.md), [Troubleshooting](operate-troubleshooting.md) |
 | Internals | [Architecture](arch-introduction.md), [Algorithm](arch-algorithm.md) |
 
 ---

@@ -72,7 +72,7 @@ Optimization is controlled **per workload** in the UI—there is **no separate g
 2. Leave workloads on **Recommend** while you validate suggestions against metrics and SLOs.  
 3. Switch trusted workloads to **Cruise** when you want the controller and webhook to **apply** right-sizing.
 
-Optional Helm knobs (for example **disabling memory application** while tuning CPU) still exist on the controller and webhook—see [`charts/cruisekube/values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml) and [Configuration](config.md). Align changes with [Policies & modes](dev-cost.md) before wide rollout.
+Optional Helm knobs (for example **disabling memory application** while tuning CPU) still exist on the controller and webhook—see [`charts/cruisekube/values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml) and [Configuration](config.md). Align changes with [Policies & modes](operate-policies.md) before wide rollout.
 
 ---
 
@@ -91,6 +91,6 @@ kubectl delete namespace cruisekube-system
 ## Next steps
 
 - [Dashboard](config-dashboard.md)  
-- [Policies & modes](dev-cost.md)  
+- [Policies & modes](operate-policies.md)  
 - [Troubleshooting](operate-troubleshooting.md)  
 - [Architecture](arch-introduction.md)
