@@ -229,7 +229,6 @@ type SimplePrediction struct {
 	MaxValue          float64 `json:"max_value"`
 }
 
-
 func (w *WorkloadStat) CalculateTotalCPURequest() float64 {
 	sumAppSidecar := 0.0
 	maxInit := 0.0
