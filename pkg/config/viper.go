@@ -8,12 +8,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// LoadWithViper loads configuration using Viper from a single config file.
-// Overridden by env vars (prefix cruisekube_) and flags bound by caller.
-func LoadWithViper(ctx context.Context, configFilePath string) (*Config, error) {
-	return LoadWithViperInstance(ctx, viper.New(), configFilePath)
-}
-
 // LoadWithViperInstance loads configuration using a provided Viper instance (for flag binding).
 func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath string) (*Config, error) {
 	// Set defaults matching the new structure

@@ -93,44 +93,10 @@ func Debugf(ctx context.Context, format string, args ...any) {
 	defaultLogger.LogAttrs(ctx, slog.LevelDebug, msg, attrs...)
 }
 
-// Compatibility functions for existing log package usage
-func Printf(ctx context.Context, format string, args ...any) {
-	Infof(ctx, format, args...)
-}
-
-func Println(ctx context.Context, args ...any) {
-	attrs := getContextualAttrs(ctx)
-	msg := fmt.Sprint(args...)
-	defaultLogger.LogAttrs(ctx, slog.LevelInfo, msg, attrs...)
-}
-
-func Fatal(ctx context.Context, msg string, args ...any) {
-	Error(ctx, msg, args...)
-	FlushReporter(2 * time.Second)
-	os.Exit(1)
-}
-
 func Fatalf(ctx context.Context, format string, args ...any) {
 	Errorf(ctx, format, args...)
 	FlushReporter(2 * time.Second)
 	os.Exit(1)
-}
-
-// Configuration functions
-func SetLevel(level slog.Level) {
-	opts := &slog.HandlerOptions{
-		Level: level,
-	}
-	handler := slog.NewJSONHandler(os.Stdout, opts)
-	defaultLogger = slog.New(handler)
-}
-
-func SetTextOutput() {
-	opts := &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}
-	handler := slog.NewTextHandler(os.Stdout, opts)
-	defaultLogger = slog.New(handler)
 }
 
 func getContextualAttrs(ctx context.Context) []slog.Attr {

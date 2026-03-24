@@ -435,59 +435,6 @@ func BuildContainerStatFromCache(ctx context.Context, workloadInfo WorkloadInfo,
 	return workloadStat
 }
 
-func ParseThrottlingResults(ctx context.Context, throttlingResults RawBatchResult) []ThrottledWorkload {
-	var throttledWorkloads []ThrottledWorkload
-
-	for rawKey, throttlingRatio := range throttlingResults {
-		kind, namespace, workloadName, containerName, ok := ParseWorkloadContainerKey(rawKey)
-		if !ok {
-			logging.Errorf(ctx, "[CreateStats] Failed to parse throttling result key: %s", rawKey)
-			continue
-		}
-
-		if kind == ReplicaSetKind {
-			if deploymentName, isDeployment := ExtractWorkloadFromReplicaSet(workloadName); isDeployment {
-				kind = DeploymentKind
-				workloadName = deploymentName
-			}
-		}
-
-		workloadInfo := WorkloadInfo{
-			Kind:      kind,
-			Namespace: namespace,
-			Name:      workloadName,
-		}
-
-		throttledWorkload := ThrottledWorkload{
-			WorkloadInfo:    workloadInfo,
-			ThrottlingRatio: throttlingRatio,
-			ContainerName:   containerName,
-		}
-
-		throttledWorkloads = append(throttledWorkloads, throttledWorkload)
-	}
-
-	logging.Infof(ctx, "[CreateStats] Detected %d throttled workload containers", len(throttledWorkloads))
-	return throttledWorkloads
-}
-
-func GetUniqueThrottledWorkloads(ctx context.Context, throttledWorkloads []ThrottledWorkload) []WorkloadInfo {
-	uniqueWorkloads := make(map[string]WorkloadInfo)
-
-	for _, throttled := range throttledWorkloads {
-		workloadKey := GetWorkloadKey(throttled.WorkloadInfo.Kind, throttled.WorkloadInfo.Namespace, throttled.WorkloadInfo.Name)
-		uniqueWorkloads[workloadKey] = throttled.WorkloadInfo
-	}
-
-	var result []WorkloadInfo
-	for _, workloadInfo := range uniqueWorkloads {
-		result = append(result, workloadInfo)
-	}
-
-	logging.Infof(ctx, "Found %d unique throttled workloads", len(result))
-	return result
-}
-
 func GetWorkloadKey(kind, namespace, name string) string {
 	return fmt.Sprintf("%s:%s:%s", kind, namespace, name)
 }
@@ -557,8 +504,6 @@ func GetWorkloadInfoFromPod(pod *corev1.Pod) *WorkloadInfo {
 		Name:      workloadRef.Name,
 	}
 }
-
-func PtrTo[T any](v T) *T { return &v }
 
 // IsSidecarContainer checks if an InitContainer is a sidecar container
 func IsSidecarContainer(initContainer corev1.Container) bool {
