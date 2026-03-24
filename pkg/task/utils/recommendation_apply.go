@@ -34,6 +34,9 @@ func ShouldGenerateRecommendation(
 	if podInfo.Stats == nil {
 		return false, "no stats for workload"
 	}
+	if ok, reason := HasCompletePodRecommendationData(podInfo); !ok {
+		return false, reason
+	}
 	if podInfo.IsBestEffortPod() {
 		return false, "best effort pod"
 	}
@@ -44,6 +47,57 @@ func ShouldGenerateRecommendation(
 
 	if podInfo.Stats.IsHorizontallyAutoscaledOnCPU || podInfo.Stats.IsHorizontallyAutoscaledOnMem {
 		return false, "workload is horizontally autoscaled on CPU or memory"
+	}
+
+	return true, ""
+}
+
+func HasCompleteContainerRecommendationData(containerStat *ContainerStats) bool {
+	return containerStat != nil &&
+		containerStat.CPUStats != nil &&
+		containerStat.MemoryStats != nil &&
+		containerStat.SimplePredictionsCPU != nil &&
+		containerStat.SimplePredictionsMemory != nil
+}
+
+func HasCompletePodRecommendationData(podInfo *PodInfo) (bool, string) {
+	if podInfo == nil || podInfo.Stats == nil {
+		return false, "no stats for workload"
+	}
+
+	containerStatsByName := make(map[string]*ContainerStats, len(podInfo.Stats.ContainerStats))
+	for i := range podInfo.Stats.ContainerStats {
+		containerStat := &podInfo.Stats.ContainerStats[i]
+		containerStatsByName[containerStat.ContainerName] = containerStat
+	}
+
+	if len(podInfo.Stats.OriginalContainerResources) > 0 {
+		for _, containerRes := range podInfo.Stats.OriginalContainerResources {
+			if containerRes.Type == types.InitContainer {
+				continue
+			}
+			containerStat := containerStatsByName[containerRes.Name]
+			if !HasCompleteContainerRecommendationData(containerStat) {
+				return false, fmt.Sprintf("incomplete stats for container %s", containerRes.Name)
+			}
+		}
+		return true, ""
+	}
+
+	nonInitContainers := 0
+	for i := range podInfo.Stats.ContainerStats {
+		containerStat := &podInfo.Stats.ContainerStats[i]
+		if containerStat.ContainerType == types.InitContainer {
+			continue
+		}
+		nonInitContainers++
+		if !HasCompleteContainerRecommendationData(containerStat) {
+			return false, fmt.Sprintf("incomplete stats for container %s", containerStat.ContainerName)
+		}
+	}
+
+	if nonInitContainers == 0 {
+		return false, "no container stats for workload"
 	}
 
 	return true, ""
