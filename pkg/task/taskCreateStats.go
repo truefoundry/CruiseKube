@@ -171,12 +171,6 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 			workloadInfo,
 			namespaceQueryResults,
 			namespaceVsWorkloadMetrics,
-			// namespaceVsWorkloadPredictions[workloadInfo.Namespace],
-			// namespaceVsWorkloadPredictionsPSIAdjusted[workloadInfo.Namespace],
-			// namespaceVsWorkloadMemoryPredictions[workloadInfo.Namespace],
-			map[string]utils.WorkloadPrediction{},
-			map[string]utils.WorkloadPrediction{},
-			map[string]utils.WorkloadPrediction{},
 			namespaceVsSimpleCPUPredictions[workloadInfo.Namespace],
 			namespaceVsSimpleMemoryPredictions[workloadInfo.Namespace],
 			workloadHpaCpuMap,
@@ -236,9 +230,6 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	workloadInfo utils.WorkloadInfo,
 	nsVsContainerMetrics utils.NamespaceVsContainerMetrics,
 	nsVsWorkloadMetrics utils.NamespaceVsWorkloadMetrics,
-	containerKeyVsCPUPrediction map[string]utils.WorkloadPrediction,
-	containerKeyVsCPUPredictionPSIAdjusted map[string]utils.WorkloadPrediction,
-	containerKeyVsMemoryPrediction map[string]utils.WorkloadPrediction,
 	workloadContainerKeyVsSimpleCPUPrediction map[string]utils.SimplePrediction,
 	workloadContainerKeyVsSimpleMemoryPrediction map[string]utils.SimplePrediction,
 	workloadHpaCpuMap map[string]bool,
@@ -325,49 +316,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 
 	for i := range workloadStat.ContainerStats {
 		containerStat := &workloadStat.ContainerStats[i]
-
-		var mlPredictedCPU *utils.MLPercentilesCPU
-		var mlPredictedMemory *utils.MLPercentilesMemory
-
 		workloadContainerKey := utils.GetWorkloadContainerKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name, containerStat.ContainerName)
-
-		containerCPUPrediction, exists := containerKeyVsCPUPrediction[workloadContainerKey]
-		if !exists {
-			// logging.Infof(ctx, "Error: No ML CPU prediction found for %s", workloadContainerKey)
-		} else {
-			mlPredictedCPU = &utils.MLPercentilesCPU{
-				Median: containerCPUPrediction.Median,
-				P90:    containerCPUPrediction.P90,
-				P95:    containerCPUPrediction.P95,
-				P99:    containerCPUPrediction.P99,
-			}
-			containerStat.MLPercentilesCPU = mlPredictedCPU
-		}
-		containerPredictionPSIAdjusted, psiAdjustedExists := containerKeyVsCPUPredictionPSIAdjusted[workloadContainerKey]
-		if !psiAdjustedExists {
-			// logging.Infof(ctx, "Error: No ML CPU prediction (PSI adjusted) found for %s", workloadContainerKey)
-		} else {
-			mlPercentilesCPUPSIAdjusted := &utils.MLPercentilesCPUPSIAdjusted{
-				Median: containerPredictionPSIAdjusted.Median,
-				P90:    containerPredictionPSIAdjusted.P90,
-				P95:    containerPredictionPSIAdjusted.P95,
-				P99:    containerPredictionPSIAdjusted.P99,
-			}
-			containerStat.MLPercentilesCPUPSIAdjusted = mlPercentilesCPUPSIAdjusted
-		}
-
-		containerMemoryPrediction, memoryExists := containerKeyVsMemoryPrediction[workloadContainerKey]
-		if !memoryExists {
-			// logging.Infof(ctx, "Error: No ML memory prediction found for %s", workloadContainerKey)
-		} else {
-			mlPredictedMemory = &utils.MLPercentilesMemory{
-				Median: containerMemoryPrediction.Median,
-				P90:    containerMemoryPrediction.P90,
-				P95:    containerMemoryPrediction.P95,
-				P99:    containerMemoryPrediction.P99,
-			}
-		}
-		containerStat.MLPercentilesMemory = mlPredictedMemory
 
 		if simpleCPUPrediction, exists := workloadContainerKeyVsSimpleCPUPrediction[workloadContainerKey]; exists {
 			containerStat.SimplePredictionsCPU = &simpleCPUPrediction

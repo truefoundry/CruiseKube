@@ -17,19 +17,6 @@ type PodKey struct {
 	PodName   string
 }
 
-type ContainerKey struct {
-	Namespace     string
-	PodName       string
-	ContainerName string
-}
-
-type WorkloadContainerKey struct {
-	Kind          string
-	Namespace     string
-	Name          string
-	ContainerName string
-}
-
 type WorkloadLabelSelectorList struct {
 	Kind      string
 	Namespace string
@@ -46,21 +33,10 @@ type WorkloadPrediction struct {
 	P99    float64
 }
 
-type PredictionStatsResponse struct {
-	Median [][][]float64 `json:"median"`
-	P90    [][][]float64 `json:"p90"`
-	P95    [][][]float64 `json:"p95"`
-	P99    [][][]float64 `json:"p99"`
-}
-
 type SimpleTimeSeriesData struct {
 	EntityName string    `json:"entity_name"`
 	Timestamps []string  `json:"timestamps"`
 	Values     []float64 `json:"values"`
-}
-
-type SimpleTimeSeriesRequest struct {
-	TimeSeriesData []SimpleTimeSeriesData `json:"timeseries_data"`
 }
 
 type SimplePredictionResponse struct {
@@ -73,27 +49,12 @@ type SimplePredictionResponse struct {
 
 type SimplePrediction = types.SimplePrediction
 
-type ThrottledWorkload struct {
-	WorkloadInfo    WorkloadInfo
-	ThrottlingRatio float64
-	ContainerName   string
-}
-
 type PodMetrics struct {
 	TotalRecommendedCPU    float64
 	TotalRecommendedMemory float64
 	MaxRestCPU             float64
 	MaxRestMemory          float64
 	EvictionRanking        types.EvictionRanking
-}
-
-type NonOptimizablePodInfo struct {
-	PodName        string  `json:"pod_name"`
-	PodInfo        PodInfo `json:"pod_info"`
-	PodNamespace   string  `json:"pod_namespace"`
-	CurrentCPU     float64 `json:"current_cpu"`
-	CurrentMemory  float64 `json:"current_memory"`
-	ContainerCount int     `json:"container_count"`
 }
 
 type PodContainerRecommendation struct {
