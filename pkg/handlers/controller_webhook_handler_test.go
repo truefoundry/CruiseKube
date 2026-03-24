@@ -202,12 +202,6 @@ func testWorkloadStat() *types.WorkloadStat {
 		ContainerStats: []types.ContainerStats{
 			{
 				ContainerName: "app",
-				CPUStats: &types.CPUStats{
-					Max: 0.25,
-				},
-				MemoryStats: &types.MemoryStats{
-					Max: 150,
-				},
 				SimplePredictionsCPU: &types.SimplePrediction{
 					MaxValue: 0.3,
 				},
