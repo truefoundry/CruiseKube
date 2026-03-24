@@ -43,6 +43,14 @@ type ParallelQueryRequest struct {
 	Query   string
 }
 
+type namespaceQueryExecutionStats struct {
+	TotalRequests   int
+	CPURequests     int
+	PSIRequests     int
+	MemoryRequests  int
+	ReplicaRequests int
+}
+
 func (p *PrometheusProvider) getOrCreateQuerySemaphore(clusterId string) chan struct{} {
 	if semaphore, ok := p.querySemaphores.Load(clusterId); ok {
 		if sem, ok := semaphore.(chan struct{}); ok {
@@ -94,6 +102,7 @@ func (p *PrometheusProvider) ExecuteQueryWithRetry(ctx context.Context, clusterI
 	var result model.Value
 	var warnings []string
 
+	totalStart := time.Now()
 	for attempt := range p.config.MaxQueryRetries {
 		ctx, cancel := p.createQueryContext(ctx)
 
@@ -113,6 +122,7 @@ func (p *PrometheusProvider) ExecuteQueryWithRetry(ctx context.Context, clusterI
 				logging.Infof(ctx, "Query %s returned %d warning(s) in %v", queryID, len(warnings), attemptDuration)
 				span.SetAttributes(attribute.Int("warnings.count", len(warnings)))
 			}
+			logging.Infof(ctx, "[PromTiming] phase=query_complete query_id=%s total_duration=%v attempts=%d warnings=%d", queryID, time.Since(totalStart), attempt+1, len(warnings))
 			return result, warnings, nil
 		}
 
@@ -130,13 +140,17 @@ func (p *PrometheusProvider) ExecuteQueryWithRetry(ctx context.Context, clusterI
 		span.RecordError(lastErr)
 		span.SetStatus(codes.Error, lastErr.Error())
 	}
+	logging.Infof(ctx, "[PromTiming] phase=query_failed query_id=%s total_duration=%v attempts=%d", queryID, time.Since(totalStart), p.config.MaxQueryRetries)
 	return nil, warnings, fmt.Errorf("query %s failed after %d attempts: %w", queryID, p.config.MaxQueryRetries, lastErr)
 }
 
 func (p *PrometheusProvider) executeQueriesInParallel(ctx context.Context, clusterId string, requests []ParallelQueryRequest) (map[string]QueryResult, error) {
+	batchStart := time.Now()
 	results := make(map[string]QueryResult)
 	resultsChan := make(chan QueryResult, len(requests))
 	var wg sync.WaitGroup
+
+	logging.Infof(ctx, "[PromTiming] phase=batch_execute_start query_count=%d cluster=%s", len(requests), clusterId)
 
 	for _, req := range requests {
 		wg.Add(1)
@@ -160,9 +174,12 @@ func (p *PrometheusProvider) executeQueriesInParallel(ctx context.Context, clust
 	for result := range resultsChan {
 		results[result.QueryID] = result
 		if result.Error != nil {
+			logging.Infof(ctx, "[PromTiming] phase=batch_execute_failed query_count=%d duration=%v failed_query=%s", len(requests), time.Since(batchStart), result.QueryID)
 			return nil, fmt.Errorf("error executing query %s: %w", result.QueryID, result.Error)
 		}
 	}
+
+	logging.Infof(ctx, "[PromTiming] phase=batch_execute_complete query_count=%d duration=%v cluster=%s", len(requests), time.Since(batchStart), clusterId)
 
 	return results, nil
 }
@@ -173,6 +190,7 @@ func CompressQueryForLogging(query string) string {
 }
 
 func (p *PrometheusProvider) FetchStatsForNamespaces(ctx context.Context, clusterId string, namespaces []string, isPSIEnabled bool) (utils.NamespaceVsContainerMetrics, utils.NamespaceVsWorkloadMetrics, error) {
+	fetchStart := time.Now()
 	globalContainerCache := make(utils.NamespaceVsContainerMetrics)
 	globalWorkloadCache := make(utils.NamespaceVsWorkloadMetrics)
 
@@ -187,6 +205,7 @@ func (p *PrometheusProvider) FetchStatsForNamespaces(ctx context.Context, cluste
 	var wg sync.WaitGroup
 
 	logging.Infof(ctx, "Starting parallel execution for %d namespaces", len(namespaces))
+	logging.Infof(ctx, "[PromTiming] phase=fetch_namespaces_start namespaces=%d psi_enabled=%t cluster=%s", len(namespaces), isPSIEnabled, clusterId)
 
 	for _, namespace := range namespaces {
 		wg.Add(1)
@@ -214,27 +233,30 @@ func (p *PrometheusProvider) FetchStatsForNamespaces(ctx context.Context, cluste
 			successCount++
 		} else {
 			logging.Infof(ctx, "Failed to execute batch queries for namespace %s: %v", result.namespace, result.error)
+			logging.Infof(ctx, "[PromTiming] phase=fetch_namespaces_failed namespace=%s duration=%v", result.namespace, time.Since(fetchStart))
 			return nil, nil, result.error
 		}
 	}
+
+	logging.Infof(ctx, "[PromTiming] phase=fetch_namespaces_complete namespaces=%d succeeded=%d duration=%v cluster=%s", len(namespaces), successCount, time.Since(fetchStart), clusterId)
 
 	return globalContainerCache, globalWorkloadCache, nil
 }
 
 func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, clusterId string, namespace string, isPSIEnabled bool) (utils.WorkloadKeyVsContainerMetrics, utils.WorkloadKeyVsWorkloadMetrics, error) {
+	namespaceStart := time.Now()
 	logging.Infof(ctx, "Executing all batch queries for namespace: %s", namespace)
 
 	cache := make(utils.WorkloadKeyVsContainerMetrics)
 	workloadKeyVsWorkloadMetrics := make(utils.WorkloadKeyVsWorkloadMetrics)
 	var requests []ParallelQueryRequest
+	stats := namespaceQueryExecutionStats{}
 
 	cpuQueries := []struct {
 		percentile float64
 		key        string
 	}{
-		{0.50, "cpu_p50"},
 		{0.75, "cpu_p75"},
-		{1.0, "cpu_max"},
 	}
 
 	for _, q := range cpuQueries {
@@ -243,6 +265,7 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 			QueryID: fmt.Sprintf("%s-%s", namespace, q.key),
 			Query:   query,
 		})
+		stats.CPURequests++
 	}
 
 	if isPSIEnabled {
@@ -252,6 +275,7 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 				QueryID: fmt.Sprintf("%s-%s-psi", namespace, q.key),
 				Query:   query,
 			})
+			stats.PSIRequests++
 		}
 	}
 
@@ -260,8 +284,8 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 		key        string
 	}{
 		{0.75, "memory_p75"},
-		{1.0, "memory_max"},
 	}
+	memory7DayKey := "memory_max"
 
 	for _, q := range memoryQueries {
 		query := p.EncloseWithinMemoryCleanupFunction(p.buildBatchMemoryRecommendationQuery(namespace, q.percentile), MemoryDecimalPlaces)
@@ -269,13 +293,15 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 			QueryID: fmt.Sprintf("%s-%s-memory", namespace, q.key),
 			Query:   query,
 		})
+		stats.MemoryRequests++
 	}
 
 	query := p.EncloseWithinMemoryCleanupFunction(p.buildBatch7DayMemoryRecommendationQuery(namespace, 1.0), MemoryDecimalPlaces)
 	requests = append(requests, ParallelQueryRequest{
-		QueryID: fmt.Sprintf("%s-%s-memory-7day", namespace, "memory_max"),
+		QueryID: fmt.Sprintf("%s-%s-memory-7day", namespace, memory7DayKey),
 		Query:   query,
 	})
+	stats.MemoryRequests++
 
 	replicaQueryExpr := p.buildBatchReplicaCountQuery(namespace)
 	replicaQuery := fmt.Sprintf("quantile_over_time(0.5, (%s)[%s:1h])", replicaQueryExpr, ReplicaLookbackWindow.String())
@@ -283,11 +309,32 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 		QueryID: fmt.Sprintf("%s-replica", namespace),
 		Query:   replicaQuery,
 	})
+	stats.ReplicaRequests++
+	stats.TotalRequests = len(requests)
+
+	logging.Infof(
+		ctx,
+		"[PromTiming] phase=namespace_query_plan namespace=%s total_queries=%d cpu=%d cpu_psi=%d memory=%d replica=%d psi_enabled=%t",
+		namespace,
+		stats.TotalRequests,
+		stats.CPURequests,
+		stats.PSIRequests,
+		stats.MemoryRequests,
+		stats.ReplicaRequests,
+		isPSIEnabled,
+	)
 
 	results, err := p.executeQueriesInParallel(ctx, clusterId, requests)
 	if err != nil {
+		logging.Infof(ctx, "[PromTiming] phase=namespace_query_failed namespace=%s duration=%v", namespace, time.Since(namespaceStart))
 		return nil, nil, err
 	}
+
+	parseStart := time.Now()
+	var cpuParseDuration time.Duration
+	var psiParseDuration time.Duration
+	var memoryParseDuration time.Duration
+	var replicaParseDuration time.Duration
 
 	for _, q := range cpuQueries {
 		queryID := fmt.Sprintf("%s-%s", namespace, q.key)
@@ -301,7 +348,9 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 				logging.Infof(ctx, "Warnings from %s query for namespace %s: %v", q.key, namespace, result.Warnings)
 			}
 
+			parseQueryStart := time.Now()
 			rawResults, err := p.parsePrometheusVectorResultForContainer(result.Result)
+			cpuParseDuration += time.Since(parseQueryStart)
 			if err != nil {
 				logging.Infof(ctx, "Error parsing %s results for namespace %s: %v", q.key, namespace, err)
 				continue
@@ -323,30 +372,15 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 				logging.Infof(ctx, "Warnings from %s query for namespace %s: %v", q.key, namespace, result.Warnings)
 			}
 
+			parseQueryStart := time.Now()
 			rawResults, err := p.parsePrometheusVectorResultForContainer(result.Result)
+			psiParseDuration += time.Since(parseQueryStart)
 			if err != nil {
 				logging.Infof(ctx, "Error parsing %s results for namespace %s: %v", q.key, namespace, err)
 				continue
 			}
 
 			utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, q.key, true)
-		}
-	}
-
-	if result, exists := results[fmt.Sprintf("%s-memory", namespace)]; exists {
-		if result.Error != nil {
-			logging.Infof(ctx, "Error getting Memory metrics for namespace %s: %v", namespace, result.Error)
-		} else {
-			if len(result.Warnings) > 0 {
-				logging.Infof(ctx, "Warnings from Memory query for namespace %s: %v", namespace, result.Warnings)
-			}
-
-			rawResults, err := p.parsePrometheusVectorResultForContainer(result.Result)
-			if err != nil {
-				logging.Infof(ctx, "Error parsing Memory results for namespace %s: %v", namespace, err)
-			} else {
-				utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, "memory_max", false)
-			}
 		}
 	}
 
@@ -362,7 +396,9 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 				logging.Infof(ctx, "Warnings from %s query for namespace %s: %v", q.key, namespace, result.Warnings)
 			}
 
+			parseQueryStart := time.Now()
 			rawResults, err := p.parsePrometheusVectorResultForContainer(result.Result)
+			memoryParseDuration += time.Since(parseQueryStart)
 			if err != nil {
 				logging.Infof(ctx, "Error parsing %s results for namespace %s: %v", q.key, namespace, err)
 				continue
@@ -372,25 +408,23 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 		}
 	}
 
-	for _, q := range memoryQueries {
-		queryID := fmt.Sprintf("%s-%s-memory-7day", namespace, q.key)
-		if result, exists := results[queryID]; exists {
-			if result.Error != nil {
-				logging.Infof(ctx, "Error getting 7-day %s metrics for namespace %s: %v", q.key, namespace, result.Error)
-				continue
-			}
-
+	queryID := fmt.Sprintf("%s-%s-memory-7day", namespace, memory7DayKey)
+	if result, exists := results[queryID]; exists {
+		if result.Error != nil {
+			logging.Infof(ctx, "Error getting 7-day %s metrics for namespace %s: %v", memory7DayKey, namespace, result.Error)
+		} else {
 			if len(result.Warnings) > 0 {
-				logging.Infof(ctx, "Warnings from 7-day %s query for namespace %s: %v", q.key, namespace, result.Warnings)
+				logging.Infof(ctx, "Warnings from 7-day %s query for namespace %s: %v", memory7DayKey, namespace, result.Warnings)
 			}
 
+			parseQueryStart := time.Now()
 			rawResults, err := p.parsePrometheusVectorResultForContainer(result.Result)
+			memoryParseDuration += time.Since(parseQueryStart)
 			if err != nil {
-				logging.Infof(ctx, "Error parsing 7-day %s results for namespace %s: %v", q.key, namespace, err)
-				continue
+				logging.Infof(ctx, "Error parsing 7-day %s results for namespace %s: %v", memory7DayKey, namespace, err)
+			} else {
+				utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, "memory_max_7day", false)
 			}
-
-			utils.MergeContainerRawResultsIntoCache(ctx, cache, rawResults, q.key+"_7day", false)
 		}
 	}
 
@@ -402,7 +436,9 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 				logging.Infof(ctx, "Warnings from Replica query for namespace %s: %v", namespace, result.Warnings)
 			}
 
+			parseQueryStart := time.Now()
 			replicaResults, err := p.parsePrometheusVectorResultForWorkload(ctx, result.Result)
+			replicaParseDuration += time.Since(parseQueryStart)
 			if err != nil {
 				logging.Infof(ctx, "Error parsing Replica results for namespace %s: %v", namespace, err)
 			} else {
@@ -426,6 +462,21 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 			}
 		}
 	}
+
+	logging.Infof(
+		ctx,
+		"[PromTiming] phase=namespace_query_complete namespace=%s total_duration=%v parse_duration=%v cpu_parse=%v psi_parse=%v memory_parse=%v replica_parse=%v container_workloads=%d workload_metrics=%d total_queries=%d",
+		namespace,
+		time.Since(namespaceStart),
+		time.Since(parseStart),
+		cpuParseDuration,
+		psiParseDuration,
+		memoryParseDuration,
+		replicaParseDuration,
+		len(cache),
+		len(workloadKeyVsWorkloadMetrics),
+		stats.TotalRequests,
+	)
 
 	return cache, workloadKeyVsWorkloadMetrics, nil
 }
