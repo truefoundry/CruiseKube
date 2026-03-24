@@ -509,12 +509,9 @@ func (p *PrometheusProvider) buildBatchCPUUsageExpression(namespace string, psiA
 	return fmt.Sprintf(template, namespace, RateIntervalMinutes, psiAdjustedQuery)
 }
 
-func (p *PrometheusProvider) buildBatchThrottlingAwareCPUExpression(namespace string, psiAdjusted bool) string {
-	// throttlingRatio := buildBatchThrottlingRatioExpression(namespace)
+func (p *PrometheusProvider) buildBatchCPUExpression(namespace string, psiAdjusted bool) string {
 	cpuUsage := p.buildBatchCPUUsageExpression(namespace, psiAdjusted)
 	podInfo := p.buildBatchPodInfoExpression(namespace)
-	// throttledStartupFilter := fmt.Sprintf(`and on (namespace, pod, container) ((time() - kube_pod_container_state_started{job="kube-state-metrics", namespace="%s", container!~""}) >= %d)`, namespace, CPUThrottledLookbackWindow * 60)
-	// throttledStartupFilter := ""
 	template := `(
 		(
 			max by (created_by_kind, created_by_name, namespace, container, node) (
@@ -531,11 +528,11 @@ func (p *PrometheusProvider) buildBatchThrottlingAwareCPUExpression(namespace st
 }
 
 func (p *PrometheusProvider) BuildBatchCoreCPUExpression(namespace string, psiAdjusted bool) string {
-	throttlingAwareCPU := p.buildBatchThrottlingAwareCPUExpression(namespace, psiAdjusted)
+	cpu := p.buildBatchCPUExpression(namespace, psiAdjusted)
 
 	template := `(max by (created_by_kind, created_by_name, namespace, container) (%s) or vector(0))`
 
-	return fmt.Sprintf(template, throttlingAwareCPU)
+	return fmt.Sprintf(template, cpu)
 }
 
 func (p *PrometheusProvider) EncloseWithinQuantileOverTime(query string, quantileLookbackWindow time.Duration, percentile float64) string {
@@ -679,76 +676,4 @@ func (p *PrometheusProvider) buildBatchReplicaCountQuery(namespace string) strin
 	template := `count by (created_by_kind, created_by_name, namespace) (%s)`
 
 	return fmt.Sprintf(template, podInfo)
-}
-
-func ConvertModelValueToPrometheusJSON(result model.Value, warnings []string) (map[string]interface{}, error) {
-	response := map[string]interface{}{
-		"status": "success",
-		"data":   map[string]interface{}{},
-	}
-
-	if warnings != nil {
-		response["warnings"] = warnings
-	} else {
-		response["warnings"] = []string{}
-	}
-
-	var resultType string
-	var results []interface{}
-
-	switch v := result.(type) {
-	case model.Vector:
-		resultType = "vector"
-		for _, sample := range v {
-			metric := make(map[string]string)
-			for k, v := range sample.Metric {
-				metric[string(k)] = string(v)
-			}
-			results = append(results, map[string]interface{}{
-				"metric": metric,
-				"value":  []interface{}{float64(sample.Timestamp) / 1000.0, sample.Value.String()},
-			})
-		}
-
-	case *model.Scalar:
-		resultType = "scalar"
-		results = append(results, map[string]interface{}{
-			"metric": map[string]string{},
-			"value":  []interface{}{float64(v.Timestamp) / 1000.0, v.Value.String()},
-		})
-
-	case model.Matrix:
-		resultType = "matrix"
-		for _, series := range v {
-			metric := make(map[string]string)
-			for k, v := range series.Metric {
-				metric[string(k)] = string(v)
-			}
-			values := make([][]interface{}, len(series.Values))
-			for i, val := range series.Values {
-				values[i] = []interface{}{float64(val.Timestamp) / 1000.0, val.Value.String()}
-			}
-			results = append(results, map[string]interface{}{
-				"metric": metric,
-				"values": values,
-			})
-		}
-
-	case *model.String:
-		resultType = "string"
-		results = append(results, map[string]interface{}{
-			"metric": map[string]string{},
-			"value":  []interface{}{float64(v.Timestamp) / 1000.0, v.Value},
-		})
-
-	default:
-		return nil, fmt.Errorf("unsupported result type: %T", result)
-	}
-
-	response["data"] = map[string]interface{}{
-		"resultType": resultType,
-		"result":     results,
-	}
-
-	return response, nil
 }

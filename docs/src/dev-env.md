@@ -222,6 +222,13 @@ Typical development flow:
 - Run with `go run cmd/cruisekube/main.go --config-file-path config.local.yaml`.
 - Use the SQLite DB in `stats-data/` and the frontend to verify behavior.
 
+For Go code quality checks, the repo also exposes:
+
+- `make test` to run the Go test suite.
+- `make deadcode` to run the pinned deadcode analyzer with `golang.org/x/tools/cmd/deadcode@v0.43.0 -test ./cmd/cruisekube`.
+
+The CI workflow runs `deadcode` as a separate informational job, so contributors can see current unreachable-function reports without making the pipeline fail.
+
 For testing and contribution process (PRs, changelog, etc.), see [CONTRIBUTING.md](../../CONTRIBUTING.md) and [DEVELOPMENT.md](../../DEVELOPMENT.md).
 
 ---

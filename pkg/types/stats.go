@@ -172,13 +172,10 @@ type ContainerStats struct {
 }
 
 type CPUStats struct {
-	Max float64 `json:"max"`
-	P50 float64 `json:"p50"`
 	P75 float64 `json:"p75"`
 }
 
 type MemoryStats struct {
-	Max       float64 `json:"max"`
 	P75       float64 `json:"p75"`
 	OOMMemory float64 `json:"oom_memory,omitempty"`
 }
@@ -209,8 +206,6 @@ type MLPercentilesMemory struct {
 }
 
 type PSIAdjustedUsageStats struct {
-	Max float64 `json:"max"`
-	P50 float64 `json:"p50"`
 	P75 float64 `json:"p75"`
 }
 
@@ -234,43 +229,6 @@ type SimplePrediction struct {
 	MaxValue          float64 `json:"max_value"`
 }
 
-func (w *WorkloadStat) CalculateTotalCPUStats(percentile float64) float64 {
-	sumAppSidecar := 0.0
-	maxInit := 0.0
-
-	for _, c := range w.ContainerStats {
-		v := c.CPUStats.GetPercentile(percentile)
-		switch c.ContainerType {
-		case AppContainer, SidecarContainer:
-			sumAppSidecar += v
-		case InitContainer:
-			maxInit = max(maxInit, v)
-		}
-	}
-
-	return max(sumAppSidecar, maxInit)
-}
-
-func (w *WorkloadStat) CalculateTotalMemoryStats(percentile float64) float64 {
-	sumAppSidecar := 0.0
-	maxInit := 0.0
-
-	for _, c := range w.ContainerStats {
-		if c.MemoryStats == nil {
-			continue
-		}
-
-		v := c.MemoryStats.GetPercentile(percentile)
-		switch c.ContainerType {
-		case AppContainer, SidecarContainer:
-			sumAppSidecar += v
-		case InitContainer:
-			maxInit = max(maxInit, v)
-		}
-	}
-
-	return max(sumAppSidecar, maxInit)
-}
 
 func (w *WorkloadStat) CalculateTotalCPURequest() float64 {
 	sumAppSidecar := 0.0
@@ -302,28 +260,6 @@ func (w *WorkloadStat) CalculateTotalMemoryRequest() float64 {
 	}
 
 	return max(sumAppSidecar, maxInit)
-}
-
-func (c *CPUStats) GetPercentile(percentile float64) float64 {
-	switch percentile {
-	case 50:
-		return c.P50
-	case 75:
-		return c.P75
-	case 100:
-		return c.Max
-	}
-	return 0.0
-}
-
-func (m *MemoryStats) GetPercentile(percentile float64) float64 {
-	switch percentile {
-	case 75:
-		return m.P75
-	case 100:
-		return m.Max
-	}
-	return 0.0
 }
 
 func (w *WorkloadStat) GetContainerStats(containerName string) (*ContainerStats, error) {

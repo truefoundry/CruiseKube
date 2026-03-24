@@ -1,12 +1,5 @@
 package config
 
-import (
-	"fmt"
-	"os"
-
-	"gopkg.in/yaml.v2"
-)
-
 const (
 	ApplyRecommendationKey = "applyrecommendation"
 	FetchMetricsKey        = "fetchmetrics"
@@ -145,18 +138,3 @@ const (
 	ExecutionModeWebhook    ExecutionMode = "webhook"
 	ExecutionModeBoth       ExecutionMode = "both"
 )
-
-func LoadConfig(path string) (*Config, error) {
-	// #nosec G304 - path is controlled by the application configuration
-	bytes, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	var config Config
-	if err := yaml.Unmarshal(bytes, &config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config from file: %w", err)
-	}
-
-	return &config, nil
-}
