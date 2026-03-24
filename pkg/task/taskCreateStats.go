@@ -316,49 +316,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 
 	for i := range workloadStat.ContainerStats {
 		containerStat := &workloadStat.ContainerStats[i]
-
-		var mlPredictedCPU *utils.MLPercentilesCPU
-		var mlPredictedMemory *utils.MLPercentilesMemory
-
 		workloadContainerKey := utils.GetWorkloadContainerKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name, containerStat.ContainerName)
-
-		containerCPUPrediction, exists := containerKeyVsCPUPrediction[workloadContainerKey]
-		if !exists {
-			// logging.Infof(ctx, "Error: No ML CPU prediction found for %s", workloadContainerKey)
-		} else {
-			mlPredictedCPU = &utils.MLPercentilesCPU{
-				Median: containerCPUPrediction.Median,
-				P90:    containerCPUPrediction.P90,
-				P95:    containerCPUPrediction.P95,
-				P99:    containerCPUPrediction.P99,
-			}
-			containerStat.MLPercentilesCPU = mlPredictedCPU
-		}
-		containerPredictionPSIAdjusted, psiAdjustedExists := containerKeyVsCPUPredictionPSIAdjusted[workloadContainerKey]
-		if !psiAdjustedExists {
-			// logging.Infof(ctx, "Error: No ML CPU prediction (PSI adjusted) found for %s", workloadContainerKey)
-		} else {
-			mlPercentilesCPUPSIAdjusted := &utils.MLPercentilesCPUPSIAdjusted{
-				Median: containerPredictionPSIAdjusted.Median,
-				P90:    containerPredictionPSIAdjusted.P90,
-				P95:    containerPredictionPSIAdjusted.P95,
-				P99:    containerPredictionPSIAdjusted.P99,
-			}
-			containerStat.MLPercentilesCPUPSIAdjusted = mlPercentilesCPUPSIAdjusted
-		}
-
-		containerMemoryPrediction, memoryExists := containerKeyVsMemoryPrediction[workloadContainerKey]
-		if !memoryExists {
-			// logging.Infof(ctx, "Error: No ML memory prediction found for %s", workloadContainerKey)
-		} else {
-			mlPredictedMemory = &utils.MLPercentilesMemory{
-				Median: containerMemoryPrediction.Median,
-				P90:    containerMemoryPrediction.P90,
-				P95:    containerMemoryPrediction.P95,
-				P99:    containerMemoryPrediction.P99,
-			}
-		}
-		containerStat.MLPercentilesMemory = mlPredictedMemory
 
 		if simpleCPUPrediction, exists := workloadContainerKeyVsSimpleCPUPrediction[workloadContainerKey]; exists {
 			containerStat.SimplePredictionsCPU = &simpleCPUPrediction
