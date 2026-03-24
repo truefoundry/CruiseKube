@@ -48,24 +48,23 @@ From [instances.vantage.sh — c5a.xlarge](https://instances.vantage.sh/aws/ec2/
 | **CPU** | **0.0145** / core / hour |
 | **Memory** | **0.00724** / GiB / hour |
 
-!!! tip "Suggested media"
-    **Screenshot** of **Policies → Resource Pricing** with example custom rates filled in—readers see exactly where values land in the UI.
-
 ---
 
 ## Where to configure
 
 1. Open the dashboard (see [Dashboard](config-dashboard.md)).  
-2. Go to **Policies → Resource Pricing**.  
+2. In **Policies & Configuration**, open the **Resource pricing** (or equivalent) tab—CPU and memory unit rates used for dashboard cost cards and per-workload savings.  
 3. Enter **CPU** and **memory** unit prices.  
 
 Values are stored **in the browser** for the cost views (they are not a substitute for your cloud bill).
+
+![Resource pricing settings in Policies & Configuration](../images/demo-pricing.png)
 
 ---
 
 ## Related reading
 
-- **[Policies & Modes](dev-cost.md)** — recommend vs cruise, priorities, dry-run.  
+- **[Policies & modes](dev-cost.md)** — Recommend vs Cruise, eviction priority.  
 - **[Tradeoffs](arch-tradeoffs.md)** — eviction, HPA interaction, memory risk.  
 - **[Helm chart reference](reference-helm-chart.md)** — no direct “billing API”; pricing remains a UI concern.
 

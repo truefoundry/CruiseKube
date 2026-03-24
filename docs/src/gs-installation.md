@@ -1,6 +1,6 @@
 ---
 title: "Installation"
-description: "Install CruiseKube with Helm from the OCI registry, verify pods, access the dashboard, and disable dry-run when you are ready to apply recommendations."
+description: "Install CruiseKube with Helm from the OCI registry, verify pods, access the dashboard, and roll out Recommend vs Cruise modes when you are ready."
 keywords:
   - CruiseKube installation
   - Helm OCI
@@ -62,28 +62,17 @@ kubectl port-forward -n cruisekube-system svc/cruisekube-frontend 3000:3000
 
 Open **http://localhost:3000**. See [Dashboard](config-dashboard.md) for UI concepts.
 
-!!! tip "Suggested media"
-    **Screenshot** of the workload list after first successful stats run—even placeholder data helps readers know they are “done” with install.
-
 ---
 
-## Apply recommendations: disable dry-run
+## Apply recommendations (Recommend vs Cruise)
 
-By default, **dry-run** prevents unintended mutations. When you are ready for live changes, set the controller **apply** task and **webhook** dry-run flags to **`false`**, and align memory application with your policy.
+Optimization is controlled **per workload** in the UI—there is **no separate global “dry-run mode”** toggle.
 
-```bash
-helm upgrade --install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \
-  --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
-  --set postgresql.enabled=true \
-  --set cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false \
-  --set cruisekubeController.env.CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_DRYRUN=false \
-  --set cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false \
-  --set cruisekubeWebhook.env.CRUISEKUBE_WEBHOOK_DRYRUN=false
-```
+1. Open **Policies & Configuration** → **CruiseKube mode & priority** (see [Dashboard](config-dashboard.md)).  
+2. Leave workloads on **Recommend** while you validate suggestions against metrics and SLOs.  
+3. Switch trusted workloads to **Cruise** when you want the controller and webhook to **apply** right-sizing.
 
-Cross-check keys against the current [`charts/cruisekube/values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml) on the tag you deploy—names are stable but new toggles appear over time.
-
-Read [Policies & modes](dev-cost.md) before flipping enforcement in production.
+Optional Helm knobs (for example **disabling memory application** while tuning CPU) still exist on the controller and webhook—see [`charts/cruisekube/values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml) and [Configuration](config.md). Align changes with [Policies & modes](dev-cost.md) before wide rollout.
 
 ---
 

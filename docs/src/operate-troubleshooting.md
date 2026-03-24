@@ -1,6 +1,6 @@
 ---
 title: "Troubleshooting"
-description: "Common CruiseKube installation and runtime issues: Prometheus connectivity, webhook failures, empty recommendations, dry-run confusion, and HPA exclusions."
+description: "Common CruiseKube installation and runtime issues: Prometheus connectivity, webhook failures, empty recommendations, Recommend vs Cruise confusion, and HPA exclusions."
 keywords:
   - CruiseKube troubleshooting
   - webhook debug
@@ -55,8 +55,7 @@ kubectl logs -n cruisekube-system deploy/cruisekube-webhook-server --tail=200
 
 | Check | Action |
 |-------|--------|
-| **Dry-run flags** | Controller **apply** task and webhook may still be in **dry-run**—see [Installation](gs-installation.md#apply-recommendations-disable-dry-run). |
-| **Recommend vs Cruise** | Per-workload **Recommend** mode never applies. |
+| **Recommend vs Cruise** | The workload is still on **Recommend** (observe-only)—only **Cruise** applies changes. Confirm in **Policies & Configuration** ([Dashboard](config-dashboard.md), [Policies & modes](dev-cost.md)). |
 | **HPA** | CPU/memory metric HPA targets are **skipped** entirely. |
 | **Best-effort pods** | Best-effort QoS classes may be excluded from optimization. |
 

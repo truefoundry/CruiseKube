@@ -50,7 +50,7 @@ hide:
         🔒
       </div>
       <h3>Safe Operations</h3>
-      <p>Built-in safeguards and dry-run modes ensure your workloads remain stable</p>
+      <p>Per-workload Recommend and Cruise modes so you observe first, then apply safely</p>
     </div>
   </div>
 </div>
@@ -87,8 +87,8 @@ hide:
   </div>
   <div class="demo-image">
 
-<img src="./images/demo_recommendation.png" alt="Recommendation Demo"/>
-<img src="./images/demo_workload_toggle.png" alt="Workload Toggle"/>
+<img src="./images/demo-overview.png" alt="Recommendation Demo"/>
+<img src="./images/demo-workload.png" alt="Workload Toggle"/>
 </div>
 </div>
 

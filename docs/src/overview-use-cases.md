@@ -85,7 +85,7 @@ flowchart LR
 
 **Situation:** You want proof on **one namespace** or **one service line** before global enforcement.
 
-**What CruiseKube does:** Operate in **recommend-only** or **dry-run** modes, then enable **Cruise mode** selectively. See [Policies & Modes](dev-cost.md).
+**What CruiseKube does:** Keep workloads on **Recommend** until you trust the numbers, then enable **Cruise** selectively per workload. See [Policies & modes](dev-cost.md).
 
 **Outcome:** Measurable signal (metrics + dashboard) before broad automation.
 

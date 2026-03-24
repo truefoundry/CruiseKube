@@ -30,8 +30,6 @@ CruiseKube reads **container and node metrics** (usage, throttling, PSI where ex
 - You may use an **existing** Prometheus or install one via Helm (see the collapsible example on the [Installation](gs-installation.md) page).
 - Set `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` (or equivalent) to a URL reachable **from the controller pods** (in-cluster Service URL, not `localhost`).
 
-!!! tip "Suggested media"
-    **Screenshot** of Prometheus **Targets** showing kubelet/cAdvisor or your scrape config reaching pod metrics—helps readers validate their stack before blaming CruiseKube.
 
 **PSI (Pressure Stall Indicator):** CruiseKube’s algorithm is built around **PSI-aware CPU** reasoning on clusters that expose the right metrics (Kubernetes 1.34+ PSI story). If PSI is absent, behavior degrades toward usage-only signals—still useful, but not identical to a full PSI deployment. See [Algorithm](arch-algorithm.md).
 

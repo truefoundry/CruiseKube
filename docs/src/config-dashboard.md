@@ -25,30 +25,26 @@ kubectl port-forward -n cruisekube-system svc/cruisekube-frontend 3000:3000
 ### **Using ingress (if configured)**
 If you have configured an ingress controller and exposed the dashboard via ingress, you can access it using the configured domain.
 
-## Workload & Recommendation
+## Workloads & recommendations
 
-You can view the recommendations and manage workloads through the dashboard. This tells you the current status, optimization suggestions and cost saved for your workloads.
+The **Workloads** view shows cluster-wide cost estimates, CPU/memory allocatable vs requested vs utilised, and a searchable workload table (current vs recommended resources, possible savings, and per-workload **mode**).
 
-<img src="../../images/demo_recommendation.png" alt="Recommendations Dashboard" width="1000"/>
+![CruiseKube Workloads dashboard showing recommendations and cost cards](../images/demo-workload.png)
 
-</br>
+## Policies & configuration
 
-## Policies & Configuration
+Open **Policies & Configuration** in the sidebar to manage **CruiseKube mode & priority** per workload (and other policy tabs such as Prometheus-related settings where available).
 
-You can configure optimization policies and settings for your workloads through the dashboard.
+![Policies and Configuration — CruiseKube mode and priority](../images/demo-config.png)
 
-<img src="../../images/demo_workload_toggle.png" alt="Workload Toggle" width="1000"/>
+## Per-workload mode and priority
 
-## Configure Options For Workloads
+Each workload uses a **Recommend** / **Cruise** toggle and a **priority** dropdown:
 
-1. **Recommend mode** (*disabled* in the UI): No optimization is applied to the workload—CruiseKube still ingests metrics for guidance.
-2. **Cruise mode** (*enabled*): CruiseKube applies optimization to the workload based on the configured policies.
+1. **Recommend** — CruiseKube **computes** recommendations and shows them in the UI; it does **not** apply in-place resource changes for that workload.
+2. **Cruise** — CruiseKube **applies** optimizations for that workload according to controller schedules and safety rules.
+3. **Priority** — Controls eviction ordering when a node cannot fit the optimized set (low → evicted first; **No-eviction** never evicted for optimization). Single-replica and StatefulSet workloads often default to safer tiers—see [Policies & modes](dev-cost.md).
 
-For dry-run behavior at the Helm layer, see [Installation](gs-installation.md) and [Policies & modes](dev-cost.md).
-3. **Priority**: We use a notion of per-workload priority to make sure the lower priority workloads are evicted first if possible. Workloads with single replica or part of a statefulset are kept at a higher priority by default.
-      - **Low**: Low priority workloads are evicted first. This is the priority for most workloads by default
-      - **Medium**: Medium priority workloads are evicted next. Single replica or statefulset workloads are set to this value by default
-      - **High**: High priority workloads are evicted as a last resort
-      - **No-Eviction**: No-eviction workloads are never evicted at all
+![Recommend vs Cruise toggle and priority column](../images/demo_workload.png)
 
-<img src="../../images/demo_toggle_explain.png" alt="Workload Toggle Explanation" width="1000"/>
+Roll out conservatively by leaving workloads on **Recommend** until you validate recommendations, then switch critical cohorts to **Cruise**—see [Installation](gs-installation.md) and [Policies & modes](dev-cost.md).

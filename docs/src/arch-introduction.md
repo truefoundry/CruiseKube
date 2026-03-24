@@ -250,5 +250,5 @@ sequenceDiagram
 ## Next steps
 
 - [Introduction](overview.md) — product narrative and adoption path  
-- [Installation](gs-installation.md) — Helm install and dry-run rollout
+- [Installation](gs-installation.md) — Helm install and Recommend → Cruise rollout
 

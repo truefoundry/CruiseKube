@@ -1,16 +1,16 @@
 ---
 title: "Policies & modes"
-description: "Recommend vs Cruise mode, eviction priority, dry-run flags, and how per-workload policies interact with the controller and webhook."
+description: "Recommend vs Cruise mode, eviction priority, and how per-workload policies interact with the controller and webhook."
 keywords:
   - CruiseKube policies
   - Cruise mode
-  - dry run
+  - Recommend mode
   - eviction priority
 ---
 
 # Policies & modes
 
-CruiseKube separates **observation** from **enforcement**. The dashboard is where most teams set **mode**, **eviction priority**, and related per-workload behavior (see also [Dashboard](config-dashboard.md)).
+CruiseKube separates **observation** from **enforcement** using **per-workload** settings. The **Policies & Configuration** screen is where most teams set **mode**, **eviction priority**, and related behavior (see [Dashboard](config-dashboard.md)).
 
 ---
 
@@ -18,39 +18,41 @@ CruiseKube separates **observation** from **enforcement**. The dashboard is wher
 
 | Mode | Behavior (intent) |
 |------|-------------------|
-| **Recommend** (*disabled* in the UI wording) | CruiseKube **computes** guidance but does **not** apply changes that resize workloads. Use for shadowing and trust building. |
-| **Cruise** (*enabled*) | CruiseKube **applies** recommendations according to cluster settings, schedules, and safety checks. |
+| **Recommend** | CruiseKube **computes** recommendations and shows them in the dashboard; it does **not** apply in-place resource changes for that workload. |
+| **Cruise** | CruiseKube **applies** optimizations for that workload according to controller schedules, admission webhook behavior, and safety rules. |
 
 !!! tip "Suggested media"
-    **GIF** toggling a workload between modes with the confirmation or state chip visible—anchors the mental model for new users.
+    Short **GIF** of the **Recommend** / **Cruise** toggle and priority dropdown on a single row—matches the current UI.
 
-Exact UI labels evolve; always match what you see in your deployed frontend version.
+Exact labels can vary slightly by release; trust what you see in your deployed frontend.
 
 ---
 
-## Dry-run vs live application
+## Rolling out changes safely
 
-Helm values map to **controller** and **webhook** environment variables. Typical production rollouts:
+Typical progression:
 
-1. Leave **dry-run** enabled initially so the system **records stats** and surfaces recommendations.  
-2. Disable dry-run for **controller apply** and **webhook mutation** when ready—see [Installation — disable dry-run](gs-installation.md#apply-recommendations-disable-dry-run).
+1. **Install** and let **stats / metrics** tasks populate the database.  
+2. Keep workloads on **Recommend** until recommendations look credible for your SLOs.  
+3. Move cohorts to **Cruise** in stages (namespace-by-namespace or tier-by-tier).  
 
 ```mermaid
 flowchart TD
   subgraph observe[Observe]
     S[Stats + metrics tasks]
-    R[Recommendations in UI]
+    R[Dashboard — Recommend mode]
   end
   subgraph enforce[Enforce]
-    A[Apply recommendation task]
+    A[Runtime optimizer]
     W[Admission webhook]
   end
   S --> R
-  R -->|Trust built| A
-  R -->|Trust built| W
+  R -->|Validated| C[Cruise mode per workload]
+  C --> A
+  C --> W
 ```
 
-**Memory application** can be gated separately (`CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION` and related flags)—useful if you want CPU-only automation first.
+**Memory-specific behavior** can still be gated at deploy time with `CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION` (controller and webhook) if you want CPU-only automation first—see [Configuration](config.md) and [`values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml).
 
 ---
 

@@ -33,8 +33,8 @@ flowchart LR
 | Surface | Purpose |
 |---------|---------|
 | **Helm values** | Replicas, images, resources, ServiceMonitor, webhook certs, Postgres subchart. |
-| **`cruisekubeController.env`** | Controller-only: Prometheus URL, task schedules, dry-run, DB, server port, telemetry. |
-| **`cruisekubeWebhook.env`** | Webhook-only: dry-run, memory toggles, stats API host. |
+| **`cruisekubeController.env`** | Controller-only: Prometheus URL, task schedules, DB, server port, telemetry, recommendation task metadata. |
+| **`cruisekubeWebhook.env`** | Webhook-only: memory toggles, stats API host, webhook-specific env from chart. |
 | **`cruisekubeFrontend.*`** | UI image, `backendURL`, service ports. |
 | **`global.postgresql.auth.*`** | External DB connection when `postgresql.enabled=false`. |
 
@@ -47,13 +47,13 @@ Exact names must match your chart version—verify in `values.yaml` on the tag y
 | Concern | Representative env vars |
 |---------|-------------------------|
 | **Prometheus** | `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL`, `CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY` |
-| **Apply loop** | `CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_*` (enable, schedule, dry-run, skip memory) |
+| **Apply loop** | `CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_*` (enable, schedule, skip memory, metadata URLs) |
 | **Stats** | `CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_*` |
 | **Metrics export** | `CRUISEKUBE_CONTROLLER_TASKS_FETCHMETRICS_*` |
 | **HTTP API** | `CRUISEKUBE_SERVER_PORT`, `CRUISEKUBE_SERVER_BASICAUTH_*` |
 | **DB** | `CRUISEKUBE_DB_*` |
 | **Recommendation policy** | `CRUISEKUBE_RECOMMENDATIONSETTINGS_*` (e.g. new workload threshold, OOM cooldown) |
-| **Webhook** | `CRUISEKUBE_WEBHOOK_DRYRUN`, stats URL host mapping |
+| **Webhook** | Stats URL host mapping and webhook env from `values.yaml` |
 
 Local development may use a **`config.local.yaml`** file instead—see [Dev environment](dev-env.md).
 
