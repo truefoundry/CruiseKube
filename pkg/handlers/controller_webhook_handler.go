@@ -358,12 +358,12 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 			continue
 		}
 
-		recommendedCPU := containerStat.SimplePredictionsCPU.MaxValue
+		recommendedCPU := max(containerStat.SimplePredictionsCPU.MaxValue, containerStat.CPUStats.P75)
 		if recommendedCPU > utils.CPUClampValue {
 			recommendedCPU = utils.CPUClampValue
 		}
 
-		recommendedMemory := containerStat.SimplePredictionsMemory.MaxValue
+		recommendedMemory := max(containerStat.SimplePredictionsMemory.MaxValue, containerStat.MemoryStats.P75)
 		if containerStat.MemoryStats.OOMMemory > 0 && containerStat.MemoryStats.OOMMemory > recommendedMemory {
 			recommendedMemory = containerStat.MemoryStats.OOMMemory
 		}

@@ -321,8 +321,8 @@ func (s *AdjustAmongstPodsDistributedStrategy) performEvictionLoop(
 			result.PodContainerRecommendations = append(result.PodContainerRecommendations, utils.PodContainerRecommendation{
 				PodInfo:       podInfo,
 				ContainerName: containerStat.ContainerName,
-				CPU:           containerStat.SimplePredictionsCPU.MaxValue,
-				Memory:        containerStat.SimplePredictionsMemory.MaxValue,
+				CPU:           s.getPredictedCPUMax(containerStat),
+				Memory:        s.getPredictedMemoryMax(containerStat),
 				Evict:         true,
 			})
 		}
@@ -339,7 +339,10 @@ func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestMemory(ctx c
 		return containerStat.MemoryStats.OOMMemory, 0.0
 	}
 
-	return containerStat.MemoryStats.P75, containerStat.SimplePredictionsMemory.MaxValue - containerStat.MemoryStats.P75
+	recommendedMemory := containerStat.MemoryStats.P75
+	pmax := s.getPredictedMemoryMax(containerStat)
+
+	return recommendedMemory, max(0.0, pmax-recommendedMemory)
 }
 
 func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestCPU(ctx context.Context, pod utils.PodInfo, containerStat utils.ContainerStats) (float64, float64) {
@@ -348,13 +351,26 @@ func (s *AdjustAmongstPodsDistributedStrategy) GetRecommendedAndRestCPU(ctx cont
 		recommendedCPU = containerStat.PSIAdjustedUsage.P75
 	}
 
-	pmax := containerStat.SimplePredictionsCPU.MaxValue
+	pmax := s.getPredictedCPUMax(containerStat)
 
-	rest := (pmax - recommendedCPU)
+	rest := max(0.0, pmax-recommendedCPU)
 
 	logging.Infof(ctx, "Variable diff calculation for %s/%s/%s: recommended_cpu=%.1f, pmax=%.3f, rest=%.3f",
 		pod.Namespace, pod.Name, containerStat.ContainerName,
 		recommendedCPU, pmax, rest)
 
 	return recommendedCPU, rest
+}
+
+func (s *AdjustAmongstPodsDistributedStrategy) getPredictedCPUMax(containerStat utils.ContainerStats) float64 {
+	recommendedCPU := containerStat.CPUStats.P75
+	if containerStat.PSIAdjustedUsage != nil {
+		recommendedCPU = containerStat.PSIAdjustedUsage.P75
+	}
+
+	return max(containerStat.SimplePredictionsCPU.MaxValue, recommendedCPU)
+}
+
+func (s *AdjustAmongstPodsDistributedStrategy) getPredictedMemoryMax(containerStat utils.ContainerStats) float64 {
+	return max(containerStat.SimplePredictionsMemory.MaxValue, containerStat.MemoryStats.P75)
 }
