@@ -9,10 +9,18 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.2.5-rc.1 (2026-03-25)
+
 ### Breaking Changes
+* Remove obsolete write/apply config gates by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/195
+* Remove dry-run support by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/196
 * CruiseKube and the Helm charts removed legacy dry-run config, CLI, and chart fields. Recommendation application mutates by default now. Before upgrading, remove all legacy dry-run keys from your values files, environment variables, and CLI flags.
 
-### Terminology Changes
+### Improvements
+* simplifying node_stats_builder.go by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/197
+* Remove unused create-stats max metrics by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/198
+
+### Other
 * Removed dry-run support from CruiseKube. Historical changelog entries may still refer to the previous dry-run flow.
 
 ## v0.2.4 (2026-03-19)
