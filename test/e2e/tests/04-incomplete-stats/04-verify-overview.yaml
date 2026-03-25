@@ -13,7 +13,9 @@ commands:
       import math
       import os
 
-      payload = json.loads(os.environ["RESPONSE"])
+      raw = os.environ["RESPONSE"]
+      json_start = min(index for index in (raw.find("{"), raw.find("[")) if index != -1)
+      payload, _ = json.JSONDecoder().raw_decode(raw[json_start:])
       adoption = payload["coverage"]["adoption"]
       cpu_stats = payload["cpuStats"]
       memory_stats = payload["memoryStats"]

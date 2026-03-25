@@ -13,7 +13,9 @@ commands:
       import math
       import os
 
-      payload = json.loads(os.environ["RESPONSE"])
+      raw = os.environ["RESPONSE"]
+      json_start = min(index for index in (raw.find("{"), raw.find("[")) if index != -1)
+      payload, _ = json.JSONDecoder().raw_decode(raw[json_start:])
       assert payload["namespace"] == "test-incomplete-stats", payload
       assert payload["workload"] == "incomplete-deployment", payload
       assert math.isclose(payload["current_cpu_request"], 0.3, rel_tol=0, abs_tol=1e-9), payload
