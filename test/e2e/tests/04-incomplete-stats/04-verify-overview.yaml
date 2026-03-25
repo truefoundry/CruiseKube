@@ -4,10 +4,11 @@ kind: TestStep
 commands:
   - command: echo "=== VERIFYING /ui/overview RESPONSE ==="
   - command: |
+      sh -ceu '
       RESPONSE="$(kubectl run curl-overview-incomplete --rm -i --restart=Never --image=curlimages/curl:latest -n cruisekube-system -- \
         curl -s http://cruisekube-controller.cruisekube-system.svc.cluster.local:8080/api/v1/clusters/default/ui/overview)"
       export RESPONSE
-      python3 - <<'PY'
+      python3 - <<'"'"'PY'"'"'
       import json
       import math
       import os
@@ -27,3 +28,4 @@ commands:
       assert math.isclose(memory_stats["recommended"], 0.192, rel_tol=0, abs_tol=1e-9), memory_stats
       print("Overview payload verified successfully")
       PY
+      '
