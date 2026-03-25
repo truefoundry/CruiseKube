@@ -298,12 +298,16 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		}
 
 		effectiveStat := *stat
-		if len(recsByWorkload[w.WorkloadID]) == 0 && !stat.IsIncomplete() {
+		workloadRecs := recsByWorkload[w.WorkloadID]
+		if stat.IsIncomplete() {
+			workloadRecs = nil
+		}
+		if len(workloadRecs) == 0 && !stat.IsIncomplete() {
 			effectiveStat.Replicas = 0
 		}
 
 		detail := buildWorkloadDetail(w, &effectiveStat)
-		agg := aggregateRecsForWorkload(recsByWorkload[w.WorkloadID], &effectiveStat)
+		agg := aggregateRecsForWorkload(workloadRecs, &effectiveStat)
 
 		recAgg[w.WorkloadID] = agg
 

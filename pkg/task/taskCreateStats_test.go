@@ -64,6 +64,25 @@ func TestBuildBaseWorkloadStatPrefersWorkloadMetricsReplicaCount(t *testing.T) {
 	}
 }
 
+func TestBuildBaseWorkloadStatDoesNotOverwriteReplicaFallbackWithZeroMetric(t *testing.T) {
+	task := &CreateStatsTask{}
+	workloadInfo := utils.WorkloadInfo{Kind: "Deployment", Namespace: "ns", Name: "app"}
+	workloadObj := fakeWorkloadObject{creationTime: time.Unix(100, 0).UTC(), replicas: 3}
+	containerResources := []utils.OriginalContainerResources{{Name: "main", Type: types.AppContainer}}
+	workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
+	workloadMetrics := utils.NamespaceVsWorkloadMetrics{
+		"ns": {
+			workloadKey: {MedianReplicas: 0},
+		},
+	}
+
+	stat := task.buildBaseWorkloadStat(workloadInfo, workloadObj, containerResources, workloadMetrics)
+
+	if stat.Replicas != 3 {
+		t.Fatalf("expected workload replica fallback to be preserved when metric replicas are zero, got %d", stat.Replicas)
+	}
+}
+
 func TestMarkWorkloadStatIncompletePreservesExistingExcludedCodes(t *testing.T) {
 	task := &CreateStatsTask{}
 	stat := &utils.WorkloadStat{

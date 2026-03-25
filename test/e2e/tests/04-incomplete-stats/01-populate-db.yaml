@@ -6,9 +6,13 @@ metadata:
   namespace: cruisekube-system
 data:
   populate.sql: |
-    DELETE FROM pod_resource_recommendations WHERE cluster_id = 'default';
-    DELETE FROM workloads WHERE cluster_id = 'default';
-    DELETE FROM snapshots WHERE cluster_id = 'default';
+    DELETE FROM pod_resource_recommendations
+    WHERE cluster_id = 'default'
+      AND workload_id = 'Deployment:test-incomplete-stats:incomplete-deployment';
+
+    DELETE FROM workloads
+    WHERE cluster_id = 'default'
+      AND workload_id = 'Deployment:test-incomplete-stats:incomplete-deployment';
 
     INSERT INTO workloads (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
@@ -65,10 +69,18 @@ spec:
   ttlSecondsAfterFinished: 300
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
       restartPolicy: Never
       containers:
       - name: populate-db
         image: postgres:15-alpine
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
         command:
         - sh
         - -c
@@ -84,6 +96,13 @@ spec:
         env:
         - name: PGPASSWORD
           value: cruisekube
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
         volumeMounts:
         - name: scripts
           mountPath: /scripts

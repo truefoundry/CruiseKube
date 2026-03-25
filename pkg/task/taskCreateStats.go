@@ -336,11 +336,6 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 		c.markWorkloadStatIncomplete(workloadStat)
 	}
 
-	workloadMetrics, exists := nsVsWorkloadMetrics[workloadInfo.Namespace][workloadKey]
-	if exists {
-		workloadStat.Replicas = int32(workloadMetrics.MedianReplicas)
-	}
-
 	switch {
 	case workloadStat.Constraints != nil && workloadStat.Constraints.DoNotDisruptAnnotation:
 		workloadStat.EvictionRanking = types.EvictionRankingDisabled
