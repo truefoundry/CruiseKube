@@ -129,6 +129,8 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 	first := true
 
 	if len(recs) == 0 {
+		totalCPU = stat.CalculateTotalCPURequest() * float64(stat.Replicas)
+		totalMem = stat.CalculateTotalMemoryRequest() * float64(stat.Replicas)
 		return workloadRecAgg{
 			CPUMin:   stat.CalculateTotalCPURequest(),
 			CPUMax:   stat.CalculateTotalCPURequest(),
@@ -136,8 +138,8 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 			MemMin:   stat.CalculateTotalMemoryRequest(),
 			MemAvg:   stat.CalculateTotalMemoryRequest(),
 			MemMax:   stat.CalculateTotalMemoryRequest(),
-			TotalCPU: stat.CalculateTotalCPURequest(),
-			TotalMem: stat.CalculateTotalMemoryRequest()}
+			TotalCPU: totalCPU,
+			TotalMem: totalMem}
 	}
 
 	for _, p := range recs {
@@ -295,28 +297,28 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 			continue
 		}
 
-		// If no recommendations are found, set the replicas to 0
-		if len(recsByWorkload[w.WorkloadID]) == 0 {
-			stat.Replicas = 0
+		effectiveStat := *stat
+		if len(recsByWorkload[w.WorkloadID]) == 0 && !stat.IsIncomplete() {
+			effectiveStat.Replicas = 0
 		}
 
-		detail := buildWorkloadDetail(w, stat)
-		agg := aggregateRecsForWorkload(recsByWorkload[w.WorkloadID], stat)
+		detail := buildWorkloadDetail(w, &effectiveStat)
+		agg := aggregateRecsForWorkload(recsByWorkload[w.WorkloadID], &effectiveStat)
 
 		recAgg[w.WorkloadID] = agg
 
 		// Per Pod Current Request
-		currentCPUPerPod := stat.CalculateTotalCPURequest()
-		currentMemPerPod := stat.CalculateTotalMemoryRequest()
+		currentCPUPerPod := effectiveStat.CalculateTotalCPURequest()
+		currentMemPerPod := effectiveStat.CalculateTotalMemoryRequest()
 
 		cpuChange, memChange := 0.0, 0.0
 		// If replicas are greater than 0, add the total CPU and memory to the cluster request and recommendation
-		if stat.Replicas > 0 {
+		if effectiveStat.Replicas > 0 {
 			////////////////////////////////////////////////////////////
 			// Added to global cluster request and recommendation
 			////////////////////////////////////////////////////////////
-			clusterReqCPU += currentCPUPerPod * float64(stat.Replicas)
-			clusterReqMem += currentMemPerPod * float64(stat.Replicas)
+			clusterReqCPU += currentCPUPerPod * float64(effectiveStat.Replicas)
+			clusterReqMem += currentMemPerPod * float64(effectiveStat.Replicas)
 
 			clusterRecCPU += agg.TotalCPU
 			clusterRecMem += agg.TotalMem
