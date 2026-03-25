@@ -26,26 +26,12 @@ func WithAPI(ctx context.Context, api string) context.Context {
 	return context.WithValue(ctx, APIContextKey, api)
 }
 
-func WithNamespace(ctx context.Context, namespace string) context.Context {
-	return context.WithValue(ctx, NamespaceContextKey, namespace)
-}
-
 func WithQueryID(ctx context.Context, queryID string) context.Context {
 	return context.WithValue(ctx, QueryIDContextKey, queryID)
 }
 
-func GetTask(ctx context.Context) (string, bool) {
-	val, ok := ctx.Value(TaskContextKey).(string)
-	return val, ok && val != ""
-}
-
 func GetCluster(ctx context.Context) (string, bool) {
 	val, ok := ctx.Value(ClusterContextKey).(string)
-	return val, ok && val != ""
-}
-
-func GetAPI(ctx context.Context) (string, bool) {
-	val, ok := ctx.Value(APIContextKey).(string)
 	return val, ok && val != ""
 }
 
