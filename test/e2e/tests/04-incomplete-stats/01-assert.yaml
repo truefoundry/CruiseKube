@@ -1,0 +1,8 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: populate-incomplete-stats-db
+  namespace: cruisekube-system
+status:
+  succeeded: 1

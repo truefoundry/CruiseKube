@@ -1,0 +1,93 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: populate-incomplete-stats-db-script
+  namespace: cruisekube-system
+data:
+  populate.sql: |
+    DELETE FROM pod_resource_recommendations WHERE cluster_id = 'default';
+    DELETE FROM workloads WHERE cluster_id = 'default';
+    DELETE FROM snapshots WHERE cluster_id = 'default';
+
+    INSERT INTO workloads (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
+    VALUES (
+        'default',
+        'Deployment:test-incomplete-stats:incomplete-deployment',
+        '{
+          "workload": "Deployment:test-incomplete-stats:incomplete-deployment",
+          "kind": "Deployment",
+          "namespace": "test-incomplete-stats",
+          "name": "incomplete-deployment",
+          "creation_time": "2024-01-01T00:00:00Z",
+          "is_horizontally_autoscaled_on_cpu": false,
+          "is_horizontally_autoscaled_on_memory": false,
+          "eviction_ranking": 2,
+          "replicas": 2,
+          "metadata": {
+            "excluded": true,
+            "incomplete": true,
+            "excluded_codes": ["INCOMPLETE_STATS"]
+          },
+          "container_stats": [
+            {
+              "container_name": "incomplete",
+              "container_type": 3
+            }
+          ],
+          "original_container_resources": [
+            {
+              "name": "incomplete",
+              "type": 3,
+              "cpu_request": 0.3,
+              "cpu_limit": 0.6,
+              "memory_request": 96.0,
+              "memory_limit": 192.0
+            }
+          ]
+        }',
+        NOW() - INTERVAL '1 hour',
+        NOW(),
+        NOW(),
+        '{"enabled": true}'
+    );
+
+    SELECT workload_id, stats::jsonb->'metadata' AS metadata
+    FROM workloads
+    WHERE cluster_id = 'default';
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: populate-incomplete-stats-db
+  namespace: cruisekube-system
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: populate-db
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          set -euo pipefail
+          echo "Waiting for postgres to be ready..."
+          until pg_isready -h cruisekube-postgresql.cruisekube-system.svc.cluster.local -U cruisekube; do
+            sleep 2
+          done
+          echo "Postgres is ready. Populating database..."
+          psql -v ON_ERROR_STOP=1 -h cruisekube-postgresql.cruisekube-system.svc.cluster.local -U cruisekube -d cruisekube -f /scripts/populate.sql
+          echo "Database populated successfully!"
+        env:
+        - name: PGPASSWORD
+          value: cruisekube
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+      volumes:
+      - name: scripts
+        configMap:
+          name: populate-incomplete-stats-db-script

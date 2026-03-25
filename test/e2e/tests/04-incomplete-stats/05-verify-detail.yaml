@@ -1,0 +1,35 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: echo "=== VERIFYING /detail RESPONSE ==="
+  - command: |
+      RESPONSE="$(kubectl run curl-detail-incomplete --rm -i --restart=Never --image=curlimages/curl:latest -n cruisekube-system -- \
+        curl -s http://cruisekube-controller.cruisekube-system.svc.cluster.local:8080/api/v1/clusters/default/workloads/test-incomplete-stats/incomplete-deployment/detail)"
+      export RESPONSE
+      python3 - <<'PY'
+      import json
+      import math
+      import os
+
+      payload = json.loads(os.environ["RESPONSE"])
+      assert payload["namespace"] == "test-incomplete-stats", payload
+      assert payload["workload"] == "incomplete-deployment", payload
+      assert math.isclose(payload["current_cpu_request"], 0.3, rel_tol=0, abs_tol=1e-9), payload
+      assert math.isclose(payload["current_mem_request"], 96.0, rel_tol=0, abs_tol=1e-9), payload
+      assert math.isclose(payload["potential_cpu_savings"], 0.0, rel_tol=0, abs_tol=1e-9), payload
+      assert math.isclose(payload["potential_mem_savings"], 0.0, rel_tol=0, abs_tol=1e-9), payload
+
+      pods = payload.get("pods") or []
+      assert len(pods) == 2, pods
+      for pod in pods:
+          containers = pod.get("containers") or []
+          assert len(containers) == 1, pod
+          container = containers[0]
+          assert container["container_name"] == "incomplete", container
+          assert math.isclose(container["cpu_request"], 0.3, rel_tol=0, abs_tol=1e-9), container
+          assert math.isclose(container["cpu_rec_request"], 0.3, rel_tol=0, abs_tol=1e-9), container
+          assert math.isclose(container["mem_request"], 96.0, rel_tol=0, abs_tol=1e-9), container
+          assert math.isclose(container["mem_rec_request"], 96.0, rel_tol=0, abs_tol=1e-9), container
+      print("Detail payload verified successfully")
+      PY
