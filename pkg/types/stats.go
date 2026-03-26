@@ -171,6 +171,10 @@ func (w *WorkloadStat) HasExcludedCode(code ExcludedCode) bool {
 	return false
 }
 
+func (w *WorkloadStat) HasExcludedCodes() bool {
+	return w != nil && w.Metadata != nil && len(w.Metadata.ExcludedCodes) > 0
+}
+
 type ContainerStats struct {
 	ContainerName string        `json:"container_name"`
 	ContainerType ContainerType `json:"container_type"`

@@ -248,10 +248,5 @@ func isNonOptimizableWorkload(d types.WorkloadDetail) bool {
 	if d.Constraints.IsGPUWorkload || d.Config.HPAEnabled {
 		return true
 	}
-	for _, code := range d.Config.ExcludedCodes {
-		if code == types.ExcludedCodeIncomplete {
-			return true
-		}
-	}
-	return false
+	return len(d.Config.ExcludedCodes) > 0
 }

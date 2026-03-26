@@ -24,14 +24,14 @@ func TestAggregateRecsForWorkloadWithoutRowsUsesReplicaTotals(t *testing.T) {
 	}
 }
 
-func TestIsNonOptimizableWorkloadTreatsIncompleteStatsAsNonOptimizable(t *testing.T) {
+func TestIsNonOptimizableWorkloadTreatsAnyExcludedCodeAsNonOptimizable(t *testing.T) {
 	workload := types.WorkloadDetail{
 		Config: types.WorkloadConfig{
-			ExcludedCodes: []types.ExcludedCode{types.ExcludedCodeIncomplete},
+			ExcludedCodes: []types.ExcludedCode{types.ExcludedCodeCPUHPA},
 		},
 	}
 
 	if !isNonOptimizableWorkload(workload) {
-		t.Fatal("expected incomplete workload to be classified as non-optimizable")
+		t.Fatal("expected workload with excluded codes to be classified as non-optimizable")
 	}
 }
