@@ -164,12 +164,8 @@ cruisekubeWebhook:
     timeoutSeconds: 10
     ## @param cruisekubeWebhook.mutatingWebhookConfiguration.failurePolicy Failure policy for webhook (Ignore or Fail)
     failurePolicy: "Ignore"
-    namespaceSelector:
-      ## @param cruisekubeWebhook.mutatingWebhookConfiguration.namespaceSelector.excludeNamespaces [array] Namespaces to exclude from webhook processing
-      excludeNamespaces:
-        - "kube-public"
-        - "kube-node-lease"
-        - "local-path-storage"
+    ## @param cruisekubeWebhook.mutatingWebhookConfiguration.namespaceSelector [object] Raw namespaceSelector for the mutating webhook configuration. Leave empty to use the default namespace exclusions.
+    namespaceSelector: {}
   certGen:
     ## @param cruisekubeWebhook.certGen.enabled Enable certificate generation for webhook
     enabled: true
