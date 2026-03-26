@@ -23,12 +23,14 @@ const (
 	ExcludedCodeGPUWorkload ExcludedCode = "GPU_WORKLOAD"
 	ExcludedCodeMemoryHPA   ExcludedCode = "MEMORY_HPA"
 	ExcludedCodeCPUHPA      ExcludedCode = "CPU_HPA"
+	ExcludedCodeIncomplete  ExcludedCode = "INCOMPLETE_STATS"
 )
 
 // WorkloadStatMetadata holds metadata about a workload stat (e.g. exclusion from recommendations).
 type WorkloadStatMetadata struct {
 	Excluded           bool           `json:"excluded"`
 	ExcludedCodes      []ExcludedCode `json:"excluded_codes,omitempty"`
+	Incomplete         bool           `json:"incomplete,omitempty"`
 	IsGPUWorkload      bool           `json:"is_gpu_workload,omitempty"`
 	InDisruptionWindow bool           `json:"in_disruption_window,omitempty"`
 }
@@ -151,6 +153,26 @@ type WorkloadStat struct {
 // IsGPUWorkload returns true if this workload stat is for a GPU workload (should not be sent to frontend).
 func (w *WorkloadStat) IsGPUWorkload() bool {
 	return w.Metadata != nil && w.Metadata.IsGPUWorkload
+}
+
+func (w *WorkloadStat) IsIncomplete() bool {
+	return w.Metadata != nil && w.Metadata.Incomplete
+}
+
+func (w *WorkloadStat) HasExcludedCode(code ExcludedCode) bool {
+	if w == nil || w.Metadata == nil {
+		return false
+	}
+	for _, excludedCode := range w.Metadata.ExcludedCodes {
+		if excludedCode == code {
+			return true
+		}
+	}
+	return false
+}
+
+func (w *WorkloadStat) HasExcludedCodes() bool {
+	return w != nil && w.Metadata != nil && len(w.Metadata.ExcludedCodes) > 0
 }
 
 type ContainerStats struct {

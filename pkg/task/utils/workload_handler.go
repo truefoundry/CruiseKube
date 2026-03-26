@@ -53,6 +53,7 @@ type WorkloadObject interface {
 	GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container
 	GetSelector() (labels.Selector, error)
 	GetCreationTime() time.Time
+	GetReplicas() int32
 }
 
 // DeploymentWrapper wraps appsv1.Deployment to implement WorkloadObject
@@ -112,6 +113,13 @@ func (d DeploymentWrapper) GetCreationTime() time.Time {
 	return d.CreationTimestamp.Time
 }
 
+func (d DeploymentWrapper) GetReplicas() int32 {
+	if d.Spec.Replicas == nil {
+		return 1
+	}
+	return *d.Spec.Replicas
+}
+
 // StatefulSetWrapper wraps appsv1.StatefulSet to implement WorkloadObject
 type StatefulSetWrapper struct {
 	*appsv1.StatefulSet
@@ -169,6 +177,13 @@ func (s StatefulSetWrapper) GetCreationTime() time.Time {
 	return s.CreationTimestamp.Time
 }
 
+func (s StatefulSetWrapper) GetReplicas() int32 {
+	if s.Spec.Replicas == nil {
+		return 1
+	}
+	return *s.Spec.Replicas
+}
+
 // DaemonSetWrapper wraps appsv1.DaemonSet to implement WorkloadObject
 type DaemonSetWrapper struct {
 	*appsv1.DaemonSet
@@ -224,6 +239,10 @@ func (d DaemonSetWrapper) GetSelector() (labels.Selector, error) {
 
 func (d DaemonSetWrapper) GetCreationTime() time.Time {
 	return d.CreationTimestamp.Time
+}
+
+func (d DaemonSetWrapper) GetReplicas() int32 {
+	return d.Status.DesiredNumberScheduled
 }
 
 // GetWorkloadObject retrieves a workload object by kind, namespace, and name
