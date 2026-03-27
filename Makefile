@@ -1,15 +1,20 @@
 CLUSTER_NAME := cruisekube-cluster
 
-.PHONY: help test serve-docs build-docs fetch-contributors
+.PHONY: help test deadcode serve-docs build-docs fetch-contributors
 
 help:
 	@echo "Available targets:"
 	@echo "  test              - Run tests"
+	@echo "  deadcode          - Run the pinned deadcode analysis"
 	@echo "  help              - Show this help message"
 
 test:
 	@echo "Running tests..."
 	@go test ./...
+
+deadcode:
+	@echo "Running deadcode..."
+	@go run golang.org/x/tools/cmd/deadcode@v0.43.0 -test ./cmd/cruisekube
 
 serve-docs: ## Serve docs
 	@command -v mkdocs >/dev/null 2>&1 || { \

@@ -1,12 +1,5 @@
 package config
 
-import (
-	"fmt"
-	"os"
-
-	"gopkg.in/yaml.v2"
-)
-
 const (
 	ApplyRecommendationKey = "applyrecommendation"
 	FetchMetricsKey        = "fetchmetrics"
@@ -67,10 +60,9 @@ type InClusterDeps struct {
 }
 
 type ControllerConfig struct {
-	TargetNamespace         string                 `yaml:"targetNamespace,omitempty" mapstructure:"targetNamespace"`
-	TargetClusterID         string                 `yaml:"targetClusterID,omitempty" mapstructure:"targetClusterID"`
-	WriteAuthorizedClusters []string               `yaml:"writeAuthorizedClusters" mapstructure:"writeAuthorizedClusters"`
-	Tasks                   map[string]*TaskConfig `yaml:"tasks" mapstructure:"tasks"`
+	TargetNamespace string                 `yaml:"targetNamespace,omitempty" mapstructure:"targetNamespace"`
+	TargetClusterID string                 `yaml:"targetClusterID,omitempty" mapstructure:"targetClusterID"`
+	Tasks           map[string]*TaskConfig `yaml:"tasks" mapstructure:"tasks"`
 }
 
 type URLConfig struct {
@@ -92,7 +84,6 @@ type BasicAuthConfig struct {
 type WebhookConfig struct {
 	Port     string    `yaml:"port" mapstructure:"port"`
 	CertsDir string    `yaml:"certsDir" mapstructure:"certsDir"`
-	DryRun   bool      `yaml:"dryRun" mapstructure:"dryRun"`
 	StatsURL URLConfig `yaml:"statsURL" mapstructure:"statsURL"`
 }
 
@@ -107,12 +98,11 @@ type DatabaseConfig struct {
 }
 
 type RecommendationSettings struct {
-	NewWorkloadThresholdHours  int      `yaml:"newWorkloadThresholdHours" mapstructure:"newWorkloadThresholdHours"`
-	DisableMemoryApplication   bool     `yaml:"disableMemoryApplication" mapstructure:"disableMemoryApplication"`
-	ApplyBlacklistedNamespaces []string `yaml:"applyBlacklistedNamespaces" mapstructure:"applyBlacklistedNamespaces"`
-	MaxConcurrentQueries       int      `yaml:"maxConcurrentQueries" mapstructure:"maxConcurrentQueries"`
-	OOMCooldownMinutes         int      `yaml:"oomCooldownMinutes" mapstructure:"oomCooldownMinutes"`
-	OptimizeGuaranteedPods     bool     `yaml:"optimizeGuaranteedPods" mapstructure:"optimizeGuaranteedPods"`
+	NewWorkloadThresholdHours int  `yaml:"newWorkloadThresholdHours" mapstructure:"newWorkloadThresholdHours"`
+	DisableMemoryApplication  bool `yaml:"disableMemoryApplication" mapstructure:"disableMemoryApplication"`
+	MaxConcurrentQueries      int  `yaml:"maxConcurrentQueries" mapstructure:"maxConcurrentQueries"`
+	OOMCooldownMinutes        int  `yaml:"oomCooldownMinutes" mapstructure:"oomCooldownMinutes"`
+	OptimizeGuaranteedPods    bool `yaml:"optimizeGuaranteedPods" mapstructure:"optimizeGuaranteedPods"`
 }
 
 type TelemetryConfig struct {
@@ -148,31 +138,3 @@ const (
 	ExecutionModeWebhook    ExecutionMode = "webhook"
 	ExecutionModeBoth       ExecutionMode = "both"
 )
-
-func LoadConfig(path string) (*Config, error) {
-	// #nosec G304 - path is controlled by the application configuration
-	bytes, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	var config Config
-	if err := yaml.Unmarshal(bytes, &config); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal config from file: %w", err)
-	}
-
-	return &config, nil
-}
-
-func (c *Config) IsClusterWriteAuthorized(clusterID string) bool {
-	if len(c.Controller.WriteAuthorizedClusters) == 0 {
-		return true
-	}
-
-	for _, authorizedCluster := range c.Controller.WriteAuthorizedClusters {
-		if authorizedCluster == clusterID {
-			return true
-		}
-	}
-	return false
-}

@@ -37,23 +37,21 @@ type RecommendationResult struct {
 }
 
 type ApplyRecommendationMetadata struct {
-	DryRun       bool             `yaml:"dryRun" json:"dryRun" mapstructure:"dryRun"`
 	NodeStatsURL config.URLConfig `yaml:"nodeStatsURL" json:"nodeStatsURL" mapstructure:"nodeStatsURL"`
 	OverridesURL config.URLConfig `yaml:"overridesURL" json:"overridesURL" mapstructure:"overridesURL"`
 	SkipMemory   bool             `yaml:"skipMemory" json:"skipMemory" mapstructure:"skipMemory"`
 }
 
 type ApplyRecommendationTaskConfig struct {
-	Name                     string
-	Enabled                  bool
-	Schedule                 string
-	ClusterID                string
-	TargetClusterID          string
-	TargetNamespace          string
-	IsClusterWriteAuthorized bool
-	BasicAuth                config.BasicAuthConfig
-	RecommendationSettings   config.RecommendationSettings
-	Metadata                 ApplyRecommendationMetadata
+	Name                   string
+	Enabled                bool
+	Schedule               string
+	ClusterID              string
+	TargetClusterID        string
+	TargetNamespace        string
+	BasicAuth              config.BasicAuthConfig
+	RecommendationSettings config.RecommendationSettings
+	Metadata               ApplyRecommendationMetadata
 }
 
 type ApplyRecommendationTask struct {
@@ -101,16 +99,9 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	ctx = contextutils.WithTask(ctx, a.config.Name)
 	ctx = contextutils.WithCluster(ctx, a.config.ClusterID)
 
-	applyChanges := !a.config.Metadata.DryRun
-
-	if !a.config.IsClusterWriteAuthorized {
-		logging.Infof(ctx, "Cluster %s is not write authorized, skipping ApplyRecommendation task", a.config.ClusterID)
-		return nil
-	}
-
 	if !utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 33) {
-		applyChanges = false
-		logging.Infof(ctx, "Cluster version is not above 1.33, running in dry run mode")
+		logging.Infof(ctx, "Cluster version is not above 1.33, skipping recommendation application")
+		return nil
 	}
 
 	nodeRecommendationMap, err := a.GenerateNodeStatsForCluster(ctx)
@@ -143,7 +134,6 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		nodeRecommendationMap,
 		overridesMap,
 		applystrategies.NewAdjustAmongstPodsDistributedStrategy(ctx),
-		applyChanges,
 		false,
 		supportsMemoryLimitReduction,
 	)
@@ -165,14 +155,10 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 	nodeStatsMap map[string]utils.NodeResourceInfo,
 	overridesMap map[string]*types.WorkloadOverrideInfo,
 	strategy applystrategies.AdjustAmongstPodsDistributedStrategy,
-	applyChanges bool,
 	generateRecommendationOnly bool,
 	supportsMemoryReduction bool,
 ) ([]*RecommendationResult, []*RecommendationResult, error) {
 	logging.Infof(ctx, "Starting recommendation application using strategy: %s", strategy.GetName())
-	if !applyChanges {
-		logging.Infof(ctx, "DRY RUN MODE: Changes will be calculated but not applied")
-	}
 
 	// We have two recommendation results to save and apply.
 	// The recommendation results saved are the inclusive or all optimizable pods, even if they are disabled.
@@ -323,7 +309,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			continue
 		}
 
-		podsToEvict := make(map[string]bool)
+		executedEvictions := make(map[string]bool)
 		appliedRecommendations := make(map[string]utils.PodContainerRecommendation)
 
 		for _, rec := range podContainerRecommendation {
@@ -337,34 +323,33 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 
 			if utils.ToBeEvicted(rec) {
-				podsToEvict[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = true
+				podKey := fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 				logging.Infof(ctx, "[Decision] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
-				if applyChanges {
-					logging.Infof(ctx, "[Action] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
-					success, errStr := utils.EvictPod(ctx, a.kubeClient, freshPod)
-					if !success {
-						logging.Errorf(ctx, "Error evicting pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, errStr)
-						continue
+				logging.Infof(ctx, "[Action] Evicting pod %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
+				success, errStr := utils.EvictPod(ctx, a.kubeClient, freshPod)
+				if !success {
+					logging.Errorf(ctx, "Error evicting pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, errStr)
+					continue
+				}
+				executedEvictions[podKey] = true
+				if audit.Recorder != nil {
+					workloadID := ""
+					if rec.PodInfo.Stats != nil {
+						workloadID = rec.PodInfo.Stats.WorkloadIdentifier
 					}
-					if audit.Recorder != nil {
-						workloadID := ""
-						if rec.PodInfo.Stats != nil {
-							workloadID = rec.PodInfo.Stats.WorkloadIdentifier
-						}
-						audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
-							Type:     types.EventTypeNormal,
-							Category: types.EventCategoryPODEviction,
-							Payload: types.AuditPayload{
-								Message: fmt.Sprintf("Pod %s/%s evicted for resource optimization", rec.PodInfo.Namespace, rec.PodInfo.Name),
-								Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
-								Details: map[string]interface{}{
-									"workloadId":    workloadID,
-									"node":          nodeName,
-									"containerName": rec.ContainerName,
-								},
+					audit.Recorder.Record(ctx, a.config.ClusterID, types.AuditEvent{
+						Type:     types.EventTypeNormal,
+						Category: types.EventCategoryPODEviction,
+						Payload: types.AuditPayload{
+							Message: fmt.Sprintf("Pod %s/%s evicted for resource optimization", rec.PodInfo.Namespace, rec.PodInfo.Name),
+							Target:  map[string]interface{}{"kind": "Pod", "namespace": rec.PodInfo.Namespace, "name": rec.PodInfo.Name},
+							Details: map[string]interface{}{
+								"workloadId":    workloadID,
+								"node":          nodeName,
+								"containerName": rec.ContainerName,
 							},
-						})
-					}
+						},
+					})
 				}
 				continue
 			}
@@ -376,7 +361,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				}
 			}
 
-			applied, err := a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges, nodeInfo.AllocatableCPU)
+			applied, err := a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, nodeInfo.AllocatableCPU)
 			if err != nil {
 				logging.Errorf(ctx, "Error applying CPU recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 			}
@@ -412,7 +397,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 
 			if !a.config.RecommendationSettings.DisableMemoryApplication && !a.config.Metadata.SkipMemory {
-				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, applyChanges, supportsMemoryReduction)
+				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, supportsMemoryReduction)
 				if skipped {
 					logging.Infof(ctx, "Skipping memory recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 				} else if err != nil {
@@ -455,7 +440,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 		}
 
-		logging.Infof(ctx, "Successfully applied %d recommendations and evicted %d pods", len(appliedRecommendations), len(podsToEvict))
+		logging.Infof(ctx, "Successfully applied %d recommendations and evicted %d pods", len(appliedRecommendations), len(executedEvictions))
 	}
 
 	totalSpikeCPU := 0.0
@@ -476,7 +461,6 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	pod *corev1.Pod,
 	currentContainerResources corev1.ResourceRequirements,
 	rec utils.PodContainerRecommendation,
-	applyChanges bool,
 	supportsMemoryReduction bool,
 ) (bool, bool, error) {
 	// We use to set the max limit
@@ -511,27 +495,22 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 	}
 
 	if math.Abs(recommendedMemoryRequest-currentMemoryRequest) > 0 {
-		if applyChanges {
-			applied, errStr := utils.UpdatePodMemoryResources(
-				ctx,
-				a.kubeClient,
-				pod,
-				rec.ContainerName,
-				recommendedMemoryRequest,
-				recommendedMemoryLimit,
-			)
-			if errStr != "" {
-				return false, false, errors.New(errStr)
-			}
-			if !applied {
-				return false, false, nil
-			}
-			logging.Infof(ctx, "pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
-			return true, false, nil
-		} else {
-			logging.Debugf(ctx, "[dry run] pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
+		applied, errStr := utils.UpdatePodMemoryResources(
+			ctx,
+			a.kubeClient,
+			pod,
+			rec.ContainerName,
+			recommendedMemoryRequest,
+			recommendedMemoryLimit,
+		)
+		if errStr != "" {
+			return false, false, errors.New(errStr)
+		}
+		if !applied {
 			return false, false, nil
 		}
+		logging.Infof(ctx, "pod %v/%v memory request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentMemoryRequest, recommendedMemoryRequest)
+		return true, false, nil
 	} else {
 		return false, false, nil
 	}
@@ -542,7 +521,6 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 	pod *corev1.Pod,
 	currentContainerResources corev1.ResourceRequirements,
 	rec utils.PodContainerRecommendation,
-	applyChanges bool,
 	allocatableCPU float64,
 ) (bool, error) {
 	currentCPURequestQuantity, exists := currentContainerResources.Requests[corev1.ResourceCPU]
@@ -571,27 +549,22 @@ func (a *ApplyRecommendationTask) applyCPURecommendation(
 	}
 
 	if math.Abs(recommendedCPURequest-currentCPURequest) >= 0.001 || math.Abs(recommendedCPULimit-currentCPULimit) >= 0.001 {
-		if applyChanges {
-			applied, errStr := utils.UpdatePodCPUResources(
-				ctx,
-				a.kubeClient,
-				pod,
-				rec.ContainerName,
-				recommendedCPURequest,
-				recommendedCPULimit,
-			)
-			if errStr != "" {
-				return false, errors.New(errStr)
-			}
-			if !applied {
-				return false, nil
-			}
-			logging.Infof(ctx, "pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
-			return true, nil
-		} else {
-			logging.Infof(ctx, "[dry run] pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
+		applied, errStr := utils.UpdatePodCPUResources(
+			ctx,
+			a.kubeClient,
+			pod,
+			rec.ContainerName,
+			recommendedCPURequest,
+			recommendedCPULimit,
+		)
+		if errStr != "" {
+			return false, errors.New(errStr)
+		}
+		if !applied {
 			return false, nil
 		}
+		logging.Infof(ctx, "pod %v/%v cpu request updated: %v -> %v", rec.PodInfo.Namespace, rec.PodInfo.Name, currentCPURequest, recommendedCPURequest)
+		return true, nil
 	} else {
 		return false, nil
 	}
@@ -807,14 +780,13 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 	nonOptimizablePods := make([]utils.PodInfo, 0)
 
 	input := utils.ApplyCheckInput{
-		ApplyBlacklistedNamespaces: a.config.RecommendationSettings.ApplyBlacklistedNamespaces,
-		K8sVersionGE133:            true, // caller sets applyChanges=false when cluster < 1.33
-		K8sMemoryGE134:             true, // caller uses supportsMemoryReduction separately
-		OptimizeGuaranteedPods:     a.config.RecommendationSettings.OptimizeGuaranteedPods,
-		DisableMemoryApplication:   a.config.RecommendationSettings.DisableMemoryApplication,
-		NewWorkloadThresholdHours:  a.config.RecommendationSettings.NewWorkloadThresholdHours,
-		SkipMemory:                 a.config.Metadata.SkipMemory,
-		PodExcludedByAnnotation:    utils.PodExcludedByAnnotation(nil), // when podForExclusion is nil, value is taken from podInfo.Stats.Constraints
+		K8sVersionGE133:           true,
+		K8sMemoryGE134:            true, // caller uses supportsMemoryReduction separately
+		OptimizeGuaranteedPods:    a.config.RecommendationSettings.OptimizeGuaranteedPods,
+		DisableMemoryApplication:  a.config.RecommendationSettings.DisableMemoryApplication,
+		NewWorkloadThresholdHours: a.config.RecommendationSettings.NewWorkloadThresholdHours,
+		SkipMemory:                a.config.Metadata.SkipMemory,
+		PodExcludedByAnnotation:   utils.PodExcludedByAnnotation(nil), // when podForExclusion is nil, value is taken from podInfo.Stats.Constraints
 	}
 
 	for _, podInfo := range allPodInfos {

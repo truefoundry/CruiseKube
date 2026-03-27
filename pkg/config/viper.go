@@ -8,12 +8,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// LoadWithViper loads configuration using Viper from a single config file.
-// Overridden by env vars (prefix cruisekube_) and flags bound by caller.
-func LoadWithViper(ctx context.Context, configFilePath string) (*Config, error) {
-	return LoadWithViperInstance(ctx, viper.New(), configFilePath)
-}
-
 // LoadWithViperInstance loads configuration using a provided Viper instance (for flag binding).
 func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath string) (*Config, error) {
 	// Set defaults matching the new structure
@@ -27,7 +21,6 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("controller.tasks.applyRecommendation.enabled", true)
 	v.SetDefault("controller.tasks.applyRecommendation.schedule", "5m")
 	v.SetDefault("controller.tasks.applyRecommendation.nodeStatsURL.host", "localhost:8080")
-	v.SetDefault("controller.tasks.applyRecommendation.dryRun", false)
 	v.SetDefault("controller.tasks.applyRecommendation.overridesURL.host", "localhost:8080")
 	v.SetDefault("recommendationSettings.maxConcurrentQueries", 5)
 	v.SetDefault("recommendationSettings.oomCooldownMinutes", 5)

@@ -34,7 +34,6 @@ func addPersistentFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().String("webhook-certs-dir", "", "Webhook certificates directory")
 	rootCmd.PersistentFlags().String("webhook-stats-url-host", "", "Webhook stats URL host")
 	rootCmd.PersistentFlags().String("db-file-path", "", "Database file path")
-	rootCmd.PersistentFlags().Bool("apply-recommendation-dry-run", false, "Apply recommendation dry run")
 }
 
 func bindPersistentFlags(ctx context.Context, rootCmd *cobra.Command) {
@@ -48,7 +47,6 @@ func bindPersistentFlags(ctx context.Context, rootCmd *cobra.Command) {
 	bindPFlagOrFatal(ctx, "webhook.port", rootCmd.PersistentFlags().Lookup("webhook-port"))
 	bindPFlagOrFatal(ctx, "webhook.certsDir", rootCmd.PersistentFlags().Lookup("webhook-certs-dir"))
 	bindPFlagOrFatal(ctx, "webhook.statsURL.host", rootCmd.PersistentFlags().Lookup("webhook-stats-url-host"))
-	bindPFlagOrFatal(ctx, "controller.tasks.applyRecommendation.dryRun", rootCmd.PersistentFlags().Lookup("apply-recommendation-dry-run"))
 	bindPFlagOrFatal(ctx, "db.filePath", rootCmd.PersistentFlags().Lookup("db-file-path"))
 }
 

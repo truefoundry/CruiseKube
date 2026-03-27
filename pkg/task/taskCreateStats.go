@@ -171,12 +171,6 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 			workloadInfo,
 			namespaceQueryResults,
 			namespaceVsWorkloadMetrics,
-			// namespaceVsWorkloadPredictions[workloadInfo.Namespace],
-			// namespaceVsWorkloadPredictionsPSIAdjusted[workloadInfo.Namespace],
-			// namespaceVsWorkloadMemoryPredictions[workloadInfo.Namespace],
-			map[string]utils.WorkloadPrediction{},
-			map[string]utils.WorkloadPrediction{},
-			map[string]utils.WorkloadPrediction{},
 			namespaceVsSimpleCPUPredictions[workloadInfo.Namespace],
 			namespaceVsSimpleMemoryPredictions[workloadInfo.Namespace],
 			workloadHpaCpuMap,
@@ -236,9 +230,6 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	workloadInfo utils.WorkloadInfo,
 	nsVsContainerMetrics utils.NamespaceVsContainerMetrics,
 	nsVsWorkloadMetrics utils.NamespaceVsWorkloadMetrics,
-	containerKeyVsCPUPrediction map[string]utils.WorkloadPrediction,
-	containerKeyVsCPUPredictionPSIAdjusted map[string]utils.WorkloadPrediction,
-	containerKeyVsMemoryPrediction map[string]utils.WorkloadPrediction,
 	workloadContainerKeyVsSimpleCPUPrediction map[string]utils.SimplePrediction,
 	workloadContainerKeyVsSimpleMemoryPrediction map[string]utils.SimplePrediction,
 	workloadHpaCpuMap map[string]bool,
@@ -246,17 +237,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	dynamicClient dynamic.Interface,
 	pdbCache map[string][]policyv1.PodDisruptionBudget,
 ) *utils.WorkloadStat {
-	workloadKeyVsContainerMetrics, exists := nsVsContainerMetrics[workloadInfo.Namespace]
-	if !exists {
-		logging.Errorf(ctx, "No batch cache found for namespace %s", workloadInfo.Namespace)
-		return nil
-	}
 	workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-	_, exists = workloadKeyVsContainerMetrics[workloadKey]
-	if !exists {
-		return nil
-	}
-
 	workloadObj, err := utils.GetWorkloadObject(ctx, kubeClient, workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 	if err != nil {
 		logging.Warnf(ctx, "Error getting workload %s: %v", workloadKey, err)
@@ -267,15 +248,28 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	initContainerSpecs := workloadObj.GetInitContainerSpecs(ctx, kubeClient)
 
 	containerResources := c.getAllContainerResourcesFromContainerSpecs(ctx, containerSpecs, initContainerSpecs)
+	workloadStat := c.buildBaseWorkloadStat(workloadInfo, workloadObj, containerResources, nsVsWorkloadMetrics)
 
-	workloadStat := utils.BuildContainerStatFromCache(ctx, workloadInfo, workloadKeyVsContainerMetrics, containerResources)
-	if workloadStat == nil {
-		logging.Warnf(ctx, "Could not build container stat for %s", workloadKey)
-		return nil
+	workloadKeyVsContainerMetrics, exists := nsVsContainerMetrics[workloadInfo.Namespace]
+	switch {
+	case !exists:
+		logging.Warnf(ctx, "No batch cache found for namespace %s; storing workload %s as incomplete", workloadInfo.Namespace, workloadKey)
+		c.markWorkloadStatIncomplete(workloadStat)
+	case workloadKeyVsContainerMetrics[workloadKey] == nil:
+		logging.Warnf(ctx, "No prometheus metrics found for workload %s; storing incomplete workload stat", workloadKey)
+		c.markWorkloadStatIncomplete(workloadStat)
+	default:
+		metricsStat := utils.BuildContainerStatFromCache(ctx, workloadInfo, workloadKeyVsContainerMetrics, containerResources)
+		if metricsStat == nil {
+			logging.Warnf(ctx, "Could not build container stat for %s; storing incomplete workload stat", workloadKey)
+			c.markWorkloadStatIncomplete(workloadStat)
+		} else {
+			workloadStat.ContainerStats = metricsStat.ContainerStats
+			if workloadStat.Replicas <= 0 && metricsStat.Replicas > 0 {
+				workloadStat.Replicas = metricsStat.Replicas
+			}
+		}
 	}
-
-	workloadStat.CreationTime = workloadObj.GetCreationTime()
-	workloadStat.UpdatedAt = time.Now()
 
 	// Check if this workload is horizontally autoscaled on CPU and/or memory
 	hpaOnCPU := workloadHpaCpuMap != nil && workloadHpaCpuMap[workloadKey]
@@ -292,17 +286,18 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 		case hpaOnMemory:
 			excludedCodes = append(excludedCodes, types.ExcludedCodeMemoryHPA)
 		}
-		workloadStat.Metadata = &types.WorkloadStatMetadata{
-			Excluded:      true,
-			ExcludedCodes: excludedCodes,
+		if workloadStat.Metadata == nil {
+			workloadStat.Metadata = &types.WorkloadStatMetadata{}
 		}
+		workloadStat.Metadata.Excluded = true
+		workloadStat.Metadata.ExcludedCodes = mergeExcludedCodes(workloadStat.Metadata.ExcludedCodes, excludedCodes)
 	}
 
 	if utils.WorkloadHasGPU(containerSpecs, initContainerSpecs) {
 		logging.Infof(ctx, "Workload %s has GPU requests/limits, excluding from stats", workloadKey)
-		excludedCodes = append(excludedCodes, types.ExcludedCodeGPUWorkload)
+		excludedCodes = appendExcludedCode(excludedCodes, types.ExcludedCodeGPUWorkload)
 		if workloadStat.Metadata != nil {
-			workloadStat.Metadata.ExcludedCodes = excludedCodes
+			workloadStat.Metadata.ExcludedCodes = mergeExcludedCodes(workloadStat.Metadata.ExcludedCodes, excludedCodes)
 			workloadStat.Metadata.IsGPUWorkload = true
 		} else {
 			workloadStat.Metadata = &types.WorkloadStatMetadata{
@@ -325,49 +320,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 
 	for i := range workloadStat.ContainerStats {
 		containerStat := &workloadStat.ContainerStats[i]
-
-		var mlPredictedCPU *utils.MLPercentilesCPU
-		var mlPredictedMemory *utils.MLPercentilesMemory
-
 		workloadContainerKey := utils.GetWorkloadContainerKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name, containerStat.ContainerName)
-
-		containerCPUPrediction, exists := containerKeyVsCPUPrediction[workloadContainerKey]
-		if !exists {
-			// logging.Infof(ctx, "Error: No ML CPU prediction found for %s", workloadContainerKey)
-		} else {
-			mlPredictedCPU = &utils.MLPercentilesCPU{
-				Median: containerCPUPrediction.Median,
-				P90:    containerCPUPrediction.P90,
-				P95:    containerCPUPrediction.P95,
-				P99:    containerCPUPrediction.P99,
-			}
-			containerStat.MLPercentilesCPU = mlPredictedCPU
-		}
-		containerPredictionPSIAdjusted, psiAdjustedExists := containerKeyVsCPUPredictionPSIAdjusted[workloadContainerKey]
-		if !psiAdjustedExists {
-			// logging.Infof(ctx, "Error: No ML CPU prediction (PSI adjusted) found for %s", workloadContainerKey)
-		} else {
-			mlPercentilesCPUPSIAdjusted := &utils.MLPercentilesCPUPSIAdjusted{
-				Median: containerPredictionPSIAdjusted.Median,
-				P90:    containerPredictionPSIAdjusted.P90,
-				P95:    containerPredictionPSIAdjusted.P95,
-				P99:    containerPredictionPSIAdjusted.P99,
-			}
-			containerStat.MLPercentilesCPUPSIAdjusted = mlPercentilesCPUPSIAdjusted
-		}
-
-		containerMemoryPrediction, memoryExists := containerKeyVsMemoryPrediction[workloadContainerKey]
-		if !memoryExists {
-			// logging.Infof(ctx, "Error: No ML memory prediction found for %s", workloadContainerKey)
-		} else {
-			mlPredictedMemory = &utils.MLPercentilesMemory{
-				Median: containerMemoryPrediction.Median,
-				P90:    containerMemoryPrediction.P90,
-				P95:    containerMemoryPrediction.P95,
-				P99:    containerMemoryPrediction.P99,
-			}
-		}
-		containerStat.MLPercentilesMemory = mlPredictedMemory
 
 		if simpleCPUPrediction, exists := workloadContainerKeyVsSimpleCPUPrediction[workloadContainerKey]; exists {
 			containerStat.SimplePredictionsCPU = &simpleCPUPrediction
@@ -378,9 +331,9 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 		}
 	}
 
-	workloadMetrics, exists := nsVsWorkloadMetrics[workloadInfo.Namespace][workloadKey]
-	if exists {
-		workloadStat.Replicas = int32(workloadMetrics.MedianReplicas)
+	if !workloadStat.IsIncomplete() && !hasCompleteSimplePredictions(workloadStat, containerResources) {
+		logging.Warnf(ctx, "Workload %s has missing simple predictions for one or more non-init containers; storing incomplete workload stat", workloadKey)
+		c.markWorkloadStatIncomplete(workloadStat)
 	}
 
 	switch {
@@ -397,6 +350,102 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	logging.Infof(ctx, "Successfully created container-level stat for %s with %d containers", workloadKey, len(workloadStat.ContainerStats))
 
 	return workloadStat
+}
+
+func (c *CreateStatsTask) buildBaseWorkloadStat(
+	workloadInfo utils.WorkloadInfo,
+	workloadObj utils.WorkloadObject,
+	containerResources []utils.OriginalContainerResources,
+	nsVsWorkloadMetrics utils.NamespaceVsWorkloadMetrics,
+) *utils.WorkloadStat {
+	workloadStat := &utils.WorkloadStat{
+		WorkloadIdentifier:         utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name),
+		Kind:                       workloadInfo.Kind,
+		Namespace:                  workloadInfo.Namespace,
+		Name:                       workloadInfo.Name,
+		CreationTime:               workloadObj.GetCreationTime(),
+		UpdatedAt:                  time.Now(),
+		Replicas:                   workloadObj.GetReplicas(),
+		ContainerStats:             buildIncompleteContainerStats(containerResources),
+		OriginalContainerResources: containerResources,
+	}
+
+	if workloadMetricsByNamespace, exists := nsVsWorkloadMetrics[workloadInfo.Namespace]; exists {
+		if workloadMetrics, exists := workloadMetricsByNamespace[workloadStat.WorkloadIdentifier]; exists && workloadMetrics.MedianReplicas > 0 {
+			workloadStat.Replicas = int32(workloadMetrics.MedianReplicas)
+		}
+	}
+
+	return workloadStat
+}
+
+func buildIncompleteContainerStats(containerResources []utils.OriginalContainerResources) []utils.ContainerStats {
+	containerStats := make([]utils.ContainerStats, 0, len(containerResources))
+	for _, containerRes := range containerResources {
+		containerStats = append(containerStats, utils.ContainerStats{
+			ContainerName: containerRes.Name,
+			ContainerType: containerRes.Type,
+		})
+	}
+	return containerStats
+}
+
+func (c *CreateStatsTask) markWorkloadStatIncomplete(workloadStat *utils.WorkloadStat) {
+	if workloadStat == nil {
+		return
+	}
+	workloadStat.ContainerStats = buildIncompleteContainerStats(workloadStat.OriginalContainerResources)
+	if workloadStat.Metadata == nil {
+		workloadStat.Metadata = &types.WorkloadStatMetadata{}
+	}
+	workloadStat.Metadata.Incomplete = true
+	workloadStat.Metadata.Excluded = true
+	workloadStat.Metadata.ExcludedCodes = appendExcludedCode(workloadStat.Metadata.ExcludedCodes, types.ExcludedCodeIncomplete)
+}
+
+func appendExcludedCode(codes []types.ExcludedCode, code types.ExcludedCode) []types.ExcludedCode {
+	for _, existing := range codes {
+		if existing == code {
+			return codes
+		}
+	}
+	return append(codes, code)
+}
+
+func mergeExcludedCodes(existing, additions []types.ExcludedCode) []types.ExcludedCode {
+	merged := existing
+	for _, code := range additions {
+		merged = appendExcludedCode(merged, code)
+	}
+	return merged
+}
+
+func hasCompleteSimplePredictions(workloadStat *utils.WorkloadStat, containerResources []utils.OriginalContainerResources) bool {
+	if workloadStat == nil {
+		return false
+	}
+
+	containerStatsByName := make(map[string]*utils.ContainerStats, len(workloadStat.ContainerStats))
+	for i := range workloadStat.ContainerStats {
+		containerStat := &workloadStat.ContainerStats[i]
+		containerStatsByName[containerStat.ContainerName] = containerStat
+	}
+
+	for _, containerRes := range containerResources {
+		if containerRes.Type == types.InitContainer {
+			continue
+		}
+
+		containerStat, exists := containerStatsByName[containerRes.Name]
+		if !exists {
+			return false
+		}
+		if containerStat.SimplePredictionsCPU == nil || containerStat.SimplePredictionsMemory == nil {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (c *CreateStatsTask) getAllContainerResourcesFromContainerSpecs(_ context.Context, containerSpecs []corev1.Container, initContainerSpecs []corev1.Container) []utils.OriginalContainerResources {

@@ -68,9 +68,28 @@ Open **http://localhost:3000**. See [Dashboard](config-dashboard.md) for UI conc
 
 Optimization is controlled **per workload** in the UI—there is **no separate global “dry-run mode”** toggle.
 
+
 1. Open **Policies & Configuration** → **CruiseKube mode & priority** (see [Dashboard](config-dashboard.md)).  
 2. Leave workloads on **Recommend** while you validate suggestions against metrics and SLOs.  
 3. Switch trusted workloads to **Cruise** when you want the controller and webhook to **apply** right-sizing.
+
+CruiseKube now applies supported recommendations directly. Memory recommendation application remains disabled by default.
+To enable memory recommendation application, set both of the following disable flags to `false`:
+
+  - cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
+  - cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
+
+```bash
+helm upgrade --install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \
+--set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
+--set postgresql.enabled=true \
+--set cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false \
+--set cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
+```
+
+> You can check all the available environment variables in the [values.yaml file](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml#L88).
+
+</br>
 
 Optional Helm knobs (for example **disabling memory application** while tuning CPU) still exist on the controller and webhook—see [`charts/cruisekube/values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml) and [Configuration](config.md). Align changes with [Policies & modes](operate-policies.md) before wide rollout.
 

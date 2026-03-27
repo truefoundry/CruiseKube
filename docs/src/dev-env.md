@@ -123,7 +123,6 @@ You can override any config value with flags, for example:
 - `--server-port` — HTTP server port (default from config, e.g. 8080).
 - `--webhook-port`, `--webhook-certs-dir`, `--webhook-stats-url-host` — Webhook settings.
 - `--db-file-path` — SQLite DB path (overrides config).
-- `--apply-recommendation-dry-run` — Log intended apply actions without patching pods (local debugging only; production rollout uses **Recommend** / **Cruise** in the dashboard).
 
 ### Brief description of `config.local.yaml` sections
 
@@ -223,7 +222,14 @@ Typical development flow:
 - Run with `go run cmd/cruisekube/main.go --config-file-path config.local.yaml`.
 - Use the SQLite DB in `stats-data/` and the frontend to verify behavior.
 
-For testing and contribution process (PRs, changelog, etc.), see [CONTRIBUTING.md](https://github.com/truefoundry/CruiseKube/blob/main/CONTRIBUTING.md) and [DEVELOPMENT.md](https://github.com/truefoundry/CruiseKube/blob/main/DEVELOPMENT.md).
+For Go code quality checks, the repo also exposes:
+
+- `make test` to run the Go test suite.
+- `make deadcode` to run the pinned deadcode analyzer with `golang.org/x/tools/cmd/deadcode@v0.43.0 -test ./cmd/cruisekube`.
+
+The CI workflow runs `deadcode` as a separate informational job, so contributors can see current unreachable-function reports without making the pipeline fail.
+
+For testing and contribution process (PRs, changelog, etc.), see [CONTRIBUTING.md](../../CONTRIBUTING.md) and [DEVELOPMENT.md](../../DEVELOPMENT.md).
 
 ---
 

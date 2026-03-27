@@ -9,7 +9,6 @@ executionMode: controller
 controller:
   targetNamespace: ""
   targetClusterID: ""
-  writeAuthorizedClusters: []
   tasks:
     createStats:
       enabled: true
@@ -20,7 +19,6 @@ controller:
       enabled: true
       schedule: "5m"
       metadata:
-        dryRun: false
         skipMemory: false
         nodeStatsURL:
           host: "http://localhost:8080"
@@ -51,7 +49,6 @@ server:
 webhook:
   port: "8443"
   certsDir: "/tmp/webhook-certs"
-  dryRun: false
   statsURL:
     host: "http://localhost:8080"
     tfyClusterToken: "<cluster-token>"
@@ -69,7 +66,6 @@ db:
 recommendationSettings:
   newWorkloadThresholdHours: 1
   disableMemoryApplication: false
-  applyBlacklistedNamespaces: []
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true

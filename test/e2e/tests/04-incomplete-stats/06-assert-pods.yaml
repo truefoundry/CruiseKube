@@ -1,0 +1,23 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 60
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-incomplete-stats
+  labels:
+    app: incomplete
+spec:
+  containers:
+  - name: incomplete
+    resources:
+      requests:
+        cpu: "300m"
+        memory: "96M"
+      limits:
+        cpu: "600m"
+        memory: "192M"
+status:
+  phase: Running

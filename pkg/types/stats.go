@@ -23,12 +23,14 @@ const (
 	ExcludedCodeGPUWorkload ExcludedCode = "GPU_WORKLOAD"
 	ExcludedCodeMemoryHPA   ExcludedCode = "MEMORY_HPA"
 	ExcludedCodeCPUHPA      ExcludedCode = "CPU_HPA"
+	ExcludedCodeIncomplete  ExcludedCode = "INCOMPLETE_STATS"
 )
 
 // WorkloadStatMetadata holds metadata about a workload stat (e.g. exclusion from recommendations).
 type WorkloadStatMetadata struct {
 	Excluded           bool           `json:"excluded"`
 	ExcludedCodes      []ExcludedCode `json:"excluded_codes,omitempty"`
+	Incomplete         bool           `json:"incomplete,omitempty"`
 	IsGPUWorkload      bool           `json:"is_gpu_workload,omitempty"`
 	InDisruptionWindow bool           `json:"in_disruption_window,omitempty"`
 }
@@ -153,6 +155,26 @@ func (w *WorkloadStat) IsGPUWorkload() bool {
 	return w.Metadata != nil && w.Metadata.IsGPUWorkload
 }
 
+func (w *WorkloadStat) IsIncomplete() bool {
+	return w.Metadata != nil && w.Metadata.Incomplete
+}
+
+func (w *WorkloadStat) HasExcludedCode(code ExcludedCode) bool {
+	if w == nil || w.Metadata == nil {
+		return false
+	}
+	for _, excludedCode := range w.Metadata.ExcludedCodes {
+		if excludedCode == code {
+			return true
+		}
+	}
+	return false
+}
+
+func (w *WorkloadStat) HasExcludedCodes() bool {
+	return w != nil && w.Metadata != nil && len(w.Metadata.ExcludedCodes) > 0
+}
+
 type ContainerStats struct {
 	ContainerName string        `json:"container_name"`
 	ContainerType ContainerType `json:"container_type"`
@@ -172,13 +194,10 @@ type ContainerStats struct {
 }
 
 type CPUStats struct {
-	Max float64 `json:"max"`
-	P50 float64 `json:"p50"`
 	P75 float64 `json:"p75"`
 }
 
 type MemoryStats struct {
-	Max       float64 `json:"max"`
 	P75       float64 `json:"p75"`
 	OOMMemory float64 `json:"oom_memory,omitempty"`
 }
@@ -209,8 +228,6 @@ type MLPercentilesMemory struct {
 }
 
 type PSIAdjustedUsageStats struct {
-	Max float64 `json:"max"`
-	P50 float64 `json:"p50"`
 	P75 float64 `json:"p75"`
 }
 
@@ -232,44 +249,6 @@ type SimplePrediction struct {
 	HourlyPrediction  float64 `json:"hourly_prediction"`
 	CurrentPrediction float64 `json:"current_prediction"`
 	MaxValue          float64 `json:"max_value"`
-}
-
-func (w *WorkloadStat) CalculateTotalCPUStats(percentile float64) float64 {
-	sumAppSidecar := 0.0
-	maxInit := 0.0
-
-	for _, c := range w.ContainerStats {
-		v := c.CPUStats.GetPercentile(percentile)
-		switch c.ContainerType {
-		case AppContainer, SidecarContainer:
-			sumAppSidecar += v
-		case InitContainer:
-			maxInit = max(maxInit, v)
-		}
-	}
-
-	return max(sumAppSidecar, maxInit)
-}
-
-func (w *WorkloadStat) CalculateTotalMemoryStats(percentile float64) float64 {
-	sumAppSidecar := 0.0
-	maxInit := 0.0
-
-	for _, c := range w.ContainerStats {
-		if c.MemoryStats == nil {
-			continue
-		}
-
-		v := c.MemoryStats.GetPercentile(percentile)
-		switch c.ContainerType {
-		case AppContainer, SidecarContainer:
-			sumAppSidecar += v
-		case InitContainer:
-			maxInit = max(maxInit, v)
-		}
-	}
-
-	return max(sumAppSidecar, maxInit)
 }
 
 func (w *WorkloadStat) CalculateTotalCPURequest() float64 {
@@ -302,28 +281,6 @@ func (w *WorkloadStat) CalculateTotalMemoryRequest() float64 {
 	}
 
 	return max(sumAppSidecar, maxInit)
-}
-
-func (c *CPUStats) GetPercentile(percentile float64) float64 {
-	switch percentile {
-	case 50:
-		return c.P50
-	case 75:
-		return c.P75
-	case 100:
-		return c.Max
-	}
-	return 0.0
-}
-
-func (m *MemoryStats) GetPercentile(percentile float64) float64 {
-	switch percentile {
-	case 75:
-		return m.P75
-	case 100:
-		return m.Max
-	}
-	return 0.0
 }
 
 func (w *WorkloadStat) GetContainerStats(containerName string) (*ContainerStats, error) {

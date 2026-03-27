@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"slices"
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -16,14 +15,13 @@ import (
 // ApplyCheckInput holds all inputs for deciding whether to apply recommendations to a pod.
 // Used by both the apply-recommendation task and the admission webhook.
 type ApplyCheckInput struct {
-	ApplyBlacklistedNamespaces []string
-	K8sVersionGE133            bool
-	K8sMemoryGE134             bool
-	OptimizeGuaranteedPods     bool
-	DisableMemoryApplication   bool
-	NewWorkloadThresholdHours  int
-	SkipMemory                 bool // task metadata skip memory (e.g. when cluster < 1.34)
-	PodExcludedByAnnotation    bool // when true, treat as excluded (from pod.Annotations or workload constraints)
+	K8sVersionGE133           bool
+	K8sMemoryGE134            bool
+	OptimizeGuaranteedPods    bool
+	DisableMemoryApplication  bool
+	NewWorkloadThresholdHours int
+	SkipMemory                bool // task metadata skip memory (e.g. when cluster < 1.34)
+	PodExcludedByAnnotation   bool // when true, treat as excluded (from pod.Annotations or workload constraints)
 }
 
 // ShouldGenerateRecommendation returns true if recommendations should be applied to this pod.
@@ -38,6 +36,10 @@ func ShouldGenerateRecommendation(
 	}
 	if podInfo.IsBestEffortPod() {
 		return false, "best effort pod"
+	}
+
+	if podInfo.Stats.IsIncomplete() {
+		return false, "workload has incomplete stats"
 	}
 
 	if podInfo.Stats.CreationTime.After(time.Now().Add(-1 * time.Hour * time.Duration(input.NewWorkloadThresholdHours))) {
@@ -60,10 +62,6 @@ func ShouldApplyRecommendationToPod(
 	shouldGenerate, reason := ShouldGenerateRecommendation(ctx, podInfo, input)
 	if !shouldGenerate {
 		return false, reason
-	}
-
-	if len(input.ApplyBlacklistedNamespaces) > 0 && slices.Contains(input.ApplyBlacklistedNamespaces, podInfo.Namespace) {
-		return false, "namespace is blacklisted"
 	}
 
 	if input.PodExcludedByAnnotation {
