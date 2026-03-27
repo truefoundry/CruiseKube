@@ -88,20 +88,6 @@ Create the webhook service name
 {{- end }}
 
 {{/*
-Generate namespace selector for webhook
-*/}}
-{{- define "cruisekubeWebhook.mutatingWebhookConfigurationNamespaceSelector" -}}
-matchExpressions:
-- key: name
-  operator: NotIn
-  values:
-  {{- range .Values.cruisekubeWebhook.mutatingWebhookConfiguration.namespaceSelector.excludeNamespaces }}
-  - {{ . | quote }}
-  {{- end }}
-{{- end }}
-
-
-{{/*
 Get image tag
 */}}
 {{- define "cruisekubeWebhook.imageTag" -}}
@@ -116,4 +102,3 @@ ServiceMonitor labels - merges common labels with servicemonitor-specific labels
 {{- $serviceMonitorLabels := mergeOverwrite $commonLabels $prometheusLabel .Values.cruisekubeWebhook.serviceMonitor.additionalLabels }}
 {{- toYaml $serviceMonitorLabels }}
 {{- end }}
-
