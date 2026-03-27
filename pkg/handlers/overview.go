@@ -187,7 +187,7 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 		totalRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
 		totalRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
 		switch {
-		case d.Constraints.IsGPUWorkload || d.Config.HPAEnabled:
+		case isNonOptimizableWorkload(d):
 			totalRequestedCPU -= d.CPU.CurrentPerPod * float64(d.PodsCount)
 			totalRequestedMem -= d.Memory.CurrentPerPod * float64(d.PodsCount)
 			nonOptimizableWorkloads++
@@ -242,4 +242,11 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 			Recommended:       recommendedMemGB,
 		},
 	})
+}
+
+func isNonOptimizableWorkload(d types.WorkloadDetail) bool {
+	if d.Constraints.IsGPUWorkload || d.Config.HPAEnabled {
+		return true
+	}
+	return len(d.Config.ExcludedCodes) > 0
 }

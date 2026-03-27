@@ -21,6 +21,7 @@ reset: uninstall-ck
 	-@kubectl delete namespace test-webhook --timeout=60s
 	-@kubectl delete namespace test-workloads --timeout=60s
 	-@kubectl delete namespace test-oom --timeout=60s
+	-@kubectl delete namespace test-incomplete-stats --timeout=60s
 	-@kubectl delete namespace $(NAMESPACE) --timeout=60s
 
 test:

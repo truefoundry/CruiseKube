@@ -38,6 +38,10 @@ func ShouldGenerateRecommendation(
 		return false, "best effort pod"
 	}
 
+	if podInfo.Stats.IsIncomplete() {
+		return false, "workload has incomplete stats"
+	}
+
 	if podInfo.Stats.CreationTime.After(time.Now().Add(-1 * time.Hour * time.Duration(input.NewWorkloadThresholdHours))) {
 		return false, "workload is newer than NewWorkloadThresholdHours"
 	}
