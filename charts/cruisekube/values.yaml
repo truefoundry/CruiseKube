@@ -25,7 +25,7 @@ cruisekubeController:
     ## @param cruisekubeController.image.imagePullPolicy CruiseKube Controller image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeController.image.tag CruiseKube Controller image tag (immutable tags are recommended)
-    tag: "3654894fda3cc13cfe65ac7b3159eb93c93235f6"
+    tag: "6deb9eedef724f96f749d245ec206fdea23fdd09"
   ## @param cruisekubeController.imagePullSecrets [array] CruiseKube Controller image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeController.nameOverride String to partially override cruisekube.fullname
@@ -142,7 +142,7 @@ cruisekubeWebhook:
     ## @param cruisekubeWebhook.image.imagePullPolicy CruiseKube Webhook image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeWebhook.image.tag CruiseKube Webhook image tag (immutable tags are recommended)
-    tag: "3654894fda3cc13cfe65ac7b3159eb93c93235f6"
+    tag: "6deb9eedef724f96f749d245ec206fdea23fdd09"
   ## @param cruisekubeWebhook.imagePullSecrets [array] CruiseKube Webhook image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeWebhook.nameOverride String to partially override cruisekube.fullname
@@ -162,12 +162,8 @@ cruisekubeWebhook:
     timeoutSeconds: 10
     ## @param cruisekubeWebhook.mutatingWebhookConfiguration.failurePolicy Failure policy for webhook (Ignore or Fail)
     failurePolicy: "Ignore"
-    namespaceSelector:
-      ## @param cruisekubeWebhook.mutatingWebhookConfiguration.namespaceSelector.excludeNamespaces [array] Namespaces to exclude from webhook processing
-      excludeNamespaces:
-        - "kube-public"
-        - "kube-node-lease"
-        - "local-path-storage"
+    ## @param cruisekubeWebhook.mutatingWebhookConfiguration.namespaceSelector [object] Raw namespaceSelector for the mutating webhook configuration. Leave empty to use the default namespace exclusions.
+    namespaceSelector: {}
   certGen:
     ## @param cruisekubeWebhook.certGen.enabled Enable certificate generation for webhook
     enabled: true
@@ -283,7 +279,7 @@ cruisekubeFrontend:
     ## @param cruisekubeFrontend.image.imagePullPolicy CruiseKube Frontend image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeFrontend.image.tag CruiseKube Frontend image tag (immutable tags are recommended)
-    tag: "3654894fda3cc13cfe65ac7b3159eb93c93235f6"
+    tag: "6deb9eedef724f96f749d245ec206fdea23fdd09"
   ## @param cruisekubeFrontend.imagePullSecrets [array] CruiseKube Frontend image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeFrontend.nameOverride String to partially override cruisekube.fullname
