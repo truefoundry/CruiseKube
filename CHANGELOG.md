@@ -9,7 +9,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
-## v0.2.5 (2026-03-27)
+## v0.2.5-rc.2 (2026-03-27)
 
 ### Improvements
 * simplifying node_stats_builder.go by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/197
