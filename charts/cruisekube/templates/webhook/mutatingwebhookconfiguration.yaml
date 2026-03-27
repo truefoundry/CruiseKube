@@ -27,6 +27,16 @@ webhooks:
   matchPolicy: Equivalent
   timeoutSeconds: {{ .Values.cruisekubeWebhook.mutatingWebhookConfiguration.timeoutSeconds }}
   namespaceSelector:
-    {{- include "cruisekubeWebhook.mutatingWebhookConfigurationNamespaceSelector" . | nindent 4 }}
+    {{- if .Values.cruisekubeWebhook.mutatingWebhookConfiguration.namespaceSelector }}
+    {{- toYaml .Values.cruisekubeWebhook.mutatingWebhookConfiguration.namespaceSelector | nindent 4 }}
+    {{- else }}
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: NotIn
+      values:
+      - kube-public
+      - kube-node-lease
+      - local-path-storage
+    {{- end }}
   objectSelector: {}
 {{- end }}
