@@ -9,10 +9,55 @@ keywords:
   - PSI metrics
 ---
 
-# Meet CruiseKube
+## Meet CruiseKube
 
 **CruiseKube** is a Kubernetes controller which recommends optimized CPU and memory for workloads. It watches real behavior, learns stable demand and spikes, and applies **in-place** request updates so you stop paying for guesses, without giving up the guardrails that keep services reliable.
 
+<div class="ck-control-loop" role="region" aria-label="CruiseKube optimization loop">
+  <div class="ck-control-loop__row">
+    <div class="ck-control-loop__step">
+      <span class="ck-control-loop__emoji" aria-hidden="true">📡</span>
+      <h3 class="ck-control-loop__title">Observe</h3>
+      <p>Prometheus: live + historical metrics.</p>
+    </div>
+    <span class="ck-control-loop__arrow" aria-hidden="true">→</span>
+    <div class="ck-control-loop__step">
+      <span class="ck-control-loop__emoji" aria-hidden="true">🧠</span>
+      <h3 class="ck-control-loop__title">Learn</h3>
+      <p>Patterns and workload behavior.</p>
+    </div>
+    <span class="ck-control-loop__arrow" aria-hidden="true">→</span>
+    <div class="ck-control-loop__step">
+      <span class="ck-control-loop__emoji" aria-hidden="true">💡</span>
+      <h3 class="ck-control-loop__title">Recommend</h3>
+      <p>CPU &amp; memory request targets.</p>
+    </div>
+    <span class="ck-control-loop__arrow" aria-hidden="true">→</span>
+    <div class="ck-control-loop__step">
+      <span class="ck-control-loop__emoji" aria-hidden="true">✅</span>
+      <h3 class="ck-control-loop__title">Apply</h3>
+      <p>Admission + runtime, safely.</p>
+    </div>
+    <span class="ck-control-loop__arrow" aria-hidden="true">→</span>
+    <div class="ck-control-loop__step">
+      <span class="ck-control-loop__emoji" aria-hidden="true">🔁</span>
+      <h3 class="ck-control-loop__title">Re-observe</h3>
+      <p>Keep adapting as things change.</p>
+    </div>
+    <span class="ck-control-loop__arrow" aria-hidden="true">→</span>
+    <span class="ck-control-loop__loop-badge" title="Cycle repeats from Observe"><span class="ck-control-loop__loop-icon" aria-hidden="true">🔁</span> Observe</span>
+  </div>
+</div>
+
+---
+
+## How it works
+
+CruiseKube **observes** the cluster (Prometheus and the Kubernetes API), **derives** CPU and memory targets, and **applies** them at **admission** and **runtime** (in-place resize where the cluster supports it). The diagram below is a high-level map of how those pieces connect.
+
+![CruiseKube architecture diagram](../images/cruisekube-arch.png)
+
+For components, background tasks, and control flows in detail, see **[Architecture](arch-introduction.md)** in **Concepts**.
 
 ## Problem: Why Kubernetes Clusters Stay Expensive
 
@@ -20,16 +65,23 @@ Kubernetes gives you bin-packing (cluster autoscaler, Karpenter, etc.), but **wa
 
 If you have ever bumped requests "just to be safe" run fat nodes because of a few noisy neighbors, or asked a team to manually tune YAML every quarter, CruiseKube is aimed at you.
 
-```mermaid
-flowchart TB
-  Problems --> over["Over provisioning: 
-  <br />Fear of CPU throttling and OOMKills leads teams to over-request resources, creating significant waste."]
-  Problems --> mannual["Operational Lag: 
-  <br />Manually editing YAML files"]
-  Problems --> scaling["Inefficient Scaling: 
-  <br />Inflated requests result in underutilized nodes, forcing cluster autoscalers into inefficient and costly decisions."]
-
-```
+<div class="features-grid features-grid--compact">
+  <div class="feature-card">
+    <div class="feature-icon" aria-hidden="true">🗄️</div>
+    <h3>Over-provisioning</h3>
+    <p>Padded requests to dodge <strong>throttling and OOM</strong> → wasted capacity.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" aria-hidden="true">🛡️</div>
+    <h3>Operational lag</h3>
+    <p><strong>YAML</strong> tweaks by hand, rarely in step with real usage.</p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon" aria-hidden="true">⚖️</div>
+    <h3>Inefficient scaling</h3>
+    <p>High requests strand <strong>node capacity</strong>; autoscalers follow the wrong signals.</p>
+  </div>
+</div>
 
 ---
 
@@ -67,8 +119,7 @@ flowchart LR
   E --> F[Monitor savings & SLOs]
 ```
 
-!!! tip "Suggested media — product walkthrough"
-    A **screen recording GIF** of: port-forward → login → open a workload → flip mode → show before/after request columns or savings panel.
+![Change criticality of workload](../images/enable_workloads.gif)
 
 ---
 

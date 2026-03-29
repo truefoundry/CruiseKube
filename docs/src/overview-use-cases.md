@@ -21,8 +21,8 @@ CruiseKube is not a replacement for **Horizontal Pod Autoscaler** (replica scali
 
 **Outcome:** Less spreadsheet-driven tuning, more consistent cluster utilization, fewer “mystery fat” requests.
 
-!!! tip "Suggested media"
-    **Before/after screenshot** of the dashboard summary: total requested CPU/memory vs recommended, or a single namespace view.
+<!-- !!! tip "Suggested media"
+    **Before/after screenshot** of the dashboard summary: total requested CPU/memory vs recommended, or a single namespace view. -->
 
 ---
 
@@ -44,8 +44,7 @@ CruiseKube is not a replacement for **Horizontal Pod Autoscaler** (replica scali
 
 **Outcome:** Optimization becomes a policy conversation, not roulette.
 
-!!! tip "Suggested media"
-    Short **GIF** of the workload policy panel: changing priority / mode for two workloads side by side.
+![Change criticality of workload](../images/critical_change.gif)
 
 ---
 

@@ -39,7 +39,7 @@ CruiseKube explicitly addresses the pod-level right-sizing problem, in a fully h
 
 ## How does it work?
 
-<img src="../../images/cruisekube_arch.png" alt="CruiseKube Architecture" width="800">
+<img src="/images/cruisekube-arch.png" alt="CruiseKube Architecture">
 
 At a high level, CruiseKube has the following components -
 

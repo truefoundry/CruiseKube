@@ -21,9 +21,6 @@ CruiseKube separates **observation** from **enforcement** using **per-workload**
 | **Recommend** | CruiseKube **computes** recommendations and shows them in the dashboard; it does **not** apply in-place resource changes for that workload. |
 | **Cruise** | CruiseKube **applies** optimizations for that workload according to controller schedules, admission webhook behavior, and safety rules. |
 
-!!! tip "Suggested media"
-    Short **GIF** of the **Recommend** / **Cruise** toggle and priority dropdown on a single row—matches the current UI.
-
 Exact labels can vary slightly by release; trust what you see in your deployed frontend.
 
 ---
