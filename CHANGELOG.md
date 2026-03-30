@@ -9,6 +9,21 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.2.5-rc.2 (2026-03-27)
+
+### Improvements
+* simplifying node_stats_builder.go by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/197
+* Remove obsolete write/apply config gates by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/195
+* integrate deadcode linter by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/199
+* Persist workloads with incomplete stats by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/203
+* Allow raw namespaceSelector input for webhook chart by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/204
+
+### Other
+* Remove dry-run support by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/196
+* Remove unused create-stats max metrics by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/198
+* build(deps): bump google.golang.org/grpc from 1.75.0 to 1.79.3 by @dependabot[bot] in https://github.com/truefoundry/CruiseKube/pull/184
+* release: v0.2.5-rc.1 by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/202
+
 ## v0.2.5-rc.1 (2026-03-25)
 
 ### Breaking Changes
