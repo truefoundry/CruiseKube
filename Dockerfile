@@ -7,7 +7,12 @@ RUN go mod download
 COPY ./cmd ./cmd
 COPY ./pkg ./pkg
 
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o cruisekube ./cmd/cruisekube
+# Baked into the API (e.g. /config version). CI passes VERSION to match the image tag:
+# release: charts/cruisekube/values.yaml cruisekubeController.image.tag; main: github.sha.
+ARG VERSION=dev
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
+	-ldflags "-X github.com/truefoundry/cruisekube/pkg/version.Version=${VERSION}" \
+	-o cruisekube ./cmd/cruisekube
 
 # Runtime stage
 FROM public.ecr.aws/docker/library/alpine:3.22

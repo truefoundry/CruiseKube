@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	maxRatioSamples   = 10
 	ratioLookbackDays = 7
 )
 
@@ -72,37 +71,6 @@ func (deps HandlerDependencies) getClusterResourcesFromDatabase(ctx context.Cont
 	if len(snapshots) == 0 {
 		return out
 	}
-
-	// Sample at most maxRatioSamples from different days for ratio averaging.
-	// seenDays := make(map[string]struct{})
-	// var ratioSamples []types.SnapshotRecord
-	// for i := len(snapshots) - 1; i >= 0 && len(ratioSamples) < maxRatioSamples; i-- {
-	// 	day := snapshots[i].CreatedAt.UTC().Format("2006-01-02")
-	// 	if _, ok := seenDays[day]; ok {
-	// 		continue
-	// 	}
-	// 	seenDays[day] = struct{}{}
-	// 	ratioSamples = append(ratioSamples, snapshots[i])
-	// }
-
-	// var sumRatioCPU, sumRatioMem float64
-	// var countCPU, countMem int
-	// for _, s := range ratioSamples {
-	// 	if s.Data.CPU.CurrentAllocatable > 0 {
-	// 		sumRatioCPU += s.Data.CPU.CurrentRequested / s.Data.CPU.CurrentAllocatable
-	// 		countCPU++
-	// 	}
-	// 	if s.Data.Memory.CurrentAllocatable > 0 {
-	// 		sumRatioMem += s.Data.Memory.CurrentRequested / s.Data.Memory.CurrentAllocatable
-	// 		countMem++
-	// 	}
-	// }
-	// if countCPU > 0 {
-	// 	out.ReqAllocRatioCPU = sumRatioCPU / float64(countCPU)
-	// }
-	// if countMem > 0 {
-	// 	out.ReqAllocRatioMem = sumRatioMem / float64(countMem)
-	// }
 
 	// Use the most recent snapshot for current cluster state.
 	latest := snapshots[len(snapshots)-1]
