@@ -20,7 +20,7 @@ Use this page as a **first pass** before opening an issue. Symptom → likely ca
 | **Time** | Stats tasks run on a schedule (defaults in `values.yaml`). Wait several intervals after install. |
 | **Prometheus URL** | From a controller pod, the URL must resolve (in-cluster Service DNS, correct namespace). |
 | **Metrics** | Confirm Prometheus scrapes **cAdvisor / kubelet / pod** metrics CruiseKube queries. |
-| **New workloads** | Very new workloads may be ignored until they pass **`newWorkloadThresholdHours`**. |
+| **New workloads** | Very new workloads may be ignored until they pass **`newWorkloadThresholdHours`** (env: `CRUISEKUBE_RECOMMENDATIONSETTINGS_NEWWORKLOADTHRESHOLDHOURS`). |
 
 ```bash
 kubectl logs -n cruisekube-system deploy/cruisekube-controller-manager --tail=200
