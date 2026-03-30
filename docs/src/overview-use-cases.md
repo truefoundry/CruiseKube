@@ -92,8 +92,8 @@ flowchart LR
 
 ## When CruiseKube is a poor fit
 
-- You rely on **CPU- or memory-based HPA** for the same workloads (CruiseKube skips them by design).  
-- You need **JVM heap** to track container resize dynamically without process restart—support is limited today; see [FAQ](overview-faq.md).  
-- You expect benefit **without** a working **Prometheus** and **autoscaler-capable** cluster topology—see [Tradeoffs](arch-tradeoffs.md).
+- **CPU- or memory-based HPA** is used for the same workloads (CruiseKube skips them by design).  
+- **JVM heap** tracking for dynamic container resize without process restart is needed—support is limited today; see [FAQ](overview-faq.md).  
+- Benefit is expected **without** a working **Prometheus** and **autoscaler-capable** cluster topology—see [Tradeoffs](arch-tradeoffs.md).
 
 For a capability comparison to VPA, read [CruiseKube vs VPA](comp-vs-vpa.md).

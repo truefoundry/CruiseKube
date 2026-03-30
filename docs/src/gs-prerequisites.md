@@ -17,7 +17,8 @@ Install these **before** [Installation](gs-installation.md). Missing any item us
 
 | Requirement | Notes |
 |-------------|--------|
-| **Kubernetes 1.33+** | In-place pod resource updates are part of the design; older versions are unsupported for full functionality. |
+| **Kubernetes 1.33+** | In-place pod resource updates are part of the design; older versions are unsupported. PSI-aware optimization requires 1.34+; see Prometheus section below. |
+ |
 | **kubectl** | Configured for the target cluster context. |
 | **Helm 3** | For installing the official chart (OCI registry). |
 
