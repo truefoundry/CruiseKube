@@ -26,7 +26,8 @@ type DatabaseConfig struct {
 	SSLMode  string `yaml:"sslmode" json:"sslmode"`   // For postgres
 }
 
-// NewDatabase creates a new storage instance based on the configuration
+// NewDatabase creates a new storage instance based on the configuration.
+// All database operations are retried on transient failures (connection loss, deadlocks, etc.).
 func NewDatabase(config DatabaseConfig) (ports.Database, error) {
 	// Create the appropriate client factory
 	clientFactory, err := clients.CreateClientFactory(clients.FactoryConfig{
@@ -48,8 +49,11 @@ func NewDatabase(config DatabaseConfig) (ports.Database, error) {
 		return nil, fmt.Errorf("failed to create database client: %w", err)
 	}
 
-	// Create the shared storage implementation
-	return NewGormDB(db)
+	gormDB, err := NewGormDB(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gorm storage: %w", err)
+	}
+	return newRetryingDatabase(gormDB), nil
 }
 
 // GormDB implements the Storage interface using GORM
@@ -62,14 +66,14 @@ type GormDB struct {
 func NewGormDB(db *gorm.DB) (*GormDB, error) {
 	gormDB := &GormDB{db: db}
 
-	if err := gormDB.createTables(); err != nil {
+	if err := withDBRetryVoid(context.Background(), gormDB.migrateSchema); err != nil {
 		return nil, fmt.Errorf("failed to create tables: %w", err)
 	}
 
 	return gormDB, nil
 }
 
-func (s *GormDB) createTables() error {
+func (s *GormDB) migrateSchema() error {
 	// One-time migration: rename legacy "stats" table to "workloads"
 	if s.db.Migrator().HasTable("stats") && !s.db.Migrator().HasTable("workloads") {
 		if err := s.db.Exec("ALTER TABLE stats RENAME TO workloads").Error; err != nil {
