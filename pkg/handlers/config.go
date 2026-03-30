@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/version"
 	"go.opentelemetry.io/otel/attribute"
 
 	oteltrace "go.opentelemetry.io/otel/trace"
@@ -34,6 +35,7 @@ func (deps HandlerDependencies) GetConfigHandler(c *gin.Context) {
 		c.JSON(500, gin.H{
 			"url":       "",
 			"connected": false,
+			"version":   version.Version,
 			"error":     fmt.Sprintf("Unknown controller mode: %s", cfg.ControllerMode),
 		})
 		return
@@ -45,6 +47,7 @@ func (deps HandlerDependencies) GetConfigHandler(c *gin.Context) {
 		c.JSON(500, gin.H{
 			"url":       prometheusURL,
 			"connected": false,
+			"version":   version.Version,
 			"error":     fmt.Sprintf("Failed to get cluster clients: %v", err),
 		})
 		return
@@ -70,6 +73,7 @@ func (deps HandlerDependencies) GetConfigHandler(c *gin.Context) {
 	response := gin.H{
 		"url":       prometheusURL,
 		"connected": connected,
+		"version":   version.Version,
 	}
 	if connectionError != "" {
 		response["error"] = connectionError
