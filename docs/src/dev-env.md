@@ -30,7 +30,7 @@ Ensure you have the following installed:
 
 | Tool | Purpose |
 |------|---------|
-| **Go** 1.21+ | Build and run CruiseKube |
+| **Go** 1.24+ | Build and run CruiseKube |
 | **Docker** | For Kind (if you use it) |
 | **kubectl** | Cluster access |
 | **Helm** | Install Prometheus (and optionally CruiseKube in-cluster) |

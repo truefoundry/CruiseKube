@@ -14,7 +14,8 @@ hide:
     </p>
     <div class="hero-buttons">
   <a href="/src/gs-installation/" class="cta-button md-button md-button--primary">Get Started</a>
-      <a href="https://discord.gg/qFyN73htgE" class="md-button md-button--secondary" rel="noopener noreferrer">Join our community</a>
+      <a href="/src/overview/" class="md-button md-button--secondary">Why CruiseKube</a>
+      <a href="https://discord.gg/Dqek4xJa3N" class="md-button md-button--secondary" rel="noopener noreferrer">Join our community</a>
     </div>
   </div>
    <div class="hero-image">
@@ -86,8 +87,8 @@ hide:
   </div>
   <div class="demo-image">
 
-<img src="./images/demo_recommendation.png" alt="Recommendation Demo"/>
-<img src="./images/demo_workload_toggle.png" alt="Workload Toggle"/>
+<img src="./images/demo-overview.png" alt="Recommendation Demo"/>
+<img src="./images/demo-workload.png" alt="Workload Toggle"/>
 </div>
 </div>
 
