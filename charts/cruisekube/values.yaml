@@ -25,7 +25,7 @@ cruisekubeController:
     ## @param cruisekubeController.image.imagePullPolicy CruiseKube Controller image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeController.image.tag CruiseKube Controller image tag (immutable tags are recommended)
-    tag: "c704e83f0176d0d41924a1e1970b3e387ace5847"
+    tag: "3bdfcb210ef4859f84f66a04ceae530e7580738c"
   ## @param cruisekubeController.imagePullSecrets [array] CruiseKube Controller image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeController.nameOverride String to partially override cruisekube.fullname
@@ -102,11 +102,11 @@ cruisekubeController:
     CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_SKIPMEMORY: "false"
     CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_NODESTATSURL_HOST: "http://localhost:8080"
     CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_OVERRIDESURL_HOST: "http://localhost:8080"
-    CRUISEKUBE_CONTROLLER_TASKS_NODELOADMONITORING_ENABLED: "false"
+    CRUISEKUBE_CONTROLLER_TASKS_NODELOADMONITORING_ENABLED: "true"
     CRUISEKUBE_CONTROLLER_TASKS_NODELOADMONITORING_SCHEDULE: "60s"
     CRUISEKUBE_CONTROLLER_TASKS_FETCHMETRICS_ENABLED: "true"
     CRUISEKUBE_CONTROLLER_TASKS_FETCHMETRICS_SCHEDULE: "1m"
-    CRUISEKUBE_CONTROLLER_TASKS_CLEANUP_ENABLED: "false"
+    CRUISEKUBE_CONTROLLER_TASKS_CLEANUP_ENABLED: "true"
     CRUISEKUBE_CONTROLLER_TASKS_CLEANUP_SCHEDULE: "24h"
     CRUISEKUBE_CONTROLLER_TASKS_CLEANUP_METADATA_RETENTIONDAYS: "7"
     CRUISEKUBE_CONTROLLER_TASKS_DISRUPTIONFORCE_ENABLED: "true"
@@ -119,7 +119,7 @@ cruisekubeController:
     CRUISEKUBE_DB_TYPE: "postgres"
     CRUISEKUBE_DB_SSLMODE: "disable"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_NEWWORKLOADTHRESHOLDHOURS: "1"
-    CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "true"
+    CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "false"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_MAXCONCURRENTQUERIES: "30"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_OOMCOOLDOWNMINUTES: "5"
     CRUISEKUBE_TELEMETRY_ENABLED: "false"
@@ -142,7 +142,7 @@ cruisekubeWebhook:
     ## @param cruisekubeWebhook.image.imagePullPolicy CruiseKube Webhook image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeWebhook.image.tag CruiseKube Webhook image tag (immutable tags are recommended)
-    tag: "c704e83f0176d0d41924a1e1970b3e387ace5847"
+    tag: "3bdfcb210ef4859f84f66a04ceae530e7580738c"
   ## @param cruisekubeWebhook.imagePullSecrets [array] CruiseKube Webhook image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeWebhook.nameOverride String to partially override cruisekube.fullname
@@ -242,7 +242,6 @@ cruisekubeWebhook:
       memory: 128Mi
   ## @param cruisekubeWebhook.env [object] Environment variables to configure CruiseKube Webhook
   env:
-    CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: "true"
     CRUISEKUBE_SENTRY_ENABLED: "false"
     CRUISEKUBE_SENTRY_DSN: ""
     CRUISEKUBE_SENTRY_ENVIRONMENT: ""
@@ -282,7 +281,7 @@ cruisekubeFrontend:
     ## @param cruisekubeFrontend.image.imagePullPolicy CruiseKube Frontend image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeFrontend.image.tag CruiseKube Frontend image tag (immutable tags are recommended)
-    tag: "c704e83f0176d0d41924a1e1970b3e387ace5847"
+    tag: "3bdfcb210ef4859f84f66a04ceae530e7580738c"
   ## @param cruisekubeFrontend.imagePullSecrets [array] CruiseKube Frontend image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeFrontend.nameOverride String to partially override cruisekube.fullname
