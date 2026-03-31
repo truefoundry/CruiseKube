@@ -106,7 +106,12 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
-	details, _, _, _, _, _, err := deps.getWorkloadsData(ctx, clusterID)
+	details, recAgg, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := deps.getWorkloadsData(ctx, clusterID)
+	_ = recAgg
+	_ = clusterReqCPU
+	_ = clusterReqMem
+	_ = clusterRecCPU
+	_ = clusterRecMem
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
