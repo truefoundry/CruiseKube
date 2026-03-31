@@ -19,8 +19,7 @@ Install from the **OCI** registry (replace the Prometheus URL with yours):
 
 ```bash
 helm install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \
-  --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
-  --set postgresql.enabled=true
+  --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" 
 ```
 
 - Use an **in-cluster** Prometheus Service DNS name reachable from `cruisekube-system`.  
@@ -69,22 +68,18 @@ Open **http://localhost:3000**. See [Dashboard](config-dashboard.md) for UI conc
 Optimization is controlled **per workload** in the UI—there is **no separate global “dry-run mode”** toggle.
 
 
-1. Open **Policies & Configuration** → **CruiseKube mode & priority** (see [Dashboard](config-dashboard.md)).  
+1. Open **Workloads** → **CruiseKube mode & priority** (see [Dashboard](config-dashboard.md)).  
 2. Leave workloads on **Recommend** while you validate suggestions against metrics and SLOs.  
 3. Switch trusted workloads to **Cruise** when you want the controller and webhook to **apply** right-sizing.
 
-CruiseKube now applies supported recommendations directly. Memory recommendation application remains disabled by default.
-To enable memory recommendation application, set both of the following disable flags to `false`:
+CruiseKube doesn't apply recommendations unless cruise mode is enabled. In Cruise mode, Memory recommendation application remains enabled by default. To disable memory recommendation application, set the following disable flags to `true`:
 
   - cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
-  - cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
 
 ```bash
 helm upgrade --install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \
 --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
---set postgresql.enabled=true \
---set cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false \
---set cruisekubeWebhook.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
+--set cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=false
 ```
 
 > You can check all the available environment variables in the [values.yaml file](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml#L88).

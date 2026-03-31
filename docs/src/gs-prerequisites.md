@@ -40,7 +40,7 @@ CruiseKube reads **container and node metrics** (usage, throttling, PSI where ex
 
 CruiseKube persists **workload statistics**, **recommendations**, and **per-workload overrides** in a database.
 
-- **Option A:** Enable the **Bitnami PostgreSQL subchart** in the official Helm chart (`postgresql.enabled=true`).  
+- **Option A:** **Bitnami PostgreSQL subchart** official Helm chart (`postgresql.enabled=true`), is enabled by default.
 - **Option B:** Use your own Postgres and set `global.postgresql.auth.*` (host, port, user, password, database) per [Helm chart reference](reference-helm-chart.md).
 
 ---
