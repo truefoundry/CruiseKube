@@ -14,12 +14,12 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 ### Breaking Changes
 
 * Allow raw namespaceSelector input for webhook chart by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/204
+* Remove obsolete write/apply config gates by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/195
+* Remove dry-run support by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/196
 
 ### Improvements
 
 * simplifying node_stats_builder.go by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/197
-* Remove obsolete write/apply config gates by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/195
-* Remove dry-run support by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/196
 * Remove unused create-stats max metrics by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/198
 * integrate deadcode linter by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/199
 * Persist workloads with incomplete stats by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/203
@@ -27,6 +27,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * add version tag to config api by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/208
 
 ### Other
+
 * build(deps): bump google.golang.org/grpc from 1.75.0 to 1.79.3 by @dependabot[bot] in https://github.com/truefoundry/CruiseKube/pull/184
 * feat: update docs by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/193
 * feat: release frontend by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/210
