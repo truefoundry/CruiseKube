@@ -84,7 +84,7 @@ This adjusted value reflects the actual CPU demand when the container is competi
 CruiseKube distinguishes between two usage patterns:
 
 - **Steady State (P75)**: 
-    - **CPU**: The 75th percentile of CPU usage over the last 10 minutes. This represents the current and typical, sustained usage. Thhis serves as the baseline demand. 
+    - **CPU**: The 75th percentile of CPU usage over the last 10 minutes. This represents the current and typical, sustained usage. This serves as the baseline demand. 
     - **Memory**: The 75th percentile of memory usage over the last 30 minutes. The longer window accounts for memory's higher reliability requirements compared to CPU.
 - **Peak Usage (Max)**: The maximum value observed in the past 60 minutes at the current hour over the last 1 week. This methodology captures recurring patterns (e.g., daily cycles) while accounting for recent spikes. The difference between peak and steady state represents the `spike demand` or `headroom` needed to accommodate usage bursts.
 
