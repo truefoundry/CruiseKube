@@ -119,14 +119,10 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 	reqAllocRatioCPU := dbRes.ReqAllocRatioCPU
 	reqAllocRatioMem := dbRes.ReqAllocRatioMem
 
-	// Memory request/recommendation from workload stats are in MiB; convert to GiB to align with pricing units.
-	requestedMemGB := dbRes.OriginalMemory / 1000
-	recommendedMemGB := dbRes.RecommendedMemory / 1000
-
 	// Cost and savings mirror the summary API: current infra cost, current savings vs workload request, and possible savings vs recommendation.
 	currentCostDollars := (clusterRes.CPU.Allocatable*p.CPUPerCorePerHour + clusterRes.Memory.Allocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
-	workloadCostDollars := (dbRes.OriginalCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
-	optimizedCostDollars := (dbRes.RecommendedCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	workloadCostDollars := (dbRes.OriginalCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (dbRes.OriginalMemory/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	optimizedCostDollars := (dbRes.RecommendedCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (dbRes.RecommendedMemory/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 
 	currentCostDollars = math.Round(currentCostDollars)
 	workloadCostDollars = math.Round(workloadCostDollars)
