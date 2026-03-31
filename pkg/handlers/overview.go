@@ -41,9 +41,13 @@ func (deps HandlerDependencies) getClusterNodeCount(ctx context.Context, cluster
 
 // clusterResourcesFromDB holds cluster resource values and the 7-day average request/allocatable ratios.
 type clusterResourcesFromDB struct {
-	Resources        types.ClusterResourcesDTO
-	ReqAllocRatioCPU float64
-	ReqAllocRatioMem float64
+	Resources         types.ClusterResourcesDTO
+	RecommendedCPU    float64
+	RecommendedMemory float64
+	OriginalCPU       float64
+	OriginalMemory    float64
+	ReqAllocRatioCPU  float64
+	ReqAllocRatioMem  float64
 }
 
 // getClusterResourcesFromDatabase loads cluster allocatable/requested/utilised from the snapshots table,
@@ -54,8 +58,12 @@ func (deps HandlerDependencies) getClusterResourcesFromDatabase(ctx context.Cont
 			CPU:    types.ClusterResourceDTO{Utilised: 0, Requested: 0, Allocatable: 0},
 			Memory: types.ClusterResourceDTO{Utilised: 0, Requested: 0, Allocatable: 0},
 		},
-		ReqAllocRatioCPU: 1.0,
-		ReqAllocRatioMem: 1.0,
+		RecommendedCPU:    0,
+		RecommendedMemory: 0,
+		OriginalCPU:       0,
+		OriginalMemory:    0,
+		ReqAllocRatioCPU:  1.0,
+		ReqAllocRatioMem:  1.0,
 	}
 	if deps.Storage == nil {
 		return out
@@ -80,12 +88,10 @@ func (deps HandlerDependencies) getClusterResourcesFromDatabase(ctx context.Cont
 	out.Resources.Memory.Allocatable = latest.Data.Memory.CurrentAllocatable
 	out.Resources.Memory.Requested = latest.Data.Memory.CurrentRequested
 	out.Resources.Memory.Utilised = latest.Data.Memory.CurrentUtilized
-
-	if latest.Data.CPU.CurrentAllocatable == 0 || latest.Data.Memory.CurrentAllocatable == 0 {
-		return out
-	}
-	out.ReqAllocRatioCPU = latest.Data.CPU.CurrentRequested / latest.Data.CPU.CurrentAllocatable
-	out.ReqAllocRatioMem = latest.Data.Memory.CurrentRequested / latest.Data.Memory.CurrentAllocatable
+	out.RecommendedCPU = latest.Data.CPU.RecommendedRequested
+	out.RecommendedMemory = latest.Data.Memory.RecommendedRequested
+	out.OriginalCPU = latest.Data.CPU.WorkloadRequested
+	out.OriginalMemory = latest.Data.Memory.WorkloadRequested
 
 	return out
 }
@@ -94,7 +100,7 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	clusterID := c.Param("clusterID")
 
-	details, _, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := deps.getWorkloadsData(ctx, clusterID)
+	details, _, _, _, _, _, err := deps.getWorkloadsData(ctx, clusterID)
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -108,13 +114,13 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 	reqAllocRatioMem := dbRes.ReqAllocRatioMem
 
 	// Memory request/recommendation from workload stats are in MiB; convert to GiB to align with pricing units.
-	requestedMemGB := clusterReqMem / 1000
-	recommendedMemGB := clusterRecMem / 1000
+	requestedMemGB := dbRes.OriginalMemory / 1000
+	recommendedMemGB := dbRes.RecommendedMemory / 1000
 
 	// Cost and savings mirror the summary API: current infra cost, current savings vs workload request, and possible savings vs recommendation.
 	currentCostDollars := (clusterRes.CPU.Allocatable*p.CPUPerCorePerHour + clusterRes.Memory.Allocatable*p.MemPerGBPerHour) * defaultHoursPerMonth
-	workloadCostDollars := (clusterReqCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
-	optimizedCostDollars := (clusterRecCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	workloadCostDollars := (dbRes.OriginalCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (requestedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
+	optimizedCostDollars := (dbRes.RecommendedCPU/reqAllocRatioCPU)*p.CPUPerCorePerHour*defaultHoursPerMonth + (recommendedMemGB/reqAllocRatioMem)*p.MemPerGBPerHour*defaultHoursPerMonth
 
 	currentCostDollars = math.Round(currentCostDollars)
 	workloadCostDollars = math.Round(workloadCostDollars)
@@ -198,16 +204,16 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 		CPUStats: types.OverviewResourceStats{
 			Allocatable:       clusterRes.CPU.Allocatable,
 			Requested:         clusterRes.CPU.Requested,
-			WorkloadRequested: clusterReqCPU,
+			WorkloadRequested: dbRes.OriginalCPU,
 			Usage:             clusterRes.CPU.Utilised,
-			Recommended:       clusterRecCPU,
+			Recommended:       dbRes.RecommendedCPU,
 		},
 		MemoryStats: types.OverviewResourceStats{
 			Allocatable:       clusterRes.Memory.Allocatable,
 			Requested:         clusterRes.Memory.Requested,
-			WorkloadRequested: requestedMemGB,
+			WorkloadRequested: dbRes.OriginalMemory,
 			Usage:             clusterRes.Memory.Utilised,
-			Recommended:       recommendedMemGB,
+			Recommended:       dbRes.RecommendedMemory,
 		},
 	})
 }
