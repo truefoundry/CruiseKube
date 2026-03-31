@@ -259,6 +259,9 @@ postgresql:
       enabled: true
       ## @param postgresql.primary.persistence.size PVC Storage Request for PostgreSQL volume
       size: 2Gi
+    ## @param postgresql.primary.podAnnotations [object] Annotations for PostgreSQL primary pods
+    podAnnotations:
+      cruisekube.truefoundry.com/excluded: "true"
     resources:
       limits:
         ## @param postgresql.primary.resources.limits.cpu The resources limits (CPU) for the PostgreSQL Primary containers
