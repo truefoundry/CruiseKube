@@ -108,10 +108,6 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 
 	details, recAgg, clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem, err := deps.getWorkloadsData(ctx, clusterID)
 	_ = recAgg
-	_ = clusterReqCPU
-	_ = clusterReqMem
-	_ = clusterRecCPU
-	_ = clusterRecMem
 	if err != nil {
 		logging.Errorf(ctx, "Failed to get workloads for cluster %s: %v", clusterID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -120,6 +116,20 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 
 	p := deps.getEffectivePricing(ctx, clusterID)
 	dbRes := deps.getClusterResourcesFromDatabase(ctx, clusterID)
+	// Snapshots may be absent (e.g. before apply / no Prometheus); align with summary by filling
+	// workload-level totals from DB workloads when snapshot has no workload/recommended totals.
+	if dbRes.OriginalCPU == 0 && clusterReqCPU > 0 {
+		dbRes.OriginalCPU = clusterReqCPU
+	}
+	if dbRes.RecommendedCPU == 0 && clusterRecCPU > 0 {
+		dbRes.RecommendedCPU = clusterRecCPU
+	}
+	if dbRes.OriginalMemory == 0 && clusterReqMem > 0 {
+		dbRes.OriginalMemory = clusterReqMem / 1000
+	}
+	if dbRes.RecommendedMemory == 0 && clusterRecMem > 0 {
+		dbRes.RecommendedMemory = clusterRecMem / 1000
+	}
 	clusterRes := dbRes.Resources
 	reqAllocRatioCPU := dbRes.ReqAllocRatioCPU
 	reqAllocRatioMem := dbRes.ReqAllocRatioMem
