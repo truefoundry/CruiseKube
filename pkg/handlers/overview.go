@@ -93,6 +93,12 @@ func (deps HandlerDependencies) getClusterResourcesFromDatabase(ctx context.Cont
 	out.OriginalCPU = latest.Data.CPU.WorkloadRequested
 	out.OriginalMemory = latest.Data.Memory.WorkloadRequested
 
+	if latest.Data.CPU.CurrentAllocatable == 0 || latest.Data.Memory.CurrentAllocatable == 0 {
+		return out
+	}
+	out.ReqAllocRatioCPU = latest.Data.CPU.CurrentRequested / latest.Data.CPU.CurrentAllocatable
+	out.ReqAllocRatioMem = latest.Data.Memory.CurrentRequested / latest.Data.Memory.CurrentAllocatable
+
 	return out
 }
 
