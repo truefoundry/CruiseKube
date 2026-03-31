@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -77,16 +78,20 @@ func isTransientDBError(err error) bool {
 }
 
 func withDBRetry[T any](ctx context.Context, op func() (T, error)) (T, error) {
-	return backoff.Retry(ctx, func() (T, error) {
+	v, err := backoff.Retry(ctx, func() (T, error) {
 		v, err := op()
 		if err == nil {
 			return v, nil
 		}
 		if isTransientDBError(err) {
-			return v, err
+			return v, fmt.Errorf("database retry: %w", err)
 		}
 		return v, backoff.Permanent(err)
 	}, dbRetryOpts()...)
+	if err != nil {
+		return v, fmt.Errorf("database retries exhausted: %w", err)
+	}
+	return v, nil
 }
 
 func withDBRetryVoid(ctx context.Context, op func() error) error {
