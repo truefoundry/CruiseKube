@@ -72,7 +72,9 @@ func buildBatchPodInfoExpression(namespace string) string {
 	template := `max by (namespace, pod, container, node, created_by_kind, created_by_name) (
 		kube_pod_info{
 			job="kube-state-metrics",
-			namespace="%s"
+			namespace="%s",
+			created_by_kind=~".+",
+			created_by_name=~".+"
 		}
 	)`
 	return fmt.Sprintf(template, namespace)
