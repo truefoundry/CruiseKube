@@ -34,7 +34,7 @@ hide:
 <div class="features-section">
   <div class="section-header">
     <h2>Why clusters still leak</h2>
-    <p>Right-sizing is a familiar idea with a fragile day-to-day workflow.</p>
+    <p>Cluster autoscalers can pack nodes efficiently, but <strong>most waste is still per pod</strong>: inflated CPU and memory <em>requests</em> in <strong>YAML</strong>, and scaling logic that reads those <em>requests</em>—not what the workload actually needed.</p>
   </div>
   <div class="ck-problems-copy ck-points">
     <ul class="ck-points__list">
@@ -42,19 +42,19 @@ hide:
         <span class="ck-points__icon" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.67"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.67"/></svg>
         </span>
-        <span class="ck-points__text">CPU and memory <em>requests</em> are often chosen once—from a template, a spike, or caution—and then left alone. Schedulers and bills follow those numbers, so a little extra headroom on every pod becomes a lot of reservation you never use.</span>
+        <span class="ck-points__text">Workloads often share the same manifest pattern and <strong>peak-sized <em>requests</em></strong>. When <strong>limits</strong> cause <strong>CPU throttling</strong> or an <strong>OOM kill</strong>, the usual fix is to raise <em>requests</em> "just to be safe." The <strong>scheduler</strong> and your <strong>cost model</strong> still treat that headroom as guaranteed capacity—so every pod carries extra reservation you rarely use.</span>
       </li>
       <li class="ck-points__item">
         <span class="ck-points__icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 12.5-1.5 2.5 1.5 2.5"/><path d="m14 12.5 1.5 2.5-1.5 2.5"/></svg>
         </span>
-        <span class="ck-points__text">Digging through dashboards for every workload does not keep up with how fast teams ship.</span>
+        <span class="ck-points__text">Those numbers live in <strong>YAML</strong> and get edited rarely—sometimes only each quarter—while deploys and traffic change every week. The gap is not "people don't care"; it is that <strong>manual manifest edits</strong> do not keep pace with a live cluster.</span>
       </li>
       <li class="ck-points__item">
         <span class="ck-points__icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 4-1.79 4-4V5c0 2.21 2 4 4 4h2"/></svg>
         </span>
-        <span class="ck-points__text">Flipping a switch and resizing everything without guardrails does not pass a change review. Most teams sit in the middle: they know the numbers are wrong, and they still do not move them.</span>
+        <span class="ck-points__text">Large <em>requests</em> reserve big slices of each <strong>node</strong>. You can end up with <strong>underused nodes</strong>, hot neighbors, and CPU or memory that is hard to schedule. <strong>Cluster autoscalers</strong> and similar tools key off the same <em>request</em> lines, so scaling often follows the inflated number—not measured usage.</span>
       </li>
     </ul>
   </div>
@@ -64,7 +64,7 @@ hide:
 <div class="features-section">
   <div class="section-header">
     <h2>How CruiseKube answers that</h2>
-    <p>Suggestions grounded in how your pods actually run—and automation only where you turn it on.</p>
+    <p>Proposed <em>requests</em> from metrics you already have, a clear UI to review them, and optional automation per workload—not a surprise cluster-wide toggle.</p>
   </div>
   <div class="ck-problems-copy ck-points">
     <ul class="ck-points__list">
@@ -72,19 +72,19 @@ hide:
         <span class="ck-points__icon" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
         </span>
-        <span class="ck-points__text">CruiseKube uses the CPU and memory signals you already collect in Prometheus and turns them into concrete <em>request</em> values. You align reservations with observed behavior—not a template or a one-off dashboard export.</span>
+        <span class="ck-points__text">CruiseKube reads CPU and memory metrics from <strong>Prometheus</strong> (the same time series you likely already scrape) and turns them into suggested <strong>CPU and memory <em>requests</em></strong>. The goal is simple: line up <em>requests</em> with how the pod actually behaves, instead of a static template or a one-off spreadsheet.</span>
       </li>
       <li class="ck-points__item">
         <span class="ck-points__icon" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
         </span>
-        <span class="ck-points__text"><strong>Recommend first.</strong> See proposed requests in the UI, compare them to what you run today, and adopt what makes sense. When you are ready, enable Cruise for specific workloads so updates roll out in a controlled way—not as a cluster-wide blind switch.</span>
+        <span class="ck-points__text">Start in <strong>Recommend</strong>: new values show up as proposals in the UI; nothing changes your manifests until you accept them. When a team is ready, switch only the workloads you trust to <strong>Cruise</strong> so updates stay scoped—never a blind "resize everything" flip for the whole cluster.</span>
       </li>
       <li class="ck-points__item">
         <span class="ck-points__icon" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
         </span>
-        <span class="ck-points__text"><strong>Spend less on unused reservation.</strong> Many teams see a large drop in request overhead while policies and safeguards keep the blast radius of each change understandable—less waste without treating stability as an afterthought.</span>
+        <span class="ck-points__text">That usually means <strong>less unused reservation</strong> (lower <em>request</em> overhead) while <strong>policies</strong> cap how aggressive each change can be. You shrink waste, but each adjustment stays small enough to reason about for production.</span>
       </li>
     </ul>
   </div>
