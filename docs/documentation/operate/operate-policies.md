@@ -54,7 +54,7 @@ flowchart TD
 
 ---
 
-## Eviction priority (when the math does not fit)
+## Eviction Criticality/Priority (when the math does not fit)
 
 On a crowded node, the runtime optimizer may need to **evict** lower-priority pods so the remaining set can be sized safely. Ordering is documented in depth under [Eviction priority](../concepts/arch-algorithm.md#eviction-priority); summary:
 
@@ -63,7 +63,7 @@ On a crowded node, the runtime optimizer may need to **evict** lower-priority po
 | **Low** | Default for many stateless replicas—evicted first. |
 | **Medium** | Default bias for **single-replica** or **StatefulSet** workloads. |
 | **High** | Evicted only when necessary after lower tiers. |
-| **No-eviction** | Never evicted by CruiseKube for optimization pressure. |
+| **Very-High** | Never evicted by CruiseKube for optimization pressure. |
 | **DaemonSets** | Always protected. |
 
 Pair this with your **PDBs** and **SLOs**—CruiseKube does not replace Kubernetes disruption controls.
@@ -78,9 +78,10 @@ The Helm chart supports **webhook namespace exclusions** (e.g. system namespaces
 
 ## Disruption windows and operational tasks
 
+
+![Add Disruption Window — visual schedule builder and UTC cron summary](/assets/screenshots/feat_disruption.png){ align=left width=400 }
 Releases have introduced **disruption windows** and related controller tasks so optimization can respect **maintenance hours**. If your version includes these APIs, treat them as the bridge between **aggressive savings** and **change risk**. In the dashboard you can define windows with a visual builder (timezone, days, start/end time); schedules are stored as cron expressions, with local time summarized alongside the UTC values used by the controller.
 
-![Add Disruption Window — visual schedule builder and UTC cron summary](/assets/images/demo-disruption-window.png)
 
 Details also live in release notes and Helm values—search `DISRUPTION` / `disruption` in [`values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml).
 

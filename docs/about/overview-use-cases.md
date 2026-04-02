@@ -6,13 +6,15 @@ keywords:
   - CruiseKube use cases
   - Kubernetes cost optimization
   - pod right-sizing scenarios
+hide:
+  - toc
 ---
 
 # Use cases
 
 CruiseKube is not a replacement for **Horizontal Pod Autoscaler** (replica scaling) or **node provisioning** (Karpenter, Cluster Autoscaler). It owns the **vertical** question: *what should this pod request right now?* Below are patterns that map cleanly to that model.
 
----
+
 
 ## Platform engineering: default away from “peak YAML”
 
@@ -25,17 +27,17 @@ CruiseKube is not a replacement for **Horizontal Pod Autoscaler** (replica scali
 <!-- !!! tip "Suggested media"
     **Before/after screenshot** of the dashboard summary: total requested CPU/memory vs recommended, or a single namespace view. -->
 
----
+
 
 ## FinOps and chargeback programs
 
 **Situation:** Leadership wants **visibility into waste** and a credible **savings estimate**, not just node counts.
 
-**What CruiseKube does:** Surfaces current vs recommended resources in the UI; **resource pricing** (configurable unit rates) turns deltas into approximate **$/month** views. See [Resource pricing](../operate/operate-resource-pricing.md) for assumptions and limitations.
+**What CruiseKube does:** Surfaces current vs recommended resources in the UI; **resource pricing** (configurable unit rates) turns deltas into approximate **$/month** views. See [Resource pricing](../documentation/operate/operate-resource-pricing.md) for assumptions and limitations.
 
 **Outcome:** A shared artifact (the dashboard) aligns engineering and finance on “what we could save if we trusted the optimizer.”
 
----
+
 
 ## Mixed-criticality clusters
 
@@ -47,7 +49,7 @@ CruiseKube is not a replacement for **Horizontal Pod Autoscaler** (replica scali
 
 ![Change criticality of workload](/assets/images/critical_change.gif)
 
----
+
 
 ## Admission safety net for bursty workloads
 
@@ -57,7 +59,7 @@ CruiseKube is not a replacement for **Horizontal Pod Autoscaler** (replica scali
 
 **Outcome:** New revisions land closer to reality before the continuous optimizer ever runs.
 
----
+
 
 ## Complementing cluster autoscalers
 
@@ -79,22 +81,22 @@ flowchart LR
   CK -->|"What does each pod request?"| cluster
 ```
 
----
+
 
 ## Pilot-friendly rollout
 
 **Situation:** You want proof on **one namespace** or **one service line** before global enforcement.
 
-**What CruiseKube does:** Keep workloads on **Recommend** until you trust the numbers, then enable **Cruise** selectively per workload. See [Policies & modes](../operate/operate-policies.md).
+**What CruiseKube does:** Keep workloads on **Recommend** until you trust the numbers, then enable **Cruise** selectively per workload. See [Policies & modes](../documentation/operate/operate-policies.md).
 
 **Outcome:** Measurable signal (metrics + dashboard) before broad automation.
 
----
+
 
 ## When CruiseKube is a poor fit
 
 - **CPU- or memory-based HPA** is used for the same workloads (CruiseKube skips them by design).  
 - **JVM heap** tracking for dynamic container resize without process restart is needed—support is limited today; see [FAQ](overview-faq.md).  
-- Benefit is expected **without** a working **Prometheus** and **autoscaler-capable** cluster topology—see [Tradeoffs](../concepts/arch-tradeoffs.md).
+- Benefit is expected **without** a working **Prometheus** and **autoscaler-capable** cluster topology—see [Tradeoffs](../documentation/concepts/arch-tradeoffs.md).
 
 For a capability comparison to VPA, read [CruiseKube vs VPA](comp-vs-vpa.md).

@@ -51,43 +51,43 @@ hide:
   </div>
 </div>
 
----
+<br /><br />
 
-## How it works
+# How it works
 
 CruiseKube **observes** the cluster (Prometheus and the Kubernetes API), **derives** CPU and memory targets, and **applies** them at **admission** and **runtime** (in-place resize where the cluster supports it). The diagram below is a high-level map of how those pieces connect.
 
 ![CruiseKube architecture diagram](/assets/images/cruisekube-arch.png)
 
-For components, background tasks, and control flows in detail, see **[Architecture](../concepts/arch-introduction.md)** in **Concepts**.
+For components, background tasks, and control flows in detail, see **[Architecture](../documentation/concepts/arch-introduction.md)** in **Concepts**.
 
-## Problem: Why Kubernetes Clusters Stay Expensive
+<br /><br />
+
+# Why Kubernetes Clusters Stay Expensive
 
 Kubernetes gives you bin-packing (cluster autoscaler, Karpenter, etc.), but **waste often lives at the pod**: identical templates, peak-sized requests, and limits that throttle or kill at the wrong time. CruiseKube closes the loop **per pod, on the node where it actually runs**.
 
 If you have ever bumped requests "just to be safe" run fat nodes because of a few noisy neighbors, or asked a team to manually tune YAML every quarter, CruiseKube is aimed at you.
 
-<div class="features-grid features-grid--compact">
-  <div class="feature-card">
-    <div class="feature-icon" aria-hidden="true">🗄️</div>
-    <h3>Over-provisioning</h3>
-    <p>Padded requests to dodge <strong>throttling and OOM</strong> → wasted capacity.</p>
-  </div>
-  <div class="feature-card">
-    <div class="feature-icon" aria-hidden="true">🛡️</div>
-    <h3>Operational lag</h3>
-    <p><strong>YAML</strong> tweaks by hand, rarely in step with real usage.</p>
-  </div>
-  <div class="feature-card">
-    <div class="feature-icon" aria-hidden="true">⚖️</div>
-    <h3>Inefficient scaling</h3>
-    <p>High requests strand <strong>node capacity</strong>; autoscalers follow the wrong signals.</p>
-  </div>
+<div class="grid cards" markdown>
+
+- 🗄️ __Over-provisioning__
+
+    Padded requests to dodge **throttling and OOM** → wasted capacity.
+
+- 🛡️ __Operational lag__
+
+    **YAML** tweaks by hand, rarely in step with real usage.
+
+- ⚖️ __Inefficient scaling__
+
+    High requests strand **node capacity**; autoscalers follow the wrong signals.
+
 </div>
 
----
+<br /><br />
 
-## What CruiseKube does differently
+# What CruiseKube does differently
 
 | You get | Why it matters |
 |--------|----------------|
@@ -100,17 +100,15 @@ If you have ever bumped requests "just to be safe" run fat nodes because of a fe
 
 For a line-by-line comparison to Vertical Pod Autoscaler, see [CruiseKube vs VPA](comp-vs-vpa.md).
 
----
+
+<br /><br />
 
 
-## Safe adoption path
+
+
+# Safe adoption path
 
 CruiseKube is built for **progressive trust**:
-
-1. **Install** with Helm, wire **Prometheus** and **PostgreSQL** (or use the bundled chart options).  
-2. **Explore** recommendations in the dashboard—workloads start in **Recommend** (observe-only) until you opt in; see [Installation](../install/gs-installation.md) and [Policies & modes](../operate/operate-policies.md).  
-3. **Enable Cruise mode** per workload when you are ready for applied changes.  
-4. **Tune priorities and pricing** so cost views and eviction behavior match your risk model—[Resource pricing](../operate/operate-resource-pricing.md) and [Tradeoffs](../concepts/arch-tradeoffs.md).
 
 ```mermaid
 flowchart LR
@@ -121,35 +119,15 @@ flowchart LR
   E --> F[Monitor savings & SLOs]
 ```
 
+
+1. **Install** with Helm, wire **Prometheus** and **PostgreSQL** (or use the bundled chart options).  
+2. **Explore** recommendations in the dashboard—workloads start in **Recommend** (observe-only) until you opt in; see [Installation](../install/gs-installation.md) and [Policies & modes](../documentation/operate/operate-policies.md).  
+3. **Enable Cruise mode** per workload when you are ready for applied changes.  
+4. **Tune priorities and pricing** so cost views and eviction behavior match your risk model—[Resource pricing](../documentation/operate/operate-resource-pricing.md) and [Tradeoffs](../documentation/concepts/arch-tradeoffs.md).
+
+
+
 ![Change criticality of workload](/assets/images/enable_workloads.gif)
 
----
 
-## Requirements in brief
 
-- **Kubernetes 1.33+** (in-place pod resource updates are central to the design).  
-- **Prometheus** with the metrics CruiseKube expects (see [Pre-requisites](../install/gs-prerequisites.md)).  
-- **PostgreSQL** (managed by you or the subchart).
-
----
-
-## Next steps
-
-| Step | Page |
-|------|------|
-| Understand scenarios | [Use cases](overview-use-cases.md) |
-| Compare to VPA | [CruiseKube vs VPA](comp-vs-vpa.md) |
-| Common questions | [FAQ](overview-faq.md) |
-| Install | [Pre-requisites](../install/gs-prerequisites.md) → [Installation](../install/gs-installation.md) |
-| Day-2 operations | [Dashboard](../operate/config-dashboard.md), [Policies & Modes](../operate/operate-policies.md), [Troubleshooting](../operate/operate-troubleshooting.md) |
-| Internals | [Architecture](../concepts/arch-introduction.md), [Algorithm](../concepts/arch-algorithm.md) |
-
----
-
-## Community
-
-- **GitHub:** [truefoundry/CruiseKube](https://github.com/truefoundry/CruiseKube)  
-- **Discord:** [TrueFoundry community](https://discord.gg/Dqek4xJa3N)  
-- **Artifact Hub:** [cruisekube Helm chart](https://artifacthub.io/packages/helm/cruisekube/cruisekube)
-
-If CruiseKube fits your cluster, the fastest validation is a normal install, a week of metrics with workloads on **Recommend**, then a small pilot cohort on **Cruise**—then expand with confidence.

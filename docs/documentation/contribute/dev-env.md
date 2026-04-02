@@ -44,24 +44,18 @@ Ensure you have the following installed:
 
 You can either create a local Kind cluster or use any cluster that your current `kubectl` context points to.
 
-### Option A: Kind cluster (recommended for local dev)
-
+- ### Option A: Kind cluster (recommended for local dev)
 Create a Kind cluster (the example config maps Prometheus port 9090 to the host):
-
 ```bash
 kind create cluster --name cruisekube --config=test/kind-config.yaml
 ```
-
 The `test/kind-config.yaml` maps host port **9090** to the cluster so that after installing Prometheus you can use `http://localhost:9090` in your config.
 
-### Option B: Use current context
-
+- ### Option B: Use current context
 If you already have a cluster (minikube, existing cloud cluster, etc.), ensure `kubectl` is pointing to it:
-
 ```bash
 kubectl config current-context
 ```
-
 You will need to install Prometheus in that cluster and then **port-forward** the Prometheus service to `localhost:9090` (or another port and use that URL in config). See the next section.
 
 ---

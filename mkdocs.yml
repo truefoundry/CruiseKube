@@ -1,9 +1,11 @@
-# Site
+# Project information
 site_name: CruiseKube
 site_url: https://cruisekube.com
 site_author: TrueFoundry
 site_description: >-
   CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.
+
+
 extra_css:
   - assets/stylesheets/extra.css
 
@@ -13,14 +15,16 @@ repo_name: truefoundry/CruiseKube
 repo_url: https://github.com/truefoundry/CruiseKube
 
 # Copyright
-copyright: Copyright &copy; 2025 TrueFoundry
+copyright: Copyright &copy; 2026 TrueFoundry
 
 theme:
   variant: modern
   name: material
-  logo: assets/images/logo/cruiseKube_colour.png
+  logo: assets/images/logo/cruiseKube_logo.svg
   favicon: assets/images/logo/favicon/favicon.ico
   custom_dir: docs/overrides
+  font: 
+    code: JetBrains Mono
   icon:
     tag:
       default: lucide/hash
@@ -40,33 +44,34 @@ theme:
       example: octicons/beaker-16
       quote: octicons/quote-16
   features:
-    # - announce.dismiss
+    - announce.dismiss
     # - content.action.edit
-    # - content.action.view
     - content.code.annotate
     - content.code.copy
     - content.code.select
     - content.footnote.tooltips
     - content.tabs.link
     - content.tooltips
-    # - header.autohide
     # - navigation.expand
     - navigation.footer
     - navigation.indexes
+    - navigation.path
     - navigation.instant
     - navigation.instant.prefetch
-    # - navigation.instant.progress
-    # - navigation.prune
+    - navigation.instant.progress
+    - navigation.prune
     - navigation.sections
     - navigation.tabs
-    # - navigation.tabs.sticky
     - navigation.top
     - navigation.tracking
     - search.highlight
     - search.share
     - search.suggest
     - toc.follow
-    # - toc.integrate
+    - pymdownx.caret
+    - pymdownx.keys
+    - pymdownx.mark
+    - pymdownx.tilde
   palette:
     - media: "(prefers-color-scheme)"
       toggle:
@@ -81,7 +86,7 @@ theme:
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
+      primary: orange
       accent: orange
       toggle:
         icon: lucide/moon-star
@@ -251,6 +256,7 @@ nav:
       - FAQ: about/overview-faq.md
   - Install:
       - Installation: install/gs-installation.md
+      - Basic Usage: install/basic-usage.md
       - Pre-Requisites: install/gs-prerequisites.md
   - Documentation:
       - Concepts:
@@ -262,13 +268,13 @@ nav:
         - Policies & Modes: documentation/operate/operate-policies.md
         - Resource Pricing: documentation/operate/operate-resource-pricing.md
         - Troubleshooting: documentation/operate/operate-troubleshooting.md
-      - Reference: 
-        - Helm Chart: documentation/reference/reference-helm-chart.md
-        - Configuration: documentation/reference/config.md
       - Contribute:
         - Dev Environment: documentation/contribute/dev-env.md
         - Release Process: documentation/contribute/dev-release.md
         - Security: documentation/contribute/dev-security.md
         - Contributors: documentation/contribute/dev-contributors.md
+      - Reference: 
+        - Helm Chart: documentation/reference/reference-helm-chart.md
+        - Configuration: documentation/reference/config.md
   - Blog:
       - CruiseKube Announcement: blog/posts/cruisekube_announcement.md

@@ -68,6 +68,6 @@ Per-workload **mode**, **priority**, and **resource pricing** in the UI are stor
 
 ## Next steps
 
-- [Installation](../install/gs-installation.md)  
+- [Installation](../../install/gs-installation.md)  
 - [Dashboard](../operate/config-dashboard.md)  
 - [Troubleshooting](../operate/operate-troubleshooting.md)

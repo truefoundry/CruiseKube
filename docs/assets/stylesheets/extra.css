@@ -145,13 +145,15 @@
   flex-direction: column;
   justify-content: center;
   align-items: stretch;
-  /* margin-left: calc(-1 * var(--ck-hero-pad-x)); */
-  /* margin-right: calc(-1 * var(--ck-hero-pad-x)); */
   margin-bottom: clamp(3.5rem, 10vh, 6.5rem);
-  /* padding-left: var(--ck-hero-pad-x); */
-  /* padding-right: var(--ck-hero-pad-x); */
-  /* padding-top: max(0.75rem, env(safe-area-inset-top, 0px)); */
-  /* padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)); */
+}
+
+/* Stacked hero: heading + lead + CTAs centered at top, full-width screenshot below */
+.ck-hero.ck-hero--stacked {
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 0;
+  padding-top: clamp(0.5rem, 2vh, 1.25rem);
 }
 
 @media screen and (min-width: 76.25em) {
@@ -161,13 +163,18 @@
 }
 
 .ck-hero__inner {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, min(100%, 22rem));
-  gap: clamp(2rem, 5vw, 3.5rem);
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: clamp(1.75rem, 4vw, 2.75rem);
   width: 100%;
-  max-width: 72rem;
+  max-width: min(72rem, 100%);
   margin: 0 auto;
+}
+
+.ck-hero.ck-hero--stacked .ck-hero__inner {
+  max-width: min(90rem, 100%);
+  overflow: visible;
 }
 
 .ck-hero__copy {
@@ -175,15 +182,34 @@
   padding-right: clamp(0, 2vw, 1.25rem);
 }
 
-@media screen and (max-width: 59.9844em) {
-  .ck-hero__inner {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
+.ck-hero__copy.ck-hero__copy--stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  max-width: 44rem;
+  padding-right: 0;
+  padding-left: 0;
+}
 
-  .ck-hero__copy {
-    padding-right: 0;
-  }
+.ck-hero.ck-hero--stacked .ck-hero__eyebrow {
+  margin-bottom: 0.75rem;
+}
+
+.md-typeset .ck-hero.ck-hero--stacked .ck-hero__title {
+  margin-bottom: 1.15rem;
+}
+
+.md-typeset .ck-hero.ck-hero--stacked .ck-hero__lead {
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1.75rem;
+}
+
+.ck-hero.ck-hero--stacked .ck-hero__actions {
+  justify-content: center;
+  width: 100%;
 }
 
 .ck-hero__eyebrow {
@@ -199,7 +225,7 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
-  font-size: clamp(1.85rem, 3.8vw, 2.65rem);
+  font-size: clamp(2.85rem, 3.8vw, 2.65rem);
   color: var(--md-default-fg-color);
 }
 
@@ -209,7 +235,7 @@
 
 .md-typeset .ck-hero .ck-hero__lead {
   margin: 0 0 2rem;
-  max-width: min(40rem, 100%);
+  max-width: min(60rem, 100%);
   font-size: 1.05rem;
   line-height: 1.7;
   color: var(--md-default-fg-color--light);
@@ -237,36 +263,97 @@
 
 .ck-hero__figure {
   margin: 0;
+  padding: 0;
   border: none;
   box-shadow: none;
   border-radius: 0;
-  overflow: visible;
-  justify-self: end;
-  align-self: center;
+  overflow: hidden;
+  width: 100%;
   max-width: 100%;
+  align-self: stretch;
 }
 
-@media screen and (max-width: 59.9844em) {
-  .ck-hero__figure {
-    justify-self: center;
-    max-width: min(18rem, 85vw);
+.ck-hero.ck-hero--stacked .ck-hero__figure {
+  position: relative;
+  overflow: visible;
+  border-radius: 12px;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* Theme-colored glow behind the screenshot (visible but still soft) */
+.ck-hero.ck-hero--stacked .ck-hero__figure::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 0;
+  right: 0;
+  top: 8%;
+  bottom: -12%;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      ellipse 88% 70% at 50% 88%,
+      color-mix(in srgb, var(--md-primary-fg-color) 32%, transparent) 0%,
+      color-mix(in srgb, var(--md-accent-fg-color, var(--md-primary-fg-color)) 18%, transparent) 42%,
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 120% 55% at 50% 105%,
+      color-mix(in srgb, var(--md-primary-fg-color) 14%, transparent) 0%,
+      transparent 55%
+    );
+  filter: blur(40px);
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+[data-md-color-scheme="slate"] .ck-hero.ck-hero--stacked .ck-hero__figure::before {
+  background:
+    radial-gradient(
+      ellipse 88% 70% at 50% 88%,
+      color-mix(in srgb, var(--md-primary-fg-color) 38%, transparent) 0%,
+      color-mix(in srgb, var(--md-accent-fg-color, var(--md-primary-fg-color)) 22%, transparent) 44%,
+      transparent 74%
+    ),
+    radial-gradient(
+      ellipse 120% 55% at 50% 105%,
+      color-mix(in srgb, var(--md-primary-fg-color) 20%, transparent) 0%,
+      transparent 58%
+    );
+  opacity: 0.52;
+}
+
+[data-md-color-scheme="slate"] .ck-hero.ck-hero--stacked .ck-hero__figure {
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ck-hero.ck-hero--stacked .ck-hero__figure::before {
+    filter: none;
+    opacity: 0.38;
+  }
+
+  [data-md-color-scheme="slate"] .ck-hero.ck-hero--stacked .ck-hero__figure::before {
+    opacity: 0.34;
   }
 }
 
 .ck-hero__figure img {
   display: block;
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 22rem;
+  max-width: 100%;
   height: auto;
   vertical-align: middle;
   border: none;
   box-shadow: none;
+  border-radius: 11px;
 }
 
-@media screen and (max-width: 59.9844em) {
-  .ck-hero__figure img {
-    max-width: 100%;
-  }
+.ck-hero.ck-hero--stacked .ck-hero__figure img {
+  border-radius: 11px;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -371,6 +458,124 @@
   .ck-showcase__figure:hover img {
     transform: none;
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Home: testimonials (social proof)                                          */
+/* -------------------------------------------------------------------------- */
+
+.ck-testimonials {
+  margin-top: 0;
+}
+
+.ck-testimonials__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 3vw, 1.5rem);
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.ck-testimonial-card {
+  margin: 0;
+  padding: clamp(1.15rem, 3vw, 1.5rem);
+  border-radius: 12px;
+  border: none;
+  background: var(--md-default-bg-color);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+[data-md-color-scheme="slate"] .ck-testimonial-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.md-typeset .ck-testimonial-card__quote {
+  margin: 0 0 0.95rem;
+  padding: 0;
+  border: none;
+  border-left: none;
+  font-size: 0.875rem;
+  line-height: 1.58;
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset .ck-testimonial-card__quote p {
+  margin: 0;
+  padding: 0;
+  font-style: normal;
+}
+
+.ck-testimonial-card__meta {
+  margin-top: auto;
+  padding-top: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ck-testimonial-card__name {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: -0.02em;
+  color: var(--md-default-fg-color);
+}
+
+.ck-testimonial-card__handle {
+  font-size: 0.75rem;
+  color: var(--md-default-fg-color--light);
+}
+
+@media screen and (max-width: 59.9844em) {
+  .ck-testimonials__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Home: quick install (Helm snippet)                                         */
+/* -------------------------------------------------------------------------- */
+
+.ck-quick-install {
+  margin-top: 0;
+}
+
+.ck-quick-install__panel {
+  max-width: 48rem;
+  margin: 0 auto clamp(0.85rem, 2vw, 1.15rem);
+  padding: clamp(1rem, 2.5vw, 1.35rem) clamp(1rem, 3vw, 1.5rem);
+  border-radius: 12px;
+  /* border: 1px solid var(--md-default-fg-color--lightest);
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--md-primary-fg-color) 8%, var(--md-default-bg-color)) 0%,
+      var(--md-default-bg-color) 72%); */
+}
+
+/* [data-md-color-scheme="slate"] .ck-quick-install__panel {
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--md-primary-fg-color) 12%, var(--md-default-bg-color)) 0%,
+      var(--md-default-bg-color) 78%);
+} */
+
+.md-typeset .ck-quick-install__panel .highlight,
+.md-typeset .ck-quick-install__panel pre {
+  margin: 0;
+}
+
+.md-typeset .ck-quick-install__hint {
+  margin: 0 auto;
+  max-width: 40rem;
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--md-default-fg-color--light);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -589,10 +794,14 @@
 .ck-control-loop__step {
   flex: 1 1 0;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: var(--md-default-bg-color);
   border: 1px solid var(--md-default-fg-color--lightest);
   border-radius: 12px;
-  padding: 0.35rem 0.35rem 0.4rem;
+  padding: clamp(0.55rem, 2vw, 0.85rem);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   text-align: center;
 }
@@ -605,22 +814,34 @@
   display: block;
   font-size: 1rem;
   line-height: 1;
-  margin-bottom: 0.2rem;
+  margin: 0 0 0.35rem;
+  text-align: center;
 }
 
 .ck-control-loop__title {
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--md-default-fg-color);
-  margin: 0 0 0.15rem 0;
-  line-height: 1.2;
+  margin: 0 0 0.35rem;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.md-typeset .ck-control-loop__title {
+  margin-top: 0;
+  margin-bottom: 0.35rem;
 }
 
 .md-typeset .ck-control-loop__step p {
+  align-self: stretch;
+  width: 100%;
   margin: 0;
   color: var(--md-default-fg-color--light);
-  line-height: 1.3;
+  line-height: 1.35;
   font-size: 0.6875rem;
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
@@ -755,88 +976,18 @@
 }
 
 /* -------------------------------------------------------------------------- */
-/* Feature cards grid (overview + landing)                                    */
+/* Header logo (cruiseKube_logo.svg: raster inside SVG)                        */
+/* Material uses dark-ish headers for default (indigo) and slate; the PNG     */
+/* mark is tuned for light backgrounds. Tinted invert keeps it readable and   */
+/* aligned with each palette (cool vs warm).                                   */
 /* -------------------------------------------------------------------------- */
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-  margin: 1.25rem 0;
+[data-md-color-scheme="slate"] .md-header__button.md-logo img[src*="cruiseKube_logo"] {
+  filter: brightness(0) invert(1) sepia(0.28) saturate(2.1) hue-rotate(345deg) contrast(1.05);
+  opacity: 0.94;
 }
 
-.feature-card {
-  background: var(--md-default-bg-color);
-  border-radius: 12px;
-  padding: 2rem 1.5rem;
-  text-align: center;
-  border: 1px solid var(--md-default-fg-color--lightest);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-[data-md-color-scheme="slate"] .feature-card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-[data-md-color-scheme="slate"] .feature-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-
-.feature-icon {
-  font-size: 2.5rem;
-  margin: 0 auto 1rem;
-  display: block;
-  line-height: 1;
-}
-
-.md-typeset .feature-card h3 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--md-default-fg-color);
-  margin: 0 0 0.65rem;
-}
-
-.md-typeset .feature-card p {
-  margin: 0;
-  color: var(--md-default-fg-color--light);
-  line-height: 1.55;
-  font-size: 0.95rem;
-}
-
-.features-grid--compact {
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.features-grid--compact .feature-card {
-  padding: 1.25rem;
-}
-
-.features-grid--compact .feature-icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
-
-.features-grid--compact .feature-card h3 {
-  font-size: 1.1rem;
-  margin: 0 0 0.5rem;
-}
-
-.features-grid--compact .feature-card p {
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
-@media screen and (max-width: 29.9844em) {
-  .features-grid {
-    grid-template-columns: 1fr;
-  }
+[data-md-color-scheme="light"] .md-header__button.md-logo img[src*="cruiseKube_logo"] {
+  filter: brightness(100) invert(1) sepia(0.28) saturate(2.1) hue-rotate(345deg) contrast(1.05);
+  opacity: 0.94;
 }

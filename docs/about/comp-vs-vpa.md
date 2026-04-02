@@ -8,6 +8,8 @@ keywords:
   - resource optimization comparison
   - VPA alternative
   - Kubernetes autoscaling
+hide:
+  - toc
 ---
 
 # CruiseKube vs Vertical Pod Autoscaler (VPA)
@@ -23,18 +25,25 @@ VPA answers the question:
 
 - **What should this workload generally request?**
 
-CruiseKube answers a different question:
 
-- **What should this specific pod request right now, on this node, given current conditions?**
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph vpa[VPA mental model]
     W[Workload template]
     R[Recommender]
     W --> R
     R -->|"Periodic target requests"| W
   end
+
+```
+
+CruiseKube answers a different question:
+
+- **What should this specific pod request right now, on this node, given current conditions?**
+
+```mermaid
+flowchart TB
   subgraph ck[CruiseKube mental model]
     N[Node + neighbors]
     P[This pod]
@@ -45,7 +54,7 @@ flowchart LR
   end
 ```
 
----
+
 
 ### How They Differ
 
@@ -56,7 +65,7 @@ flowchart LR
 | View of the cluster | Node-local, shared capacity                    | Pod isolated from node context              |
 | Time horizon        | Short-term, adaptive                           | Long-term, historical                       |
 
----
+
 
 ### What CruiseKube unlocks conceptually
 
@@ -69,7 +78,7 @@ flowchart LR
 * **Cost efficiency without abandoning safety**
   Reliability is preserved through conservative memory handling, priority-based protection, and feedback signals, rather than static over-allocation.
 
----
+
 
 ### When each model makes sense
 

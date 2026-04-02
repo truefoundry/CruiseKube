@@ -14,4 +14,4 @@ Updates, release narratives, and technical deep dives from the CruiseKube team. 
 
 - [Introducing CruiseKube — runtime resource optimization](posts/cruisekube_announcement.md)
 
-For installation and operations, start with the [Introduction](../overview/overview.md) and [Installation](../install/gs-installation.md).
+For installation and operations, start with the [Introduction](../about/overview.md) and [Installation](../install/gs-installation.md).

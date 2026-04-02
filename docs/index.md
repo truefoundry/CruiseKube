@@ -6,12 +6,12 @@ hide:
   - toc
 ---
 
-<div class="ck-hero">
+<div class="ck-hero ck-hero--stacked">
   <div class="ck-hero__inner">
-    <div class="ck-hero__copy">
+    <div class="ck-hero__copy ck-hero__copy--stacked">
       <p class="ck-hero__eyebrow">Kubernetes-native · Open source</p>
       <h1 class="ck-hero__title">
-        Cut cluster spend in half
+        Cut Cluster Cost In Half
       </h1>
       <p class="ck-hero__lead">
         Right-size CPU and memory from real usage. Start in Recommend, enable Cruise when you trust it, often <strong>~50%</strong> less request overhead, without a tuning spreadsheet.
@@ -24,9 +24,9 @@ hide:
         <a href="/about/overview/" class="md-button">How it works</a>
       </div>
     </div>
-    <figure class="ck-hero__figure">
-      <img src="/assets/images/hero.png" alt="CruiseKube dashboard and optimization flow">
-    </figure>
+    <div class="ck-hero__figure">
+      <img src="/assets/screenshots/demo-overview.png" alt="CruiseKube dashboard and optimization flow">
+    </div>
   </div>
 </div>
 
@@ -167,6 +167,21 @@ hide:
   </div>
 </div>
 
+<div class="features-section ck-quick-install">
+  <div class="section-header">
+    <h2>Install in minutes</h2>
+    <p>Getting started is easy, just one Helm install and you are on your way!</p>
+  </div>
+  <div class="ck-quick-install__panel" markdown="1">
+```bash
+helm install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube \
+  --namespace cruisekube-system \
+  --create-namespace \
+  --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
+```
+  </div>
+
+</div>
 
 <div class="features-section ck-community">
   <div class="section-header ck-community__header">

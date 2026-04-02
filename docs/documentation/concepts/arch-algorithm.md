@@ -63,7 +63,7 @@ PSI measures the time a task spends waiting for a resource (CPU, memory, or I/O)
 
 **PSI-Adjusted CPU Usage Formula:**
 
-```
+```go linenums="1"
 PSI_adjusted_usage = cpu_usage × (1 + psi_waiting_rate)
 ```
 
@@ -74,7 +74,7 @@ Where:
 
 **Example:**
 If a container uses 0.5 CPU cores but experiences 20% CPU waiting time due to contention:
-```
+```go linenums="1"
 PSI_adjusted_usage = 0.5 × (1 + 0.2) = 0.6 CPU cores
 ```
 
@@ -108,7 +108,7 @@ The admission webhook intercepts pod creation requests and sets resource request
 
 ### Algorithm
 
-```c
+```c linenums="1"
 // Fetch historical statistics for this workload/container
 stats = fetchWorkloadStats(pod.workloadIdentifier, container.name)
 
@@ -163,7 +163,7 @@ flowchart TD
 
 ### Detailed Algorithm
 
-```c
+```c linenums="1"
 FOR EACH node IN cluster:
 
   // Step 1: Identify scope of optimization
@@ -259,16 +259,16 @@ Rather than provisioning each pod for its maximum spike, CruiseKube distributes 
 
 This `headroom` (i.e. peak usage - steady state) is shared proportionally, reducing total resource requirements for the node
 
-### Eviction Priority
+### Workload Criticality
 
 When a node cannot accommodate all pods, CruiseKube uses a priority-based eviction system to make space:
 
 1. **DaemonSets**: Always protected from eviction (they must run on every node)
-2. **Eviction Ranking**: Configurable per-workload priority that determines eviction order:
+2. **Eviction Ranking/Criticality**: Configurable per-workload priority that determines eviction order:
     - **Low**: Low priority workloads are evicted first. This is the priority for most workloads by default
     - **Medium**: Medium priority workloads are evicted next. Single replica or statefulset workloads are set to this value by default
     - **High**: High priority workloads are evicted as a last resort
-    - **No-Eviction**: No-eviction workloads are never evicted at all
+    - **Very-High**: No-eviction workloads are never evicted at all
 3. **Tie-breaker**: Among pods with the same eviction ranking, those with higher headroom demand (`peak_usage - base_demand`) are evicted first, to minimise the number of evictions needed
 
 ### Memory Limit Calculation

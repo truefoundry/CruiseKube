@@ -30,7 +30,7 @@ If you have configured an ingress controller and exposed the dashboard via ingre
 
 The main **Dashboard** summarizes cluster cost and savings, adoption (how many workloads are optimizable and covered by CruiseKube), and resource efficiency (allocatable, requested, original vs recommended requests, and live usage) for CPU and memory. Use the time range control at the bottom to scope utilization-style metrics.
 
-![CruiseKube dashboard overview — cost, adoption, and resource efficiency](/assets/images/demo-overview.png)
+![CruiseKube dashboard overview — cost, adoption, and resource efficiency](/assets/screenshots/demo-overview.png)
 
 ## Workloads & recommendations
 
@@ -64,4 +64,4 @@ Each workload uses a **Recommend** / **Cruise** toggle and a **priority** dropdo
 
 **Mode** and **priority** appear in the workload list (screenshot above) and in **Policies & Configuration** (screenshot in the previous section).
 
-Roll out conservatively by leaving workloads on **Recommend** until you validate recommendations, then switch critical cohorts to **Cruise**—see [Installation](../install/gs-installation.md) and [Policies & modes](operate-policies.md).
+Roll out conservatively by leaving workloads on **Recommend** until you validate recommendations, then switch critical cohorts to **Cruise**—see [Installation](../../install/gs-installation.md) and [Policies & modes](operate-policies.md).

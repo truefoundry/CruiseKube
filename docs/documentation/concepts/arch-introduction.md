@@ -29,7 +29,7 @@ Together, these tasks allow CruiseKube to continuously optimize resources **with
 
 ## Components
 ```mermaid
-flowchart LR
+flowchart TB
     %% Actor
     Human((Human))
 
@@ -250,6 +250,6 @@ sequenceDiagram
 
 ## Next steps
 
-- [Introduction](../overview/overview.md) — product narrative and adoption path  
-- [Installation](../install/gs-installation.md) — Helm install and Recommend → Cruise rollout
+- [Introduction](../../about/overview.md) — product narrative and adoption path  
+- [Installation](../../install/gs-installation.md) — Helm install and Recommend → Cruise rollout
 
