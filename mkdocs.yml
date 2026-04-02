@@ -86,7 +86,7 @@ theme:
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: orange
+      primary: light-green
       accent: orange
       toggle:
         icon: lucide/moon-star

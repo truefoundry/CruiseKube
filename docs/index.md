@@ -24,6 +24,7 @@ hide:
         <a href="/about/overview/" class="md-button">How it works</a>
       </div>
     </div>
+    
     <div class="ck-hero__figure">
       <img src="/assets/screenshots/demo-overview.png" alt="CruiseKube dashboard and optimization flow">
     </div>

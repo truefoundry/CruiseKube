@@ -281,27 +281,28 @@
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
-/* Theme-colored glow behind the screenshot (visible but still soft) */
+/* Theme-colored glow behind the screenshot: centered on image, even bleed on all sides */
 .ck-hero.ck-hero--stacked .ck-hero__figure::before {
   content: "";
   position: absolute;
   z-index: 0;
-  left: 0;
-  right: 0;
-  top: 8%;
-  bottom: -12%;
+  /* Symmetric bleed: % resolves vs height (top/bottom) and width (left/right) */
+  top: clamp(-1rem, -12%, -1.75rem);
+  right: clamp(-1rem, -12%, -1.75rem);
+  bottom: clamp(-1rem, -12%, -1.75rem);
+  left: clamp(-1rem, -12%, -1.75rem);
   border-radius: 50%;
   background:
     radial-gradient(
-      ellipse 88% 70% at 50% 88%,
+      ellipse 82% 82% at 50% 50%,
       color-mix(in srgb, var(--md-primary-fg-color) 32%, transparent) 0%,
-      color-mix(in srgb, var(--md-accent-fg-color, var(--md-primary-fg-color)) 18%, transparent) 42%,
+      color-mix(in srgb, var(--md-accent-fg-color, var(--md-primary-fg-color)) 18%, transparent) 46%,
       transparent 72%
     ),
     radial-gradient(
-      ellipse 120% 55% at 50% 105%,
+      ellipse 108% 108% at 50% 50%,
       color-mix(in srgb, var(--md-primary-fg-color) 14%, transparent) 0%,
-      transparent 55%
+      transparent 58%
     );
   filter: blur(40px);
   opacity: 0.58;
@@ -311,15 +312,15 @@
 [data-md-color-scheme="slate"] .ck-hero.ck-hero--stacked .ck-hero__figure::before {
   background:
     radial-gradient(
-      ellipse 88% 70% at 50% 88%,
+      ellipse 82% 82% at 50% 50%,
       color-mix(in srgb, var(--md-primary-fg-color) 38%, transparent) 0%,
-      color-mix(in srgb, var(--md-accent-fg-color, var(--md-primary-fg-color)) 22%, transparent) 44%,
+      color-mix(in srgb, var(--md-accent-fg-color, var(--md-primary-fg-color)) 22%, transparent) 46%,
       transparent 74%
     ),
     radial-gradient(
-      ellipse 120% 55% at 50% 105%,
+      ellipse 108% 108% at 50% 50%,
       color-mix(in srgb, var(--md-primary-fg-color) 20%, transparent) 0%,
-      transparent 58%
+      transparent 60%
     );
   opacity: 0.52;
 }
