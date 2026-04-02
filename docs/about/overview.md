@@ -1,4 +1,5 @@
 ---
+icon: lucide/book-open
 title: "Introduction"
 description: "CruiseKube is Kubernetes-native continuous resource optimization—right-sizing CPU and memory at admission and runtime without treating every pod like a worst-case island."
 keywords:
@@ -7,9 +8,11 @@ keywords:
   - pod right-sizing
   - in-place pod resize
   - PSI metrics
+hide:
+  - toc
 ---
 
-## Meet CruiseKube
+# Meet CruiseKube
 
 **CruiseKube** is a Kubernetes controller which recommends optimized CPU and memory for workloads. It watches real behavior, learns stable demand and spikes, and applies **in-place** request updates so you stop paying for guesses, without giving up the guardrails that keep services reliable.
 
@@ -55,9 +58,9 @@ keywords:
 
 CruiseKube **observes** the cluster (Prometheus and the Kubernetes API), **derives** CPU and memory targets, and **applies** them at **admission** and **runtime** (in-place resize where the cluster supports it). The diagram below is a high-level map of how those pieces connect.
 
-![CruiseKube architecture diagram](../images/cruisekube-arch.png)
+![CruiseKube architecture diagram](/assets/images/cruisekube-arch.png)
 
-For components, background tasks, and control flows in detail, see **[Architecture](arch-introduction.md)** in **Concepts**.
+For components, background tasks, and control flows in detail, see **[Architecture](../concepts/arch-introduction.md)** in **Concepts**.
 
 ## Problem: Why Kubernetes Clusters Stay Expensive
 
@@ -106,9 +109,9 @@ For a line-by-line comparison to Vertical Pod Autoscaler, see [CruiseKube vs VPA
 CruiseKube is built for **progressive trust**:
 
 1. **Install** with Helm, wire **Prometheus** and **PostgreSQL** (or use the bundled chart options).  
-2. **Explore** recommendations in the dashboard—workloads start in **Recommend** (observe-only) until you opt in; see [Installation](gs-installation.md) and [Policies & modes](operate-policies.md).  
+2. **Explore** recommendations in the dashboard—workloads start in **Recommend** (observe-only) until you opt in; see [Installation](../install/gs-installation.md) and [Policies & modes](../operate/operate-policies.md).  
 3. **Enable Cruise mode** per workload when you are ready for applied changes.  
-4. **Tune priorities and pricing** so cost views and eviction behavior match your risk model—[Resource pricing](operate-resource-pricing.md) and [Tradeoffs](arch-tradeoffs.md).
+4. **Tune priorities and pricing** so cost views and eviction behavior match your risk model—[Resource pricing](../operate/operate-resource-pricing.md) and [Tradeoffs](../concepts/arch-tradeoffs.md).
 
 ```mermaid
 flowchart LR
@@ -119,14 +122,14 @@ flowchart LR
   E --> F[Monitor savings & SLOs]
 ```
 
-![Change criticality of workload](../images/enable_workloads.gif)
+![Change criticality of workload](/assets/images/enable_workloads.gif)
 
 ---
 
 ## Requirements in brief
 
 - **Kubernetes 1.33+** (in-place pod resource updates are central to the design).  
-- **Prometheus** with the metrics CruiseKube expects (see [Pre-requisites](gs-prerequisites.md)).  
+- **Prometheus** with the metrics CruiseKube expects (see [Pre-requisites](../install/gs-prerequisites.md)).  
 - **PostgreSQL** (managed by you or the subchart).
 
 ---
@@ -138,9 +141,9 @@ flowchart LR
 | Understand scenarios | [Use cases](overview-use-cases.md) |
 | Compare to VPA | [CruiseKube vs VPA](comp-vs-vpa.md) |
 | Common questions | [FAQ](overview-faq.md) |
-| Install | [Pre-requisites](gs-prerequisites.md) → [Installation](gs-installation.md) |
-| Day-2 operations | [Dashboard](config-dashboard.md), [Policies & Modes](operate-policies.md), [Troubleshooting](operate-troubleshooting.md) |
-| Internals | [Architecture](arch-introduction.md), [Algorithm](arch-algorithm.md) |
+| Install | [Pre-requisites](../install/gs-prerequisites.md) → [Installation](../install/gs-installation.md) |
+| Day-2 operations | [Dashboard](../operate/config-dashboard.md), [Policies & Modes](../operate/operate-policies.md), [Troubleshooting](../operate/operate-troubleshooting.md) |
+| Internals | [Architecture](../concepts/arch-introduction.md), [Algorithm](../concepts/arch-algorithm.md) |
 
 ---
 

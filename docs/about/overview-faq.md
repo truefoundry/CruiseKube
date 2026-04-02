@@ -1,4 +1,5 @@
 ---
+icon: lucide/circle-help
 title: "FAQ"
 description: "Frequently asked questions about CruiseKube: compatibility, Java, HPA, cluster autoscalers, CPU limits, memory pressure, and security reporting."
 keywords:
@@ -22,7 +23,7 @@ keywords:
 
 ### What happens if I use CPU- or memory-based HPA?
 
-Workloads using **CPU or memory metrics in HPA** are **skipped** by CruiseKube so the two controllers do not fight. Other HPA modes may still interact indirectly; treat combined behavior as something to validate in staging. More detail in [Tradeoffs](arch-tradeoffs.md).
+Workloads using **CPU or memory metrics in HPA** are **skipped** by CruiseKube so the two controllers do not fight. Other HPA modes may still interact indirectly; treat combined behavior as something to validate in staging. More detail in [Tradeoffs](../concepts/arch-tradeoffs.md).
 
 ---
 
@@ -34,13 +35,13 @@ Workloads using **CPU or memory metrics in HPA** are **skipped** by CruiseKube s
 
 ### Do you account for memory pressure?
 
-**Not yet in the way operators often mean (e.g. full memory pressure integration).** Memory handling today leans on **usage statistics, limits with headroom, and OOM-driven feedback**. Treat this as a roadmap-sensitive area; see [Algorithm — OOM handling](arch-algorithm.md#oom-handling).
+**Not yet in the way operators often mean (e.g. full memory pressure integration).** Memory handling today leans on **usage statistics, limits with headroom, and OOM-driven feedback**. Treat this as a roadmap-sensitive area; see [Algorithm — OOM handling](../concepts/arch-algorithm.md#oom-handling).
 
 ---
 
 ### Why does CruiseKube avoid CPU limits?
 
-CPU **limits** throttle workloads and can hide **contention** behind artificial ceilings. CruiseKube prefers **CPU requests** for fairness and scheduling, uses **PSI** (where available) for contention signal, and documents the tradeoffs in [Why CPU limits aren't needed](arch-algorithm.md#why-cpu-limits-arent-needed).
+CPU **limits** throttle workloads and can hide **contention** behind artificial ceilings. CruiseKube prefers **CPU requests** for fairness and scheduling, uses **PSI** (where available) for contention signal, and documents the tradeoffs in [Why CPU limits aren't needed](../concepts/arch-algorithm.md#why-cpu-limits-arent-needed).
 
 ---
 
@@ -58,13 +59,13 @@ CPU **limits** throttle workloads and can hide **contention** behind artificial 
 
 ### Where are container images hosted?
 
-Official charts reference images from **TrueFoundry’s registry** (see [Helm chart reference](reference-helm-chart.md)). Security policy also mentions **`ghcr.io/truefoundry/cruisekube*`** for reporting scope—confirm your installed chart/image for your environment.
+Official charts reference images from **TrueFoundry’s registry** (see [Helm chart reference](../reference/reference-helm-chart.md)). Security policy also mentions **`ghcr.io/truefoundry/cruisekube*`** for reporting scope—confirm your installed chart/image for your environment.
 
 ---
 
 ### How do I report a security vulnerability?
 
-**Do not open a public GitHub issue.** Email **security@truefoundry.com** with reproduction, impact, and versions. Full policy: [Security](dev-security.md) (mirrors the repository `SECURITY.md`).
+**Do not open a public GitHub issue.** Email **security@truefoundry.com** with reproduction, impact, and versions. Full policy: [Security](../contribute/dev-security.md) (mirrors the repository `SECURITY.md`).
 
 ---
 
@@ -78,4 +79,4 @@ CruiseKube is distributed under **BUSL-1.1** (see the [license badge](https://gi
 
 - [Discord](https://discord.gg/Dqek4xJa3N)  
 - [GitHub Issues](https://github.com/truefoundry/CruiseKube/issues)  
-- Documentation: start at [Introduction](overview.md) and [Troubleshooting](operate-troubleshooting.md)
+- Documentation: start at [Introduction](overview.md) and [Troubleshooting](../operate/operate-troubleshooting.md)

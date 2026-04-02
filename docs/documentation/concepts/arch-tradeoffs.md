@@ -1,4 +1,5 @@
 ---
+icon: lucide/scale
 title: "CruiseKube Tradeoffs"
 description: "Learn about the limitations and constraints of CruiseKube's resource optimization system."
 keywords:

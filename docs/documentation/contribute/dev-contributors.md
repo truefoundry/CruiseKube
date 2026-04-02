@@ -1,4 +1,5 @@
 ---
+icon: lucide/users-round
 title: "CruiseKube Contributors - Open Source Community"
 description: "Meet the contributors to CruiseKube project."
 keywords:

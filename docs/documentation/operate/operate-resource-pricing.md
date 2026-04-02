@@ -1,4 +1,5 @@
 ---
+icon: lucide/circle-dollar-sign
 title: "Resource pricing"
 description: "How CruiseKube estimates cost and savings: unit pricing for CPU and memory, default assumptions, and where to configure rates in the dashboard."
 keywords:
@@ -58,15 +59,15 @@ From [instances.vantage.sh — c5a.xlarge](https://instances.vantage.sh/aws/ec2/
 
 Values are stored **in the browser** for the cost views (they are not a substitute for your cloud bill).
 
-![Resource pricing settings in Policies & Configuration](../images/demo-pricing.png)
+![Resource pricing settings in Policies & Configuration](/assets/images/demo-pricing.png)
 
 ---
 
 ## Related reading
 
 - **[Policies & modes](operate-policies.md)** — Recommend vs Cruise, eviction priority.  
-- **[Tradeoffs](arch-tradeoffs.md)** — eviction, HPA interaction, memory risk.  
-- **[Helm chart reference](reference-helm-chart.md)** — no direct “billing API”; pricing remains a UI concern.
+- **[Tradeoffs](../concepts/arch-tradeoffs.md)** — eviction, HPA interaction, memory risk.  
+- **[Helm chart reference](../reference/reference-helm-chart.md)** — no direct “billing API”; pricing remains a UI concern.
 
 ---
 

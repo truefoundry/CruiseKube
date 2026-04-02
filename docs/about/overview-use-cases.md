@@ -1,4 +1,5 @@
 ---
+icon: lucide/target
 title: "Use cases"
 description: "When CruiseKube shines: platform-wide right-sizing, cost programs, noisy neighbors, and safe pilots—mapped to how the controller and webhook behave."
 keywords:
@@ -30,7 +31,7 @@ CruiseKube is not a replacement for **Horizontal Pod Autoscaler** (replica scali
 
 **Situation:** Leadership wants **visibility into waste** and a credible **savings estimate**, not just node counts.
 
-**What CruiseKube does:** Surfaces current vs recommended resources in the UI; **resource pricing** (configurable unit rates) turns deltas into approximate **$/month** views. See [Resource pricing](operate-resource-pricing.md) for assumptions and limitations.
+**What CruiseKube does:** Surfaces current vs recommended resources in the UI; **resource pricing** (configurable unit rates) turns deltas into approximate **$/month** views. See [Resource pricing](../operate/operate-resource-pricing.md) for assumptions and limitations.
 
 **Outcome:** A shared artifact (the dashboard) aligns engineering and finance on “what we could save if we trusted the optimizer.”
 
@@ -44,7 +45,7 @@ CruiseKube is not a replacement for **Horizontal Pod Autoscaler** (replica scali
 
 **Outcome:** Optimization becomes a policy conversation, not roulette.
 
-![Change criticality of workload](../images/critical_change.gif)
+![Change criticality of workload](/assets/images/critical_change.gif)
 
 ---
 
@@ -84,7 +85,7 @@ flowchart LR
 
 **Situation:** You want proof on **one namespace** or **one service line** before global enforcement.
 
-**What CruiseKube does:** Keep workloads on **Recommend** until you trust the numbers, then enable **Cruise** selectively per workload. See [Policies & modes](operate-policies.md).
+**What CruiseKube does:** Keep workloads on **Recommend** until you trust the numbers, then enable **Cruise** selectively per workload. See [Policies & modes](../operate/operate-policies.md).
 
 **Outcome:** Measurable signal (metrics + dashboard) before broad automation.
 
@@ -94,6 +95,6 @@ flowchart LR
 
 - **CPU- or memory-based HPA** is used for the same workloads (CruiseKube skips them by design).  
 - **JVM heap** tracking for dynamic container resize without process restart is needed—support is limited today; see [FAQ](overview-faq.md).  
-- Benefit is expected **without** a working **Prometheus** and **autoscaler-capable** cluster topology—see [Tradeoffs](arch-tradeoffs.md).
+- Benefit is expected **without** a working **Prometheus** and **autoscaler-capable** cluster topology—see [Tradeoffs](../concepts/arch-tradeoffs.md).
 
 For a capability comparison to VPA, read [CruiseKube vs VPA](comp-vs-vpa.md).

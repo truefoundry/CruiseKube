@@ -1,5 +1,5 @@
 <div align="center">
-<img src="./docs/images/logo/cruiseKube_Colour.png" width="200">
+<img src="./docs/assets/images/logo/cruiseKube_Colour.png" width="200">
 <p align="center">
 <a>
   <img src="https://img.shields.io/badge/go-1.24-green.svg" align="center">
@@ -50,7 +50,7 @@ CruiseKube explicitly addresses the **pod-level right-sizing problem**, in a ful
 
 # Getting Started
 
-Details on how to install and configure CruiseKube can be found in the [Getting Started](./docs/src/gs-installation.md) guide.
+Details on how to install and configure CruiseKube can be found in the [Getting Started](./docs/install/gs-installation.md) guide.
 
 # Development
 

@@ -1,4 +1,5 @@
 ---
+icon: lucide/shield-check
 title: "Security"
 description: "How to report CruiseKube security vulnerabilities, supported versions, and scope for responsible disclosure."
 keywords:

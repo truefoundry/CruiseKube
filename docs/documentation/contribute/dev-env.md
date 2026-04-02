@@ -1,4 +1,5 @@
 ---
+icon: lucide/laptop
 title: "CruiseKube Development Environment"
 description: "Set up your development environment for CruiseKube. Learn how to build, test, and contribute to the project with local Kubernetes clusters."
 keywords:

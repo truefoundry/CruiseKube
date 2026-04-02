@@ -1,4 +1,5 @@
 ---
+icon: lucide/rocket
 title: "Installation"
 description: "Install CruiseKube with Helm from the OCI registry, verify pods, access the dashboard, and roll out Recommend vs Cruise modes when you are ready."
 keywords:
@@ -23,7 +24,7 @@ helm install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruis
 ```
 
 - Use an **in-cluster** Prometheus Service DNS name reachable from `cruisekube-system`.  
-- For **external PostgreSQL**, set `postgresql.enabled=false` and configure `global.postgresql.auth.*` — see [Helm chart reference](reference-helm-chart.md).
+- For **external PostgreSQL**, set `postgresql.enabled=false` and configure `global.postgresql.auth.*` — see [Helm chart reference](../reference/reference-helm-chart.md).
 
 ???+ note "Optional: install Prometheus via Helm"
     If you do not already have Prometheus, you can add **kube-prometheus-stack**. A second install can fail if Prometheus already exists in the namespace—reuse the existing instance instead.
@@ -39,7 +40,7 @@ helm install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruis
       --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false
     ```
 
-> Customize any installation with a `values.yaml` file. Environment variables under `cruisekubeController.env` and `cruisekubeWebhook.env` map into the application config—see [Configuration](config.md).
+> Customize any installation with a `values.yaml` file. Environment variables under `cruisekubeController.env` and `cruisekubeWebhook.env` map into the application config—see [Configuration](../reference/config.md).
 
 ---
 
@@ -59,7 +60,7 @@ Expect **`cruisekube-controller-manager-*`**, **`cruisekube-webhook-server-*`**,
 kubectl port-forward -n cruisekube-system svc/cruisekube-frontend 3000:3000
 ```
 
-Open **http://localhost:3000**. See [Dashboard](config-dashboard.md) for UI concepts.
+Open **http://localhost:3000**. See [Dashboard](../operate/config-dashboard.md) for UI concepts.
 
 ---
 
@@ -68,7 +69,7 @@ Open **http://localhost:3000**. See [Dashboard](config-dashboard.md) for UI conc
 Optimization is controlled **per workload** in the UI—there is **no separate global “dry-run mode”** toggle.
 
 
-1. Open **Workloads** → **CruiseKube mode & priority** (see [Dashboard](config-dashboard.md)).  
+1. Open **Workloads** → **CruiseKube mode & priority** (see [Dashboard](../operate/config-dashboard.md)).  
 2. Leave workloads on **Recommend** while you validate suggestions against metrics and SLOs.  
 3. Switch trusted workloads to **Cruise** when you want the controller and webhook to **apply** right-sizing.
 
@@ -86,7 +87,7 @@ helm upgrade --install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --names
 
 </br>
 
-Optional Helm knobs (for example **disabling memory application** while tuning CPU) still exist on the controller and webhook—see [`charts/cruisekube/values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml) and [Configuration](config.md). Align changes with [Policies & modes](operate-policies.md) before wide rollout.
+Optional Helm knobs (for example **disabling memory application** while tuning CPU) still exist on the controller and webhook—see [`charts/cruisekube/values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml) and [Configuration](../reference/config.md). Align changes with [Policies & modes](../operate/operate-policies.md) before wide rollout.
 
 ---
 
@@ -104,7 +105,7 @@ kubectl delete namespace cruisekube-system
 
 ## Next steps
 
-- [Dashboard](config-dashboard.md)  
-- [Policies & modes](operate-policies.md)  
-- [Troubleshooting](operate-troubleshooting.md)  
-- [Architecture](arch-introduction.md)
+- [Dashboard](../operate/config-dashboard.md)  
+- [Policies & modes](../operate/operate-policies.md)  
+- [Troubleshooting](../operate/operate-troubleshooting.md)  
+- [Architecture](../concepts/arch-introduction.md)

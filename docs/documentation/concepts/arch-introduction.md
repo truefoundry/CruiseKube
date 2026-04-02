@@ -1,4 +1,5 @@
 ---
+icon: lucide/network
 title: "CruiseKube Architecture Overview"
 description: "Learn about CruiseKube's architecture, components, and control flows. Understand how the Statistics Engine, Runtime Optimizer, and Admission Optimizer work together."
 keywords:
@@ -249,6 +250,6 @@ sequenceDiagram
 
 ## Next steps
 
-- [Introduction](overview.md) — product narrative and adoption path  
-- [Installation](gs-installation.md) — Helm install and Recommend → Cruise rollout
+- [Introduction](../overview/overview.md) — product narrative and adoption path  
+- [Installation](../install/gs-installation.md) — Helm install and Recommend → Cruise rollout
 

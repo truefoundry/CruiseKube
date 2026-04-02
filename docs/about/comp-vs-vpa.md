@@ -1,4 +1,5 @@
 ---
+icon: lucide/git-compare-arrows
 title: "CruiseKube vs VPA Comparison"
 description: "Compare CruiseKube Autopilot with Kubernetes Vertical Pod Autoscaler (VPA). Understand the key differences in optimization approach, runtime behavior, and use cases."
 keywords:
@@ -9,7 +10,7 @@ keywords:
   - Kubernetes autoscaling
 ---
 
-## CruiseKube vs Kubernetes Vertical Pod Autoscaler (VPA)
+# CruiseKube vs Vertical Pod Autoscaler (VPA)
 
 Both CruiseKube and the Kubernetes Vertical Pod Autoscaler aim to reduce waste caused by poorly sized pod resources. The similarity largely ends there. CruiseKube builds on the same motivation as VPA, but focuses on a few specific capabilities that VPA does not have.
 

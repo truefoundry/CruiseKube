@@ -1,4 +1,5 @@
 ---
+icon: lucide/list-checks
 title: "Pre-requisites"
 description: "Kubernetes version, Prometheus, PostgreSQL, and tooling required before installing CruiseKube with Helm."
 keywords:
@@ -32,7 +33,7 @@ CruiseKube reads **container and node metrics** (usage, throttling, PSI where ex
 - Set `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` (or equivalent) to a URL reachable **from the controller pods** (in-cluster Service URL, not `localhost`).
 
 
-**PSI (Pressure Stall Indicator):** CruiseKube’s algorithm is built around **PSI-aware CPU** reasoning on clusters that expose the right metrics (Kubernetes 1.34+ PSI story). If PSI is absent, behavior degrades toward usage-only signals—still useful, but not identical to a full PSI deployment. See [Algorithm](arch-algorithm.md).
+**PSI (Pressure Stall Indicator):** CruiseKube’s algorithm is built around **PSI-aware CPU** reasoning on clusters that expose the right metrics (Kubernetes 1.34+ PSI story). If PSI is absent, behavior degrades toward usage-only signals—still useful, but not identical to a full PSI deployment. See [Algorithm](../concepts/arch-algorithm.md).
 
 ---
 
@@ -41,7 +42,7 @@ CruiseKube reads **container and node metrics** (usage, throttling, PSI where ex
 CruiseKube persists **workload statistics**, **recommendations**, and **per-workload overrides** in a database.
 
 - **Option A:** **Bitnami PostgreSQL subchart** official Helm chart (`postgresql.enabled=true`), is enabled by default.
-- **Option B:** Use your own Postgres and set `global.postgresql.auth.*` (host, port, user, password, database) per [Helm chart reference](reference-helm-chart.md).
+- **Option B:** Use your own Postgres and set `global.postgresql.auth.*` (host, port, user, password, database) per [Helm chart reference](../reference/reference-helm-chart.md).
 
 ---
 

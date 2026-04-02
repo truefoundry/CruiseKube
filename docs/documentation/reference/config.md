@@ -1,4 +1,5 @@
 ---
+icon: lucide/file-cog
 title: "Configuration"
 description: "How CruiseKube is configured in production: Helm values, environment variables, and pointers to the full chart README."
 keywords:
@@ -55,18 +56,18 @@ Exact names must match your chart version—verify in `values.yaml` on the tag y
 | **Recommendation policy** | `CRUISEKUBE_RECOMMENDATIONSETTINGS_*` (e.g. new workload threshold, OOM cooldown) |
 | **Webhook** | Stats URL host mapping and webhook env from `values.yaml` |
 
-Local development may use a **`config.local.yaml`** file instead—see [Dev environment](dev-env.md).
+Local development may use a **`config.local.yaml`** file instead—see [Dev environment](../contribute/dev-env.md).
 
 ---
 
 ## Operational policy (not Helm)
 
-Per-workload **mode**, **priority**, and **resource pricing** in the UI are stored in the **application database** (and browser local storage for pricing)—see [Policies & modes](operate-policies.md) and [Resource pricing](operate-resource-pricing.md).
+Per-workload **mode**, **priority**, and **resource pricing** in the UI are stored in the **application database** (and browser local storage for pricing)—see [Policies & modes](../operate/operate-policies.md) and [Resource pricing](../operate/operate-resource-pricing.md).
 
 ---
 
 ## Next steps
 
-- [Installation](gs-installation.md)  
-- [Dashboard](config-dashboard.md)  
-- [Troubleshooting](operate-troubleshooting.md)
+- [Installation](../install/gs-installation.md)  
+- [Dashboard](../operate/config-dashboard.md)  
+- [Troubleshooting](../operate/operate-troubleshooting.md)

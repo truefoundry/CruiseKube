@@ -1,4 +1,5 @@
 ---
+icon: lucide/sliders-horizontal
 title: "Policies & modes"
 description: "Recommend vs Cruise mode, eviction priority, and how per-workload policies interact with the controller and webhook."
 keywords:
@@ -49,13 +50,13 @@ flowchart TD
   C --> W
 ```
 
-**Memory-specific behavior** can still be gated at deploy time with `CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION` (controller and webhook) if you want CPU-only automation first—see [Configuration](config.md) and [`values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml).
+**Memory-specific behavior** can still be gated at deploy time with `CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION` (controller and webhook) if you want CPU-only automation first—see [Configuration](../reference/config.md) and [`values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml).
 
 ---
 
 ## Eviction priority (when the math does not fit)
 
-On a crowded node, the runtime optimizer may need to **evict** lower-priority pods so the remaining set can be sized safely. Ordering is documented in depth under [Eviction priority](arch-algorithm.md#eviction-priority); summary:
+On a crowded node, the runtime optimizer may need to **evict** lower-priority pods so the remaining set can be sized safely. Ordering is documented in depth under [Eviction priority](../concepts/arch-algorithm.md#eviction-priority); summary:
 
 | Level | Typical use |
 |-------|-------------|
@@ -79,7 +80,7 @@ The Helm chart supports **webhook namespace exclusions** (e.g. system namespaces
 
 Releases have introduced **disruption windows** and related controller tasks so optimization can respect **maintenance hours**. If your version includes these APIs, treat them as the bridge between **aggressive savings** and **change risk**. In the dashboard you can define windows with a visual builder (timezone, days, start/end time); schedules are stored as cron expressions, with local time summarized alongside the UTC values used by the controller.
 
-![Add Disruption Window — visual schedule builder and UTC cron summary](../images/demo-disruption-window.png)
+![Add Disruption Window — visual schedule builder and UTC cron summary](/assets/images/demo-disruption-window.png)
 
 Details also live in release notes and Helm values—search `DISRUPTION` / `disruption` in [`values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml).
 
@@ -94,6 +95,6 @@ Details also live in release notes and Helm values—search `DISRUPTION` / `disr
 ## Next steps
 
 - [Dashboard walkthrough](config-dashboard.md)  
-- [Algorithm — eviction & headroom](arch-algorithm.md)  
-- [Tradeoffs](arch-tradeoffs.md)  
+- [Algorithm — eviction & headroom](../concepts/arch-algorithm.md)  
+- [Tradeoffs](../concepts/arch-tradeoffs.md)  
 - [Troubleshooting](operate-troubleshooting.md)

@@ -1,4 +1,5 @@
 ---
+icon: lucide/tags
 title: "Release process"
 description: "How maintainers cut CruiseKube releases: version bumps, changelog, GitHub release tags, and Helm chart publishing."
 keywords:
@@ -55,4 +56,4 @@ Every merged change should append a line under **`CHANGELOG.md` → Unreleased**
 
 - [CHANGELOG](https://github.com/truefoundry/CruiseKube/blob/main/CHANGELOG.md)  
 - [Security disclosure](dev-security.md)  
-- [Helm chart reference](reference-helm-chart.md)
+- [Helm chart reference](../reference/reference-helm-chart.md)

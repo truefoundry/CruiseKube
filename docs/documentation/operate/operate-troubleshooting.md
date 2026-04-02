@@ -1,4 +1,5 @@
 ---
+icon: lucide/life-buoy
 title: "Troubleshooting"
 description: "Common CruiseKube installation and runtime issues: Prometheus connectivity, webhook failures, empty recommendations, Recommend vs Cruise confusion, and HPA exclusions."
 keywords:
@@ -63,7 +64,7 @@ kubectl logs -n cruisekube-system deploy/cruisekube-webhook-server --tail=200
 
 ## Unexpected evictions
 
-1. Read [Tradeoffs — pod eviction](arch-tradeoffs.md#pod-eviction-can-cause-disruption).  
+1. Read [Tradeoffs — pod eviction](../concepts/arch-tradeoffs.md#pod-eviction-can-cause-disruption).  
 2. Review **eviction priority** for the workload in the dashboard.  
 3. Check node **memory/CPU** pressure—optimizer may be enforcing feasibility.  
 4. Inspect controller logs around the timestamp for **eviction** messages.
@@ -73,7 +74,7 @@ kubectl logs -n cruisekube-system deploy/cruisekube-webhook-server --tail=200
 ## OOM loops or repeated restarts
 
 1. Confirm **memory application** is not disabled while you expect limits to rise.  
-2. Review [OOM handling](arch-algorithm.md#oom-handling) — cooldown prevents thrashing; repeated OOM may indicate limit/request still too tight for real spikes.  
+2. Review [OOM handling](../concepts/arch-algorithm.md#oom-handling) — cooldown prevents thrashing; repeated OOM may indicate limit/request still too tight for real spikes.  
 3. Validate **JVM** and other runtimes that do not tolerate rapid memory changes.
 
 ---

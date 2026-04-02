@@ -1,4 +1,5 @@
 ---
+icon: lucide/function-square
 title: "CruiseKube Algorithm"
 description: "Learn about CruiseKube's two-phase optimization algorithm that uses PSI metrics and pod-level resource updates to automatically right-size Kubernetes workloads."
 keywords:
