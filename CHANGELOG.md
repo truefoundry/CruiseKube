@@ -9,6 +9,12 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.2.6-rc.1 (2026-04-02)
+
+### Other
+
+* Initialize the `v0.2.6` release candidate line. No product changes are included beyond the version bump from `v0.2.5`.
+
 ## v0.2.5 (2026-03-31)
 
 ### Breaking Changes
