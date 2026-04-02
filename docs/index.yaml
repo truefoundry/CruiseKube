@@ -13,7 +13,7 @@ entries:
       artifacthub.io/operator: "true"
     apiVersion: v2
     appVersion: 0.2.5
-    created: "2026-04-02T12:39:31.689622508Z"
+    created: "2026-04-02T13:31:34.920795852Z"
     dependencies:
     - condition: postgresql.enabled
       name: postgresql
@@ -22,7 +22,7 @@ entries:
     description: CruiseKube is an intelligent Kubernetes resource optimization controller
       that automatically monitors, analyzes, and applies resource recommendations
       to improve cluster efficiency and reduce costs.
-    digest: 461504ac457955dddaaf5ed142f80a9bac54a7e0372fa6499177533e28dfae41
+    digest: a6643066a0aa356fa1514df4ec4c81152276c969e106d12f019e19be2d149610
     home: https://cruisekube.com
     icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
@@ -371,4 +371,4 @@ entries:
     urls:
     - https://github.com/truefoundry/CruiseKube/releases/download/v0.1.9/cruisekube-0.1.9.tgz
     version: 0.1.9
-generated: "2026-04-02T12:39:31.682927504Z"
+generated: "2026-04-02T13:31:34.913872967Z"
