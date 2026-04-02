@@ -47,8 +47,7 @@ hide:
       <h3 class="ck-control-loop__title">Re-observe</h3>
       <p>Keep adapting as things change.</p>
     </div>
-    <span class="ck-control-loop__arrow" aria-hidden="true">→</span>
-    <span class="ck-control-loop__loop-badge" title="Cycle repeats from Observe"><span class="ck-control-loop__loop-icon" aria-hidden="true">🔁</span> Observe</span>
+
   </div>
 </div>
 
