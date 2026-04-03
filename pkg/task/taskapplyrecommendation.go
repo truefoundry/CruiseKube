@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
+	"github.com/truefoundry/cruisekube/pkg/adapters/metricsprovider/prometheus"
 	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/client"
 	"github.com/truefoundry/cruisekube/pkg/config"

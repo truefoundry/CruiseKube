@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/prometheus/common/model"
-	"github.com/truefoundry/cruisekube/pkg/adapters/metricsProvider/prometheus"
+	"github.com/truefoundry/cruisekube/pkg/adapters/metricsprovider/prometheus"
 	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
