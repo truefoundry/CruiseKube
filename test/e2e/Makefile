@@ -14,6 +14,15 @@ all:
 	@echo "Run 'make clean' to clean environment"
 
 setup: kind-up apply-deps
+
+apply-test-manifests: ## Apply shared manifests for e2e test workloads (namespaces + deployments)
+	@echo "Applying e2e test manifests..."
+	@kubectl apply -f manifest/01-apply-recommendations.yaml
+	@kubectl apply -f manifest/02-webhook.yaml
+	@kubectl apply -f manifest/03-oom-handling.yaml
+	@kubectl apply -f manifest/04-incomplete-stats.yaml
+	@echo "E2E test manifests applied."
+
 clean: kind-down
 
 reset: uninstall-ck
@@ -94,3 +103,13 @@ uick: uninstall-ck
 uninstall-ck: ## Delete cruisekube
 	@echo "Deleting cruisekube..."
 	-@helm delete cruisekube -n $(NAMESPACE)
+
+.PHONY: local-postgres
+local-postgres: ## Start local postgres in docker
+	@docker run -d \
+  --name cruisekube-postgres \
+  -e POSTGRES_PASSWORD=cruisekube \
+  -e POSTGRES_USER=cruisekube \
+  -e POSTGRES_DB=cruisekube \
+  -p 5432:5432 \
+  postgres:14.22-trixie		

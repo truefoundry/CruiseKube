@@ -727,6 +727,19 @@ func nonOptimizablePodKeySet(pods []utils.PodInfo) map[string]struct{} {
 }
 
 func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context, recommendationResults []*RecommendationResult) []types.PodResourceRecommendationRow {
+	// Compute pod counts per workload for the current run (unique namespace/pod name).
+	workloadPodKeys := make(map[string]map[string]struct{})
+	for _, res := range recommendationResults {
+		for _, rec := range res.PodContainerRecommendations {
+			kind, namespace, name := rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName
+			workloadID := utils.GetWorkloadKey(kind, namespace, name)
+			if _, ok := workloadPodKeys[workloadID]; !ok {
+				workloadPodKeys[workloadID] = make(map[string]struct{})
+			}
+			workloadPodKeys[workloadID][utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)] = struct{}{}
+		}
+	}
+
 	rows := make([]types.PodResourceRecommendationRow, 0)
 	for _, res := range recommendationResults {
 		nodeName := res.NodeName
@@ -737,6 +750,16 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 			kind, namespace, name := rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName
 			workloadID := utils.GetWorkloadKey(kind, namespace, name)
 			cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
+
+			// Capture current container resources as seen on the pod at runtime.
+			var currentCPURequest, currentMemoryRequest, currentCPULimit, currentMemoryLimit float64
+			if cur, err := rec.PodInfo.GetContainerResource(rec.ContainerName); err == nil && cur != nil {
+				currentCPURequest = cur.CPURequest
+				currentMemoryRequest = cur.MemoryRequest
+				currentCPULimit = cur.CPULimit
+				currentMemoryLimit = cur.MemoryLimit
+			}
+
 			if _, skip := nonOptKeys[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]; skip {
 				// if pod is non-optimizable, we don't compute recommended values
 				for _, container := range rec.PodInfo.ContainerResources {
@@ -754,7 +777,15 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 				MemoryRequest: memoryRequest,
 				CPULimit:      cpuLimit,
 				MemoryLimit:   memoryLimit,
-				ToBeEvicted:   utils.ToBeEvicted(rec),
+
+				CurrentCPURequest:    currentCPURequest,
+				CurrentMemoryRequest: currentMemoryRequest,
+				CurrentCPULimit:      currentCPULimit,
+				CurrentMemoryLimit:   currentMemoryLimit,
+
+				WorkloadPodCount: len(workloadPodKeys[workloadID]),
+
+				ToBeEvicted: utils.ToBeEvicted(rec),
 			}
 			recJSON, err := json.Marshal(payload)
 			if err != nil {

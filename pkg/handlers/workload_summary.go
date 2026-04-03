@@ -103,6 +103,14 @@ type workloadRecAgg struct {
 	MemMax   float64
 	TotalCPU float64
 	TotalMem float64
+
+	// HasActual is true when stored pod rows include runtime current resources (newer payloads).
+	HasActual      bool
+	ActualTotalCPU float64
+	ActualTotalMem float64
+	ActualCPUAvg   float64
+	ActualMemAvg   float64
+	ActualPodCount int
 }
 
 func (deps HandlerDependencies) getPodRecommendationsForCluster(ctx context.Context, clusterID string) ([]parsedPodRecommendation, error) {
@@ -142,6 +150,8 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 			TotalMem: totalMem}
 	}
 
+	podKeys := make(map[string]struct{}, len(recs))
+	var actualTotalCPU, actualTotalMem float64
 	for _, p := range recs {
 		cpu, mem := p.Rec.CPURequest, p.Rec.MemoryRequest
 		totalCPU += cpu
@@ -164,6 +174,9 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 				memMax = mem
 			}
 		}
+		podKeys[p.Namespace+":"+p.Pod] = struct{}{}
+		actualTotalCPU += p.Rec.CurrentCPURequest
+		actualTotalMem += p.Rec.CurrentMemoryRequest
 	}
 	if stat.Replicas > 0 {
 		cpuAvg = totalCPU / float64(stat.Replicas)
@@ -172,7 +185,26 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 		cpuAvg = totalCPU / float64(len(recs))
 		memAvg = totalMem / float64(len(recs))
 	}
-	return workloadRecAgg{CPUMin: cpuMin, CPUAvg: cpuAvg, CPUMax: cpuMax, MemMin: memMin, MemAvg: memAvg, MemMax: memMax, TotalCPU: totalCPU, TotalMem: totalMem}
+
+	actualPodCount := len(podKeys)
+	hasActual := false
+	for _, p := range recs {
+		if p.Rec.WorkloadPodCount > 0 || p.Rec.CurrentCPURequest != 0 || p.Rec.CurrentMemoryRequest != 0 {
+			hasActual = true
+			break
+		}
+	}
+	var actualCPUAvg, actualMemAvg float64
+	if hasActual && actualPodCount > 0 {
+		actualCPUAvg = actualTotalCPU / float64(actualPodCount)
+		actualMemAvg = actualTotalMem / float64(actualPodCount)
+	}
+
+	return workloadRecAgg{
+		CPUMin: cpuMin, CPUAvg: cpuAvg, CPUMax: cpuMax, MemMin: memMin, MemAvg: memAvg, MemMax: memMax, TotalCPU: totalCPU, TotalMem: totalMem,
+		HasActual: hasActual, ActualTotalCPU: actualTotalCPU, ActualTotalMem: actualTotalMem,
+		ActualCPUAvg: actualCPUAvg, ActualMemAvg: actualMemAvg, ActualPodCount: actualPodCount,
+	}
 }
 
 // buildWorkloadDetail builds a single WorkloadDetail from a workload and its stat.
@@ -241,10 +273,16 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 }
 
 // fillWorkloadDetailDollars sets dollar savings and expenditure on a single WorkloadDetail from aggregated recommendations.
-// d.CPU.Current and d.Memory.Current are expected to be totals (per-pod request * number of pods).
+// When agg.HasActual, totals come from summed runtime requests on stored pod rows; otherwise per-pod current * podsCount.
 func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p workloadPricing) {
-	totalCurrentCPU := d.CPU.CurrentPerPod * float64(d.PodsCount)
-	totalCurrentMem := d.Memory.CurrentPerPod * float64(d.PodsCount)
+	var totalCurrentCPU, totalCurrentMem float64
+	if agg.HasActual && agg.ActualPodCount > 0 {
+		totalCurrentCPU = agg.ActualTotalCPU
+		totalCurrentMem = agg.ActualTotalMem
+	} else {
+		totalCurrentCPU = d.CPU.CurrentPerPod * float64(d.PodsCount)
+		totalCurrentMem = d.Memory.CurrentPerPod * float64(d.PodsCount)
+	}
 	totalRecCPU := agg.TotalCPU
 	totalRecMem := agg.TotalMem
 	cpuSavings := 0.0
@@ -311,9 +349,14 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 
 		recAgg[w.WorkloadID] = agg
 
-		// Per Pod Current Request
+		// Per-pod "current" for the UI: prefer runtime values from stored recommendations when present.
 		currentCPUPerPod := effectiveStat.CalculateTotalCPURequest()
 		currentMemPerPod := effectiveStat.CalculateTotalMemoryRequest()
+		if agg.HasActual && agg.ActualPodCount > 0 {
+			currentCPUPerPod = agg.ActualCPUAvg
+			currentMemPerPod = agg.ActualMemAvg
+			detail.PodsCount = agg.ActualPodCount
+		}
 
 		cpuChange, memChange := 0.0, 0.0
 		// If replicas are greater than 0, add the total CPU and memory to the cluster request and recommendation
@@ -321,8 +364,13 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 			////////////////////////////////////////////////////////////
 			// Added to global cluster request and recommendation
 			////////////////////////////////////////////////////////////
-			clusterReqCPU += currentCPUPerPod * float64(effectiveStat.Replicas)
-			clusterReqMem += currentMemPerPod * float64(effectiveStat.Replicas)
+			if agg.HasActual && agg.ActualPodCount > 0 {
+				clusterReqCPU += agg.ActualTotalCPU
+				clusterReqMem += agg.ActualTotalMem
+			} else {
+				clusterReqCPU += currentCPUPerPod * float64(effectiveStat.Replicas)
+				clusterReqMem += currentMemPerPod * float64(effectiveStat.Replicas)
+			}
 
 			clusterRecCPU += agg.TotalCPU
 			clusterRecMem += agg.TotalMem

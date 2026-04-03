@@ -317,11 +317,22 @@ type OOMEvent struct {
 }
 
 type PodResourceRecommendation struct {
+	// Recommended values (per-container, for the pod row).
 	CPURequest    float64 `json:"cpu_request"`
 	MemoryRequest float64 `json:"memory_request"`
 	CPULimit      float64 `json:"cpu_limit"`
 	MemoryLimit   float64 `json:"memory_limit"`
-	ToBeEvicted   bool    `json:"to_be_evicted"`
+
+	// Current values captured at the time recommendations are stored.
+	CurrentCPURequest    float64 `json:"current_cpu_request,omitempty"`
+	CurrentMemoryRequest float64 `json:"current_memory_request,omitempty"`
+	CurrentCPULimit      float64 `json:"current_cpu_limit,omitempty"`
+	CurrentMemoryLimit   float64 `json:"current_memory_limit,omitempty"`
+
+	// WorkloadPodCount is the number of unique pods seen for the workload in the same apply-recommendation run.
+	WorkloadPodCount int `json:"workload_pod_count,omitempty"`
+
+	ToBeEvicted bool `json:"to_be_evicted"`
 }
 
 type PodResourceRecommendationRow struct {
