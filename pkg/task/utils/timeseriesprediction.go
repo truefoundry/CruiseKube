@@ -225,7 +225,7 @@ func PredictSimpleStatsFromTimeSeriesModel(ctx context.Context, namespaces []str
 	result := make(map[string]map[string]SimplePrediction)
 
 	for _, namespace := range namespaces {
-		ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		defer cancel()
 		end := time.Now()
 		start := end.Add(-MLLookbackWindow)
