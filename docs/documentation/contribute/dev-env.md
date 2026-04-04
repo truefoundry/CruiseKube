@@ -199,10 +199,10 @@ If you want to extend or debug CruiseKube, this layout should help you find the 
 | Path | Purpose |
 |------|---------|
 | **cmd/cruisekube/main.go** | Entrypoint: flags, config loading (Viper), validation, and starting controller/webhook/server. |
-| **pkg/config/** | Config types and loading: `config.go` (structs), `viper.go` (load/validate), `taskConfig.go` (per-task config). |
-| **pkg/adapters/** | **database/** — DB interface and SQLite/Postgres implementations. **kube/** — Kubernetes client. **metricsProvider/prometheus/** — Prometheus client and PromQL. |
+| **pkg/config/** | Config types and loading: `config.go` (structs), `viper.go` (load/validate), `taskconfig.go` (per-task config). |
+| **pkg/adapters/** | **database/** — DB interface and SQLite/Postgres implementations. **kube/** — Kubernetes client. **metricsprovider/prometheus/** — Prometheus client and PromQL. |
 | **pkg/cluster/** | Cluster manager and scheduler; coordinates which clusters/namespaces to manage. |
-| **pkg/task/** | Scheduled tasks: `taskCreateStats`, `taskFetchMetrics`, `taskApplyRecommendation`, `taskNodeLoadMonitoring`, `taskCleanupOOMEvents`. Helpers in `task/utils/` (metrics, node stats, workload handling). |
+| **pkg/task/** | Scheduled tasks: `taskcreatestats`, `taskfetchmetrics`, `taskapplyrecommendation`, `tasknodeloadmonitoring`, `taskcleanupoomevents`. Helpers in `task/utils/` (metrics, node stats, workload handling). |
 | **pkg/server/** | HTTP server and routes for stats, overrides, and APIs used by the webhook and frontend. |
 | **pkg/handlers/** | HTTP handlers: workload analysis, overrides, killswitch, recommendation handling, task triggers, UI, webhook admission. |
 | **pkg/oom/** | OOM event observation and processing. |
