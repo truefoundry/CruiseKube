@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - main
-      # Below is a temporary branch for testing the docs deployment
-      - rt-docs-updates-2
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
