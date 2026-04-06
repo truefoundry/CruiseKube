@@ -56,7 +56,7 @@ flowchart TD
 
 ## Eviction Criticality/Priority (when the math does not fit)
 
-On a crowded node, the runtime optimizer may need to **evict** lower-priority pods so the remaining set can be sized safely. Ordering is documented in depth under [Eviction priority](../concepts/arch-algorithm.md#eviction-priority); summary:
+On a crowded node, the runtime optimizer may need to **evict** lower-priority pods so the remaining set can be sized safely. Ordering is documented in depth under [Workload Criticality](../concepts/arch-algorithm.md#workload-criticality); summary:
 
 | Level | Typical use |
 |-------|-------------|

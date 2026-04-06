@@ -225,7 +225,7 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
-  font-size: clamp(2.85rem, 3.8vw, 2.65rem);
+  font-size: clamp(2.65rem, 3.8vw, 2.85rem);
   color: var(--md-default-fg-color);
 }
 

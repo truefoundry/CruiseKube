@@ -68,10 +68,6 @@ theme:
     - search.share
     - search.suggest
     - toc.follow
-    - pymdownx.caret
-    - pymdownx.keys
-    - pymdownx.mark
-    - pymdownx.tilde
   palette:
     - media: "(prefers-color-scheme)"
       toggle:
@@ -102,11 +98,10 @@ markdown_extensions:
   - md_in_html
   - toc:
       permalink: true
-  - zensical.extensions.preview:
+  - cruisekube.extensions.preview:
       targets:
         include:
-          - customization.md
-          - setup/extensions/*
+          - index.md
   - pymdownx.arithmatex:
       generic: true
   - pymdownx.betterem:
@@ -125,8 +120,8 @@ markdown_extensions:
   - pymdownx.magiclink:
       normalize_issue_symbols: true
       repo_url_shorthand: true
-      user: zensical
-      repo: zensical
+      user: truefoundry
+      repo: cruisekube
   - pymdownx.mark
   - pymdownx.smartsymbols
   - pymdownx.snippets

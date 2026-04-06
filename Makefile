@@ -19,12 +19,12 @@ deadcode:
 serve-docs: ## Serve docs
 	@command -v mkdocs >/dev/null 2>&1 || { \
 	  echo "mkdocs not found - please install it (pip install mkdocs-material)"; exit 1; } ; \
-	mkdocs serve
+	zensical serve
 	
 build-docs: ## Build docs
 	@command -v mkdocs >/dev/null 2>&1 || { \
 	  echo "mkdocs not found - please install it (pip install mkdocs-material)"; exit 1; } ; \
-	mkdocs build
+	zensical build
 
 fetch-contributors: ## Fetch contributors
 	python3 docs/scripts/fetch_contributors.py
