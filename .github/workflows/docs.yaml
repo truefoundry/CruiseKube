@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+      # Temporary branch for fixing gh-pages
+      - rt-fix-gh-pages
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
