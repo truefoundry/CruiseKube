@@ -1,9 +1,5 @@
 name: deploy-docs
 on:
- # Temporary branch for fixing gh-pages
-  pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
