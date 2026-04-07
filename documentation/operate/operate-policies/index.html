@@ -6,40 +6,42 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.">
+        <meta name="description" content="Recommend vs Cruise mode, eviction priority, and how per-workload policies interact with the controller and webhook.">
       
       
         <meta name="author" content="TrueFoundry">
       
       
-        <link rel="canonical" href="https://cruisekube.com/">
+        <link rel="canonical" href="https://cruisekube.com/documentation/operate/operate-policies/">
       
       
+        <link rel="prev" href="../config-dashboard/">
       
-        <link rel="next" href="./about/overview/">
+      
+        <link rel="next" href="../operate-resource-pricing/">
       
       
         
       
       
-      <link rel="icon" href="./assets/images/logo/favicon/favicon.ico">
+      <link rel="icon" href="../../../assets/images/logo/favicon/favicon.ico">
       <meta name="generator" content="zensical-0.0.31">
     
     
       
-        <title>CruiseKube - CruiseKube</title>
+        <title>Policies & modes - CruiseKube</title>
       
     
     
       
         
       
-      <link rel="stylesheet" href="./assets/stylesheets/modern/main.53a7feaf.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.53a7feaf.min.css">
       
         
           
         
-        <link rel="stylesheet" href="./assets/stylesheets/modern/palette.dfe2e883.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/modern/palette.dfe2e883.min.css">
       
       
   
@@ -134,7 +136,7 @@
       
     
     
-      <link rel="stylesheet" href="./assets/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/extra.css">
     
     <script>__md_scope=new URL("/",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
@@ -160,7 +162,7 @@
   
   <!-- Dynamic Keywords from Page Meta -->
   
-    <meta name="keywords" content="Kubernetes, Resource Optimization, Operator, Cloud Native, CruiseKube">
+    <meta name="keywords" content="CruiseKube policies, Cruise mode, Recommend mode, eviction priority">
   
   
   <!-- Open Graph Meta Tags -->
@@ -168,23 +170,23 @@
   <meta property="og:site_name" content="CruiseKube Documentation">
   <meta property="og:locale" content="en_US">
   
-  <meta property="og:url" content="https://cruisekube.com/">
+  <meta property="og:url" content="https://cruisekube.com/documentation/operate/operate-policies/">
   
-  <meta property="og:title" content="CruiseKube">
-  <meta property="og:description" content="CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.">
+  <meta property="og:title" content="Policies & modes">
+  <meta property="og:description" content="Recommend vs Cruise mode, eviction priority, and how per-workload policies interact with the controller and webhook.">
   <meta property="og:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@truefoundry">
   <meta name="twitter:creator" content="@truefoundry">
-  <meta name="twitter:title" content="CruiseKube">
-  <meta name="twitter:description" content="CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.">
+  <meta name="twitter:title" content="Policies & modes">
+  <meta name="twitter:description" content="Recommend vs Cruise mode, eviction priority, and how per-workload policies interact with the controller and webhook.">
   <meta name="twitter:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
   
   <!-- Canonical URL -->
   
-  <link rel="canonical" href="https://cruisekube.com/">
+  <link rel="canonical" href="https://cruisekube.com/documentation/operate/operate-policies/">
   
   
   <!-- Additional Meta Tags -->
@@ -250,7 +252,8 @@
     <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
     <div data-md-component="skip">
       
-        <a href="#__skip" class="md-skip">
+        
+        <a href="#policies-modes" class="md-skip">
           Skip to content
         </a>
       
@@ -264,9 +267,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="" title="CruiseKube" class="md-header__button md-logo" aria-label="CruiseKube" data-md-component="logo">
+    <a href="../../.." title="CruiseKube" class="md-header__button md-logo" aria-label="CruiseKube" data-md-component="logo">
       
-  <img src="./assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
+  <img src="../../../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
@@ -283,7 +286,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              CruiseKube
+              Policies & modes
             
           </span>
         </div>
@@ -375,11 +378,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
         
   
   Home
@@ -397,7 +398,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="./about/overview/" class="md-tabs__link">
+        <a href="../../../about/overview/" class="md-tabs__link">
           
   
   About
@@ -416,7 +417,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="./install/gs-installation/" class="md-tabs__link">
+        <a href="../../../install/gs-installation/" class="md-tabs__link">
           
   
   Install
@@ -431,6 +432,8 @@
   
   
   
+    
+  
   
     
     
@@ -438,11 +441,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="./documentation/concepts/arch-introduction/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../concepts/arch-introduction/" class="md-tabs__link">
           
   
   Documentation
@@ -464,7 +469,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="./blog/posts/cruisekube_announcement/" class="md-tabs__link">
+        <a href="../../../blog/posts/cruisekube_announcement/" class="md-tabs__link">
           
   
   Blog
@@ -486,9 +491,7 @@
           
             
               
-                
-              
-              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
@@ -499,9 +502,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="" title="CruiseKube" class="md-nav__button md-logo" aria-label="CruiseKube" data-md-component="logo">
+    <a href="../../.." title="CruiseKube" class="md-nav__button md-logo" aria-label="CruiseKube" data-md-component="logo">
       
-  <img src="./assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
+  <img src="../../../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
 
     </a>
     CruiseKube
@@ -525,17 +528,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-      
-      <a href="" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
         
   
   
@@ -553,7 +549,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -595,7 +590,7 @@
   
   
   
-    <a href="./about/overview/" class="md-nav__link">
+    <a href="../../../about/overview/" class="md-nav__link">
       
   
   
@@ -656,7 +651,7 @@
   
   
   
-    <a href="./install/gs-installation/" class="md-nav__link">
+    <a href="../../../install/gs-installation/" class="md-nav__link">
       
   
   
@@ -686,6 +681,8 @@
       
   
   
+    
+  
   
   
     
@@ -703,28 +700,25 @@
     
     
       
+        
+        
+      
       
         
       
     
     
       
-        
-        
-      
     
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
-  
-  
-  
-    
-  
-  
-  
-    <a href="./documentation/concepts/arch-introduction/" class="md-nav__link">
-      
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
   
   
   <span class="md-ellipsis">
@@ -738,14 +732,835 @@
   
   
 
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentation
   
 
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
   
 
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/arch-introduction/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-network" viewBox="0 0 24 24"><rect width="6" height="6" x="16" y="16" rx="1"/><rect width="6" height="6" x="2" y="16" rx="1"/><rect width="6" height="6" x="9" y="2" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3M12 12V8"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/arch-algorithm/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-function-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 17c2 0 2.8-1 2.8-2.8V10c0-2 1-3.3 3.2-3M9 11.2h5.7"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/arch-tradeoffs/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-scale" viewBox="0 0 24 24"><path d="M12 3v18M19 8l3 8a5 5 0 0 1-6 0zV7"/><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1M5 8l3 8a5 5 0 0 1-6 0zV7M7 21h10"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    TradeOffs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operate
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operate
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config-dashboard/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-layout-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sliders-horizontal" viewBox="0 0 24 24"><path d="M10 5H3M12 19H3M14 3v4M16 17v4M21 12h-9M21 19h-5M21 5h-7M8 10v4M8 12H3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies & Modes
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sliders-horizontal" viewBox="0 0 24 24"><path d="M10 5H3M12 19H3M14 3v4M16 17v4M21 12h-9M21 19h-5M21 5h-7M8 10v4M8 12H3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies & Modes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#optimization-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optimization modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rolling-out-changes-safely" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rolling out changes safely
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eviction-criticalitypriority-when-the-math-does-not-fit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eviction Criticality/Priority (when the math does not fit)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namespace-and-workload-exclusions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namespace and workload exclusions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disruption-windows-and-operational-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Disruption windows and operational tasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cost-views-vs-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost views vs policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operate-resource-pricing/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-dollar-sign" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 18V6"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Resource Pricing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operate-troubleshooting/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-life-buoy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contribute
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contribute
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/dev-env/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-laptop" viewBox="0 0 24 24"><path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2zM20.054 15.987H3.946"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Dev Environment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/dev-release/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-tags" viewBox="0 0 24 24"><path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1zM2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193"/><circle cx="10.5" cy="6.5" r=".5" fill="currentColor"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/dev-security/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/dev-contributors/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-users-round" viewBox="0 0 24 24"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/reference-helm-chart/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73zM12 22V12"/><path d="M3.29 7 12 12l8.71-5M7.5 4.27l9 5.15"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Helm Chart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/config/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-cog" viewBox="0 0 24 24"><path d="M15 8a1 1 0 0 1-1-1V2a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8zM20 8v12a2 2 0 0 1-2 2h-4.182M3.305 19.53l.923-.382M4 10.592V4a2 2 0 0 1 2-2h8M4.228 16.852l-.924-.383M5.852 15.228l-.383-.923M5.852 20.772l-.383.924M8.148 15.228l.383-.923M8.53 21.696l-.382-.924M9.773 16.852l.922-.383M9.773 19.148l.922.383"/><circle cx="7" cy="18" r="3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -782,7 +1597,7 @@
   
   
   
-    <a href="./blog/posts/cruisekube_announcement/" class="md-nav__link">
+    <a href="../../../blog/posts/cruisekube_announcement/" class="md-nav__link">
       
   
   
@@ -816,14 +1631,19 @@
             
             
               
-                
-              
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
                 <div class="md-sidebar__scrollwrap">
                   
                     
                     
                     
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
                     
                   
                   <div class="md-sidebar__inner">
@@ -834,6 +1654,93 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#optimization-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optimization modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rolling-out-changes-safely" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rolling out changes safely
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eviction-criticalitypriority-when-the-math-does-not-fit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eviction Criticality/Priority (when the math does not fit)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#namespace-and-workload-exclusions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namespace and workload exclusions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#disruption-windows-and-operational-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Disruption windows and operational tasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cost-views-vs-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost views vs policy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -846,12 +1753,76 @@
               
                 
 
+
+
   
 
 
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
 
+      </a>
+    </li>
   
 
+      
+      
+        
+  
+  
+    
+    
+      
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../../concepts/arch-introduction/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Documentation
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../config-dashboard/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Operate
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
 
               
               <article class="md-content__inner md-typeset">
@@ -861,235 +1832,104 @@
   
 
 
-<div class="ck-hero ck-hero--stacked">
-  <div class="ck-hero__inner">
-    <div class="ck-hero__copy ck-hero__copy--stacked">
-      <p class="ck-hero__eyebrow">Kubernetes-native · Open source</p>
-      <h1 class="ck-hero__title">
-        Cut Cluster Cost In Half
-      </h1>
-      <p class="ck-hero__lead">
-        Right-size CPU and memory from real usage. Start in Recommend, enable Cruise when you trust it, often <strong>~50%</strong> less request overhead, without a tuning spreadsheet.
-      </p>
-      <div class="ck-hero__actions">
-        <a href="/install/gs-installation/" class="md-button md-button--primary ck-btn-icon">
-          <svg class="ck-btn-icon__svg" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
-          Start Saving
-        </a>
-        <a href="/about/overview/" class="md-button">How it works</a>
-      </div>
-    </div>
-
-    <div class="ck-hero__figure">
-      <img src="/assets/screenshots/demo-overview.png" alt="CruiseKube dashboard and optimization flow">
-    </div>
-  </div>
-</div>
-
-<!-- Why optimization is hard today -->
-<div class="features-section">
-  <div class="section-header">
-    <h2>Why clusters still leak</h2>
-    <p>Cluster autoscalers can pack nodes efficiently, but <strong>most waste is still per pod</strong>: inflated CPU and memory <em>requests</em> in <strong>YAML</strong>, and scaling logic that reads those <em>requests</em>—not what the workload actually needed.</p>
-  </div>
-  <div class="ck-problems-copy ck-points">
-    <ul class="ck-points__list">
-      <li class="ck-points__item">
-        <span class="ck-points__icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.67"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.67"/></svg>
-        </span>
-        <span class="ck-points__text">Workloads often share the same manifest pattern and <strong>peak-sized <em>requests</em></strong>. When <strong>limits</strong> cause <strong>CPU throttling</strong> or an <strong>OOM kill</strong>, the usual fix is to raise <em>requests</em> "just to be safe." The <strong>scheduler</strong> and your <strong>cost model</strong> still treat that headroom as guaranteed capacity—so every pod carries extra reservation you rarely use.</span>
-      </li>
-      <li class="ck-points__item">
-        <span class="ck-points__icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 12.5-1.5 2.5 1.5 2.5"/><path d="m14 12.5 1.5 2.5-1.5 2.5"/></svg>
-        </span>
-        <span class="ck-points__text">Those numbers live in <strong>YAML</strong> and get edited rarely—sometimes only each quarter—while deploys and traffic change every week. The gap is not "people don't care"; it is that <strong>manual manifest edits</strong> do not keep pace with a live cluster.</span>
-      </li>
-      <li class="ck-points__item">
-        <span class="ck-points__icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 4-1.79 4-4V5c0 2.21 2 4 4 4h2"/></svg>
-        </span>
-        <span class="ck-points__text">Large <em>requests</em> reserve big slices of each <strong>node</strong>. You can end up with <strong>underused nodes</strong>, hot neighbors, and CPU or memory that is hard to schedule. <strong>Cluster autoscalers</strong> and similar tools key off the same <em>request</em> lines, so scaling often follows the inflated number—not measured usage.</span>
-      </li>
-    </ul>
-  </div>
-</div>
-
-<!-- Why CruiseKube -->
-<div class="features-section">
-  <div class="section-header">
-    <h2>How CruiseKube answers that</h2>
-    <p>Proposed <em>requests</em> from metrics you already have, a clear UI to review them, and optional automation per workload—not a surprise cluster-wide toggle.</p>
-  </div>
-  <div class="ck-problems-copy ck-points">
-    <ul class="ck-points__list">
-      <li class="ck-points__item">
-        <span class="ck-points__icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-        </span>
-        <span class="ck-points__text">CruiseKube reads CPU and memory metrics from <strong>Prometheus</strong> (the same time series you likely already scrape) and turns them into suggested <strong>CPU and memory <em>requests</em></strong>. The goal is simple: line up <em>requests</em> with how the pod actually behaves, instead of a static template or a one-off spreadsheet.</span>
-      </li>
-      <li class="ck-points__item">
-        <span class="ck-points__icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-        </span>
-        <span class="ck-points__text">Start in <strong>Recommend</strong>: new values show up as proposals in the UI; nothing changes your manifests until you accept them. When a team is ready, switch only the workloads you trust to <strong>Cruise</strong> so updates stay scoped—never a blind "resize everything" flip for the whole cluster.</span>
-      </li>
-      <li class="ck-points__item">
-        <span class="ck-points__icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
-        </span>
-        <span class="ck-points__text">That usually means <strong>less unused reservation</strong> (lower <em>request</em> overhead) while <strong>policies</strong> cap how aggressive each change can be. You shrink waste, but each adjustment stays small enough to reason about for production.</span>
-      </li>
-    </ul>
-  </div>
-</div>
-
-<!-- Product features: workloads, guardrails, audit, windows, monitoring -->
-<div class="features-section ck-showcase">
-  <div class="section-header">
-    <h2>Features</h2>
-    <p>Workload-shaped recommendations, guardrails you can stand behind, and an audit trail when requests move.</p>
-  </div>
-
-  <div class="ck-showcase__list">
-
-    <article class="ck-showcase__row">
-      <div class="ck-showcase__copy">
-        <p class="ck-showcase__label">Workload-level</p>
-        <h3 class="ck-showcase__title">Every Deployment gets its own verdict</h3>
-        <p class="ck-showcase__body">
-          Savings, mode, and filters are scoped to the workloads you run—not a single cluster KPI nobody owns. Open a service, compare <em>today’s</em> requests to what the data says, and decide what earns the next step.
-        </p>
-      </div>
-      <figure class="ck-showcase__figure">
-        <img src="/assets/screenshots/feat_workload.png" alt="Workload detail: per-pod CPU and memory recommendations vs current requests">
-      </figure>
-    </article>
-
-    <article class="ck-showcase__row ck-showcase__row--flip">
-      <div class="ck-showcase__copy">
-        <p class="ck-showcase__label">Guardrails</p>
-        <h3 class="ck-showcase__title">Recommend-only until <em>you</em> promote it</h3>
-        <p class="ck-showcase__body">
-          Start in <strong>Recommend</strong>: proposals land in the UI, nothing rewrites requests behind your back. When a team is ready, switch that workload to <strong>Cruise</strong>, automation with intent, not a blind fleet-wide toggle.
-        </p>
-      </div>
-      <figure class="ck-showcase__figure">
-        <img src="/assets/screenshots/feat_recommendation_critical.png" alt="Policies and configuration: CruiseKube mode, priority, and safety settings">
-      </figure>
-    </article>
-
-    <article class="ck-showcase__row">
-      <div class="ck-showcase__copy">
-        <p class="ck-showcase__label">Audit trail</p>
-        <h3 class="ck-showcase__title">Events that answer “what changed—and when?”</h3>
-        <p class="ck-showcase__body">
-          Applied recommendations show up as a living log. When finance or SRE asks for receipts, you are not reconstructing history from kubectl and Slack threads.
-        </p>
-      </div>
-      <figure class="ck-showcase__figure">
-        <img src="/assets/screenshots/feat_events.png" alt="Events view: audit log of recommendations and configuration changes">
-      </figure>
-    </article>
-
-    <article class="ck-showcase__row ck-showcase__row--flip">
-      <div class="ck-showcase__copy">
-        <p class="ck-showcase__label">Disruption windows</p>
-        <h3 class="ck-showcase__title">Optimize on <em>your</em> quiet hours</h3>
-        <p class="ck-showcase__body">
-          Define when it is safe to move numbers—cron-friendly schedules and room for the workloads that cannot shift during peak. 
-        </p>
-      </div>
-      <figure class="ck-showcase__figure">
-        <img src="/assets/screenshots/feat_disruption.png" alt="Disruption window builder with schedule and UTC summary">
-      </figure>
-    </article>
-
-    <article class="ck-showcase__row">
-      <div class="ck-showcase__copy">
-        <p class="ck-showcase__label">Monitoring</p>
-        <h3 class="ck-showcase__title">One dashboard for adoption, waste, and “are we winning?”</h3>
-        <p class="ck-showcase__body">
-          Roll-up views tie cost signals, resource efficiency, and who is still on Recommend vs Cruise—so platform reviews start with a shared picture.
-        </p>
-      </div>
-      <figure class="ck-showcase__figure">
-        <img src="/assets/screenshots/feat_overview.png" alt="Dashboard overview: cost, adoption, and cluster efficiency">
-      </figure>
-    </article>
-
-  </div>
-</div>
-
-<div class="features-section ck-quick-install">
-  <div class="section-header">
-    <h2>Install in minutes</h2>
-    <p>Getting started is easy, just one Helm install and you are on your way!</p>
-  </div>
-  <div class="ck-quick-install__panel" markdown="1">
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>helm<span class="w"> </span>install<span class="w"> </span>cruisekube<span class="w"> </span>oci://tfy.jfrog.io/tfy-helm/cruisekube<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>--namespace<span class="w"> </span>cruisekube-system<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span>--create-namespace<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>--set<span class="w"> </span>cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL<span class="o">=</span><span class="s2">&quot;http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090&quot;</span>
-</span></code></pre></div>
-  </div>
-
-</div>
-
-<div class="features-section ck-community">
-  <div class="section-header ck-community__header">
-    <h2>Get Involved</h2>
-    <p>Questions, contributions, and honest bug reports all land in the open.</p>
-  </div>
-  <nav class="ck-community__grid" aria-label="Community links">
-    <a class="ck-community__card" href="https://github.com/truefoundry/CruiseKube" rel="noopener noreferrer">
-      <span class="ck-community__icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-      </span>
-      <span class="ck-community__title">GitHub</span>
-      <span class="ck-community__meta">Source, releases, and pull requests</span>
-    </a>
-    <a class="ck-community__card" href="https://discord.gg/Dqek4xJa3N" rel="noopener noreferrer">
-      <span class="ck-community__icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9a2 2 0 0 1-2 2H6l-4 4V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z"/><path d="M18 9h2a2 2 0 0 1 2 2v11l-4-4h-6a2 2 0 0 1-2-2v-1"/></svg>
-      </span>
-      <span class="ck-community__title">Discord</span>
-      <span class="ck-community__meta">Chat with maintainers and other operators</span>
-    </a>
-    <a class="ck-community__card" href="https://github.com/truefoundry/CruiseKube/issues" rel="noopener noreferrer">
-      <span class="ck-community__icon" aria-hidden="true">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.75 3 6.77 3 4.5 3 2.6 5.02 1 7.5 1c1.22 0 2.4.45 3.3 1.2"/><path d="M17.47 9c1.93-.25 3.53-2.23 3.53-4.5C21 2.6 18.98 1 16.5 1c-1.22 0-2.4.45-3.3 1.2"/></svg>
-      </span>
-      <span class="ck-community__title">Issues</span>
-      <span class="ck-community__meta">Report bugs or request features</span>
-    </a>
-  </nav>
-</div>
-
-<div class="features-section ck-cta">
-  <div class="ck-cta__panel">
-    <div class="section-header ck-cta__header">
-      <h2>Cut cluster cost—on your timeline</h2>
-      <p>
-        <strong>Install</strong> when you are ready, or <strong>book a short call</strong> if you want help with a first pilot.
-      </p>
-    </div>
-    <div class="ck-cta__actions">
-      <a href="/install/gs-installation/" class="md-button md-button--primary ck-btn-icon">
-        <svg class="ck-btn-icon__svg" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
-        Start Saving
-      </a>
-      <a href="https://calendar.app.google/aJGRuUjSjNd15vqJ9" class="md-button ck-btn-icon" target="_blank" rel="noopener noreferrer">
-        <svg class="ck-btn-icon__svg" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
-        Schedule a call
-      </a>
-    </div>
-  </div>
-</div>
-
-  
+<h1 id="policies-modes">Policies &amp; modes<a class="headerlink" href="#policies-modes" title="Permanent link">&para;</a></h1>
+<p>CruiseKube separates <strong>observation</strong> from <strong>enforcement</strong> using <strong>per-workload</strong> settings. The <strong>Policies &amp; Configuration</strong> screen is where most teams set <strong>mode</strong>, <strong>eviction priority</strong>, and related behavior (see <a href="../config-dashboard/">Dashboard</a>).</p>
+<hr />
+<h2 id="optimization-modes">Optimization modes<a class="headerlink" href="#optimization-modes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Behavior (intent)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Recommend</strong></td>
+<td>CruiseKube <strong>computes</strong> recommendations and shows them in the dashboard; it does <strong>not</strong> apply in-place resource changes for that workload.</td>
+</tr>
+<tr>
+<td><strong>Cruise</strong></td>
+<td>CruiseKube <strong>applies</strong> optimizations for that workload according to controller schedules, admission webhook behavior, and safety rules.</td>
+</tr>
+</tbody>
+</table>
+<p>Exact labels can vary slightly by release; trust what you see in your deployed frontend.</p>
+<hr />
+<h2 id="rolling-out-changes-safely">Rolling out changes safely<a class="headerlink" href="#rolling-out-changes-safely" title="Permanent link">&para;</a></h2>
+<p>Typical progression:</p>
+<ol>
+<li><strong>Install</strong> and let <strong>stats / metrics</strong> tasks populate the database.  </li>
+<li>Keep workloads on <strong>Recommend</strong> until recommendations look credible for your SLOs.  </li>
+<li>Move cohorts to <strong>Cruise</strong> in stages (namespace-by-namespace or tier-by-tier).  </li>
+</ol>
+<pre class="mermaid"><code>flowchart TD
+  subgraph observe[Observe]
+    S[Stats + metrics tasks]
+    R[Dashboard — Recommend mode]
+  end
+  subgraph enforce[Enforce]
+    A[Runtime optimizer]
+    W[Admission webhook]
+  end
+  S --&gt; R
+  R --&gt;|Validated| C[Cruise mode per workload]
+  C --&gt; A
+  C --&gt; W</code></pre>
+<p><strong>Memory-specific behavior</strong> can still be gated at deploy time with <code>CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION</code> (controller and webhook) if you want CPU-only automation first—see <a href="../../reference/config/">Configuration</a> and <a href="https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml"><code>values.yaml</code></a>.</p>
+<hr />
+<h2 id="eviction-criticalitypriority-when-the-math-does-not-fit">Eviction Criticality/Priority (when the math does not fit)<a class="headerlink" href="#eviction-criticalitypriority-when-the-math-does-not-fit" title="Permanent link">&para;</a></h2>
+<p>On a crowded node, the runtime optimizer may need to <strong>evict</strong> lower-priority pods so the remaining set can be sized safely. Ordering is documented in depth under <a href="../../concepts/arch-algorithm/#workload-criticality">Workload Criticality</a>; summary:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Typical use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Low</strong></td>
+<td>Default for many stateless replicas—evicted first.</td>
+</tr>
+<tr>
+<td><strong>Medium</strong></td>
+<td>Default bias for <strong>single-replica</strong> or <strong>StatefulSet</strong> workloads.</td>
+</tr>
+<tr>
+<td><strong>High</strong></td>
+<td>Evicted only when necessary after lower tiers.</td>
+</tr>
+<tr>
+<td><strong>Very-High</strong></td>
+<td>Never evicted by CruiseKube for optimization pressure.</td>
+</tr>
+<tr>
+<td><strong>DaemonSets</strong></td>
+<td>Always protected.</td>
+</tr>
+</tbody>
+</table>
+<p>Pair this with your <strong>PDBs</strong> and <strong>SLOs</strong>—CruiseKube does not replace Kubernetes disruption controls.</p>
+<hr />
+<h2 id="namespace-and-workload-exclusions">Namespace and workload exclusions<a class="headerlink" href="#namespace-and-workload-exclusions" title="Permanent link">&para;</a></h2>
+<p>The Helm chart supports <strong>webhook namespace exclusions</strong> (e.g. system namespaces). Workloads can also be <strong>disabled</strong> via overrides / annotations depending on version—validate in your cluster if recommendations never appear for a subset of pods.</p>
+<hr />
+<h2 id="disruption-windows-and-operational-tasks">Disruption windows and operational tasks<a class="headerlink" href="#disruption-windows-and-operational-tasks" title="Permanent link">&para;</a></h2>
+<p><img align="left" alt="Add Disruption Window — visual schedule builder and UTC cron summary" src="/assets/screenshots/feat_disruption.png" width="400" />
+Releases have introduced <strong>disruption windows</strong> and related controller tasks so optimization can respect <strong>maintenance hours</strong>. If your version includes these APIs, treat them as the bridge between <strong>aggressive savings</strong> and <strong>change risk</strong>. In the dashboard you can define windows with a visual builder (timezone, days, start/end time); schedules are stored as cron expressions, with local time summarized alongside the UTC values used by the controller.</p>
+<p>Details also live in release notes and Helm values—search <code>DISRUPTION</code> / <code>disruption</code> in <a href="https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml"><code>values.yaml</code></a>.</p>
+<hr />
+<h2 id="cost-views-vs-policy">Cost views vs policy<a class="headerlink" href="#cost-views-vs-policy" title="Permanent link">&para;</a></h2>
+<p><strong>Policies &amp; modes</strong> control <strong>whether and how</strong> resources change. <strong>Dollar estimates</strong> use separate <strong>unit pricing</strong> assumptions—see <a href="../operate-resource-pricing/">Resource pricing</a>.</p>
+<hr />
+<h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../config-dashboard/">Dashboard walkthrough</a>  </li>
+<li><a href="../../concepts/arch-algorithm/">Algorithm — eviction &amp; headroom</a>  </li>
+<li><a href="../../concepts/arch-tradeoffs/">Tradeoffs</a>  </li>
+<li><a href="../operate-troubleshooting/">Troubleshooting</a></li>
+</ul>
 
 
 
@@ -1106,8 +1946,6 @@
 
   
 
-
-  
 
 
 
@@ -1133,19 +1971,33 @@
   
     
       
-        
-      
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../config-dashboard/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Dashboard">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256l137.3-137.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Dashboard
+              </div>
+            </div>
+          </a>
         
         
           
-          <a href="./about/overview/" class="md-footer__link md-footer__link--next" aria-label="Next: Introduction">
+          <a href="../operate-resource-pricing/" class="md-footer__link md-footer__link--next" aria-label="Next: Resource Pricing">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Introduction
+                Resource Pricing
               </div>
             </div>
             <div class="md-footer__button md-icon">
@@ -1226,10 +2078,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate":{"json":[".s2"]},"base":".","features":["announce.dismiss","content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.path","navigation.instant","navigation.instant.prefetch","navigation.instant.progress","navigation.prune","navigation.sections","navigation.tabs","navigation.top","navigation.tracking","search.highlight","search.share","search.suggest","toc.follow"],"search":"./assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+      <script id="__config" type="application/json">{"annotate":{"json":[".s2"]},"base":"../../..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.path","navigation.instant","navigation.instant.prefetch","navigation.instant.progress","navigation.prune","navigation.sections","navigation.tabs","navigation.top","navigation.tracking","search.highlight","search.share","search.suggest","toc.follow"],"search":"../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="./assets/javascripts/bundle.91a19a9e.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.91a19a9e.min.js"></script>
       
     
   </body>

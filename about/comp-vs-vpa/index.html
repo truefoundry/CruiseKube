@@ -6,38 +6,42 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Announcements and articles from the CruiseKube maintainers.">
+        <meta name="description" content="Compare CruiseKube Autopilot with Kubernetes Vertical Pod Autoscaler (VPA). Understand the key differences in optimization approach, runtime behavior, and use cases.">
       
       
         <meta name="author" content="TrueFoundry">
       
       
-        <link rel="canonical" href="https://cruisekube.com/blog/">
+        <link rel="canonical" href="https://cruisekube.com/about/comp-vs-vpa/">
       
       
+        <link rel="prev" href="../overview-use-cases/">
+      
+      
+        <link rel="next" href="../overview-faq/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/logo/favicon/favicon.ico">
+      <link rel="icon" href="../../assets/images/logo/favicon/favicon.ico">
       <meta name="generator" content="zensical-0.0.31">
     
     
       
-        <title>Blog - CruiseKube</title>
+        <title>CruiseKube vs VPA Comparison - CruiseKube</title>
       
     
     
       
         
       
-      <link rel="stylesheet" href="../assets/stylesheets/modern/main.53a7feaf.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.53a7feaf.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.dfe2e883.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
       
       
   
@@ -132,7 +136,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css">
     
     <script>__md_scope=new URL("/",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
@@ -158,7 +162,7 @@
   
   <!-- Dynamic Keywords from Page Meta -->
   
-    <meta name="keywords" content="Kubernetes, Resource Optimization, Operator, Cloud Native, CruiseKube">
+    <meta name="keywords" content="CruiseKube vs VPA, Kubernetes VPA comparison, resource optimization comparison, VPA alternative, Kubernetes autoscaling">
   
   
   <!-- Open Graph Meta Tags -->
@@ -166,23 +170,23 @@
   <meta property="og:site_name" content="CruiseKube Documentation">
   <meta property="og:locale" content="en_US">
   
-  <meta property="og:url" content="https://cruisekube.com/blog/">
+  <meta property="og:url" content="https://cruisekube.com/about/comp-vs-vpa/">
   
-  <meta property="og:title" content="Blog">
-  <meta property="og:description" content="Announcements and articles from the CruiseKube maintainers.">
+  <meta property="og:title" content="CruiseKube vs VPA Comparison">
+  <meta property="og:description" content="Compare CruiseKube Autopilot with Kubernetes Vertical Pod Autoscaler (VPA). Understand the key differences in optimization approach, runtime behavior, and use cases.">
   <meta property="og:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@truefoundry">
   <meta name="twitter:creator" content="@truefoundry">
-  <meta name="twitter:title" content="Blog">
-  <meta name="twitter:description" content="Announcements and articles from the CruiseKube maintainers.">
+  <meta name="twitter:title" content="CruiseKube vs VPA Comparison">
+  <meta name="twitter:description" content="Compare CruiseKube Autopilot with Kubernetes Vertical Pod Autoscaler (VPA). Understand the key differences in optimization approach, runtime behavior, and use cases.">
   <meta name="twitter:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
   
   <!-- Canonical URL -->
   
-  <link rel="canonical" href="https://cruisekube.com/blog/">
+  <link rel="canonical" href="https://cruisekube.com/about/comp-vs-vpa/">
   
   
   <!-- Additional Meta Tags -->
@@ -249,7 +253,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#blog" class="md-skip">
+        <a href="#cruisekube-vs-vertical-pod-autoscaler-vpa" class="md-skip">
           Skip to content
         </a>
       
@@ -263,9 +267,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="./.." title="CruiseKube" class="md-header__button md-logo" aria-label="CruiseKube" data-md-component="logo">
+    <a href="../.." title="CruiseKube" class="md-header__button md-logo" aria-label="CruiseKube" data-md-component="logo">
       
-  <img src="../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
+  <img src="../../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
@@ -282,7 +286,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Blog
+              CruiseKube vs VPA Comparison
             
           </span>
         </div>
@@ -376,7 +380,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="./.." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   Home
@@ -390,11 +394,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../about/overview/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
           
   
   About
@@ -413,7 +419,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../install/gs-installation/" class="md-tabs__link">
+        <a href="../../install/gs-installation/" class="md-tabs__link">
           
   
   Install
@@ -439,7 +445,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../documentation/concepts/arch-introduction/" class="md-tabs__link">
+        <a href="../../documentation/concepts/arch-introduction/" class="md-tabs__link">
           
   
   Documentation
@@ -461,7 +467,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="./posts/cruisekube_announcement/" class="md-tabs__link">
+        <a href="../../blog/posts/cruisekube_announcement/" class="md-tabs__link">
           
   
   Blog
@@ -483,6 +489,8 @@
           
             
               
+                
+              
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
@@ -494,9 +502,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="./.." title="CruiseKube" class="md-nav__button md-logo" aria-label="CruiseKube" data-md-component="logo">
+    <a href="../.." title="CruiseKube" class="md-nav__button md-logo" aria-label="CruiseKube" data-md-component="logo">
       
-  <img src="../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
+  <img src="../../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
 
     </a>
     CruiseKube
@@ -523,7 +531,7 @@
   
   
     <li class="md-nav__item">
-      <a href="./.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -549,41 +557,44 @@
       
   
   
-  
-  
     
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
   
   
   
-    <a href="../about/overview/" class="md-nav__link">
+    
+    
       
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
   
   
   <span class="md-ellipsis">
@@ -597,12 +608,236 @@
   
   
 
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    About
   
 
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview-use-cases/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-git-compare-arrows" viewBox="0 0 24 24"><circle cx="5" cy="6" r="3"/><path d="M12 6h5a2 2 0 0 1 2 2v7"/><path d="m15 9-3-3 3-3"/><circle cx="19" cy="18" r="3"/><path d="M12 18H7a2 2 0 0 1-2-2V9"/><path d="m9 15 3 3-3 3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    CruiseKube vs VPA
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-git-compare-arrows" viewBox="0 0 24 24"><circle cx="5" cy="6" r="3"/><path d="M12 6h5a2 2 0 0 1 2 2v7"/><path d="m15 9-3-3 3-3"/><circle cx="19" cy="18" r="3"/><path d="M12 18H7a2 2 0 0 1-2-2V9"/><path d="m9 15 3 3-3 3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    CruiseKube vs VPA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-core-difference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Core Difference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-they-differ" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How They Differ
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-cruisekube-unlocks-conceptually" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What CruiseKube unlocks conceptually
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-each-model-makes-sense" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When each model makes sense
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview-faq/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -643,7 +878,7 @@
   
   
   
-    <a href="../install/gs-installation/" class="md-nav__link">
+    <a href="../../install/gs-installation/" class="md-nav__link">
       
   
   
@@ -710,7 +945,7 @@
   
   
   
-    <a href="../documentation/concepts/arch-introduction/" class="md-nav__link">
+    <a href="../../documentation/concepts/arch-introduction/" class="md-nav__link">
       
   
   
@@ -769,7 +1004,7 @@
   
   
   
-    <a href="./posts/cruisekube_announcement/" class="md-nav__link">
+    <a href="../../blog/posts/cruisekube_announcement/" class="md-nav__link">
       
   
   
@@ -803,7 +1038,9 @@
             
             
               
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
                 <div class="md-sidebar__scrollwrap">
                   
                     
@@ -836,10 +1073,43 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#pinned-post" class="md-nav__link">
+  <a href="#the-core-difference" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pinned post
+        The Core Difference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-they-differ" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How They Differ
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-cruisekube-unlocks-conceptually" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What CruiseKube unlocks conceptually
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-each-model-makes-sense" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When each model makes sense
       
     </span>
   </a>
@@ -859,10 +1129,52 @@
               
                 
 
+  
+
 
 
   
 
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../overview/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    About
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
 
               
               <article class="md-content__inner md-typeset">
@@ -872,14 +1184,96 @@
   
 
 
-<h1 id="blog">Blog<a class="headerlink" href="#blog" title="Permanent link">&para;</a></h1>
-<p>Updates, release narratives, and technical deep dives from the CruiseKube team. Latest posts appear on this section of the site when using the Material <strong>blog</strong> plugin.</p>
-<hr />
-<h2 id="pinned-post">Pinned post<a class="headerlink" href="#pinned-post" title="Permanent link">&para;</a></h2>
+<h1 id="cruisekube-vs-vertical-pod-autoscaler-vpa">CruiseKube vs Vertical Pod Autoscaler (VPA)<a class="headerlink" href="#cruisekube-vs-vertical-pod-autoscaler-vpa" title="Permanent link">&para;</a></h1>
+<p>Both CruiseKube and the Kubernetes Vertical Pod Autoscaler aim to reduce waste caused by poorly sized pod resources. The similarity largely ends there. CruiseKube builds on the same motivation as VPA, but focuses on a few specific capabilities that VPA does not have.</p>
+<h3 id="the-core-difference">The Core Difference<a class="headerlink" href="#the-core-difference" title="Permanent link">&para;</a></h3>
 <ul>
-<li><a href="posts/cruisekube_announcement/">Introducing CruiseKube — runtime resource optimization</a></li>
+<li>VPA is a recommendation system that <a href="https://kubernetes.io/docs/concepts/workloads/autoscaling/vertical-pod-autoscale/#:~:text=The%20vertical%20pod%20autoscaling%20controller%2C%20running%20within%20the%20Kubernetes%20data%20plane%2C%20periodically%20adjusts%20the%20resource%20requests%20and%20limits%20of%20its%20target">periodically adjusts the resource requests and limits of its target</a>.</li>
+<li>CruiseKube is a runtime optimization system that actively optimizes resources, closer to real time.</li>
 </ul>
-<p>For installation and operations, start with the <a href="../about/overview/">Introduction</a> and <a href="../install/gs-installation/">Installation</a>.</p>
+<p>VPA answers the question:</p>
+<ul>
+<li><strong>What should this workload generally request?</strong></li>
+</ul>
+<pre class="mermaid"><code>flowchart TB
+  subgraph vpa[VPA mental model]
+    W[Workload template]
+    R[Recommender]
+    W --&gt; R
+    R --&gt;|"Periodic target requests"| W
+  end
+</code></pre>
+<p>CruiseKube answers a different question:</p>
+<ul>
+<li><strong>What should this specific pod request right now, on this node, given current conditions?</strong></li>
+</ul>
+<pre class="mermaid"><code>flowchart TB
+  subgraph ck[CruiseKube mental model]
+    N[Node + neighbors]
+    P[This pod]
+    L[Control loop]
+    P --&gt; L
+    N --&gt; L
+    L --&gt;|"In-place updates"| P
+  end</code></pre>
+<h3 id="how-they-differ">How They Differ<a class="headerlink" href="#how-they-differ" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>CruiseKube</th>
+<th>Kubernetes Vertical Pod Autoscaler</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Optimization model</td>
+<td>Continuous, feedback-driven control loop</td>
+<td>Periodic analysis and recommendation</td>
+</tr>
+<tr>
+<td>Unit of decision</td>
+<td>Individual pod, in node context</td>
+<td>Workload template</td>
+</tr>
+<tr>
+<td>View of the cluster</td>
+<td>Node-local, shared capacity</td>
+<td>Pod isolated from node context</td>
+</tr>
+<tr>
+<td>Time horizon</td>
+<td>Short-term, adaptive</td>
+<td>Long-term, historical</td>
+</tr>
+</tbody>
+</table>
+<h3 id="what-cruisekube-unlocks-conceptually">What CruiseKube unlocks conceptually<a class="headerlink" href="#what-cruisekube-unlocks-conceptually" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>Resource sharing instead of duplication</strong>
+  Instead of every pod reserving its own peak capacity, CruiseKube allows pods on the same node to share headroom, based on the assumption that spikes are not perfectly correlated.</p>
+</li>
+<li>
+<p><strong>Correction over prediction</strong>
+  CruiseKube does not need to be "right" ahead of time. It relies on frequent correction rather than long-horizon prediction.</p>
+</li>
+<li>
+<p><strong>Cost efficiency without abandoning safety</strong>
+  Reliability is preserved through conservative memory handling, priority-based protection, and feedback signals, rather than static over-allocation.</p>
+</li>
+</ul>
+<h3 id="when-each-model-makes-sense">When each model makes sense<a class="headerlink" href="#when-each-model-makes-sense" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p>Use VPA if you want a simple, conservative mechanism to improve request sizing and are comfortable treating optimization as an occasional adjustment problem.</p>
+</li>
+<li>
+<p>Use CruiseKube if you believe resource optimization is a continuous control problem and you want to actively trade unused safety margins for higher utilization, without making developers manually tune workloads.</p>
+</li>
+</ul>
+
+  
 
 
 
@@ -896,6 +1290,8 @@
 
   
 
+
+  
 
 
 
@@ -919,6 +1315,46 @@
       
         <footer class="md-footer">
   
+    
+      
+        
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../overview-use-cases/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Use Cases">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256l137.3-137.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Use Cases
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../overview-faq/" class="md-footer__link md-footer__link--next" aria-label="Next: FAQ">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                FAQ
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M247.1 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L179.2 256 41.9 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
     
   
   <div class="md-footer-meta md-typeset">
@@ -990,10 +1426,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate":{"json":[".s2"]},"base":"..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.path","navigation.instant","navigation.instant.prefetch","navigation.instant.progress","navigation.prune","navigation.sections","navigation.tabs","navigation.top","navigation.tracking","search.highlight","search.share","search.suggest","toc.follow"],"search":"../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+      <script id="__config" type="application/json">{"annotate":{"json":[".s2"]},"base":"../..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.path","navigation.instant","navigation.instant.prefetch","navigation.instant.progress","navigation.prune","navigation.sections","navigation.tabs","navigation.top","navigation.tracking","search.highlight","search.share","search.suggest","toc.follow"],"search":"../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../assets/javascripts/bundle.91a19a9e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.91a19a9e.min.js"></script>
       
     
   </body>

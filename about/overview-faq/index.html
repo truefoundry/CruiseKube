@@ -6,38 +6,42 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Announcements and articles from the CruiseKube maintainers.">
+        <meta name="description" content="Frequently asked questions about CruiseKube: compatibility, Java, HPA, cluster autoscalers, CPU limits, memory pressure, and security reporting.">
       
       
         <meta name="author" content="TrueFoundry">
       
       
-        <link rel="canonical" href="https://cruisekube.com/blog/">
+        <link rel="canonical" href="https://cruisekube.com/about/overview-faq/">
       
       
+        <link rel="prev" href="../comp-vs-vpa/">
+      
+      
+        <link rel="next" href="../../install/gs-installation/">
       
       
         
       
       
-      <link rel="icon" href="../assets/images/logo/favicon/favicon.ico">
+      <link rel="icon" href="../../assets/images/logo/favicon/favicon.ico">
       <meta name="generator" content="zensical-0.0.31">
     
     
       
-        <title>Blog - CruiseKube</title>
+        <title>FAQ - CruiseKube</title>
       
     
     
       
         
       
-      <link rel="stylesheet" href="../assets/stylesheets/modern/main.53a7feaf.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.53a7feaf.min.css">
       
         
           
         
-        <link rel="stylesheet" href="../assets/stylesheets/modern/palette.dfe2e883.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.dfe2e883.min.css">
       
       
   
@@ -132,7 +136,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/extra.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css">
     
     <script>__md_scope=new URL("/",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
     
@@ -158,7 +162,7 @@
   
   <!-- Dynamic Keywords from Page Meta -->
   
-    <meta name="keywords" content="Kubernetes, Resource Optimization, Operator, Cloud Native, CruiseKube">
+    <meta name="keywords" content="CruiseKube FAQ, Kubernetes optimization questions">
   
   
   <!-- Open Graph Meta Tags -->
@@ -166,23 +170,23 @@
   <meta property="og:site_name" content="CruiseKube Documentation">
   <meta property="og:locale" content="en_US">
   
-  <meta property="og:url" content="https://cruisekube.com/blog/">
+  <meta property="og:url" content="https://cruisekube.com/about/overview-faq/">
   
-  <meta property="og:title" content="Blog">
-  <meta property="og:description" content="Announcements and articles from the CruiseKube maintainers.">
+  <meta property="og:title" content="FAQ">
+  <meta property="og:description" content="Frequently asked questions about CruiseKube: compatibility, Java, HPA, cluster autoscalers, CPU limits, memory pressure, and security reporting.">
   <meta property="og:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@truefoundry">
   <meta name="twitter:creator" content="@truefoundry">
-  <meta name="twitter:title" content="Blog">
-  <meta name="twitter:description" content="Announcements and articles from the CruiseKube maintainers.">
+  <meta name="twitter:title" content="FAQ">
+  <meta name="twitter:description" content="Frequently asked questions about CruiseKube: compatibility, Java, HPA, cluster autoscalers, CPU limits, memory pressure, and security reporting.">
   <meta name="twitter:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
   
   <!-- Canonical URL -->
   
-  <link rel="canonical" href="https://cruisekube.com/blog/">
+  <link rel="canonical" href="https://cruisekube.com/about/overview-faq/">
   
   
   <!-- Additional Meta Tags -->
@@ -249,7 +253,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#blog" class="md-skip">
+        <a href="#frequently-asked-questions" class="md-skip">
           Skip to content
         </a>
       
@@ -263,9 +267,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="./.." title="CruiseKube" class="md-header__button md-logo" aria-label="CruiseKube" data-md-component="logo">
+    <a href="../.." title="CruiseKube" class="md-header__button md-logo" aria-label="CruiseKube" data-md-component="logo">
       
-  <img src="../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
+  <img src="../../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
@@ -282,7 +286,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Blog
+              FAQ
             
           </span>
         </div>
@@ -376,7 +380,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="./.." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   Home
@@ -390,11 +394,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../about/overview/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
           
   
   About
@@ -413,7 +419,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../install/gs-installation/" class="md-tabs__link">
+        <a href="../../install/gs-installation/" class="md-tabs__link">
           
   
   Install
@@ -439,7 +445,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../documentation/concepts/arch-introduction/" class="md-tabs__link">
+        <a href="../../documentation/concepts/arch-introduction/" class="md-tabs__link">
           
   
   Documentation
@@ -461,7 +467,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="./posts/cruisekube_announcement/" class="md-tabs__link">
+        <a href="../../blog/posts/cruisekube_announcement/" class="md-tabs__link">
           
   
   Blog
@@ -483,6 +489,8 @@
           
             
               
+                
+              
               <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
@@ -494,9 +502,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="./.." title="CruiseKube" class="md-nav__button md-logo" aria-label="CruiseKube" data-md-component="logo">
+    <a href="../.." title="CruiseKube" class="md-nav__button md-logo" aria-label="CruiseKube" data-md-component="logo">
       
-  <img src="../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
+  <img src="../../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
 
     </a>
     CruiseKube
@@ -523,7 +531,7 @@
   
   
     <li class="md-nav__item">
-      <a href="./.." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -549,41 +557,44 @@
       
   
   
-  
-  
     
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-      
-        
-        
-      
-    
-    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
-      
-        
   
   
   
-    <a href="../about/overview/" class="md-nav__link">
+    
+    
       
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
   
   
   <span class="md-ellipsis">
@@ -597,12 +608,324 @@
   
   
 
-      
-        <span class="md-nav__icon md-icon"></span>
-      
-    </a>
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    About
   
 
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview-use-cases/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Use Cases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../comp-vs-vpa/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-git-compare-arrows" viewBox="0 0 24 24"><circle cx="5" cy="6" r="3"/><path d="M12 6h5a2 2 0 0 1 2 2v7"/><path d="m15 9-3-3 3-3"/><circle cx="19" cy="18" r="3"/><path d="M12 18H7a2 2 0 0 1-2-2V9"/><path d="m9 15 3 3-3 3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    CruiseKube vs VPA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-kubernetes-version-do-i-need" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Kubernetes version do I need?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#does-cruisekube-replace-hpa-or-karpenter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Does CruiseKube replace HPA or Karpenter?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-happens-if-i-use-cpu-or-memory-based-hpa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What happens if I use CPU- or memory-based HPA?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#does-it-work-with-java-jvm-workloads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Does it work with Java / JVM workloads?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#do-you-account-for-memory-pressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do you account for memory pressure?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-does-cruisekube-avoid-cpu-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why does CruiseKube avoid CPU limits?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#can-cruisekube-help-if-i-do-not-use-node-auto-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can CruiseKube help if I do not use node auto-provisioning?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#can-i-run-it-next-to-cluster-autoscaler-or-karpenter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I run it next to Cluster Autoscaler or Karpenter?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-are-container-images-hosted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where are container images hosted?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-report-a-security-vulnerability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I report a security vulnerability?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-can-i-get-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where can I get help?
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -643,7 +966,7 @@
   
   
   
-    <a href="../install/gs-installation/" class="md-nav__link">
+    <a href="../../install/gs-installation/" class="md-nav__link">
       
   
   
@@ -710,7 +1033,7 @@
   
   
   
-    <a href="../documentation/concepts/arch-introduction/" class="md-nav__link">
+    <a href="../../documentation/concepts/arch-introduction/" class="md-nav__link">
       
   
   
@@ -769,7 +1092,7 @@
   
   
   
-    <a href="./posts/cruisekube_announcement/" class="md-nav__link">
+    <a href="../../blog/posts/cruisekube_announcement/" class="md-nav__link">
       
   
   
@@ -803,7 +1126,9 @@
             
             
               
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" hidden>
                 <div class="md-sidebar__scrollwrap">
                   
                     
@@ -836,10 +1161,131 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#pinned-post" class="md-nav__link">
+  <a href="#what-kubernetes-version-do-i-need" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pinned post
+        What Kubernetes version do I need?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#does-cruisekube-replace-hpa-or-karpenter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Does CruiseKube replace HPA or Karpenter?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-happens-if-i-use-cpu-or-memory-based-hpa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What happens if I use CPU- or memory-based HPA?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#does-it-work-with-java-jvm-workloads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Does it work with Java / JVM workloads?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#do-you-account-for-memory-pressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Do you account for memory pressure?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-does-cruisekube-avoid-cpu-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why does CruiseKube avoid CPU limits?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#can-cruisekube-help-if-i-do-not-use-node-auto-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can CruiseKube help if I do not use node auto-provisioning?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#can-i-run-it-next-to-cluster-autoscaler-or-karpenter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I run it next to Cluster Autoscaler or Karpenter?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-are-container-images-hosted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where are container images hosted?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-do-i-report-a-security-vulnerability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I report a security vulnerability?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-can-i-get-help" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where can I get help?
       
     </span>
   </a>
@@ -859,10 +1305,52 @@
               
                 
 
+  
+
 
 
   
 
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../overview/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    About
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
 
               
               <article class="md-content__inner md-typeset">
@@ -872,14 +1360,37 @@
   
 
 
-<h1 id="blog">Blog<a class="headerlink" href="#blog" title="Permanent link">&para;</a></h1>
-<p>Updates, release narratives, and technical deep dives from the CruiseKube team. Latest posts appear on this section of the site when using the Material <strong>blog</strong> plugin.</p>
-<hr />
-<h2 id="pinned-post">Pinned post<a class="headerlink" href="#pinned-post" title="Permanent link">&para;</a></h2>
+<h1 id="frequently-asked-questions">Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h1>
+<h3 id="what-kubernetes-version-do-i-need">What Kubernetes version do I need?<a class="headerlink" href="#what-kubernetes-version-do-i-need" title="Permanent link">&para;</a></h3>
+<p><strong>Kubernetes 1.33 or newer.</strong> CruiseKube relies on <strong>in-place pod resource updates</strong> for continuous optimization without recurring rollouts for request changes. Older clusters may install but will not get the full runtime story.</p>
+<h3 id="does-cruisekube-replace-hpa-or-karpenter">Does CruiseKube replace HPA or Karpenter?<a class="headerlink" href="#does-cruisekube-replace-hpa-or-karpenter" title="Permanent link">&para;</a></h3>
+<p><strong>No.</strong> It addresses <strong>vertical</strong> sizing (requests/limits policy per pod). <strong>HPA</strong> changes replica count; <strong>Karpenter / Cluster Autoscaler</strong> change node supply. CruiseKube works <strong>alongside</strong> them—see <a href="../overview-use-cases/">Use cases</a>.</p>
+<h3 id="what-happens-if-i-use-cpu-or-memory-based-hpa">What happens if I use CPU- or memory-based HPA?<a class="headerlink" href="#what-happens-if-i-use-cpu-or-memory-based-hpa" title="Permanent link">&para;</a></h3>
+<p>Workloads using <strong>CPU or memory metrics in HPA</strong> are <strong>skipped</strong> by CruiseKube so the two controllers do not fight. Other HPA modes may still interact indirectly; treat combined behavior as something to validate in staging. More detail in <a href="../../documentation/concepts/arch-tradeoffs/">Tradeoffs</a>.</p>
+<h3 id="does-it-work-with-java-jvm-workloads">Does it work with Java / JVM workloads?<a class="headerlink" href="#does-it-work-with-java-jvm-workloads" title="Permanent link">&para;</a></h3>
+<p><strong>Limited.</strong> The JVM heap is bounded by process and container limits; aggressive memory changes at runtime do not always map to a safe live resize. Size Java workloads conservatively and validate behavior. We expect this area to evolve.</p>
+<h3 id="do-you-account-for-memory-pressure">Do you account for memory pressure?<a class="headerlink" href="#do-you-account-for-memory-pressure" title="Permanent link">&para;</a></h3>
+<p><strong>Not yet in the way operators often mean (e.g. full memory pressure integration).</strong> Memory handling today leans on <strong>usage statistics, limits with headroom, and OOM-driven feedback</strong>. Treat this as a roadmap-sensitive area; see <a href="../../documentation/concepts/arch-algorithm/#oom-handling">Algorithm — OOM handling</a>.</p>
+<h3 id="why-does-cruisekube-avoid-cpu-limits">Why does CruiseKube avoid CPU limits?<a class="headerlink" href="#why-does-cruisekube-avoid-cpu-limits" title="Permanent link">&para;</a></h3>
+<p>CPU <strong>limits</strong> throttle workloads and can hide <strong>contention</strong> behind artificial ceilings. CruiseKube prefers <strong>CPU requests</strong> for fairness and scheduling, uses <strong>PSI</strong> (where available) for contention signal, and documents the tradeoffs in <a href="../../documentation/concepts/arch-algorithm/#why-cpu-limits-arent-needed">Why CPU limits aren't needed</a>.</p>
+<h3 id="can-cruisekube-help-if-i-do-not-use-node-auto-provisioning">Can CruiseKube help if I do not use node auto-provisioning?<a class="headerlink" href="#can-cruisekube-help-if-i-do-not-use-node-auto-provisioning" title="Permanent link">&para;</a></h3>
+<p><strong>Much less.</strong> The system assumes the cluster can <strong>grow nodes</strong> when honest demand requires it. Without that, you may still get recommendations, but you cannot rely on the same safety margins when the node pool is fixed and tiny.</p>
+<h3 id="can-i-run-it-next-to-cluster-autoscaler-or-karpenter">Can I run it next to Cluster Autoscaler or Karpenter?<a class="headerlink" href="#can-i-run-it-next-to-cluster-autoscaler-or-karpenter" title="Permanent link">&para;</a></h3>
+<p><strong>Yes.</strong> That is the expected deployment model. CruiseKube improves <strong>request honesty</strong>; autoscalers improve <strong>capacity supply</strong>.</p>
+<h3 id="where-are-container-images-hosted">Where are container images hosted?<a class="headerlink" href="#where-are-container-images-hosted" title="Permanent link">&para;</a></h3>
+<p>Official charts reference images from <strong>TrueFoundry’s registry</strong> (see <a href="../../documentation/reference/reference-helm-chart/">Helm chart reference</a>). Security policy also mentions <strong><code>ghcr.io/truefoundry/cruisekube*</code></strong> for reporting scope—confirm your installed chart/image for your environment.</p>
+<h3 id="how-do-i-report-a-security-vulnerability">How do I report a security vulnerability?<a class="headerlink" href="#how-do-i-report-a-security-vulnerability" title="Permanent link">&para;</a></h3>
+<p><strong>Do not open a public GitHub issue.</strong> Email <strong><a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#115;&#101;&#99;&#117;&#114;&#105;&#116;&#121;&#64;&#116;&#114;&#117;&#101;&#102;&#111;&#117;&#110;&#100;&#114;&#121;&#46;&#99;&#111;&#109;">&#115;&#101;&#99;&#117;&#114;&#105;&#116;&#121;&#64;&#116;&#114;&#117;&#101;&#102;&#111;&#117;&#110;&#100;&#114;&#121;&#46;&#99;&#111;&#109;</a></strong> with reproduction, impact, and versions. Full policy: <a href="../../documentation/contribute/dev-security/">Security</a> (mirrors the repository <code>SECURITY.md</code>).</p>
+<h3 id="license">License?<a class="headerlink" href="#license" title="Permanent link">&para;</a></h3>
+<p>CruiseKube is distributed under <strong>BUSL-1.1</strong> (see the <a href="https://github.com/truefoundry/CruiseKube/blob/main/LICENSE">license badge</a> in the README). Review terms before production use.</p>
+<h3 id="where-can-i-get-help">Where can I get help?<a class="headerlink" href="#where-can-i-get-help" title="Permanent link">&para;</a></h3>
 <ul>
-<li><a href="posts/cruisekube_announcement/">Introducing CruiseKube — runtime resource optimization</a></li>
+<li><a href="https://discord.gg/Dqek4xJa3N">Discord</a>  </li>
+<li><a href="https://github.com/truefoundry/CruiseKube/issues">GitHub Issues</a>  </li>
+<li>Documentation: start at <a href="../overview/">Introduction</a> and <a href="../../documentation/operate/operate-troubleshooting/">Troubleshooting</a></li>
 </ul>
-<p>For installation and operations, start with the <a href="../about/overview/">Introduction</a> and <a href="../install/gs-installation/">Installation</a>.</p>
+
+  
 
 
 
@@ -896,6 +1407,8 @@
 
   
 
+
+  
 
 
 
@@ -919,6 +1432,46 @@
       
         <footer class="md-footer">
   
+    
+      
+        
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../comp-vs-vpa/" class="md-footer__link md-footer__link--prev" aria-label="Previous: CruiseKube vs VPA">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256l137.3-137.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                CruiseKube vs VPA
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../install/gs-installation/" class="md-footer__link md-footer__link--next" aria-label="Next: Installation">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Installation
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M247.1 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L179.2 256 41.9 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
     
   
   <div class="md-footer-meta md-typeset">
@@ -990,10 +1543,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate":{"json":[".s2"]},"base":"..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.path","navigation.instant","navigation.instant.prefetch","navigation.instant.progress","navigation.prune","navigation.sections","navigation.tabs","navigation.top","navigation.tracking","search.highlight","search.share","search.suggest","toc.follow"],"search":"../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+      <script id="__config" type="application/json">{"annotate":{"json":[".s2"]},"base":"../..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.path","navigation.instant","navigation.instant.prefetch","navigation.instant.progress","navigation.prune","navigation.sections","navigation.tabs","navigation.top","navigation.tracking","search.highlight","search.share","search.suggest","toc.follow"],"search":"../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../assets/javascripts/bundle.91a19a9e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.91a19a9e.min.js"></script>
       
     
   </body>

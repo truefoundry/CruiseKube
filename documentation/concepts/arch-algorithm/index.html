@@ -1,0 +1,3138 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Learn about CruiseKube's two-phase optimization algorithm that uses PSI metrics and pod-level resource updates to automatically right-size Kubernetes workloads.">
+      
+      
+        <meta name="author" content="TrueFoundry">
+      
+      
+        <link rel="canonical" href="https://cruisekube.com/documentation/concepts/arch-algorithm/">
+      
+      
+        <link rel="prev" href="../arch-introduction/">
+      
+      
+        <link rel="next" href="../arch-tradeoffs/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/logo/favicon/favicon.ico">
+      <meta name="generator" content="zensical-0.0.31">
+    
+    
+      
+        <title>CruiseKube Algorithm - CruiseKube</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.53a7feaf.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/modern/palette.dfe2e883.min.css">
+      
+      
+  
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+  
+  <style>:root{--md-admonition-icon--abstract:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2.5%201.75v11.5c0%20.138.112.25.25.25h3.17a.75.75%200%200%201%200%201.5H2.75A1.75%201.75%200%200%201%201%2013.25V1.75C1%20.784%201.784%200%202.75%200h8.5C12.216%200%2013%20.784%2013%201.75v7.736a.75.75%200%200%201-1.5%200V1.75a.25.25%200%200%200-.25-.25h-8.5a.25.25%200%200%200-.25.25m13.274%209.537zl-4.557%204.45a.75.75%200%200%201-1.055-.008l-1.943-1.95a.75.75%200%200%201%201.062-1.058l1.419%201.425%204.026-3.932a.75.75%200%201%201%201.048%201.074M4.75%204h4.5a.75.75%200%200%201%200%201.5h-4.5a.75.75%200%200%201%200-1.5M4%207.75A.75.75%200%200%201%204.75%207h2a.75.75%200%200%201%200%201.5h-2A.75.75%200%200%201%204%207.75%22/%3E%3C/svg%3E');--md-admonition-icon--bug:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M4.72.22a.75.75%200%200%201%201.06%200l1%20.999a3.5%203.5%200%200%201%202.441%200l.999-1a.748.748%200%200%201%201.265.332.75.75%200%200%201-.205.729l-.775.776c.616.63.995%201.493.995%202.444v.327q0%20.15-.025.292c.408.14.764.392%201.029.722l1.968-.787a.75.75%200%200%201%20.556%201.392L13%207.258V9h2.25a.75.75%200%200%201%200%201.5H13v.5q-.002.615-.141%201.186l2.17.868a.75.75%200%200%201-.557%201.392l-2.184-.873A5%205%200%200%201%208%2016a5%205%200%200%201-4.288-2.427l-2.183.873a.75.75%200%200%201-.558-1.392l2.17-.868A5%205%200%200%201%203%2011v-.5H.75a.75.75%200%200%201%200-1.5H3V7.258L.971%206.446a.75.75%200%200%201%20.558-1.392l1.967.787c.265-.33.62-.583%201.03-.722a1.7%201.7%200%200%201-.026-.292V4.5c0-.951.38-1.814.995-2.444L4.72%201.28a.75.75%200%200%201%200-1.06m.53%206.28a.75.75%200%200%200-.75.75V11a3.5%203.5%200%201%200%207%200V7.25a.75.75%200%200%200-.75-.75ZM6.173%205h3.654A.17.17%200%200%200%2010%204.827V4.5a2%202%200%201%200-4%200v.327c0%20.096.077.173.173.173%22/%3E%3C/svg%3E');--md-admonition-icon--danger:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M9.504.43a1.516%201.516%200%200%201%202.437%201.713L10.415%205.5h2.123c1.57%200%202.346%201.909%201.22%203.004l-7.34%207.142a1.25%201.25%200%200%201-.871.354h-.302a1.25%201.25%200%200%201-1.157-1.723L5.633%2010.5H3.462c-1.57%200-2.346-1.909-1.22-3.004zm1.047%201.074L3.286%208.571A.25.25%200%200%200%203.462%209H6.75a.75.75%200%200%201%20.694%201.034l-1.713%204.188%206.982-6.793A.25.25%200%200%200%2012.538%207H9.25a.75.75%200%200%201-.683-1.06l2.008-4.418.003-.006-.004-.009-.006-.006-.008-.001q-.005%200-.009.004%22/%3E%3C/svg%3E');--md-admonition-icon--example:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M5%205.782V2.5h-.25a.75.75%200%200%201%200-1.5h6.5a.75.75%200%200%201%200%201.5H11v3.282l3.666%205.76C15.619%2013.04%2014.543%2015%2012.767%2015H3.233c-1.776%200-2.852-1.96-1.899-3.458Zm-2.4%206.565a.75.75%200%200%200%20.633%201.153h9.534a.75.75%200%200%200%20.633-1.153L12.225%2010.5h-8.45ZM9.5%202.5h-3V6c0%20.143-.04.283-.117.403L4.73%209h6.54L9.617%206.403A.75.75%200%200%201%209.5%206Z%22/%3E%3C/svg%3E');--md-admonition-icon--failure:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2.344%202.343za8%208%200%200%201%2011.314%2011.314A8.002%208.002%200%200%201%20.234%2010.089a8%208%200%200%201%202.11-7.746m1.06%2010.253a6.5%206.5%200%201%200%209.108-9.275%206.5%206.5%200%200%200-9.108%209.275M6.03%204.97%208%206.94l1.97-1.97a.749.749%200%200%201%201.275.326.75.75%200%200%201-.215.734L9.06%208l1.97%201.97a.749.749%200%200%201-.326%201.275.75.75%200%200%201-.734-.215L8%209.06l-1.97%201.97a.749.749%200%200%201-1.275-.326.75.75%200%200%201%20.215-.734L6.94%208%204.97%206.03a.75.75%200%200%201%20.018-1.042.75.75%200%200%201%201.042-.018%22/%3E%3C/svg%3E');--md-admonition-icon--info:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M0%208a8%208%200%201%201%2016%200A8%208%200%200%201%200%208m8-6.5a6.5%206.5%200%201%200%200%2013%206.5%206.5%200%200%200%200-13M6.5%207.75A.75.75%200%200%201%207.25%207h1a.75.75%200%200%201%20.75.75v2.75h.25a.75.75%200%200%201%200%201.5h-2a.75.75%200%200%201%200-1.5h.25v-2h-.25a.75.75%200%200%201-.75-.75M8%206a1%201%200%201%201%200-2%201%201%200%200%201%200%202%22/%3E%3C/svg%3E');--md-admonition-icon--note:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M1%207.775V2.75C1%201.784%201.784%201%202.75%201h5.025c.464%200%20.91.184%201.238.513l6.25%206.25a1.75%201.75%200%200%201%200%202.474l-5.026%205.026a1.75%201.75%200%200%201-2.474%200l-6.25-6.25A1.75%201.75%200%200%201%201%207.775m1.5%200c0%20.066.026.13.073.177l6.25%206.25a.25.25%200%200%200%20.354%200l5.025-5.025a.25.25%200%200%200%200-.354l-6.25-6.25a.25.25%200%200%200-.177-.073H2.75a.25.25%200%200%200-.25.25ZM6%205a1%201%200%201%201%200%202%201%201%200%200%201%200-2%22/%3E%3C/svg%3E');--md-admonition-icon--question:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M0%208a8%208%200%201%201%2016%200A8%208%200%200%201%200%208m8-6.5a6.5%206.5%200%201%200%200%2013%206.5%206.5%200%200%200%200-13M6.92%206.085h.001a.749.749%200%201%201-1.342-.67c.169-.339.436-.701.849-.977C6.845%204.16%207.369%204%208%204a2.76%202.76%200%200%201%201.637.525c.503.377.863.965.863%201.725%200%20.448-.115.83-.329%201.15-.205.307-.47.513-.692.662-.109.072-.22.138-.313.195l-.006.004a6%206%200%200%200-.26.16%201%201%200%200%200-.276.245.75.75%200%200%201-1.248-.832c.184-.264.42-.489.692-.661q.154-.1.313-.195l.007-.004c.1-.061.182-.11.258-.161a1%201%200%200%200%20.277-.245C8.96%206.514%209%206.427%209%206.25a.61.61%200%200%200-.262-.525A1.27%201.27%200%200%200%208%205.5c-.369%200-.595.09-.74.187a1%201%200%200%200-.34.398M9%2011a1%201%200%201%201-2%200%201%201%200%200%201%202%200%22/%3E%3C/svg%3E');--md-admonition-icon--quote:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M1.75%202.5h10.5a.75.75%200%200%201%200%201.5H1.75a.75.75%200%200%201%200-1.5m4%205h8.5a.75.75%200%200%201%200%201.5h-8.5a.75.75%200%200%201%200-1.5m0%205h8.5a.75.75%200%200%201%200%201.5h-8.5a.75.75%200%200%201%200-1.5M2.5%207.75v6a.75.75%200%200%201-1.5%200v-6a.75.75%200%200%201%201.5%200%22/%3E%3C/svg%3E');--md-admonition-icon--success:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M13.78%204.22a.75.75%200%200%201%200%201.06l-7.25%207.25a.75.75%200%200%201-1.06%200L2.22%209.28a.75.75%200%200%201%20.018-1.042.75.75%200%200%201%201.042-.018L6%2010.94l6.72-6.72a.75.75%200%200%201%201.06%200%22/%3E%3C/svg%3E');--md-admonition-icon--tip:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M3.499.75a.75.75%200%200%201%201.5%200v.996C5.9%202.903%206.793%203.65%207.662%204.376l.24.202c-.036-.694.055-1.422.426-2.163C9.1.873%2010.794-.045%2012.622.26%2014.408.558%2016%201.94%2016%204.25c0%201.278-.954%202.575-2.44%202.734l.146.508.065.22c.203.701.412%201.455.476%202.226.142%201.707-.4%203.03-1.487%203.898C11.714%2014.671%2010.27%2015%208.75%2015h-6a.75.75%200%200%201%200-1.5h1.376a4.5%204.5%200%200%201-.563-1.191%203.84%203.84%200%200%201-.05-2.063%204.65%204.65%200%200%201-2.025-.293.75.75%200%200%201%20.525-1.406c1.357.507%202.376-.006%202.698-.318l.009-.01a.747.747%200%200%201%201.06%200%20.75.75%200%200%201-.012%201.074c-.912.92-.992%201.835-.768%202.586.221.74.745%201.337%201.196%201.621H8.75c1.343%200%202.398-.296%203.074-.836.635-.507%201.036-1.31.928-2.602-.05-.603-.216-1.224-.422-1.93l-.064-.221c-.12-.407-.246-.84-.353-1.29a2.4%202.4%200%200%201-.507-.441%203.1%203.1%200%200%201-.633-1.248.75.75%200%200%201%201.455-.364c.046.185.144.436.31.627.146.168.353.305.712.305.738%200%201.25-.615%201.25-1.25%200-1.47-.95-2.315-2.123-2.51-1.172-.196-2.227.387-2.706%201.345-.46.92-.27%201.774.019%203.062l.042.19.01.05c.348.443.666.949.94%201.553a.75.75%200%201%201-1.365.62c-.553-1.217-1.32-1.94-2.3-2.768L6.7%205.527c-.814-.68-1.75-1.462-2.692-2.619a3.7%203.7%200%200%200-1.023.88c-.406.495-.663%201.036-.722%201.508.116.122.306.21.591.239.388.038.797-.06%201.032-.19a.75.75%200%200%201%20.728%201.31c-.515.287-1.23.439-1.906.373-.682-.067-1.473-.38-1.879-1.193L.75%205.677V5.5c0-.984.48-1.94%201.077-2.664.46-.559%201.05-1.055%201.673-1.353z%22/%3E%3C/svg%3E');--md-admonition-icon--warning:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M6.457%201.047c.659-1.234%202.427-1.234%203.086%200l6.082%2011.378A1.75%201.75%200%200%201%2014.082%2015H1.918a1.75%201.75%200%200%201-1.543-2.575Zm1.763.707a.25.25%200%200%200-.44%200L1.698%2013.132a.25.25%200%200%200%20.22.368h12.164a.25.25%200%200%200%20.22-.368Zm.53%203.996v2.5a.75.75%200%200%201-1.5%200v-2.5a.75.75%200%200%201%201.5%200M9%2011a1%201%200%201%201-2%200%201%201%200%200%201%202%200%22/%3E%3C/svg%3E');}</style>
+
+
+
+  
+  
+    
+      
+      
+      
+    
+  
+  
+  <style>:root{.md-tag{--md-tag-icon:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%222%22%20class%3D%22lucide%20lucide-hash%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M4%209h16M4%2015h16M10%203%208%2021M16%203l-2%2018%22/%3E%3C/svg%3E');}}</style>
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("/",location),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,a=__md_scope)=>JSON.parse(t.getItem(a.pathname+"."+e)),__md_set=(e,t,a=localStorage,_=__md_scope)=>{try{a.setItem(_.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+  
+
+
+  
+  
+
+<script id="__analytics">function __md_analytics(){function e(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],e("js",new Date),e("config","G-M8EDCBCCHY"),document.addEventListener("DOMContentLoaded",(function(){document.forms.search&&document.forms.search.query.addEventListener("blur",(function(){this.value&&e("event","search",{search_term:this.value})}));document$.subscribe((function(){var t=document.forms.feedback;if(void 0!==t)for(var a of t.querySelectorAll("[type=submit]"))a.addEventListener("click",(function(a){a.preventDefault();var n=document.location.pathname,d=this.getAttribute("data-md-value");e("event","feedback",{page:n,data:d}),t.firstElementChild.disabled=!0;var r=t.querySelector(".md-feedback__note [data-md-value='"+d+"']");r&&(r.hidden=!1)})),t.hidden=!1})),location$.subscribe((function(t){e("config","G-M8EDCBCCHY",{page_path:t.pathname})}))}));var t=document.createElement("script");t.async=!0,t.src="https://www.googletagmanager.com/gtag/js?id=G-M8EDCBCCHY",document.getElementById("__analytics").insertAdjacentElement("afterEnd",t)}</script>
+  
+    <script>"undefined"!=typeof __md_analytics&&__md_analytics()</script>
+  
+
+    
+    
+  
+  
+  <!-- Additional SEO Meta Tags -->
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="TrueFoundry">
+  
+  <!-- Dynamic Keywords from Page Meta -->
+  
+    <meta name="keywords" content="CruiseKube algorithm, Kubernetes resource optimization, PSI metrics, pod-level resource updates, CPU optimization, memory optimization, Kubernetes autoscaling">
+  
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="CruiseKube Documentation">
+  <meta property="og:locale" content="en_US">
+  
+  <meta property="og:url" content="https://cruisekube.com/documentation/concepts/arch-algorithm/">
+  
+  <meta property="og:title" content="CruiseKube Algorithm">
+  <meta property="og:description" content="Learn about CruiseKube's two-phase optimization algorithm that uses PSI metrics and pod-level resource updates to automatically right-size Kubernetes workloads.">
+  <meta property="og:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@truefoundry">
+  <meta name="twitter:creator" content="@truefoundry">
+  <meta name="twitter:title" content="CruiseKube Algorithm">
+  <meta name="twitter:description" content="Learn about CruiseKube's two-phase optimization algorithm that uses PSI metrics and pod-level resource updates to automatically right-size Kubernetes workloads.">
+  <meta name="twitter:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
+  
+  <!-- Canonical URL -->
+  
+  <link rel="canonical" href="https://cruisekube.com/documentation/concepts/arch-algorithm/">
+  
+  
+  <!-- Additional Meta Tags -->
+  <meta name="theme-color" content="#1e293b">
+  <meta name="msapplication-TileColor" content="#1e293b">
+  <meta name="application-name" content="CruiseKube">
+  <meta name="apple-mobile-web-app-title" content="CruiseKube">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  
+    <!-- Organization Schema -->
+    
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"Organization","logo":"https://cruisekube.com/assets/images/logo/cruiseKube_Colour.png","name":"TrueFoundry","sameAs":["https://github.com/truefoundry","https://discord.gg/Dqek4xJa3N"],"url":"https://truefoundry.com"}
+    </script>
+    
+    
+    <!-- Software Application Schema -->
+    
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"SoftwareApplication","applicationCategory":"DeveloperApplication","author":{"@type":"Organization","name":"TrueFoundry","url":"https://truefoundry.com"},"description":"CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.","downloadUrl":"https://github.com/truefoundry/CruiseKube","keywords":["Kubernetes","Resource Optimization","Operator","Cloud Native"],"license":"https://github.com/truefoundry/cruiseKube/blob/main/LICENSE","name":"CruiseKube","operatingSystem":"Kubernetes","programmingLanguage":"Go","url":"https://cruisekube.com"}
+    </script>
+    
+    
+    <!-- Website Schema -->
+    
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"WebSite","description":"Official documentation for CruiseKube - Kubernetes resource optimization controller","name":"CruiseKube Documentation","potentialAction":{"@type":"SearchAction","query-input":"required name=search_term_string","target":"https://cruisekube.com/search/?q={search_term_string}"},"publisher":{"@type":"Organization","name":"TrueFoundry","url":"https://truefoundry.com"},"url":"https://cruisekube.com"}
+    </script>
+    
+    
+    <!-- Breadcrumb Schema -->
+    
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","item":"https://cruisekube.com","name":"Home","position":1}]}
+    </script>
+    
+    
+    <!-- Documentation Schema -->
+    
+    <script type="application/ld+json">
+      {"@context":"https://schema.org","@type":"TechArticle","articleSection":"Documentation","author":{"@type":"Organization","name":"TrueFoundry","url":"https://truefoundry.com"},"dateModified":"2025-01-01","datePublished":"2024-01-01","description":"Comprehensive documentation for CruiseKube - Kubernetes resource optimization controller","headline":"CruiseKube Documentation","keywords":["Kubernetes documentation","Resource Optimization"],"mainEntityOfPage":{"@id":"https://cruisekube.com","@type":"WebPage"},"publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"https://cruisekube.com/assets/images/logo/cruiseKube_Colour.png"},"name":"TrueFoundry","url":"https://truefoundry.com"}}
+    </script>
+    
+  
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-label="Navigation"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#introduction" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="CruiseKube" class="md-header__button md-logo" aria-label="CruiseKube" data-md-component="logo">
+      
+  <img src="../../../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CruiseKube
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CruiseKube Algorithm
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun-moon" viewBox="0 0 24 24"><path d="M12 2v2M14.837 16.385a6 6 0 1 1-7.223-7.222c.624-.147.97.66.715 1.248a4 4 0 0 0 5.26 5.259c.589-.255 1.396.09 1.248.715M16 12a4 4 0 0 0-4-4M19 5l-1.256 1.256M20 12h2"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="light-green" data-md-color-accent="orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-moon-star" viewBox="0 0 24 24"><path d="M18 5h4M20 3v4M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/truefoundry/CruiseKube" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    truefoundry/CruiseKube
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../about/overview/" class="md-tabs__link">
+          
+  
+  About
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../install/gs-installation/" class="md-tabs__link">
+          
+  
+  Install
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../arch-introduction/" class="md-tabs__link">
+          
+  
+  Documentation
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../blog/posts/cruisekube_announcement/" class="md-tabs__link">
+          
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="CruiseKube" class="md-nav__button md-logo" aria-label="CruiseKube" data-md-component="logo">
+      
+  <img src="../../../assets/images/logo/cruiseKube_logo.svg" alt="CruiseKube">
+
+    </a>
+    CruiseKube
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/truefoundry/CruiseKube" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    truefoundry/CruiseKube
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../about/overview/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    About
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../install/gs-installation/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-introduction/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-network" viewBox="0 0 24 24"><rect width="6" height="6" x="16" y="16" rx="1"/><rect width="6" height="6" x="2" y="16" rx="1"/><rect width="6" height="6" x="9" y="2" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3M12 12V8"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-function-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 17c2 0 2.8-1 2.8-2.8V10c0-2 1-3.3 3.2-3M9 11.2h5.7"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-function-square" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 17c2 0 2.8-1 2.8-2.8V10c0-2 1-3.3 3.2-3M9 11.2h5.7"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Algorithm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#problem-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem Context
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Problem Context">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-state-challenges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current State Challenges
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-philosophy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Philosophy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Concepts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#psi-pressure-stall-indicator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PSI (Pressure Stall Indicator)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#steady-state-vs-peak-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steady State vs Peak Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#algorithm-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-1-admission-webhook-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Admission Webhook Optimization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1: Admission Webhook Optimization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-it-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When It Runs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-2-continuous-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Continuous Optimization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2: Continuous Optimization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-it-runs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When It Runs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithm-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detailed-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detailed Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-differences-from-admission-webhook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Differences from Admission Webhook
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-mechanisms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Mechanisms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Mechanisms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#headroom-demand-distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Headroom Demand Distribution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workload-criticality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workload Criticality
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memory-limit-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Limit Calculation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-cpu-limits-arent-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why CPU Limits Aren't Needed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#safety-reliability-related-mechanisms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Safety &amp; Reliability Related Mechanisms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Safety &amp; Reliability Related Mechanisms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-load-monitoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Load Monitoring
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#preventing-repeated-evictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preventing Repeated Evictions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#high-priority-workload-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Priority Workload Protection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contention-mitigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contention Mitigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oom-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOM Handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OOM Handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oom-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOM Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oom-memory-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOM Memory Tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eviction-decision-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eviction Decision Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oom-cooldown-mechanism" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOM Cooldown Mechanism
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arch-tradeoffs/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-scale" viewBox="0 0 24 24"><path d="M12 3v18M19 8l3 8a5 5 0 0 1-6 0zV7"/><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1M5 8l3 8a5 5 0 0 1-6 0zV7M7 21h10"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    TradeOffs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operate
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operate
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/config-dashboard/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-layout-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/operate-policies/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-sliders-horizontal" viewBox="0 0 24 24"><path d="M10 5H3M12 19H3M14 3v4M16 17v4M21 12h-9M21 19h-5M21 5h-7M8 10v4M8 12H3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Policies & Modes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/operate-resource-pricing/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-dollar-sign" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 18V6"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Resource Pricing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operate/operate-troubleshooting/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-life-buoy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contribute
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contribute
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/dev-env/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-laptop" viewBox="0 0 24 24"><path d="M18 5a2 2 0 0 1 2 2v8.526a2 2 0 0 0 .212.897l1.068 2.127a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45l1.068-2.127A2 2 0 0 0 4 15.526V7a2 2 0 0 1 2-2zM20.054 15.987H3.946"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Dev Environment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/dev-release/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-tags" viewBox="0 0 24 24"><path d="M13.172 2a2 2 0 0 1 1.414.586l6.71 6.71a2.4 2.4 0 0 1 0 3.408l-4.592 4.592a2.4 2.4 0 0 1-3.408 0l-6.71-6.71A2 2 0 0 1 6 9.172V3a1 1 0 0 1 1-1zM2 7v6.172a2 2 0 0 0 .586 1.414l6.71 6.71a2.4 2.4 0 0 0 3.191.193"/><circle cx="10.5" cy="6.5" r=".5" fill="currentColor"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Release Process
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/dev-security/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contribute/dev-contributors/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-users-round" viewBox="0 0 24 24"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/reference-helm-chart/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73zM12 22V12"/><path d="M3.29 7 12 12l8.71-5M7.5 4.27l9 5.15"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Helm Chart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/config/" class="md-nav__link">
+        
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-file-cog" viewBox="0 0 24 24"><path d="M15 8a1 1 0 0 1-1-1V2a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8zM20 8v12a2 2 0 0 1-2 2h-4.182M3.305 19.53l.923-.382M4 10.592V4a2 2 0 0 1 2-2h8M4.228 16.852l-.924-.383M5.852 15.228l-.383-.923M5.852 20.772l-.383.924M8.148 15.228l.383-.923M8.53 21.696l-.382-.924M9.773 16.852l.922-.383M9.773 19.148l.922.383"/><circle cx="7" cy="18" r="3"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+      
+        
+        
+      
+    
+    <li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+      
+        
+  
+  
+  
+    <a href="../../../blog/posts/cruisekube_announcement/" class="md-nav__link">
+      
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog
+  
+
+    
+  </span>
+  
+  
+
+      
+        <span class="md-nav__icon md-icon"></span>
+      
+    </a>
+  
+
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#problem-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem Context
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Problem Context">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-state-challenges" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current State Challenges
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-philosophy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Philosophy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Concepts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#psi-pressure-stall-indicator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PSI (Pressure Stall Indicator)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#steady-state-vs-peak-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Steady State vs Peak Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#algorithm-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-1-admission-webhook-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Admission Webhook Optimization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1: Admission Webhook Optimization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-it-runs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When It Runs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-2-continuous-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Continuous Optimization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2: Continuous Optimization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#when-it-runs_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When It Runs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithm-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithm Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detailed-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detailed Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-differences-from-admission-webhook" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Differences from Admission Webhook
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-mechanisms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Mechanisms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Mechanisms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#headroom-demand-distribution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Headroom Demand Distribution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workload-criticality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workload Criticality
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memory-limit-calculation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Limit Calculation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#why-cpu-limits-arent-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why CPU Limits Aren't Needed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#safety-reliability-related-mechanisms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Safety &amp; Reliability Related Mechanisms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Safety &amp; Reliability Related Mechanisms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-load-monitoring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node Load Monitoring
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#preventing-repeated-evictions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preventing Repeated Evictions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#high-priority-workload-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Priority Workload Protection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contention-mitigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contention Mitigation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#oom-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOM Handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OOM Handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oom-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOM Detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oom-memory-tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOM Memory Tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eviction-decision-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eviction Decision Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#oom-cooldown-mechanism" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OOM Cooldown Mechanism
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../arch-introduction/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Documentation
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../arch-introduction/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Concepts
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+  
+  
+
+
+  <h1 id="__skip">CruiseKube Algorithm</h1>
+
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
+<p>Resource optimization in Kubernetes can be broken down into two fundamental problems:</p>
+<ol>
+<li><strong>Pod-level resource requests</strong>: Correctly specifying resource requests for each pod to match actual usage patterns</li>
+<li><strong>Bin-packing</strong>: Efficiently scheduling multiple pods across nodes to maximize utilization</li>
+</ol>
+<p>While node auto-provisioners like Karpenter and Cluster Autoscaler address the second problem, they often produce suboptimal results due to reliability constraints like topology spread constraints, affinity rules, and pod disruption budgets. CruiseKube focuses exclusively on the first problem <strong>optimizing pod-level resource requests</strong> since this is where most resource wastage occurs (industry-wide CPU and memory utilization of provisioned resources is typically very low).</p>
+<h2 id="problem-context">Problem Context<a class="headerlink" href="#problem-context" title="Permanent link">&para;</a></h2>
+<h3 id="current-state-challenges">Current State Challenges<a class="headerlink" href="#current-state-challenges" title="Permanent link">&para;</a></h3>
+<p>The current approach to resource management in Kubernetes faces several fundamental challenges:</p>
+<ul>
+<li><strong>Reliability over cost</strong>: Engineers tend to over-provision resources to avoid reliability issues, prioritizing stability over efficiency</li>
+<li><strong>Manual configuration</strong>: Resource requests must be set manually for each workload, and changes require updating workload definitions (Deployments, StatefulSets, DaemonSets). This adds friction and complexity to resource optimization process.</li>
+<li><strong>Lopsided workload-level configuration</strong>: Pods running on different nodes for the same workload may have different resource requirements. This is particularly bad for DaemonSets where pods on different nodes may have vastly different resource needs - a pod on a large node might need 10x more resources than one on a smaller node, yet all pods share the same resource specification</li>
+<li><strong>Peak provisioning</strong>: CPU usage can spike up to 1000x baseline for workloads with sparse requests or job-like characteristics. Provisioning for these peaks leads to massive cumulative over-provisioning across the cluster</li>
+</ul>
+<h3 id="what-changed">What Changed<a class="headerlink" href="#what-changed" title="Permanent link">&para;</a></h3>
+<p>Two Kubernetes features enable a fundamentally different approach:</p>
+<ol>
+<li>
+<p><strong><a href="https://kubernetes.io/blog/2025/05/16/kubernetes-v1-33-in-place-pod-resize-beta/">Kubernetes 1.33 - Pod-level resource updates</a>:</strong></p>
+<ul>
+<li>Resources can now be updated at the pod level without recreating pods</li>
+<li>Each pod can be optimized independently based on its actual usage patterns</li>
+<li>Shorter prediction horizons become viable since decisions can be updated near real-time as new data arrives</li>
+<li>Pods can be optimized considering the current node's conditions, allowing resource sharing between pods on the same node without sacrificing reliability</li>
+</ul>
+</li>
+<li>
+<p><strong><a href="https://kubernetes.io/blog/2025/09/04/kubernetes-v1-34-introducing-psi-metrics-beta/">Kubernetes 1.34 - PSI (Pressure Stall Indicator) metrics</a>:</strong></p>
+<ul>
+<li>PSI metrics expose CPU and memory pressure at both node and container levels</li>
+<li>CPU limits can be removed, replacing PSI metrics for CPU throttling signal for feedback on CPU contention</li>
+<li>PSI-adjusted CPU usage provides accurate measurements of actual CPU demand under contention</li>
+</ul>
+</li>
+</ol>
+<h3 id="design-philosophy">Design Philosophy<a class="headerlink" href="#design-philosophy" title="Permanent link">&para;</a></h3>
+<p>CruiseKube treats CPU and memory optimization differently:</p>
+<ul>
+<li>
+<p><strong>CPU optimization</strong>: Most over-provisioning comes from CPU over-provisioning. Better CPU request specification leads to overall better resource utilization when combined with node auto-provisioners. CPU usage can be extremely spiky, but in case of CPU contention, the workload is throttled rather than failed.</p>
+</li>
+<li>
+<p><strong>Memory optimization</strong>: Memory usage tends to be consistent once allocated. Once a container uses a certain amount of memory, it typically remains at that level. However, containers hitting memory limits are immediately killed via OOM (Out-of-Memory), making memory under-provisioning far more dangerous than CPU under-provisioning.</p>
+</li>
+</ul>
+<h2 id="core-concepts">Core Concepts<a class="headerlink" href="#core-concepts" title="Permanent link">&para;</a></h2>
+<h3 id="psi-pressure-stall-indicator">PSI (Pressure Stall Indicator)<a class="headerlink" href="#psi-pressure-stall-indicator" title="Permanent link">&para;</a></h3>
+<p>PSI measures the time a task spends waiting for a resource (CPU, memory, or I/O). For CPU, PSI tracks how long processes wait for CPU time due to contention.</p>
+<p><strong>PSI-Adjusted CPU Usage Formula:</strong></p>
+<div class="language-go highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="nx">PSI_adjusted_usage</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">cpu_usage</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">psi_waiting_rate</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+<p>Where:</p>
+<ul>
+<li><code>cpu_usage</code>: Raw CPU usage from <code>container_cpu_usage_seconds_total</code></li>
+<li><code>psi_waiting_rate</code>: Rate of CPU waiting time from <code>container_pressure_cpu_waiting_seconds_total</code></li>
+</ul>
+<p><strong>Example:</strong>
+If a container uses 0.5 CPU cores but experiences 20% CPU waiting time due to contention:
+<div class="language-go highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-1-1">1</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1"></a><span class="nx">PSI_adjusted_usage</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mf">0.5</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.2</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mf">0.6</span><span class="w"> </span><span class="nx">CPU</span><span class="w"> </span><span class="nx">cores</span>
+</span></code></pre></div></td></tr></table></div></p>
+<p>This adjusted value reflects the actual CPU demand when the container is competing for resources, providing a more accurate basis for resource allocation decisions.</p>
+<h3 id="steady-state-vs-peak-usage">Steady State vs Peak Usage<a class="headerlink" href="#steady-state-vs-peak-usage" title="Permanent link">&para;</a></h3>
+<p>CruiseKube distinguishes between two usage patterns:</p>
+<ul>
+<li><strong>Steady State (P75)</strong>: <ul>
+<li><strong>CPU</strong>: The 75<sup>th</sup> percentile of CPU usage over the last 10 minutes. This represents the current and typical, sustained usage. This serves as the baseline demand. </li>
+<li><strong>Memory</strong>: The 75<sup>th</sup> percentile of memory usage over the last 30 minutes. The longer window accounts for memory's higher reliability requirements compared to CPU.</li>
+</ul>
+</li>
+<li><strong>Peak Usage (Max)</strong>: The maximum value observed in the past 60 minutes at the current hour over the last 1 week. This methodology captures recurring patterns (e.g., daily cycles) while accounting for recent spikes. The difference between peak and steady state represents the <code>spike demand</code> or <code>headroom</code> needed to accommodate usage bursts.</li>
+</ul>
+<h2 id="algorithm-overview">Algorithm Overview<a class="headerlink" href="#algorithm-overview" title="Permanent link">&para;</a></h2>
+<p>CruiseKube uses a two-phase optimization approach:</p>
+<ul>
+<li>
+<p><strong>Phase 1 (Admission Webhook)</strong>: Sets initial resource requests at scheduling time to ensure the pod is scheduled on a node with sufficient capacity.</p>
+</li>
+<li>
+<p><strong>Phase 2 (Continuous Optimization)</strong>: Periodically optimizes running pods, redistributing resources based on actual node conditions and sharing max headroom across pods.</p>
+</li>
+</ul>
+<h2 id="phase-1-admission-webhook-optimization">Phase 1: Admission Webhook Optimization<a class="headerlink" href="#phase-1-admission-webhook-optimization" title="Permanent link">&para;</a></h2>
+<p>The admission webhook intercepts pod creation requests and sets resource requests based on historical usage patterns.</p>
+<h3 id="when-it-runs">When It Runs<a class="headerlink" href="#when-it-runs" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Triggered during pod creation (before scheduling)</li>
+<li>Mutates the pod specification before it reaches the scheduler</li>
+</ul>
+<h3 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Permanent link">&para;</a></h3>
+<div class="language-c highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-2-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-2-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-2-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-2-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-2-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-2-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-2-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-2-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-2-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-2-10">10</a></span>
+<span class="normal"><a href="#__codelineno-2-11">11</a></span>
+<span class="normal"><a href="#__codelineno-2-12">12</a></span>
+<span class="normal"><a href="#__codelineno-2-13">13</a></span>
+<span class="normal"><a href="#__codelineno-2-14">14</a></span>
+<span class="normal"><a href="#__codelineno-2-15">15</a></span>
+<span class="normal"><a href="#__codelineno-2-16">16</a></span>
+<span class="normal"><a href="#__codelineno-2-17">17</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="c1">// Fetch historical statistics for this workload/container</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2"></a><span class="n">stats</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fetchWorkloadStats</span><span class="p">(</span><span class="n">pod</span><span class="p">.</span><span class="n">workloadIdentifier</span><span class="p">,</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">name</span><span class="p">)</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4"></a><span class="c1">// Max = max observed in past 60 minutes at current hour over last 1 week</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5"></a><span class="n">cpuPeakDemand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stats</span><span class="p">.</span><span class="n">CPUStats</span><span class="p">.</span><span class="n">Max</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6"></a><span class="n">memoryPeakDemand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stats</span><span class="p">.</span><span class="n">MemoryStats</span><span class="p">.</span><span class="n">Max</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8"></a><span class="c1">// Set pod requests to accommodate peak usage</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9"></a><span class="n">pod</span><span class="p">.</span><span class="n">spec</span><span class="p">.</span><span class="n">containers</span><span class="p">[</span><span class="n">container</span><span class="p">].</span><span class="n">resources</span><span class="p">.</span><span class="n">requests</span><span class="p">.</span><span class="n">cpu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cpuPeakDemand</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10"></a><span class="n">pod</span><span class="p">.</span><span class="n">spec</span><span class="p">.</span><span class="n">containers</span><span class="p">[</span><span class="n">container</span><span class="p">].</span><span class="n">resources</span><span class="p">.</span><span class="n">requests</span><span class="p">.</span><span class="n">memory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">memoryPeakDemand</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11"></a>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12"></a><span class="c1">// Set memory limit to 2 × max memory over last 7 days (safety buffer)</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13"></a><span class="n">memoryLimit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">stats</span><span class="p">.</span><span class="n">Memory7Day</span><span class="p">.</span><span class="n">Max</span><span class="p">)</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14"></a><span class="n">pod</span><span class="p">.</span><span class="n">spec</span><span class="p">.</span><span class="n">containers</span><span class="p">[</span><span class="n">container</span><span class="p">].</span><span class="n">resources</span><span class="p">.</span><span class="n">limits</span><span class="p">.</span><span class="n">memory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">memoryLimit</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15"></a>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16"></a><span class="c1">// Note: CPU limits are not set (relying on PSI metrics for feedback)</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17"></a><span class="n">pod</span><span class="p">.</span><span class="n">Spec</span><span class="p">.</span><span class="n">containers</span><span class="p">[</span><span class="n">container</span><span class="p">].</span><span class="n">Resources</span><span class="p">.</span><span class="n">Limits</span><span class="p">.</span><span class="n">CPU</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nil</span>
+</span></code></pre></div></td></tr></table></div>
+<h3 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Prevents repeated evictions</strong>: By setting requests to peak usage, the pod is guaranteed to fit on the node where it's scheduled even after continuous optimization has run.</li>
+<li><strong>Provides initial optimization</strong>: Even without continuous optimization, pods start with better resource allocation</li>
+</ul>
+<h2 id="phase-2-continuous-optimization">Phase 2: Continuous Optimization<a class="headerlink" href="#phase-2-continuous-optimization" title="Permanent link">&para;</a></h2>
+<p>The continuous optimization controller runs periodically, optimizing resources for pods already running on nodes.</p>
+<h3 id="when-it-runs_1">When It Runs<a class="headerlink" href="#when-it-runs_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Periodic reconciliation loop (configurable schedule)</li>
+<li>Processes one node at a time</li>
+<li>Updates pod resources in-place without pod recreation</li>
+</ul>
+<h3 id="algorithm-flow">Algorithm Flow<a class="headerlink" href="#algorithm-flow" title="Permanent link">&para;</a></h3>
+<pre class="mermaid"><code>flowchart TD
+    A[Start: Process Node] --&gt; B[Identify Optimizable Pods]
+    B --&gt; C[Calculate Base + Headroom Demand per Pod]
+    C --&gt; D{Memory Fits?}
+    D --&gt;|No| E[Evict Low Priority Pods&lt;br/&gt;Memory]
+    D --&gt;|Yes| F{CPU Fits?}
+    E --&gt; F
+    F --&gt;|No| G[Evict Low Priority Pods&lt;br/&gt;CPU]
+    F --&gt;|Yes| H[Calculate Max Headroom Demand]
+    G --&gt; H
+    H --&gt; I[Distribute Max Headroom&lt;br/&gt;Proportionally]
+    I --&gt; J[Apply Resource Updates]
+    J --&gt; K[Next Node]</code></pre>
+<h3 id="detailed-algorithm">Detailed Algorithm<a class="headerlink" href="#detailed-algorithm" title="Permanent link">&para;</a></h3>
+<div class="language-c highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-3-1"> 1</a></span>
+<span class="normal"><a href="#__codelineno-3-2"> 2</a></span>
+<span class="normal"><a href="#__codelineno-3-3"> 3</a></span>
+<span class="normal"><a href="#__codelineno-3-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-3-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-3-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-3-7"> 7</a></span>
+<span class="normal"><a href="#__codelineno-3-8"> 8</a></span>
+<span class="normal"><a href="#__codelineno-3-9"> 9</a></span>
+<span class="normal"><a href="#__codelineno-3-10">10</a></span>
+<span class="normal"><a href="#__codelineno-3-11">11</a></span>
+<span class="normal"><a href="#__codelineno-3-12">12</a></span>
+<span class="normal"><a href="#__codelineno-3-13">13</a></span>
+<span class="normal"><a href="#__codelineno-3-14">14</a></span>
+<span class="normal"><a href="#__codelineno-3-15">15</a></span>
+<span class="normal"><a href="#__codelineno-3-16">16</a></span>
+<span class="normal"><a href="#__codelineno-3-17">17</a></span>
+<span class="normal"><a href="#__codelineno-3-18">18</a></span>
+<span class="normal"><a href="#__codelineno-3-19">19</a></span>
+<span class="normal"><a href="#__codelineno-3-20">20</a></span>
+<span class="normal"><a href="#__codelineno-3-21">21</a></span>
+<span class="normal"><a href="#__codelineno-3-22">22</a></span>
+<span class="normal"><a href="#__codelineno-3-23">23</a></span>
+<span class="normal"><a href="#__codelineno-3-24">24</a></span>
+<span class="normal"><a href="#__codelineno-3-25">25</a></span>
+<span class="normal"><a href="#__codelineno-3-26">26</a></span>
+<span class="normal"><a href="#__codelineno-3-27">27</a></span>
+<span class="normal"><a href="#__codelineno-3-28">28</a></span>
+<span class="normal"><a href="#__codelineno-3-29">29</a></span>
+<span class="normal"><a href="#__codelineno-3-30">30</a></span>
+<span class="normal"><a href="#__codelineno-3-31">31</a></span>
+<span class="normal"><a href="#__codelineno-3-32">32</a></span>
+<span class="normal"><a href="#__codelineno-3-33">33</a></span>
+<span class="normal"><a href="#__codelineno-3-34">34</a></span>
+<span class="normal"><a href="#__codelineno-3-35">35</a></span>
+<span class="normal"><a href="#__codelineno-3-36">36</a></span>
+<span class="normal"><a href="#__codelineno-3-37">37</a></span>
+<span class="normal"><a href="#__codelineno-3-38">38</a></span>
+<span class="normal"><a href="#__codelineno-3-39">39</a></span>
+<span class="normal"><a href="#__codelineno-3-40">40</a></span>
+<span class="normal"><a href="#__codelineno-3-41">41</a></span>
+<span class="normal"><a href="#__codelineno-3-42">42</a></span>
+<span class="normal"><a href="#__codelineno-3-43">43</a></span>
+<span class="normal"><a href="#__codelineno-3-44">44</a></span>
+<span class="normal"><a href="#__codelineno-3-45">45</a></span>
+<span class="normal"><a href="#__codelineno-3-46">46</a></span>
+<span class="normal"><a href="#__codelineno-3-47">47</a></span>
+<span class="normal"><a href="#__codelineno-3-48">48</a></span>
+<span class="normal"><a href="#__codelineno-3-49">49</a></span>
+<span class="normal"><a href="#__codelineno-3-50">50</a></span>
+<span class="normal"><a href="#__codelineno-3-51">51</a></span>
+<span class="normal"><a href="#__codelineno-3-52">52</a></span>
+<span class="normal"><a href="#__codelineno-3-53">53</a></span>
+<span class="normal"><a href="#__codelineno-3-54">54</a></span>
+<span class="normal"><a href="#__codelineno-3-55">55</a></span>
+<span class="normal"><a href="#__codelineno-3-56">56</a></span>
+<span class="normal"><a href="#__codelineno-3-57">57</a></span>
+<span class="normal"><a href="#__codelineno-3-58">58</a></span>
+<span class="normal"><a href="#__codelineno-3-59">59</a></span>
+<span class="normal"><a href="#__codelineno-3-60">60</a></span>
+<span class="normal"><a href="#__codelineno-3-61">61</a></span>
+<span class="normal"><a href="#__codelineno-3-62">62</a></span>
+<span class="normal"><a href="#__codelineno-3-63">63</a></span>
+<span class="normal"><a href="#__codelineno-3-64">64</a></span>
+<span class="normal"><a href="#__codelineno-3-65">65</a></span>
+<span class="normal"><a href="#__codelineno-3-66">66</a></span>
+<span class="normal"><a href="#__codelineno-3-67">67</a></span>
+<span class="normal"><a href="#__codelineno-3-68">68</a></span>
+<span class="normal"><a href="#__codelineno-3-69">69</a></span>
+<span class="normal"><a href="#__codelineno-3-70">70</a></span>
+<span class="normal"><a href="#__codelineno-3-71">71</a></span>
+<span class="normal"><a href="#__codelineno-3-72">72</a></span>
+<span class="normal"><a href="#__codelineno-3-73">73</a></span>
+<span class="normal"><a href="#__codelineno-3-74">74</a></span>
+<span class="normal"><a href="#__codelineno-3-75">75</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1"></a><span class="n">FOR</span><span class="w"> </span><span class="n">EACH</span><span class="w"> </span><span class="n">node</span><span class="w"> </span><span class="n">IN</span><span class="w"> </span><span class="n">cluster</span><span class="o">:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3"></a><span class="w">  </span><span class="c1">// Step 1: Identify scope of optimization</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4"></a><span class="w">  </span><span class="n">optimizablePods</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">selectPodsEligibleForOptimization</span><span class="p">(</span><span class="n">node</span><span class="p">.</span><span class="n">pods</span><span class="p">)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5"></a><span class="w">  </span><span class="n">nonOptimizablePods</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node</span><span class="p">.</span><span class="n">pods</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">optimizablePods</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6"></a>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7"></a><span class="w">  </span><span class="n">availableCPU</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node</span><span class="p">.</span><span class="n">allocatable</span><span class="p">.</span><span class="n">cpu</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">sum</span><span class="p">(</span><span class="n">nonOptimizablePods</span><span class="p">.</span><span class="n">cpuRequests</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8"></a><span class="w">  </span><span class="n">availableMemory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node</span><span class="p">.</span><span class="n">allocatable</span><span class="p">.</span><span class="n">memory</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">sum</span><span class="p">(</span><span class="n">nonOptimizablePods</span><span class="p">.</span><span class="n">memoryRequests</span><span class="p">)</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9"></a>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10"></a><span class="w">  </span><span class="c1">// Step 2: Compute baseline demand and headroom demand per pod</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11"></a><span class="w">  </span><span class="n">FOR</span><span class="w"> </span><span class="n">EACH</span><span class="w"> </span><span class="n">pod</span><span class="w"> </span><span class="n">IN</span><span class="w"> </span><span class="n">optimizablePods</span><span class="o">:</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12"></a><span class="w">    </span><span class="n">FOR</span><span class="w"> </span><span class="n">EACH</span><span class="w"> </span><span class="n">container</span><span class="w"> </span><span class="n">IN</span><span class="w"> </span><span class="n">pod</span><span class="p">.</span><span class="n">containers</span><span class="o">:</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13"></a><span class="w">      </span><span class="c1">// CPU base demand: P75 over last 10 minutes</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14"></a><span class="w">      </span><span class="n">stats</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">fetchWorkloadStats</span><span class="p">(</span><span class="n">pod</span><span class="p">.</span><span class="n">workloadIdentifier</span><span class="p">,</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">name</span><span class="p">)</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15"></a><span class="w">      </span><span class="n">container</span><span class="p">.</span><span class="n">CPUBaseDemand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stats</span><span class="p">.</span><span class="n">CPUStats</span><span class="p">.</span><span class="n">P75</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16"></a>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17"></a><span class="w">      </span><span class="c1">// CPU headroom demand: Max - Base</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18"></a><span class="w">      </span><span class="n">container</span><span class="p">.</span><span class="n">CPUHeadroomDemand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stats</span><span class="p">.</span><span class="n">CPUStats</span><span class="p">.</span><span class="n">Max</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">CPUBaseDemand</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19"></a>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20"></a><span class="w">      </span><span class="c1">// Memory base demand: P75 over last 30 minutes</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21"></a><span class="w">      </span><span class="n">container</span><span class="p">.</span><span class="n">MemoryBaseDemand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stats</span><span class="p">.</span><span class="n">MemoryStats</span><span class="p">.</span><span class="n">P75</span><span class="w">  </span><span class="c1">// P75 over last 30 min</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22"></a>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23"></a><span class="w">      </span><span class="c1">// Memory headroom demand: Max - Base</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24"></a><span class="w">      </span><span class="n">container</span><span class="p">.</span><span class="n">MemoryHeadroomDemand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">stats</span><span class="p">.</span><span class="n">MemoryStats</span><span class="p">.</span><span class="n">Max</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">MemoryBaseDemand</span>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25"></a>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26"></a><span class="w">    </span><span class="n">pod</span><span class="p">.</span><span class="n">evictionRanking</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">determineEvictionRanking</span><span class="p">(</span><span class="n">pod</span><span class="p">)</span>
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27"></a><span class="w">    </span><span class="n">pod</span><span class="p">.</span><span class="n">totalRecommendedCPU</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum</span><span class="p">(</span><span class="n">container</span><span class="p">.</span><span class="n">CPUBaseDemand</span><span class="p">)</span>
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28"></a><span class="w">    </span><span class="n">pod</span><span class="p">.</span><span class="n">totalRecommendedMemory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum</span><span class="p">(</span><span class="n">container</span><span class="p">.</span><span class="n">MemoryBaseDemand</span><span class="p">)</span>
+</span><span id="__span-3-29"><a id="__codelineno-3-29" name="__codelineno-3-29"></a><span class="w">    </span><span class="n">pod</span><span class="p">.</span><span class="n">maxHeadroomCPU</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">container</span><span class="p">.</span><span class="n">CPUHeadroomDemand</span><span class="p">)</span>
+</span><span id="__span-3-30"><a id="__codelineno-3-30" name="__codelineno-3-30"></a><span class="w">    </span><span class="n">pod</span><span class="p">.</span><span class="n">maxHeadroomMemory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">container</span><span class="p">.</span><span class="n">MemoryHeadroomDemand</span><span class="p">)</span>
+</span><span id="__span-3-31"><a id="__codelineno-3-31" name="__codelineno-3-31"></a>
+</span><span id="__span-3-32"><a id="__codelineno-3-32" name="__codelineno-3-32"></a><span class="w">  </span><span class="c1">// Step 3: Evict pods if memory doesn&#39;t fit</span>
+</span><span id="__span-3-33"><a id="__codelineno-3-33" name="__codelineno-3-33"></a><span class="w">  </span><span class="n">sort</span><span class="w"> </span><span class="n">pods</span><span class="w"> </span><span class="n">by</span><span class="o">:</span><span class="w"> </span><span class="n">DaemonSet</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">evictionRanking</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">maxHeadroomMemory</span><span class="w"> </span><span class="p">(</span><span class="n">descending</span><span class="p">)</span>
+</span><span id="__span-3-34"><a id="__codelineno-3-34" name="__codelineno-3-34"></a><span class="w">  </span><span class="n">WHILE</span><span class="w"> </span><span class="n">sum</span><span class="p">(</span><span class="n">pod</span><span class="p">.</span><span class="n">totalRecommendedMemory</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">pod</span><span class="p">.</span><span class="n">maxHeadroomMemory</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">availableMemory</span><span class="o">:</span>
+</span><span id="__span-3-35"><a id="__codelineno-3-35" name="__codelineno-3-35"></a><span class="w">    </span><span class="n">podToEvict</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pods</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w">  </span><span class="c1">// Lowest priority</span>
+</span><span id="__span-3-36"><a id="__codelineno-3-36" name="__codelineno-3-36"></a><span class="w">    </span><span class="n">markForEviction</span><span class="p">(</span><span class="n">podToEvict</span><span class="p">)</span>
+</span><span id="__span-3-37"><a id="__codelineno-3-37" name="__codelineno-3-37"></a><span class="w">    </span><span class="n">remove</span><span class="w"> </span><span class="n">podToEvict</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">pods</span>
+</span><span id="__span-3-38"><a id="__codelineno-3-38" name="__codelineno-3-38"></a>
+</span><span id="__span-3-39"><a id="__codelineno-3-39" name="__codelineno-3-39"></a><span class="w">  </span><span class="c1">// Step 4: Evict pods if CPU doesn&#39;t fit</span>
+</span><span id="__span-3-40"><a id="__codelineno-3-40" name="__codelineno-3-40"></a><span class="w">  </span><span class="n">sort</span><span class="w"> </span><span class="n">pods</span><span class="w"> </span><span class="n">by</span><span class="o">:</span><span class="w"> </span><span class="n">DaemonSet</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">evictionRanking</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">maxHeadroomCPU</span><span class="w"> </span><span class="p">(</span><span class="n">descending</span><span class="p">)</span>
+</span><span id="__span-3-41"><a id="__codelineno-3-41" name="__codelineno-3-41"></a><span class="w">  </span><span class="n">WHILE</span><span class="w"> </span><span class="n">sum</span><span class="p">(</span><span class="n">pod</span><span class="p">.</span><span class="n">totalRecommendedCPU</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">pod</span><span class="p">.</span><span class="n">maxHeadroomCPU</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">availableCPU</span><span class="o">:</span>
+</span><span id="__span-3-42"><a id="__codelineno-3-42" name="__codelineno-3-42"></a><span class="w">    </span><span class="n">podToEvict</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pods</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w">  </span><span class="c1">// Lowest priority</span>
+</span><span id="__span-3-43"><a id="__codelineno-3-43" name="__codelineno-3-43"></a><span class="w">    </span><span class="n">markForEviction</span><span class="p">(</span><span class="n">podToEvict</span><span class="p">)</span>
+</span><span id="__span-3-44"><a id="__codelineno-3-44" name="__codelineno-3-44"></a><span class="w">    </span><span class="n">remove</span><span class="w"> </span><span class="n">podToEvict</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">pods</span>
+</span><span id="__span-3-45"><a id="__codelineno-3-45" name="__codelineno-3-45"></a>
+</span><span id="__span-3-46"><a id="__codelineno-3-46" name="__codelineno-3-46"></a><span class="w">  </span><span class="c1">// Step 5: Distribute spike headroom across surviving pods</span>
+</span><span id="__span-3-47"><a id="__codelineno-3-47" name="__codelineno-3-47"></a><span class="w">  </span><span class="n">maxHeadroomCPU</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">pod</span><span class="p">.</span><span class="n">maxHeadroomCPU</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">pod</span><span class="w"> </span><span class="n">IN</span><span class="w"> </span><span class="n">pods</span><span class="p">)</span>
+</span><span id="__span-3-48"><a id="__codelineno-3-48" name="__codelineno-3-48"></a><span class="w">  </span><span class="n">maxHeadroomMemory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">pod</span><span class="p">.</span><span class="n">maxHeadroomMemory</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">pod</span><span class="w"> </span><span class="n">IN</span><span class="w"> </span><span class="n">pods</span><span class="p">)</span>
+</span><span id="__span-3-49"><a id="__codelineno-3-49" name="__codelineno-3-49"></a><span class="w">  </span><span class="n">totalHeadroomCPU</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum</span><span class="p">(</span><span class="n">container</span><span class="p">.</span><span class="n">CPUHeadroomDemand</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">all</span><span class="w"> </span><span class="n">containers</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">pods</span><span class="p">)</span>
+</span><span id="__span-3-50"><a id="__codelineno-3-50" name="__codelineno-3-50"></a><span class="w">  </span><span class="n">totalHeadroomMemory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum</span><span class="p">(</span><span class="n">container</span><span class="p">.</span><span class="n">MemoryHeadroomDemand</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">all</span><span class="w"> </span><span class="n">containers</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">pods</span><span class="p">)</span>
+</span><span id="__span-3-51"><a id="__codelineno-3-51" name="__codelineno-3-51"></a>
+</span><span id="__span-3-52"><a id="__codelineno-3-52" name="__codelineno-3-52"></a><span class="w">  </span><span class="n">FOR</span><span class="w"> </span><span class="n">EACH</span><span class="w"> </span><span class="n">pod</span><span class="w"> </span><span class="n">IN</span><span class="w"> </span><span class="n">pods</span><span class="o">:</span>
+</span><span id="__span-3-53"><a id="__codelineno-3-53" name="__codelineno-3-53"></a><span class="w">    </span><span class="n">FOR</span><span class="w"> </span><span class="n">EACH</span><span class="w"> </span><span class="n">container</span><span class="w"> </span><span class="n">IN</span><span class="w"> </span><span class="n">pod</span><span class="p">.</span><span class="n">containers</span><span class="o">:</span>
+</span><span id="__span-3-54"><a id="__codelineno-3-54" name="__codelineno-3-54"></a><span class="w">      </span><span class="c1">// Proportional distribution based on each container&#39;s spike demand</span>
+</span><span id="__span-3-55"><a id="__codelineno-3-55" name="__codelineno-3-55"></a><span class="w">      </span><span class="n">cpuRatio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">CPUHeadroomDemand</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">totalHeadroomCPU</span>
+</span><span id="__span-3-56"><a id="__codelineno-3-56" name="__codelineno-3-56"></a><span class="w">      </span><span class="n">additionalCPU</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">maxHeadroomCPU</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="n">cpuRatio</span>
+</span><span id="__span-3-57"><a id="__codelineno-3-57" name="__codelineno-3-57"></a>
+</span><span id="__span-3-58"><a id="__codelineno-3-58" name="__codelineno-3-58"></a><span class="w">      </span><span class="n">memoryRatio</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">MemoryHeadroomDemand</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">totalHeadroomMemory</span>
+</span><span id="__span-3-59"><a id="__codelineno-3-59" name="__codelineno-3-59"></a><span class="w">      </span><span class="n">additionalMemory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">maxHeadroomMemory</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="n">memoryRatio</span>
+</span><span id="__span-3-60"><a id="__codelineno-3-60" name="__codelineno-3-60"></a>
+</span><span id="__span-3-61"><a id="__codelineno-3-61" name="__codelineno-3-61"></a><span class="w">      </span><span class="n">container</span><span class="p">.</span><span class="n">finalCPU</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">CPUBaseDemand</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">additionalCPU</span>
+</span><span id="__span-3-62"><a id="__codelineno-3-62" name="__codelineno-3-62"></a><span class="w">      </span><span class="n">container</span><span class="p">.</span><span class="n">finalMemory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">MemoryBaseDemand</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">additionalMemory</span>
+</span><span id="__span-3-63"><a id="__codelineno-3-63" name="__codelineno-3-63"></a>
+</span><span id="__span-3-64"><a id="__codelineno-3-64" name="__codelineno-3-64"></a><span class="w">  </span><span class="c1">// Step 6: Apply recommendations at runtime</span>
+</span><span id="__span-3-65"><a id="__codelineno-3-65" name="__codelineno-3-65"></a><span class="w">  </span><span class="n">FOR</span><span class="w"> </span><span class="n">EACH</span><span class="w"> </span><span class="n">pod</span><span class="w"> </span><span class="n">IN</span><span class="w"> </span><span class="n">pods</span><span class="o">:</span>
+</span><span id="__span-3-66"><a id="__codelineno-3-66" name="__codelineno-3-66"></a><span class="w">    </span><span class="n">FOR</span><span class="w"> </span><span class="n">EACH</span><span class="w"> </span><span class="n">container</span><span class="w"> </span><span class="n">IN</span><span class="w"> </span><span class="n">pod</span><span class="p">.</span><span class="n">containers</span><span class="o">:</span>
+</span><span id="__span-3-67"><a id="__codelineno-3-67" name="__codelineno-3-67"></a><span class="w">      </span><span class="c1">// Apply CPU request (no CPU limit set)</span>
+</span><span id="__span-3-68"><a id="__codelineno-3-68" name="__codelineno-3-68"></a><span class="w">      </span><span class="n">applyCPURequest</span><span class="p">(</span><span class="n">pod</span><span class="p">,</span><span class="w"> </span><span class="n">container</span><span class="p">,</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">finalCPU</span><span class="p">)</span>
+</span><span id="__span-3-69"><a id="__codelineno-3-69" name="__codelineno-3-69"></a>
+</span><span id="__span-3-70"><a id="__codelineno-3-70" name="__codelineno-3-70"></a><span class="w">      </span><span class="c1">// Apply memory request and limit</span>
+</span><span id="__span-3-71"><a id="__codelineno-3-71" name="__codelineno-3-71"></a><span class="w">      </span><span class="c1">// Limit = 2 × max(memory over last 7 days, OOM memory)</span>
+</span><span id="__span-3-72"><a id="__codelineno-3-72" name="__codelineno-3-72"></a><span class="w">      </span><span class="n">memoryLimit</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="err">×</span><span class="w"> </span><span class="n">max</span><span class="p">(</span><span class="n">container</span><span class="p">.</span><span class="n">stats</span><span class="p">.</span><span class="n">Memory7Day</span><span class="p">.</span><span class="n">Max</span><span class="p">)</span>
+</span><span id="__span-3-73"><a id="__codelineno-3-73" name="__codelineno-3-73"></a><span class="w">      </span><span class="n">applyMemoryRequestAndLimit</span><span class="p">(</span><span class="n">pod</span><span class="p">,</span><span class="w"> </span><span class="n">container</span><span class="p">,</span><span class="w"> </span><span class="n">container</span><span class="p">.</span><span class="n">finalMemory</span><span class="p">,</span><span class="w"> </span><span class="n">memoryLimit</span><span class="p">)</span>
+</span><span id="__span-3-74"><a id="__codelineno-3-74" name="__codelineno-3-74"></a>
+</span><span id="__span-3-75"><a id="__codelineno-3-75" name="__codelineno-3-75"></a><span class="n">END</span>
+</span></code></pre></div></td></tr></table></div>
+<h3 id="key-differences-from-admission-webhook">Key Differences from Admission Webhook<a class="headerlink" href="#key-differences-from-admission-webhook" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Resource sharing</strong>: Headroom is distributed proportionally rather than allocated fully to each pod</li>
+<li><strong>Node-aware</strong>: Considers actual node capacity and current pod placement</li>
+<li><strong>Eviction support</strong>: Can evict pods to make room for better optimization</li>
+<li><strong>Incremental updates</strong>: Resources are updated in-place without pod recreation</li>
+</ul>
+<h2 id="key-mechanisms">Key Mechanisms<a class="headerlink" href="#key-mechanisms" title="Permanent link">&para;</a></h2>
+<h3 id="headroom-demand-distribution">Headroom Demand Distribution<a class="headerlink" href="#headroom-demand-distribution" title="Permanent link">&para;</a></h3>
+<p>Rather than provisioning each pod for its maximum spike, CruiseKube distributes spike headroom across pods on a node. This is done with the following rationale:</p>
+<ol>
+<li>Not all pods on a node spike simultaneously</li>
+<li>The maximum headroom demand across all pods on a node represents the short lived and worst-case scenario for the node</li>
+</ol>
+<p>This <code>headroom</code> (i.e. peak usage - steady state) is shared proportionally, reducing total resource requirements for the node</p>
+<h3 id="workload-criticality">Workload Criticality<a class="headerlink" href="#workload-criticality" title="Permanent link">&para;</a></h3>
+<p>When a node cannot accommodate all pods, CruiseKube uses a priority-based eviction system to make space:</p>
+<ol>
+<li><strong>DaemonSets</strong>: Always protected from eviction (they must run on every node)</li>
+<li><strong>Eviction Ranking/Criticality</strong>: Configurable per-workload priority that determines eviction order:<ul>
+<li><strong>Low</strong>: Low priority workloads are evicted first. This is the priority for most workloads by default</li>
+<li><strong>Medium</strong>: Medium priority workloads are evicted next. Single replica or statefulset workloads are set to this value by default</li>
+<li><strong>High</strong>: High priority workloads are evicted as a last resort</li>
+<li><strong>Very-High</strong>: No-eviction workloads are never evicted at all</li>
+</ul>
+</li>
+<li><strong>Tie-breaker</strong>: Among pods with the same eviction ranking, those with higher headroom demand (<code>peak_usage - base_demand</code>) are evicted first, to minimise the number of evictions needed</li>
+</ol>
+<h3 id="memory-limit-calculation">Memory Limit Calculation<a class="headerlink" href="#memory-limit-calculation" title="Permanent link">&para;</a></h3>
+<p>Memory limits are set independently from memory requests to provide a safety buffer:</p>
+<ul>
+<li><strong>Memory Limit Formula</strong>: <code>2 × (maxMemoryUsage7Days, limitMemoryAtOOMKill)</code></li>
+<li><code>maxMemoryUsage7Days</code>: Maximum memory usage observed over the last 7 days</li>
+<li><code>limitMemoryAtOOMKill</code>: Memory limit at the time of OOM kill events (if any)</li>
+<li><strong>Purpose</strong>: Prevents OOM kills by providing headroom above the optimized request value</li>
+<li><strong>Rationale</strong>: Memory requests can be optimized aggressively (down to P75 + distributed spike), while limits ensure containers have sufficient headroom to handle unexpected memory growth</li>
+</ul>
+<h3 id="why-cpu-limits-arent-needed">Why CPU Limits Aren't Needed<a class="headerlink" href="#why-cpu-limits-arent-needed" title="Permanent link">&para;</a></h3>
+<p>CruiseKube does not set CPU limits, only CPU requests. This differs from memory, where both requests and limits are configured.</p>
+<p><strong>Traditional CPU limits serve two purposes</strong>:</p>
+<ol>
+<li><strong>Resource isolation</strong>: Prevent one pod from consuming all CPU</li>
+<li><strong>Throttling feedback</strong>: Indicate when a pod needs more CPU</li>
+</ol>
+<p><strong>With PSI metrics</strong>:</p>
+<ul>
+<li><strong>PSI provides throttling feedback</strong>: High PSI values indicate CPU contention without needing limits</li>
+<li><strong>Requests provide isolation</strong>: CPU requests ensure fair scheduling and resource allocation</li>
+<li><strong>Better observability</strong>: PSI metrics provide more granular insight into contention than throttling metrics</li>
+</ul>
+<p><strong>Contrast with Memory</strong>:</p>
+<p>By removing CPU limits and using PSI-adjusted usage for requests, CruiseKube:</p>
+<ul>
+<li>Eliminates unnecessary CPU throttling</li>
+<li>Provides more accurate CPU resource allocation</li>
+<li>Maintains reliability through PSI-based feedback</li>
+<li>Allows CPU to burst when available, improving overall utilization</li>
+</ul>
+<h2 id="safety-reliability-related-mechanisms">Safety &amp; Reliability Related Mechanisms<a class="headerlink" href="#safety-reliability-related-mechanisms" title="Permanent link">&para;</a></h2>
+<h3 id="node-load-monitoring">Node Load Monitoring<a class="headerlink" href="#node-load-monitoring" title="Permanent link">&para;</a></h3>
+<p>To mitigate scenarios where multiple pods spike simultaneously, CruiseKube monitors node load:</p>
+<ul>
+<li><strong>Load Calculation</strong>: <code>node_load1 / node_cpu_capacity</code></li>
+<li><strong>Threshold</strong>: When load exceeds 100% (1.0), the node is considered overloaded</li>
+<li><strong>Action</strong>: Node is cordoned (tainted with <code>NoSchedule</code>) to prevent new pod scheduling</li>
+<li><strong>Recovery</strong>: Taint is removed when load drops below threshold</li>
+</ul>
+<p>During overload:</p>
+<ul>
+<li>PSI metrics increase, causing future resource requests to be higher</li>
+<li>No new pods are scheduled on the overloaded node to prevent further resource contention</li>
+</ul>
+<h3 id="preventing-repeated-evictions">Preventing Repeated Evictions<a class="headerlink" href="#preventing-repeated-evictions" title="Permanent link">&para;</a></h3>
+<p>The admission webhook ensures pods are scheduled with requests equal to their peak usage. This guarantees:</p>
+<ul>
+<li>The node has sufficient capacity at scheduling time</li>
+<li>Subsequent continuous optimization runs only evict pods whose spikes cannot be accommodated</li>
+<li>Once evicted, a pod will be rescheduled with peak requests, preventing immediate re-eviction</li>
+</ul>
+<h3 id="high-priority-workload-protection">High-Priority Workload Protection<a class="headerlink" href="#high-priority-workload-protection" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Single-replica workloads and StatefulSets default to medium eviction ranking</li>
+<li>Most workloads default to low eviction ranking</li>
+<li>Users can configure eviction ranking per workload via overrides</li>
+<li>DaemonSets are never evicted</li>
+<li>Workloads with no-eviction ranking are never evicted</li>
+</ul>
+<h3 id="contention-mitigation">Contention Mitigation<a class="headerlink" href="#contention-mitigation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Node cordoning</strong>: Overloaded nodes are isolated to prevent further scheduling</li>
+<li><strong>PSI feedback</strong>: High PSI values increase resource requests for future optimizations</li>
+<li><strong>Proportional distribution</strong>: Headroom is shared, reducing the likelihood of simultaneous spikes exhausting resources</li>
+</ul>
+<h2 id="oom-handling">OOM Handling<a class="headerlink" href="#oom-handling" title="Permanent link">&para;</a></h2>
+<p>CruiseKube includes a reactive mechanism to handle out of memory (OOM) events, automatically responding to memory pressure by evicting pods and allowing them to be recreated with updated resource recommendations.</p>
+<h3 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h3>
+<p>When a container is OOM killed, CruiseKube:</p>
+<ol>
+<li><strong>Detects the OOM event</strong> by monitoring Kubernetes pod status</li>
+<li><strong>Records the OOM memory</strong> value in the workload statistics database</li>
+<li><strong>Evaluates whether to evict</strong> the pod based on configured policies</li>
+<li><strong>Evicts the pod</strong> if all checks pass</li>
+<li><strong>Relies on the mutating webhook</strong> to recreate the pod with the updated memory</li>
+</ol>
+<h3 id="oom-detection">OOM Detection<a class="headerlink" href="#oom-detection" title="Permanent link">&para;</a></h3>
+<p>CruiseKube currently monitors the Kubernetes pod status to detect an OOM event.</p>
+<p>When an OOM is detected, the following information is captured:</p>
+<ul>
+<li>Container and workload ID</li>
+<li>Namespace, node and pod name</li>
+<li>Memory limit and request</li>
+<li>Last observed memory usage</li>
+<li>Timestamp</li>
+</ul>
+<h3 id="oom-memory-tracking">OOM Memory Tracking<a class="headerlink" href="#oom-memory-tracking" title="Permanent link">&para;</a></h3>
+<p>The observed memory usage at OOM time is stored in the workload statistics to ensure that:</p>
+<ul>
+<li>Future pod creations via the admission webhook use the OOM memory value</li>
+<li>Memory limits are set to 2 × the maximum of either the highest memory usage over the last 7 days or the memory at OOM kill, providing sufficient headroom to prevent repeated OOM kills</li>
+</ul>
+<h3 id="eviction-decision-flow">Eviction Decision Flow<a class="headerlink" href="#eviction-decision-flow" title="Permanent link">&para;</a></h3>
+<p>Before evicting a pod after an OOM event, CruiseKube performs several checks:</p>
+<pre class="mermaid"><code>flowchart TD
+    A[OOM Event Detected] --&gt; B{Cooldown Active?}
+    B --&gt;|Yes| Z[Skip Eviction]
+    B --&gt;|No| C[Record OOM Event in DB]
+    C --&gt; D[Update OOM Memory in Stats]
+    D --&gt; E{Memory Application&lt;br/&gt;Disabled?}
+    E --&gt;|Yes| Z
+    E --&gt;|No| F[Fetch Pod from API]
+    F --&gt; G{Pod Has Exclusion&lt;br/&gt;Annotation?}
+    G --&gt;|Yes| Z
+    G --&gt;|No| H{Workload Disabled&lt;br/&gt;via Override?}
+    H --&gt;|Yes| Z
+    H --&gt;|No| I[Evict Pod]
+    I --&gt; J[Kubernetes Recreates Pod]
+    J --&gt; K[Admission Webhook Applies&lt;br/&gt;Updated Recommendations]
+    K --&gt; L[Pod Starts with&lt;br/&gt;Higher Memory Limit]</code></pre>
+<h3 id="oom-cooldown-mechanism">OOM Cooldown Mechanism<a class="headerlink" href="#oom-cooldown-mechanism" title="Permanent link">&para;</a></h3>
+<p>The cooldown check prevents rapid OOM-eviction thrashing:</p>
+<ul>
+<li><strong>Per-pod tracking</strong>: Cooldown is tracked using the combination of <code>containerID</code> and <code>podName</code>, ensuring each pod instance is monitored independently</li>
+<li><strong>Prevents thrashing</strong>: If an OOM event occurred recently (within the cooldown period), subsequent OOM events on the same pod are ignored to prevent rapid eviction cycles</li>
+<li><strong>Resets on pod recreation</strong>: When a pod is recreated after eviction, it gets a new <code>podName</code>, so the cooldown resets and the new pod instance is monitored independently</li>
+</ul>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://kubernetes.io/blog/2025/05/16/kubernetes-v1-33-in-place-pod-resize-beta/">Kubernetes 1.33 - Pod-level resource updates</a></li>
+<li><a href="https://kubernetes.io/blog/2025/09/04/kubernetes-v1-34-introducing-psi-metrics-beta/">Kubernetes 1.34 - PSI (Pressure Stall Indicator) metrics</a></li>
+<li><a href="https://facebookmicrosites.github.io/psi/">PSI Documentation</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+  
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../arch-introduction/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Architecture">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256l137.3-137.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Architecture
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../arch-tradeoffs/" class="md-footer__link md-footer__link--next" aria-label="Next: TradeOffs">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                TradeOffs
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M247.1 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L179.2 256 41.9 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 TrueFoundry
+    </div>
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://discord.gg/Dqek4xJa3N" target="_blank" rel="noopener" title="discord.gg" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M492.5 69.8c-.2-.3-.4-.6-.8-.7-38.1-17.5-78.4-30-119.7-37.1-.4-.1-.8 0-1.1.1s-.6.4-.8.8c-5.5 9.9-10.5 20.2-14.9 30.6-44.6-6.8-89.9-6.8-134.4 0-4.5-10.5-9.5-20.7-15.1-30.6-.2-.3-.5-.6-.8-.8s-.7-.2-1.1-.2C162.5 39 122.2 51.5 84.1 69c-.3.1-.6.4-.8.7C7.1 183.5-13.8 294.6-3.6 404.2c0 .3.1.5.2.8s.3.4.5.6c44.4 32.9 94 58 146.8 74.2.4.1.8.1 1.1 0s.7-.4.9-.7c11.3-15.4 21.4-31.8 30-48.8.1-.2.2-.5.2-.8s0-.5-.1-.8-.2-.5-.4-.6-.4-.3-.7-.4c-15.8-6.1-31.2-13.4-45.9-21.9-.3-.2-.5-.4-.7-.6s-.3-.6-.3-.9 0-.6.2-.9.3-.5.6-.7c3.1-2.3 6.2-4.7 9.1-7.1.3-.2.6-.4.9-.4s.7 0 1 .1c96.2 43.9 200.4 43.9 295.5 0 .3-.1.7-.2 1-.2s.7.2.9.4c2.9 2.4 6 4.9 9.1 7.2.2.2.4.4.6.7s.2.6.2.9-.1.6-.3.9-.4.5-.6.6c-14.7 8.6-30 15.9-45.9 21.8-.2.1-.5.2-.7.4s-.3.4-.4.7-.1.5-.1.8.1.5.2.8c8.8 17 18.8 33.3 30 48.8.2.3.6.6.9.7s.8.1 1.1 0c52.9-16.2 102.6-41.3 147.1-74.2.2-.2.4-.4.5-.6s.2-.5.2-.8c12.3-126.8-20.5-236.9-86.9-334.5zm-302 267.7c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.4 59.2-52.8 59.2m195.4 0c-29 0-52.8-26.6-52.8-59.2s23.4-59.2 52.8-59.2c29.7 0 53.3 26.8 52.8 59.2 0 32.7-23.2 59.2-52.8 59.2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/truefoundry" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://x.com/truefoundry" target="_blank" rel="noopener" title="x.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M357.2 48h70.6L273.6 224.2 455 464H313L201.7 318.6 74.5 464H3.8l164.9-188.5L-5.2 48h145.6l100.5 132.9zm-24.8 373.8h39.1L119.1 88h-42z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate":{"json":[".s2"]},"base":"../../..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.path","navigation.instant","navigation.instant.prefetch","navigation.instant.progress","navigation.prune","navigation.sections","navigation.tabs","navigation.top","navigation.tracking","search.highlight","search.share","search.suggest","toc.follow"],"search":"../../../assets/javascripts/workers/search.e2d2d235.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.91a19a9e.min.js"></script>
+      
+    
+  </body>
+</html>
