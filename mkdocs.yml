@@ -69,24 +69,18 @@ theme:
     - search.suggest
     - toc.follow
   palette:
-    - media: "(prefers-color-scheme)"
-      toggle:
-        icon: lucide/sun-moon
-        name: Switch to light mode
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: indigo
-      accent: indigo
-      toggle:
-        icon: lucide/sun
-        name: Switch to dark mode
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
+    - scheme: slate
       primary: light-green
       accent: orange
       toggle:
+        icon: lucide/sun
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
         icon: lucide/moon-star
-        name: Switch to system preference
+        name: Switch to dark mode
 
 # Extensions
 markdown_extensions:
@@ -98,7 +92,7 @@ markdown_extensions:
   - md_in_html
   - toc:
       permalink: true
-  - cruisekube.extensions.preview:
+  - zensical.extensions.preview:
       targets:
         include:
           - index.md
