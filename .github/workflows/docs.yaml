@@ -1,10 +1,12 @@
 name: deploy-docs
 on:
+ # Temporary branch for fixing gh-pages
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
-      # Temporary branch for fixing gh-pages
-      - rt-fix-gh-pages
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
@@ -35,4 +37,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
+          publish_dir: ./site
