@@ -103,7 +103,10 @@ func ComputeRecommendedResourceValues(ctx context.Context, rec PodContainerRecom
 			if containerStat.MemoryStats != nil && containerStat.MemoryStats.OOMMemory > 0 {
 				oom = containerStat.MemoryStats.OOMMemory
 			}
-			memoryLimit = EnforceMinimumMemory(max(memMax, oom) * 2)
+			// Keep derived memory limit from 7-day/OOM signal, but never let it
+			// drop below the chosen memory request, otherwise Kubernetes rejects
+			// the pod update (request must be <= limit).
+			memoryLimit = max(memoryRequest, EnforceMinimumMemory(max(memMax, oom)*2))
 		}
 	} else {
 		logging.Warnf(ctx, "No stats for container %s", rec.ContainerName)
@@ -111,6 +114,11 @@ func ComputeRecommendedResourceValues(ctx context.Context, rec PodContainerRecom
 
 	cpuRequest = math.Round(cpuRequest*1000) / 1000
 	cpuLimit = math.Round(cpuLimit*1000) / 1000
+	// If we are setting a CPU limit, ensure it is never below request.
+	// Kubernetes validates request <= limit for the same resource.
+	if cpuLimit > 0 {
+		cpuLimit = max(cpuLimit, cpuRequest)
+	}
 	memoryRequest = math.Round(memoryRequest)
 	memoryLimit = math.Round(memoryLimit)
 	return cpuRequest, memoryRequest, cpuLimit, memoryLimit

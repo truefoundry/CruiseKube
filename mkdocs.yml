@@ -1,11 +1,13 @@
-# Site
+# Project information
 site_name: CruiseKube
 site_url: https://cruisekube.com
 site_author: TrueFoundry
 site_description: >-
   CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.
+
+
 extra_css:
-  - stylesheets/extra.css
+  - assets/stylesheets/extra.css
 
 
 # Repository
@@ -13,93 +15,130 @@ repo_name: truefoundry/CruiseKube
 repo_url: https://github.com/truefoundry/CruiseKube
 
 # Copyright
-copyright: Copyright &copy; 2025 TrueFoundry
+copyright: Copyright &copy; 2026 TrueFoundry
 
 theme:
+  variant: modern
   name: material
-  logo: images/logo/cruiseKube_White.png
-  favicon: images/logo/favicon/favicon.ico
+  logo: assets/images/logo/cruiseKube_logo.svg
+  favicon: assets/images/logo/favicon/favicon.ico
   custom_dir: docs/overrides
-  font:
-    text: Roboto
-    code: Roboto Mono
-  # icon:
-  #   admonition:
-  #     note: octicons/tag-16
-  #     abstract: octicons/checklist-16
-  #     info: octicons/info-16
-  #     tip: octicons/squirrel-16
-  #     success: octicons/check-16
-  #     question: octicons/question-16
-  #     warning: octicons/alert-16
-  #     failure: octicons/x-circle-16
-  #     danger: octicons/zap-16
-  #     bug: octicons/bug-16
-  #     example: octicons/beaker-16
-  #     quote: octicons/quote-16
+  font: 
+    code: JetBrains Mono
+  icon:
+    tag:
+      default: lucide/hash
+    previous: fontawesome/solid/angle-left
+    next: fontawesome/solid/angle-right
+    admonition:
+      note: octicons/tag-16
+      abstract: octicons/checklist-16
+      info: octicons/info-16
+      tip: octicons/squirrel-16
+      success: octicons/check-16
+      question: octicons/question-16
+      warning: octicons/alert-16
+      failure: octicons/x-circle-16
+      danger: octicons/zap-16
+      bug: octicons/bug-16
+      example: octicons/beaker-16
+      quote: octicons/quote-16
   features:
-    # - announce.dismiss
+    - announce.dismiss
     # - content.action.edit
-    # - content.action.view
     - content.code.annotate
     - content.code.copy
-    # - content.code.select
-    # - content.footnote.tooltips
+    - content.code.select
+    - content.footnote.tooltips
     - content.tabs.link
     - content.tooltips
-    # - header.autohide
     # - navigation.expand
     - navigation.footer
     - navigation.indexes
+    - navigation.path
     - navigation.instant
     - navigation.instant.prefetch
-    # - navigation.instant.progress
-    # - navigation.prune
+    - navigation.instant.progress
+    - navigation.prune
     - navigation.sections
     - navigation.tabs
-    # - navigation.tabs.sticky
     - navigation.top
     - navigation.tracking
     - search.highlight
     - search.share
     - search.suggest
     - toc.follow
-    - toc.integrate
   palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: lucide/sun-moon
+        name: Switch to light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: indigo
       accent: indigo
       toggle:
-        icon: material/weather-night
+        icon: lucide/sun
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: black
-      accent: indigo
+      primary: light-green
+      accent: orange
       toggle:
-        icon: material/weather-sunny
+        icon: lucide/moon-star
         name: Switch to system preference
 
+# Extensions
 markdown_extensions:
+  - abbr
   - admonition
-  - pymdownx.details
   - attr_list
+  - def_list
+  - footnotes
   - md_in_html
-  - pymdownx.blocks.caption
+  - toc:
+      permalink: true
+  - cruisekube.extensions.preview:
+      targets:
+        include:
+          - index.md
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:zensical.extensions.emoji.to_svg
+      emoji_index: !!python/name:zensical.extensions.emoji.twemoji
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      normalize_issue_symbols: true
+      repo_url_shorthand: true
+      user: truefoundry
+      repo: cruisekube
+  - pymdownx.mark
+  - pymdownx.smartsymbols
   - pymdownx.snippets
-  - pymdownx.tabbed:
-      alternate_style: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
 
 plugins:
   - search:
@@ -107,6 +146,13 @@ plugins:
   - blog
 
 extra:
+  # homepage: https://cruisekube.com
+  scope: /
+  annotate:
+    json: [.s2]
+  status:
+    new: Recently added
+    deprecated: Deprecated
   social:
     - icon: fontawesome/brands/discord
       link: https://discord.gg/Dqek4xJa3N
@@ -123,7 +169,7 @@ extra:
       "@type": "Organization"
       name: "TrueFoundry"
       url: "https://truefoundry.com"
-      logo: "https://cruisekube.com/images/logo/cruiseKube_Colour.png"
+      logo: "https://cruisekube.com/assets/images/logo/cruiseKube_Colour.png"
       sameAs:
         - "https://github.com/truefoundry"
         - "https://discord.gg/Dqek4xJa3N"
@@ -184,7 +230,7 @@ extra:
         url: "https://truefoundry.com"
         logo:
           "@type": "ImageObject"
-          url: "https://cruisekube.com/images/logo/cruiseKube_Colour.png"
+          url: "https://cruisekube.com/assets/images/logo/cruiseKube_Colour.png"
       mainEntityOfPage:
         "@type": "WebPage"
         "@id": "https://cruisekube.com"
@@ -198,30 +244,32 @@ extra:
 # Page tree
 nav:
   - Home: index.md
-  - Overview: 
-      - Introduction: src/overview.md
-      - Use Cases: src/overview-use-cases.md
-      - CruiseKube vs VPA: src/comp-vs-vpa.md
-      - FAQ: src/overview-faq.md
+  - About: 
+      - Introduction: about/overview.md
+      - Use Cases: about/overview-use-cases.md
+      - CruiseKube vs VPA: about/comp-vs-vpa.md
+      - FAQ: about/overview-faq.md
   - Install:
-      - Pre-Requisites: src/gs-prerequisites.md
-      - Installation: src/gs-installation.md
-  - Operate:
-      - Dashboard: src/config-dashboard.md
-      - Policies & Modes: src/operate-policies.md
-      - Resource Pricing: src/operate-resource-pricing.md
-      - Troubleshooting: src/operate-troubleshooting.md
-  - Concepts:
-      - Architecture: src/arch-introduction.md
-      - Algorithm: src/arch-algorithm.md
-      - TradeOffs: src/arch-tradeoffs.md
-  - Reference: 
-      - Helm Chart: src/reference-helm-chart.md
-      - Configuration: src/config.md
-  - Contribute:
-      - Dev Environment: src/dev-env.md
-      - Release Process: src/dev-release.md
-      - Security: src/dev-security.md
-      - Contributors: src/dev-contributors.md
+      - Installation: install/gs-installation.md
+      - Basic Usage: install/basic-usage.md
+      - Pre-Requisites: install/gs-prerequisites.md
+  - Documentation:
+      - Concepts:
+        - Architecture: documentation/concepts/arch-introduction.md
+        - Algorithm: documentation/concepts/arch-algorithm.md
+        - TradeOffs: documentation/concepts/arch-tradeoffs.md
+      - Operate:
+        - Dashboard: documentation/operate/config-dashboard.md
+        - Policies & Modes: documentation/operate/operate-policies.md
+        - Resource Pricing: documentation/operate/operate-resource-pricing.md
+        - Troubleshooting: documentation/operate/operate-troubleshooting.md
+      - Contribute:
+        - Dev Environment: documentation/contribute/dev-env.md
+        - Release Process: documentation/contribute/dev-release.md
+        - Security: documentation/contribute/dev-security.md
+        - Contributors: documentation/contribute/dev-contributors.md
+      - Reference: 
+        - Helm Chart: documentation/reference/reference-helm-chart.md
+        - Configuration: documentation/reference/config.md
   - Blog:
-      - CruiseKube Announcement: blog/index.md
+      - CruiseKube Announcement: blog/posts/cruisekube_announcement.md

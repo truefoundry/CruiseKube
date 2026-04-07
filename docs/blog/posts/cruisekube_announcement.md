@@ -1,6 +1,7 @@
 ---
 date: 2026-01-12
 pin: true
+icon: lucide/megaphone
 title: Introducing CruiseKube - Runtime Resource Optimization for Kubernetes
 description: Learn how CruiseKube can help you eliminate persistent over-provisioning while preserving workload reliability and scheduling constraints.
 keywords: 
@@ -15,7 +16,7 @@ author:
 
 # Introducing CruiseKube - Runtime Resource Optimization for Kubernetes
 
-<img src="../../images/logo/cruiseKube_Colour.png" alt="CruiseKube Logo" width="200">
+<img src="/assets/images/logo/cruiseKube_Colour.png" alt="CruiseKube Logo" width="200">
 
 Today, we’re excited to announce the release of **CruiseKube** - a runtime resource optimization engine for Kubernetes that continuously right-sizes pods *without restarts*, unlocking significant cost efficiency gains while preserving reliability.
 
@@ -39,7 +40,7 @@ CruiseKube explicitly addresses the pod-level right-sizing problem, in a fully h
 
 ## How does it work?
 
-<img src="/images/cruisekube-arch.png" alt="CruiseKube Architecture">
+<img src="/assets/images/cruisekube-arch.png" alt="CruiseKube Architecture">
 
 At a high level, CruiseKube has the following components -
 
@@ -61,7 +62,7 @@ CruiseKube is different from other resource optimization tools in the following 
 
 ## Getting Started
 
-Getting started with CruiseKube is as simple as installing the `cruisekube` helm chart with appropriate values. Please follow the [installation guide](../../src/gs-installation.md) to get started.
+Getting started with CruiseKube is as simple as installing the `cruisekube` helm chart with appropriate values. Please follow the [installation guide](../../install/gs-installation.md) to get started.
 
 ## What's next?
 
