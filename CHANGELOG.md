@@ -9,6 +9,16 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.2.6-rc.2 [2026-04-08]
+
+## Improvements
+* Standardize Go file and package naming by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/219
+* increasing timeout for timeseries prediction by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/220
+* Move docs to zensical by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/215
+* feat: update gh pages by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/221
+* Add imagePullSecrets parameter for certificate generator by @koundykarthik in https://github.com/truefoundry/CruiseKube/pull/222
+
+
 ## v0.2.6-rc.1 (2026-04-02)
 
 ### Other
