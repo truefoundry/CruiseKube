@@ -176,6 +176,8 @@ cruisekubeWebhook:
       imagePullPolicy: IfNotPresent
       ## @param cruisekubeWebhook.certGen.image.tag Certificate generator image tag
       tag: v1.5.2
+      ## @param cruisekubeWebhook.certGen.imagePullSecrets Certificate generator image pull secrets
+    imagePullSecrets: []
     resources:
       limits:
         ## @param cruisekubeWebhook.certGen.resources.limits.cpu The resources limits (CPU) for the certificate generator containers
