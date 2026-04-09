@@ -124,6 +124,9 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 			logging.Warnf(ctx, "Skipping workload %s: missing stat", workload.WorkloadID)
 			continue
 		}
+		if stat.IsGPUWorkload() {
+			continue
+		}
 		overridesMap[workload.WorkloadID] = &types.WorkloadOverrideInfo{
 			WorkloadID: workload.WorkloadID,
 			Name:       stat.Name,
