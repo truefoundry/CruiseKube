@@ -111,20 +111,22 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	}
 	logging.Infof(ctx, "Loaded %d node recommendations", len(nodeRecommendationMap))
 
-	recommenderClient := client.NewRecommenderServiceClientWithBasicAuth(
-		a.config.Metadata.NodeStatsURL.Host,
-		a.config.BasicAuth.Username,
-		a.config.BasicAuth.Password,
-	)
-	workloadOverrides, err := recommenderClient.ListWorkloads(ctx, a.config.ClusterID)
+	workloads, err := a.storage.GetWorkloadsInCluster(a.config.ClusterID)
 	if err != nil {
-		logging.Errorf(ctx, "Error loading workload overrides from client: %v", err)
-		return fmt.Errorf("failed to list workloads from recommender service: %w", err)
+		logging.Errorf(ctx, "Error loading workloads from storage: %v", err)
+		return fmt.Errorf("failed to get workloads from storage: %w", err)
 	}
 
 	overridesMap := make(map[string]*types.WorkloadOverrideInfo)
-	for _, override := range workloadOverrides {
-		overridesMap[override.WorkloadID] = &override
+	for _, workload := range workloads {
+		stat := workload.GetStat()
+		overridesMap[workload.WorkloadID] = &types.WorkloadOverrideInfo{
+			WorkloadID: workload.WorkloadID,
+			Name:       stat.Name,
+			Namespace:  stat.Namespace,
+			Kind:       stat.Kind,
+			Overrides:  workload.OverridesWithDefaults(),
+		}
 	}
 
 	supportsMemoryLimitReduction := utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 34)
