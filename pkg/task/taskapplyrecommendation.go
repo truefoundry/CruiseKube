@@ -120,6 +120,10 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	overridesMap := make(map[string]*types.WorkloadOverrideInfo)
 	for _, workload := range workloads {
 		stat := workload.GetStat()
+		if stat == nil {
+			logging.Warnf(ctx, "Skipping workload %s: missing stat", workload.WorkloadID)
+			continue
+		}
 		overridesMap[workload.WorkloadID] = &types.WorkloadOverrideInfo{
 			WorkloadID: workload.WorkloadID,
 			Name:       stat.Name,
