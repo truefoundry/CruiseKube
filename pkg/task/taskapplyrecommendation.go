@@ -121,11 +121,7 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	for _, workload := range workloads {
 		stat := workload.GetStat()
 		if stat == nil {
-			logging.Warnf(ctx, "Workload %s has no stat; using stored overrides without stat metadata", workload.WorkloadID)
-			overridesMap[workload.WorkloadID] = &types.WorkloadOverrideInfo{
-				WorkloadID: workload.WorkloadID,
-				Overrides:  workload.OverridesWithDefaults(),
-			}
+			logging.Warnf(ctx, "Workload %s has no stat; skipping (same as list-workloads API)", workload.WorkloadID)
 			continue
 		}
 		if stat.IsGPUWorkload() {
