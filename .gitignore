@@ -55,3 +55,6 @@ site
 temp/
 cmd/cruisekube/__debug*
 .vscode/
+*.csv
+*.xlsx
+__pycache__/
