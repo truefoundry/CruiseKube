@@ -6,7 +6,9 @@ commands:
   - command: |
       sh -ceu '
       RESPONSE="$(kubectl run curl-stats-incomplete --rm -i --restart=Never --image=docker.io/curlimages/curl@sha256:d94d07ba9e7d6de898b6d96c1a072f6f8266c687af78a74f380087a0addf5d17 -n cruisekube-system -- \
-        curl --fail -sS --max-time 10 http://cruisekube-controller.cruisekube-system.svc.cluster.local:8080/api/v1/clusters/default/stats)"
+        curl --fail -sS --max-time 10 \
+        -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiJ9.vDoHcYrtLHYHn709ypM4gIVSsTJR8wtRvpuHbQGySBY" \
+        http://cruisekube-controller.cruisekube-system.svc.cluster.local:8080/api/v1/clusters/default/stats)"
       export RESPONSE
       python3 - <<'"'"'PY'"'"'
       import json
