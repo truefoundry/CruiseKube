@@ -226,8 +226,9 @@ func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Man
 func startControllerHTTPServer(runtimeManager *runtimeManager, cfg *config.Config, handlerDeps handlers.HandlerDependencies) {
 	engine := server.SetupServerEngine(
 		handlerDeps,
-		middleware.AuthAPI(),
+		middleware.AuthAPI(cfg.Server.Auth.JWTSecret),
 		middleware.AuthWebhook(),
+		handlers.HandleLogin(cfg.Server.Auth),
 		middleware.EnsureClusterExists(handlerDeps.ClusterManager),
 		cfg.Server.EnableDevAPIs,
 		middleware.Common()...,
@@ -332,7 +333,7 @@ func registerApplyRecommendationTask(
 			ClusterID:              clusterID,
 			TargetClusterID:        cfg.Controller.TargetClusterID,
 			TargetNamespace:        cfg.Controller.TargetNamespace,
-			BasicAuth:              cfg.Server.BasicAuth,
+			Auth:                   cfg.Server.Auth,
 			RecommendationSettings: cfg.RecommendationSettings,
 		},
 		applyRecommendationTaskConfig,

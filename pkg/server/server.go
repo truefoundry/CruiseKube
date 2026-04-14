@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
-func SetupServerEngine(handlerDeps handlers.HandlerDependencies, authAPI gin.HandlerFunc, authWebhook gin.HandlerFunc, ensureClusterExists gin.HandlerFunc, enableDevAPIs bool, middleware ...gin.HandlerFunc) *gin.Engine {
+func SetupServerEngine(handlerDeps handlers.HandlerDependencies, authAPI gin.HandlerFunc, authWebhook gin.HandlerFunc, loginHandler gin.HandlerFunc, ensureClusterExists gin.HandlerFunc, enableDevAPIs bool, middleware ...gin.HandlerFunc) *gin.Engine {
 	r := gin.Default()
 	r.Use(otelgin.Middleware("cruisekube-api"))
 	r.Use(middleware...)
@@ -18,6 +18,7 @@ func SetupServerEngine(handlerDeps handlers.HandlerDependencies, authAPI gin.Han
 	apiV1Group := r.Group("/api/v1")
 	{
 		apiV1Group.GET("/", handlers.HandleRoot)
+		apiV1Group.POST("/auth/login", loginHandler)
 		apiV1Group.GET("/clusters", authAPI, handlerDeps.HandleListClusters)
 	}
 
