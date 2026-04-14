@@ -24,17 +24,23 @@ import (
 type RecommenderServiceClient struct {
 	host         string
 	httpClient   *http.Client
-	username     string
-	password     string
+	bearerToken  string
 	clusterToken string
 }
 
 type ClientConfig struct {
 	Host         string
-	Username     string
-	Password     string
 	ClusterToken string
 	Timeout      time.Duration
+}
+
+type loginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type loginResponse struct {
+	Token string `json:"token"`
 }
 
 type HealthResponse struct {
@@ -67,18 +73,8 @@ func NewRecommenderServiceClient(config ClientConfig) *RecommenderServiceClient 
 			Transport: otelhttp.NewTransport(http.DefaultTransport),
 			Timeout:   timeout,
 		},
-		username:     config.Username,
-		password:     config.Password,
 		clusterToken: config.ClusterToken,
 	}
-}
-
-func NewRecommenderServiceClientWithBasicAuth(host, username, password string) *RecommenderServiceClient {
-	return NewRecommenderServiceClient(ClientConfig{
-		Host:     host,
-		Username: username,
-		Password: password,
-	})
 }
 
 func NewRecommenderServiceClientWithClusterToken(host, clusterToken string) *RecommenderServiceClient {
@@ -119,12 +115,11 @@ func (c *RecommenderServiceClient) makeRequest(ctx context.Context, method, endp
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	if c.clusterToken != "" {
+	if c.bearerToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.bearerToken)
+	} else if c.clusterToken != "" {
 		logging.Infof(ctx, "Setting cluster token")
 		req.Header.Set("x-cluster-token", c.clusterToken)
-	} else if c.username != "" && c.password != "" {
-		logging.Infof(ctx, "Setting basic auth")
-		req.SetBasicAuth(c.username, c.password)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -184,20 +179,29 @@ func (c *RecommenderServiceClient) WebhookMutatingPatch(ctx context.Context, clu
 	return result, err
 }
 
-func (c *RecommenderServiceClient) SetHost(host string) {
-	c.host = strings.TrimSuffix(host, "/")
+// Login exchanges username/password for a JWT and stores it as the bearer token for subsequent requests.
+func (c *RecommenderServiceClient) Login(ctx context.Context, username, password string) error {
+	req := loginRequest{Username: username, Password: password}
+	var resp loginResponse
+	if err := c.makeRequest(ctx, "POST", "/api/v1/auth/login", req, &resp); err != nil {
+		return fmt.Errorf("login failed: %w", err)
+	}
+	c.bearerToken = resp.Token
+	return nil
 }
 
-func (c *RecommenderServiceClient) SetAuth(username, password string) {
-	c.username = username
-	c.password = password
+func (c *RecommenderServiceClient) SetBearerToken(token string) {
+	c.bearerToken = token
 	c.clusterToken = ""
 }
 
 func (c *RecommenderServiceClient) SetClusterToken(token string) {
 	c.clusterToken = token
-	c.username = ""
-	c.password = ""
+	c.bearerToken = ""
+}
+
+func (c *RecommenderServiceClient) SetHost(host string) {
+	c.host = strings.TrimSuffix(host, "/")
 }
 
 func (c *RecommenderServiceClient) GetHost() string {
