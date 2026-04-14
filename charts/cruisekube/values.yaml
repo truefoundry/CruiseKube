@@ -17,6 +17,15 @@ global:
 cruisekubeController:
   ## @param cruisekubeController.enabled Enable CruiseKube Controller deployment
   enabled: true
+  admin:
+    ## @param cruisekubeController.admin.existingSecret Name of the secret containing admin credentials.
+    existingSecret: ""
+    ## @param cruisekubeController.admin.userKey Key in the secret for the admin username.
+    userKey: admin-user
+    ## @param cruisekubeController.admin.passwordKey Key in the secret for the admin password.
+    passwordKey: admin-password
+    ## @param cruisekubeController.admin.jwtSecretKey Key in the secret for the JWT signing secret.
+    jwtSecretKey: admin-jwt-secret
   ## @param cruisekubeController.replicas Number of CruiseKube Controller replicas to deploy
   replicas: 1
   image:
@@ -114,8 +123,6 @@ cruisekubeController:
     CRUISEKUBE_METRICS_ENABLED: "true"
     CRUISEKUBE_METRICS_PORT: "8081"
     CRUISEKUBE_SERVER_PORT: "8080"
-    CRUISEKUBE_SERVER_BASICAUTH_USERNAME: "admin"
-    CRUISEKUBE_SERVER_BASICAUTH_PASSWORD: "admin"
     CRUISEKUBE_DB_TYPE: "postgres"
     CRUISEKUBE_DB_SSLMODE: "disable"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_NEWWORKLOADTHRESHOLDHOURS: "1"
