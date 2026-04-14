@@ -43,9 +43,10 @@ metrics:
   port: "8081"   
 server:
   port: "8080"
-  basicAuth:
-    username: "admin"
-    password: "admin"
+  auth:
+    username: ""
+    password: ""
+    jwtSecret: ""
 webhook:
   port: "8443"
   certsDir: "/tmp/webhook-certs"
