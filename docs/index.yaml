@@ -12,8 +12,8 @@ entries:
           url: https://discord.gg/Dqek4xJa3N
       artifacthub.io/operator: "true"
     apiVersion: v2
-    appVersion: 0.2.6-rc.1
-    created: "2026-04-02T19:35:04.571863724Z"
+    appVersion: 0.2.6-rc.2
+    created: "2026-04-08T13:55:46.814115603Z"
     dependencies:
     - condition: postgresql.enabled
       name: postgresql
@@ -22,9 +22,46 @@ entries:
     description: CruiseKube is an intelligent Kubernetes resource optimization controller
       that automatically monitors, analyzes, and applies resource recommendations
       to improve cluster efficiency and reduce costs.
-    digest: d61cfb265c13fd20bc987dbbaddc70dbd3658d9dc65b774844cdec1310fad6fe
+    digest: 95a3d1f38e838cd7409db046262e7c7541a64096f3184527392b3de6773d8036
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
+    keywords:
+    - Kubernetes
+    - operator
+    - resource optimization
+    - cost optimization
+    - Kubernetes scaling
+    name: cruisekube
+    sources:
+    - https://github.com/truefoundry/CruiseKube
+    type: application
+    urls:
+    - https://github.com/truefoundry/CruiseKube/releases/download/v0.2.6-rc.2/cruisekube-0.2.6-rc.2.tgz
+    version: 0.2.6-rc.2
+  - annotations:
+      artifacthub.io/license: BUSL-1.1
+      artifacthub.io/links: |
+        - name: Homepage
+          url: https://cruisekube.com
+        - name: Source
+          url: https://github.com/truefoundry/CruiseKube
+        - name: Discord
+          url: https://discord.gg/Dqek4xJa3N
+      artifacthub.io/operator: "true"
+    apiVersion: v2
+    appVersion: 0.2.6-rc.1
+    created: "2026-04-07T07:17:41.968209407Z"
+    dependencies:
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: oci://tfy.jfrog.io/tfy-mirror/bitnamicharts
+      version: 18.1.14
+    description: CruiseKube is an intelligent Kubernetes resource optimization controller
+      that automatically monitors, analyzes, and applies resource recommendations
+      to improve cluster efficiency and reduce costs.
+    digest: 9d40e904452bd6a9d7f9589b4117fda1028869e5d9c9bffd5f16252d300dbb70
+    home: https://cruisekube.com
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -50,7 +87,7 @@ entries:
       artifacthub.io/operator: "true"
     apiVersion: v2
     appVersion: 0.2.5
-    created: "2026-03-31T12:17:42.058227738Z"
+    created: "2026-04-02T13:31:34.920795852Z"
     dependencies:
     - condition: postgresql.enabled
       name: postgresql
@@ -59,9 +96,9 @@ entries:
     description: CruiseKube is an intelligent Kubernetes resource optimization controller
       that automatically monitors, analyzes, and applies resource recommendations
       to improve cluster efficiency and reduce costs.
-    digest: 01eea6ccd195a8e030d9d35da6dad7e64a2f251f11c0e2ea5148cdb8613a33b1
+    digest: a6643066a0aa356fa1514df4ec4c81152276c969e106d12f019e19be2d149610
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -98,7 +135,7 @@ entries:
       to improve cluster efficiency and reduce costs.
     digest: f2c3cf1b29a852b9dbd98a0bcfa6ed772e4c7580ceedab2f7c142032d1503ea9
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -135,7 +172,7 @@ entries:
       to improve cluster efficiency and reduce costs.
     digest: b13b30466e8ea5c42ec570f1943b70fbcf54796d1a106018b10b60b84d247573
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -172,7 +209,7 @@ entries:
       to improve cluster efficiency and reduce costs.
     digest: b937be3f9ec8d83b84d9fc7690ad4c57a4c8b38cd1cf5f4557b6bc525f23e3d9
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -209,7 +246,7 @@ entries:
       to improve cluster efficiency and reduce costs.
     digest: bd9f27e108968c7925813437538d4b837d8b9da6c9c33d778396e17000df5993
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -246,7 +283,7 @@ entries:
       to improve cluster efficiency and reduce costs.
     digest: 0bf090550724051334675ce1f5b4484786b73713b5ab50f4ef82bbd7852ad82f
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -283,7 +320,7 @@ entries:
       to improve cluster efficiency and reduce costs.
     digest: b41a71e5656cbfb7a0a8c9e58c7e3e5c3a5e1a97b6c10387d7812930f0f5260d
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -320,7 +357,7 @@ entries:
       to improve cluster efficiency and reduce costs.
     digest: fa4ab8339c7228996e77a41b7ed507fc6a516a3a502dd4dd04b6009420c46c9d
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -357,7 +394,7 @@ entries:
       to improve cluster efficiency and reduce costs.
     digest: e7418dee566aaa0d679f93964975513c08a902fbf046cb32de42a382113f3e98
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -394,7 +431,7 @@ entries:
       to improve cluster efficiency and reduce costs.
     digest: e8edddef6f5e34cf69a22f5354fe41d216b6b1e715a3f807d3fa3f1fe31512a3
     home: https://cruisekube.com
-    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/images/logo/favicon/android-chrome-192x192.png
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
     keywords:
     - Kubernetes
     - operator
@@ -408,4 +445,4 @@ entries:
     urls:
     - https://github.com/truefoundry/CruiseKube/releases/download/v0.1.9/cruisekube-0.1.9.tgz
     version: 0.1.9
-generated: "2026-04-02T19:35:04.565053415Z"
+generated: "2026-04-08T13:55:46.807362542Z"

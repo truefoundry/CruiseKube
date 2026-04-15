@@ -17,14 +17,14 @@ deadcode:
 	@go run golang.org/x/tools/cmd/deadcode@v0.43.0 -test ./cmd/cruisekube
 
 serve-docs: ## Serve docs
-	@command -v mkdocs >/dev/null 2>&1 || { \
-	  echo "mkdocs not found - please install it (pip install mkdocs-material)"; exit 1; } ; \
-	mkdocs serve
+	@command -v zensical >/dev/null 2>&1 || { \
+	  echo "mkdocs not found - please install it (pip install zensical)"; exit 1; } ; \
+	zensical serve
 	
 build-docs: ## Build docs
-	@command -v mkdocs >/dev/null 2>&1 || { \
-	  echo "mkdocs not found - please install it (pip install mkdocs-material)"; exit 1; } ; \
-	mkdocs build
+	@command -v zensical >/dev/null 2>&1 || { \
+	  echo "mkdocs not found - please install it (pip install zensical)"; exit 1; } ; \
+	zensical build
 
 fetch-contributors: ## Fetch contributors
 	python3 docs/scripts/fetch_contributors.py

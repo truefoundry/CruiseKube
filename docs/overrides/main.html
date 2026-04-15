@@ -22,7 +22,7 @@
   {% endif %}
   <meta property="og:title" content="{% if page and page.meta and page.meta.title %}{{ page.meta.title }}{% elif page and page.title %}{{ page.title }} - CruiseKube{% else %}CruiseKube - Runtime Resource Optimization for Kubernetes{% endif %}">
   <meta property="og:description" content="{% if page and page.meta and page.meta.description %}{{ page.meta.description }}{% else %}{{ config.site_description }}{% endif %}">
-  <meta property="og:image" content="{% if page and page.meta and page.meta.image %}{{ page.meta.image }}{% else %}{{ config.site_url }}images/logo/logo_white_full.png{% endif %}">
+  <meta property="og:image" content="{% if page and page.meta and page.meta.image %}{{ page.meta.image }}{% else %}{{ config.site_url }}/assets/images/logo/logo_white_full.png{% endif %}">
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
@@ -30,7 +30,7 @@
   <meta name="twitter:creator" content="@truefoundry">
   <meta name="twitter:title" content="{% if page and page.meta and page.meta.title %}{{ page.meta.title }}{% elif page and page.title %}{{ page.title }} - CruiseKube{% else %}CruiseKube - Runtime Resource Optimization for Kubernetes{% endif %}">
   <meta name="twitter:description" content="{% if page and page.meta and page.meta.description %}{{ page.meta.description }}{% else %}{{ config.site_description }}{% endif %}">
-  <meta name="twitter:image" content="{% if page and page.meta and page.meta.image %}{{ page.meta.image }}{% else %}{{ config.site_url }}images/logo/logo_white_full.png{% endif %}">
+  <meta name="twitter:image" content="{% if page and page.meta and page.meta.image %}{{ page.meta.image }}{% else %}{{ config.site_url }}/assets/images/logo/logo_white_full.png{% endif %}">
   
   <!-- Canonical URL -->
   {% if page and page.canonical_url %}
@@ -83,12 +83,3 @@
   {% endif %}
 {% endblock %}
 
-{% block announce %}
-    <div style="text-align: center;"> 
-
-    <a href="https://discord.gg/Dqek4xJa3N" style="color: #ffeb3b; text-decoration: none; font-weight: bold;" target="_blank" rel="noopener noreferrer">💬 Join Discord</a>
-    <span style="margin-left: 20px; margin-right: 20px; font-weight: bold;"> - </span>
-    <a href="https://github.com/truefoundry/cruiseKube" style="color: #ffeb3b; text-decoration: none; font-weight: bold;" target="_blank" rel="noopener noreferrer">⭐ Star on GitHub</a>
-    
-    </div>
-{% endblock %}
