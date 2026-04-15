@@ -1,5 +1,5 @@
 # Build stage
-FROM public.ecr.aws/docker/library/golang:1.24-alpine3.22 AS builder
+FROM public.ecr.aws/docker/library/golang:1.25.9-alpine3.23 AS builder
 RUN apk add --no-cache git gcc musl-dev
 WORKDIR /app
 COPY go.mod go.sum ./
