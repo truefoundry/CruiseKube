@@ -1,5 +1,5 @@
 # Build stage
-FROM public.ecr.aws/docker/library/golang:1.24-alpine3.22 AS builder
+FROM public.ecr.aws/docker/library/golang:1.25.9-alpine3.23 AS builder
 RUN apk add --no-cache git gcc musl-dev
 WORKDIR /app
 COPY go.mod go.sum ./
@@ -15,7 +15,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
 	-o cruisekube ./cmd/cruisekube
 
 # Runtime stage
-FROM public.ecr.aws/docker/library/alpine:3.22
+FROM public.ecr.aws/docker/library/alpine:3.23
 RUN apk --no-cache add ca-certificates tzdata sqlite
 WORKDIR /app
 COPY --from=builder /app/cruisekube .
