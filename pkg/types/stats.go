@@ -331,4 +331,10 @@ type PodResourceRecommendationRow struct {
 	Pod            string
 	Container      string
 	Recommendation string
+	Current        string
+}
+
+type PodCurrentResources struct {
+	CurrentCPURequest    float64 `json:"current_cpu_request"`
+	CurrentMemoryRequest float64 `json:"current_memory_request"`
 }

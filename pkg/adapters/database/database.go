@@ -499,6 +499,7 @@ func (s *GormDB) SavePodRecommendations(clusterID string, rows []types.PodResour
 				Pod:            r.Pod,
 				Container:      r.Container,
 				Recommendation: r.Recommendation,
+				Current:        r.Current,
 			})
 		}
 		if err := tx.CreateInBatches(models, 100).Error; err != nil {
