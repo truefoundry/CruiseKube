@@ -97,12 +97,34 @@ func testStorage(t *testing.T, storage ports.Database) {
 	}
 
 	rows := []types.PodResourceRecommendationRow{
-		{WorkloadID: "Deployment/default/test-app/nginx", NodeName: "node-1", Namespace: "default", Pod: "test-app-abc", Container: "nginx", Recommendation: `{"cpu_request":0.5,"memory_request":512,"cpu_limit":1,"memory_limit":1000,"to_be_evicted":false}`},
-		{WorkloadID: "Deployment/default/test-app/sidecar", NodeName: "node-1", Namespace: "default", Pod: "test-app-abc", Container: "sidecar", Recommendation: ""},
+		{WorkloadID: "Deployment/default/test-app/nginx", NodeName: "node-1", Namespace: "default", Pod: "test-app-abc", Container: "nginx", Recommendation: `{"cpu_request":0.5,"memory_request":512,"cpu_limit":1,"memory_limit":1000,"to_be_evicted":false}`, Current: `{"current_cpu_request":0.75,"current_memory_request":768}`},
+		{WorkloadID: "Deployment/default/test-app/sidecar", NodeName: "node-1", Namespace: "default", Pod: "test-app-abc", Container: "sidecar", Recommendation: "", Current: `{"current_cpu_request":0.1,"current_memory_request":128}`},
 	}
 	err = storage.SavePodRecommendations(clusterID, rows)
 	if err != nil {
 		t.Fatalf("Failed to save pod recommendations: %v", err)
+	}
+	clusterRows, err := storage.GetPodRecommendationsForCluster(clusterID)
+	if err != nil {
+		t.Fatalf("Failed to get pod recommendations for cluster: %v", err)
+	}
+	if len(clusterRows) != len(rows) {
+		t.Fatalf("Expected %d pod recommendation rows, got %d", len(rows), len(clusterRows))
+	}
+	for i := range rows {
+		if clusterRows[i].Current != rows[i].Current {
+			t.Fatalf("Expected current payload %q, got %q", rows[i].Current, clusterRows[i].Current)
+		}
+	}
+	workloadRows, err := storage.GetPodRecommendationsForWorkload(clusterID, rows[0].WorkloadID)
+	if err != nil {
+		t.Fatalf("Failed to get pod recommendations for workload: %v", err)
+	}
+	if len(workloadRows) != 1 {
+		t.Fatalf("Expected 1 workload row, got %d", len(workloadRows))
+	}
+	if workloadRows[0].Current != rows[0].Current {
+		t.Fatalf("Expected workload current payload %q, got %q", rows[0].Current, workloadRows[0].Current)
 	}
 	err = storage.SavePodRecommendations(clusterID, nil)
 	if err == nil {

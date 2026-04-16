@@ -119,8 +119,10 @@ func (deps HandlerDependencies) getPodRecommendationsForCluster(ctx context.Cont
 			continue
 		}
 		var current types.PodCurrentResources
-		if err := json.Unmarshal([]byte(row.Current), &current); err != nil {
-			continue
+		if row.Current != "" {
+			if err := json.Unmarshal([]byte(row.Current), &current); err != nil {
+				logging.Warnf(ctx, "Failed to unmarshal pod current resources for workload %s pod %s: %v", row.WorkloadID, row.Pod, err)
+			}
 		}
 		parsedRecs = append(parsedRecs, parsedPodRecommendation{WorkloadID: row.WorkloadID, Namespace: row.Namespace, Pod: row.Pod, Rec: rec, Current: current})
 	}

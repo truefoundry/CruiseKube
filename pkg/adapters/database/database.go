@@ -527,6 +527,7 @@ func (s *GormDB) GetPodRecommendationsForCluster(clusterID string) ([]types.PodR
 			Pod:            m.Pod,
 			Container:      m.Container,
 			Recommendation: m.Recommendation,
+			Current:        m.Current,
 		})
 	}
 	return rows, nil
@@ -546,6 +547,7 @@ func (s *GormDB) GetPodRecommendationsForWorkload(clusterID, workloadID string) 
 			Pod:            m.Pod,
 			Container:      m.Container,
 			Recommendation: m.Recommendation,
+			Current:        m.Current,
 		})
 	}
 	return rows, nil
