@@ -183,6 +183,10 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 }
 
 func aggregatePodCurrentsForWorkload(podCurrents []types.PodCurrentResources, stat *types.WorkloadStat) types.PodCurrentResources {
+	if len(podCurrents) == 0 {
+		return types.PodCurrentResources{}
+	}
+
 	var currentCPURequest, currentMemoryRequest float64
 	for _, p := range podCurrents {
 		currentCPURequest += p.CurrentCPURequest

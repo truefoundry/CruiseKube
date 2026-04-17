@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"math"
 	"testing"
 
 	"github.com/truefoundry/cruisekube/pkg/types"
@@ -33,5 +34,18 @@ func TestIsNonOptimizableWorkloadTreatsAnyExcludedCodeAsNonOptimizable(t *testin
 
 	if !isNonOptimizableWorkload(workload) {
 		t.Fatal("expected workload with excluded codes to be classified as non-optimizable")
+	}
+}
+
+func TestAggregatePodCurrentsForWorkloadWithoutRowsReturnsZeroValues(t *testing.T) {
+	stat := &types.WorkloadStat{Replicas: 0}
+
+	current := aggregatePodCurrentsForWorkload(nil, stat)
+
+	if math.IsNaN(current.CurrentCPURequest) || math.IsNaN(current.CurrentMemoryRequest) {
+		t.Fatalf("expected finite current requests, got cpu=%v mem=%v", current.CurrentCPURequest, current.CurrentMemoryRequest)
+	}
+	if current.CurrentCPURequest != 0 || current.CurrentMemoryRequest != 0 {
+		t.Fatalf("expected zero current requests, got cpu=%v mem=%v", current.CurrentCPURequest, current.CurrentMemoryRequest)
 	}
 }
