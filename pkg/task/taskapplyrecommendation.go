@@ -747,10 +747,12 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 			workloadID := utils.GetWorkloadKey(kind, namespace, name)
 			cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
 
-			var currentCPURequest, currentMemoryRequest float64
+			var currentCPURequest, currentMemoryRequest, currentCPULimit, currentMemoryLimit float64
 			if currentContainerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName); err == nil && currentContainerResource != nil {
 				currentCPURequest = currentContainerResource.CPURequest
 				currentMemoryRequest = currentContainerResource.MemoryRequest
+				currentCPULimit = currentContainerResource.CPULimit
+				currentMemoryLimit = currentContainerResource.MemoryLimit
 			}
 
 			if _, skip := nonOptKeys[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]; skip {
@@ -775,6 +777,8 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 			currentResources := types.PodCurrentResources{
 				CurrentCPURequest:    currentCPURequest,
 				CurrentMemoryRequest: currentMemoryRequest,
+				CurrentCPULimit:      currentCPULimit,
+				CurrentMemoryLimit:   currentMemoryLimit,
 			}
 			currentResourcesJSON, err := json.Marshal(currentResources)
 			if err != nil {

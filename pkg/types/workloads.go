@@ -81,6 +81,8 @@ type WorkloadDetailResponse struct {
 	CurrentCpuLimit     float64     `json:"current_cpu_limit"`
 	CurrentMemRequest   float64     `json:"current_mem_request"`
 	CurrentMemLimit     float64     `json:"current_mem_limit"`
+	CurrentPodAvgCPU    float64     `json:"current_pod_avg_cpu_request"`
+	CurrentPodAvgMemory float64     `json:"current_pod_avg_mem_request"`
 	PotentialCpuSavings float64     `json:"potential_cpu_savings"`
 	PotentialMemSavings float64     `json:"potential_mem_savings"`
 	Pods                []PodDetail `json:"pods"`
@@ -95,9 +97,11 @@ type PodDetail struct {
 
 // ContainerDetail holds container request/recommendation for the workload detail API.
 type ContainerDetail struct {
-	Container     string  `json:"container_name"`
-	CpuRequest    float64 `json:"cpu_request"`
-	CpuRecRequest float64 `json:"cpu_rec_request"`
-	MemRequest    float64 `json:"mem_request"`
-	MemRecRequest float64 `json:"mem_rec_request"`
+	Container          string  `json:"container_name"`
+	WorkloadCpuRequest float64 `json:"cpu_request"`
+	RecomCpuRequest    float64 `json:"cpu_rec_request"`
+	WorkloadMemRequest float64 `json:"mem_request"`
+	RecomMemRequest    float64 `json:"mem_rec_request"`
+	CurrentCpuRequest  float64 `json:"current_cpu_request"`
+	CurrentMemRequest  float64 `json:"current_mem_request"`
 }
