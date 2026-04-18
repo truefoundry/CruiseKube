@@ -335,8 +335,8 @@ type PodResourceRecommendationRow struct {
 }
 
 type PodCurrentResources struct {
-	CurrentCPURequest    float64 `json:"current_cpu_request"`
-	CurrentMemoryRequest float64 `json:"current_memory_request"`
-	CurrentCPULimit      float64 `json:"current_cpu_limit"`
-	CurrentMemoryLimit   float64 `json:"current_memory_limit"`
+	CurrentCPURequest    float64 `json:"cpu_request"`
+	CurrentMemoryRequest float64 `json:"memory_request"`
+	CurrentCPULimit      float64 `json:"cpu_limit"`
+	CurrentMemoryLimit   float64 `json:"memory_limit"`
 }
