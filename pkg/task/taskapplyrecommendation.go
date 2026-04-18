@@ -782,8 +782,8 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 			}
 			currentResourcesJSON, err := json.Marshal(currentResources)
 			if err != nil {
-				logging.Errorf(ctx, "failed to marshal pod current resources for %s/%s container %s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
-				continue
+				logging.Errorf(ctx, "failed to marshal pod current resources for %s/%s container %s: %v; persisting row with empty Current", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
+				currentResourcesJSON = []byte("{}")
 			}
 			recJSON, err := json.Marshal(payload)
 			if err != nil {
