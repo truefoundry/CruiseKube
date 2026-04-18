@@ -109,7 +109,7 @@ func TestHandleWorkloadDetailIncludesCurrentPodAverages(t *testing.T) {
 						Pod:            "api-0",
 						Container:      "main",
 						Recommendation: `{"cpu_request":0.5,"memory_request":256}`,
-						Current:        `{"current_cpu_request":0.8,"current_memory_request":400}`,
+						Current:        `{"cpu_request":0.8,"memory_request":400}`,
 					},
 					{
 						WorkloadID:     workloadID,
@@ -117,7 +117,7 @@ func TestHandleWorkloadDetailIncludesCurrentPodAverages(t *testing.T) {
 						Pod:            "api-1",
 						Container:      "main",
 						Recommendation: `{"cpu_request":0.6,"memory_request":300}`,
-						Current:        `{"current_cpu_request":1.0,"current_memory_request":500}`,
+						Current:        `{"cpu_request":1.0,"memory_request":500}`,
 					},
 				}, nil
 			},
