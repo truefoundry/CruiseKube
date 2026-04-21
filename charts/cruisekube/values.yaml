@@ -29,14 +29,14 @@ cruisekubeController:
       image:
         repository: bitnami/kubectl
         ## @param cruisekubeController.admin.credentialGen.image.tag Image tag for the credential generator Job.
-        tag: "1.31.4-debian-12-r4"
+        tag: "latest"
         ## @param cruisekubeController.admin.credentialGen.image.imagePullPolicy imagePullPolicy for the credential generator Job.
         imagePullPolicy: IfNotPresent
       ## @param cruisekubeController.admin.credentialGen.resources Resource requests and limits for the credential generator Job.
       resources:
         limits:
           cpu: 200m
-          memory: 256Mi
+          memory: 128Mi
         requests:
           cpu: 50m
           memory: 64Mi

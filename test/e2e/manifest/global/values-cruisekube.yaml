@@ -8,8 +8,6 @@ global:
 
 cruisekubeController:
   enabled: true
-  admin:
-    existingSecret: cruisekube-controller-admin-e2e
   serviceMonitor:
     enabled: false
   image:
@@ -38,7 +36,7 @@ postgresql:
     database: "cruisekube"
 
 cruisekubeFrontend:
-  enabled: false
+  enabled: true
 
 cruisekubeWebhook:
   enabled: true
