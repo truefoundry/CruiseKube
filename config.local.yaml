@@ -46,7 +46,6 @@ server:
   auth:
     username: ""
     password: ""
-    jwtSecret: ""
 webhook:
   port: "8443"
   certsDir: "/tmp/webhook-certs"

@@ -226,7 +226,7 @@ func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Man
 func startControllerHTTPServer(runtimeManager *runtimeManager, cfg *config.Config, handlerDeps handlers.HandlerDependencies) {
 	engine := server.SetupServerEngine(
 		handlerDeps,
-		middleware.AuthAPI(cfg.Server.Auth.JWTSecret),
+		middleware.AuthAPI(cfg.Server.Auth.Username, cfg.Server.Auth.Password),
 		middleware.AuthWebhook(),
 		handlers.HandleLogin(cfg.Server.Auth),
 		middleware.EnsureClusterExists(handlerDeps.ClusterManager),

@@ -68,6 +68,8 @@ kind-down: ## Delete Kind cluster
 apply-deps: ## Install all dependencies
 	@echo "Creating namespace..."
 	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
+	@echo "Applying controller admin credentials secret for e2e..."
+	@kubectl apply -f ./manifest/global/controller-admin-secret.yaml
 	@echo "Building Helm dependencies..."
 	@cd ../../charts/cruisekube && helm dependency build
 	@echo "Installing CruiseKube via Helm..."
@@ -87,6 +89,7 @@ ick: install-ck
 
 install-ck: ## Update helm chart
 	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
+	@kubectl apply -f ./manifest/global/controller-admin-secret.yaml
 	@cd ../../charts/cruisekube && helm dependency build
 	@helm upgrade --wait --timeout $(TIMEOUT) --install --create-namespace cruisekube ../../charts/cruisekube -n $(NAMESPACE) -f ./manifest/global/values-cruisekube.yaml
 

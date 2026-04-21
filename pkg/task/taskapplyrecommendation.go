@@ -839,11 +839,10 @@ func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Contex
 
 	if a.config.Metadata.NodeStatsURL.Host != "" {
 		recommenderClient := client.NewRecommenderServiceClient(client.ClientConfig{
-			Host: a.config.Metadata.NodeStatsURL.Host,
+			Host:     a.config.Metadata.NodeStatsURL.Host,
+			Username: a.config.Auth.Username,
+			Password: a.config.Auth.Password,
 		})
-		if err := recommenderClient.Login(ctx, a.config.Auth.Username, a.config.Auth.Password); err != nil {
-			return nil, fmt.Errorf("failed to authenticate with controller: %w", err)
-		}
 		var err error
 		statsFile, err = recommenderClient.GetClusterStats(ctx, a.config.ClusterID)
 		if err != nil {

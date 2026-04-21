@@ -18,14 +18,28 @@ cruisekubeController:
   ## @param cruisekubeController.enabled Enable CruiseKube Controller deployment
   enabled: true
   admin:
-    ## @param cruisekubeController.admin.existingSecret Name of the secret containing admin credentials.
+    ## @param cruisekubeController.admin.existingSecret Name of an existing Secret for HTTP basic auth (username + password). If empty, the chart creates a Secret via a Helm hook Job on install/upgrade (credentials are preserved across upgrades once the Secret exists).
     existingSecret: ""
     ## @param cruisekubeController.admin.userKey Key in the secret for the admin username.
     userKey: admin-user
     ## @param cruisekubeController.admin.passwordKey Key in the secret for the admin password.
     passwordKey: admin-password
-    ## @param cruisekubeController.admin.jwtSecretKey Key in the secret for the JWT signing secret.
-    jwtSecretKey: admin-jwt-secret
+    credentialGen:
+      ## @param cruisekubeController.admin.credentialGen.image.repository Image for the hook Job that creates the admin Secret when existingSecret is not set.
+      image:
+        repository: bitnami/kubectl
+        ## @param cruisekubeController.admin.credentialGen.image.tag Image tag for the credential generator Job.
+        tag: "1.31.4-debian-12-r4"
+        ## @param cruisekubeController.admin.credentialGen.image.imagePullPolicy imagePullPolicy for the credential generator Job.
+        imagePullPolicy: IfNotPresent
+      ## @param cruisekubeController.admin.credentialGen.resources Resource requests and limits for the credential generator Job.
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 50m
+          memory: 64Mi
   ## @param cruisekubeController.replicas Number of CruiseKube Controller replicas to deploy
   replicas: 1
   image:

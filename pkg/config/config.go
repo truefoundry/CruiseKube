@@ -77,9 +77,8 @@ type ServerConfig struct {
 }
 
 type AuthConfig struct {
-	Username  string `yaml:"username" mapstructure:"username"`
-	Password  string `yaml:"password" mapstructure:"password"`
-	JWTSecret string `yaml:"jwtSecret" mapstructure:"jwtSecret"`
+	Username string `yaml:"username" mapstructure:"username"`
+	Password string `yaml:"password" mapstructure:"password"`
 }
 
 type WebhookConfig struct {

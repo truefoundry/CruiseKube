@@ -78,23 +78,16 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            {{- if .Values.cruisekubeController.admin.existingSecret }}
             - name: CRUISEKUBE_SERVER_AUTH_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.cruisekubeController.admin.existingSecret }}
+                  name: {{ include "cruisekubeController.adminSecretName" . }}
                   key: {{ .Values.cruisekubeController.admin.userKey }}
             - name: CRUISEKUBE_SERVER_AUTH_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.cruisekubeController.admin.existingSecret }}
+                  name: {{ include "cruisekubeController.adminSecretName" . }}
                   key: {{ .Values.cruisekubeController.admin.passwordKey }}
-            - name: CRUISEKUBE_SERVER_AUTH_JWTSECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.cruisekubeController.admin.existingSecret }}
-                  key: {{ .Values.cruisekubeController.admin.jwtSecretKey }}
-            {{- end }}
           volumeMounts:
             {{- with .Values.cruisekubeController.volumeMounts }}
             {{- toYaml . | nindent 12 }}

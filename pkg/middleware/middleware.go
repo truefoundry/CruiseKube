@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"crypto/subtle"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,7 +13,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 func AuthWebhook() gin.HandlerFunc {
@@ -20,29 +21,36 @@ func AuthWebhook() gin.HandlerFunc {
 	}
 }
 
-func AuthAPI(jwtSecret string) gin.HandlerFunc {
+func AuthAPI(username, password string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if username == "" || password == "" {
+			c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "server authentication is not configured"})
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
+		const prefix = "Basic "
+		if !strings.HasPrefix(authHeader, prefix) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing or invalid authorization header, expected: Basic <credentials>"})
 			return
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format, expected: Bearer <token>"})
+		raw, err := base64.StdEncoding.DecodeString(authHeader[len(prefix):])
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid basic authorization encoding"})
 			return
 		}
 
-		tokenString := parts[1]
-		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-			}
-			return []byte(jwtSecret), nil
-		})
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+		pair := strings.SplitN(string(raw), ":", 2)
+		if len(pair) != 2 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid basic authorization format"})
+			return
+		}
+
+		givenUser, givenPass := pair[0], pair[1]
+		if subtle.ConstantTimeCompare([]byte(givenUser), []byte(username)) != 1 ||
+			subtle.ConstantTimeCompare([]byte(givenPass), []byte(password)) != 1 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 			return
 		}
 
