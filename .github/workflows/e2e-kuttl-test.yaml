@@ -9,6 +9,8 @@ on:
       - main
     paths:
       - 'test/e2e/**'
+      - 'cruiseKube-frontend/**'
+      - '.gitmodules'
       - 'charts/**'
       - 'cmd/**'
       - 'pkg/**'
@@ -25,6 +27,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -40,7 +44,7 @@ jobs:
         with:
           version: 'v3.14.2'
 
-      - name: Build and push images
+      - name: Build container images (controller + frontend submodule)
         working-directory: ./test/e2e
         run: |
           make build-images
