@@ -53,8 +53,6 @@ jobs:
         uses: helm/kind-action@v1.12.0
         with:
           install_only: true
-          # kindest/node v1.32+ uses containerd config paths that require kind >= v0.27
-          # for `kind load docker-image` (snapshotter detection). Default in this action is v0.26.0.
           version: v0.31.0
 
       - name: Setup environment

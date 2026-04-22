@@ -77,12 +77,12 @@ a pre-install/pre-upgrade hook Job creates the Secret on first install.
 {{- if .Values.cruisekubeController.admin.existingSecret }}
 {{- .Values.cruisekubeController.admin.existingSecret }}
 {{- else }}
-{{- printf "%s-admin-credentials" (include "cruisekubeController.fullname" .) }}
+{{- printf "%s-admin-credentials" (include "cruisekubeController.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
 
 {{- define "cruisekubeController.adminCredentialGen.serviceAccountName" -}}
-{{- printf "%s-admin-credential-generator" (include "cruisekubeController.fullname" .) }}
+{{- printf "%s-admin-credential-generator" (include "cruisekubeController.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{/*
 ServiceMonitor labels - merges common labels with servicemonitor-specific labels

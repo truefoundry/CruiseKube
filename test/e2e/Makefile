@@ -83,7 +83,7 @@ apply-deps: ## Install all dependencies
 	@echo "Creating namespace..."
 	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
 	@echo "Applying controller admin credentials secret for e2e..."
-	@kubectl apply -f ./manifest/global/controller-admin-secret.yaml
+	@kubectl apply -f ./manifest/global/controller-admin-secret.yaml -n $(NAMESPACE)
 	@echo "Building Helm dependencies..."
 	@cd ../../charts/cruisekube && helm dependency build
 	@echo "Installing CruiseKube via Helm..."
