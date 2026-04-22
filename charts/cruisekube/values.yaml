@@ -32,14 +32,12 @@ cruisekubeController:
         tag: "latest"
         ## @param cruisekubeController.admin.credentialGen.image.imagePullPolicy imagePullPolicy for the credential generator Job.
         imagePullPolicy: IfNotPresent
-      ## @param cruisekubeController.admin.credentialGen.resources Resource requests and limits for the credential generator Job.
       resources:
-        ## @param cruisekubeController.admin.credentialGen.resources.limits Resource limits for the credential generator Job.
         limits:
+          ## @param cruisekubeController.admin.credentialGen.resources.limits.cpu Resource limits (CPU) for the credential generator Job.
           cpu: 200m
           ## @param cruisekubeController.admin.credentialGen.resources.limits.memory Resource limits (memory) for the credential generator Job.
           memory: 128Mi
-        ## @param cruisekubeController.admin.credentialGen.resources.requests Resource requests for the credential generator Job.
         requests:
           ## @param cruisekubeController.admin.credentialGen.resources.requests.cpu Resource requests (CPU) for the credential generator Job.
           cpu: 50m
