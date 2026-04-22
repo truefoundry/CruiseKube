@@ -23,6 +23,8 @@ The dashboard is exposed as a Kubernetes Service and can be accessed in several 
 kubectl port-forward -n cruisekube-system svc/cruisekube-frontend 3000:3000
 ```
 
+You will be prompted to sign in. Credentials come from the Helm-managed controller admin Secret; see [Login & authentication](authentication.md).
+
 ### **Using ingress (if configured)**
 If you have configured an ingress controller and exposed the dashboard via ingress, you can access it using the configured domain.
 

@@ -57,7 +57,7 @@ jobs:
       - name: Setup environment
         working-directory: ./test/e2e
         run: |
-          make setup
+          make kind-up apply-deps
 
       - name: Install Kuttl
         run: |
