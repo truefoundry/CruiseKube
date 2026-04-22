@@ -3,6 +3,7 @@ CLUSTER_NAME := cruisekube-e2e
 NAMESPACE := cruisekube-system
 CONTROLLER_IMAGE := cruisekube:latest
 FRONTEND_IMAGE := cruisekube-frontend:latest
+FRONTEND_DIR := ../../cruiseKube-frontend
 T ?= ./tests
 TIMEOUT := 400s
 
@@ -37,8 +38,12 @@ build-images: ## Build controller image
 	@cd ../.. && docker build -t $(CONTROLLER_IMAGE) .
 	@echo "Controller image built successfully"
 	@echo "Building frontend image..."
-	@cd ../../cruiseKube-frontend && docker build -t $(FRONTEND_IMAGE) .
-	@echo "Frontend image built successfully"
+	@if [ -d "$(FRONTEND_DIR)" ]; then \
+		cd "$(FRONTEND_DIR)" && docker build -t $(FRONTEND_IMAGE) .; \
+		echo "Frontend image built successfully"; \
+	else \
+		echo "Skipping frontend image: directory $(FRONTEND_DIR) not found."; \
+	fi
 
 .PHONY: kind-up
 kind-up: ## Create Kind cluster and load images
@@ -56,7 +61,11 @@ kind-up: ## Create Kind cluster and load images
 	kubectl scale --replicas=1 deployment/coredns -n kube-system
 	@echo "Loading controller image into kind cluster..."
 	@kind load docker-image $(CONTROLLER_IMAGE) --name $(CLUSTER_NAME)
-	@kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME)
+	@if docker image inspect $(FRONTEND_IMAGE) >/dev/null 2>&1; then \
+		kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME); \
+	else \
+		echo "Skipping kind load for $(FRONTEND_IMAGE): image not present locally."; \
+	fi
 	@echo "Image loaded successfully"
 
 .PHONY: kind-down
@@ -85,11 +94,15 @@ apply-deps: ## Install all dependencies
 reload-images: ## Reload images into kind and restart deployments
 	@echo "Loading images into kind cluster..."
 	@kind load docker-image $(CONTROLLER_IMAGE) --name $(CLUSTER_NAME)
-	@kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME)
+	@if docker image inspect $(FRONTEND_IMAGE) >/dev/null 2>&1; then \
+		kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME); \
+	else \
+		echo "Skipping kind load for $(FRONTEND_IMAGE): image not present locally."; \
+	fi
 	@echo "Restarting cruisekube controller deployment..."
 	@kubectl rollout restart deployment cruisekube-controller -n $(NAMESPACE)
 	@kubectl rollout restart deployment cruisekube-webhook -n $(NAMESPACE)
-	@kubectl rollout restart deployment cruisekube-frontend -n $(NAMESPACE)
+	-@kubectl rollout restart deployment cruisekube-frontend -n $(NAMESPACE) 2>/dev/null || true
 	@echo "Images reloaded and deployment restarted."
 
 ick: install-ck
