@@ -2,6 +2,7 @@
 CLUSTER_NAME := cruisekube-e2e
 NAMESPACE := cruisekube-system
 CONTROLLER_IMAGE := cruisekube:latest
+FRONTEND_IMAGE := cruisekube-frontend:latest
 T ?= ./tests
 TIMEOUT := 400s
 
@@ -13,7 +14,7 @@ all:
 	@echo "Run 'make test' to run tests"
 	@echo "Run 'make clean' to clean environment"
 
-setup: kind-up apply-deps
+setup: build-images kind-up apply-deps
 clean: kind-down
 
 reset: uninstall-ck
@@ -35,6 +36,9 @@ build-images: ## Build controller image
 	@echo "Building controller image..."
 	@cd ../.. && docker build -t $(CONTROLLER_IMAGE) .
 	@echo "Controller image built successfully"
+	@echo "Building frontend image..."
+	@cd ../../cruiseKube-frontend && docker build -t $(FRONTEND_IMAGE) .
+	@echo "Frontend image built successfully"
 
 .PHONY: kind-up
 kind-up: ## Create Kind cluster and load images
@@ -51,7 +55,8 @@ kind-up: ## Create Kind cluster and load images
 	@kubectl wait --for=condition=Ready nodes --all --timeout=120s
 	kubectl scale --replicas=1 deployment/coredns -n kube-system
 	@echo "Loading controller image into kind cluster..."
-	@docker save $(CONTROLLER_IMAGE) | docker exec -i $(CLUSTER_NAME)-control-plane ctr -n k8s.io images import -
+	@kind load docker-image $(CONTROLLER_IMAGE) --name $(CLUSTER_NAME)
+	@kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME)
 	@echo "Image loaded successfully"
 
 .PHONY: kind-down
@@ -79,10 +84,12 @@ apply-deps: ## Install all dependencies
 .PHONY: reload-images
 reload-images: ## Reload images into kind and restart deployments
 	@echo "Loading images into kind cluster..."
-	@docker save $(CONTROLLER_IMAGE) | docker exec -i $(CLUSTER_NAME)-control-plane ctr -n k8s.io images import -
+	@kind load docker-image $(CONTROLLER_IMAGE) --name $(CLUSTER_NAME)
+	@kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME)
 	@echo "Restarting cruisekube controller deployment..."
 	@kubectl rollout restart deployment cruisekube-controller -n $(NAMESPACE)
 	@kubectl rollout restart deployment cruisekube-webhook -n $(NAMESPACE)
+	@kubectl rollout restart deployment cruisekube-frontend -n $(NAMESPACE)
 	@echo "Images reloaded and deployment restarted."
 
 ick: install-ck
@@ -96,4 +103,5 @@ install-ck: ## Update helm chart
 uick: uninstall-ck
 uninstall-ck: ## Delete cruisekube
 	@echo "Deleting cruisekube..."
+	
 	-@helm delete cruisekube -n $(NAMESPACE)

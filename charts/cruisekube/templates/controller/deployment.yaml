@@ -30,7 +30,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}-controller
           image: "{{ .Values.cruisekubeController.image.repository }}:{{ include "cruisekubeController.imageTag" . }}"
-          imagePullPolicy: {{ .Values.cruisekubeController.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.cruisekubeController.image.imagePullPolicy }}
           command: ["./cruisekube"]
           args:
             - "--execution-mode=controller"
