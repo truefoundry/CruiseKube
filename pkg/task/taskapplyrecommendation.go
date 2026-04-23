@@ -233,6 +233,12 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 			}
 		}
 
+		if nodeName == utils.UnscheduledPodsNodeName {
+			recommendationResultsToSave = append(recommendationResultsToSave, recResultToSave)
+			recommendationResultsToApply = append(recommendationResultsToApply, recResultToApply)
+			continue
+		}
+
 		resultToSave, err := strategy.OptimizeNode(ctx, a.kubeClient, overridesMap, utils.NodeOptimizationData{
 			NodeName:          nodeName,
 			AllocatableCPU:    availableCPU,
@@ -309,6 +315,11 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 		podContainerRecommendation := recommendationResult.PodContainerRecommendations
 		if generateRecommendationOnly {
 			logging.Infof(ctx, "Skipping applying recommendations for node %s", nodeName)
+			continue
+		}
+
+		if nodeName == utils.UnscheduledPodsNodeName {
+			logging.Infof(ctx, "Skipping in-cluster apply for synthetic node %s", nodeName)
 			continue
 		}
 
@@ -621,6 +632,20 @@ func isNodeReady(node *corev1.Node) bool {
 	return false
 }
 
+func countPodsByWorkloadKind(nodeRecommendationMap map[string]utils.NodeResourceInfo) types.SnapshotPodsCount {
+	out := make(types.SnapshotPodsCount)
+	for _, ni := range nodeRecommendationMap {
+		for i := range ni.Pods {
+			k := ni.Pods[i].WorkloadKind
+			if k == "" {
+				k = "Unknown"
+			}
+			out[k]++
+		}
+	}
+	return out
+}
+
 // countPodsByStatus lists pods (in TargetNamespace or all namespaces) and returns counts by pod phase (Running, Pending, etc.).
 func (a *ApplyRecommendationTask) countPodsByStatus(ctx context.Context) types.SnapshotPodsCount {
 	ns := a.config.TargetNamespace
@@ -711,13 +736,15 @@ func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, node
 
 	healthyNodes, unhealthyNodes := a.countNodeHealth(ctx)
 	podsCount := a.countPodsByStatus(ctx)
+	podsByKind := countPodsByWorkloadKind(nodeRecommendationMap)
 	snapshot := &types.SnapshotPayload{
 		ClusterID: a.config.ClusterID,
 		Data: types.SnapshotData{
-			CPU:       cpu,
-			Memory:    memory,
-			Nodes:     types.SnapshotNodes{Healthy: healthyNodes, Unhealthy: unhealthyNodes},
-			PodsCount: podsCount,
+			CPU:                cpu,
+			Memory:             memory,
+			Nodes:              types.SnapshotNodes{Healthy: healthyNodes, Unhealthy: unhealthyNodes},
+			PodsCount:          podsCount,
+			PodsByWorkloadKind: podsByKind,
 		},
 	}
 	if err := a.storage.InsertSnapshot(snapshot); err != nil {
@@ -799,6 +826,16 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 	}
 
 	for _, podInfo := range allPodInfos {
+		if podInfo.WorkloadKind != "" && !utils.WorkloadKindSupportedForOptimization(podInfo.WorkloadKind) {
+			logging.Infof(ctx, "Skipping pod %s/%s: unsupported workload kind for optimization (%s)", podInfo.Namespace, podInfo.Name, podInfo.WorkloadKind)
+			nonOptimizablePods = append(nonOptimizablePods, podInfo)
+			continue
+		}
+		if podInfo.Phase != "" && podInfo.Phase != string(corev1.PodRunning) {
+			logging.Infof(ctx, "Skipping pod %s/%s: pod phase is not Running (%s)", podInfo.Namespace, podInfo.Name, podInfo.Phase)
+			nonOptimizablePods = append(nonOptimizablePods, podInfo)
+			continue
+		}
 		if podInfo.Stats == nil {
 			nonOptimizablePods = append(nonOptimizablePods, podInfo)
 			continue
