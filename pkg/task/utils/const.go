@@ -34,11 +34,14 @@ func GetDoNotDisruptAnnotations() map[string]string {
 }
 
 const (
-	DeploymentKind  = "Deployment"
-	StatefulSetKind = "StatefulSet"
-	DaemonSetKind   = "DaemonSet"
-	ReplicaSetKind  = "ReplicaSet"
-	RolloutKind     = "Rollout"
+	DeploymentKind              = "Deployment"
+	StatefulSetKind             = "StatefulSet"
+	DaemonSetKind               = "DaemonSet"
+	ReplicaSetKind              = "ReplicaSet"
+	RolloutKind                 = "Rollout"
+	JobKind                     = "Job"
+	CronJobKind                 = "CronJob"
+	ReplicationControllerKind   = "ReplicationController"
 )
 
 const (
