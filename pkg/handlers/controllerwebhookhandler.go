@@ -110,18 +110,25 @@ func extractMutatingPatchInput(ctx context.Context, req client.MutatingPatchRequ
 }
 
 func (deps HandlerDependencies) resolveMutatingPatchContext(ctx context.Context, clusterID string, pod *corev1.Pod) (*mutatingPatchResolvedContext, *mutatingPatchResult) {
-	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
-	if workloadInfo == nil {
-		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, pod.Name)
+	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
+		return nil, &mutatingPatchResult{
+			statusCode: http.StatusOK,
+			patches:    emptyPatchList(),
+		}
+	}
+	if clients == nil || clients.KubeClient == nil {
+		logging.Errorf(ctx, "No kube client for cluster %s", clusterID)
 		return nil, &mutatingPatchResult{
 			statusCode: http.StatusOK,
 			patches:    emptyPatchList(),
 		}
 	}
 
-	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
-	if err != nil {
-		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
+	workloadInfo := utils.GetWorkloadInfoFromPod(ctx, clients.KubeClient, pod)
+	if workloadInfo == nil {
+		logging.Infof(ctx, "Pod %s/%s has no workload owner, skipping recommendation", pod.Namespace, pod.Name)
 		return nil, &mutatingPatchResult{
 			statusCode: http.StatusOK,
 			patches:    emptyPatchList(),
@@ -288,7 +295,16 @@ func buildWorkloadOverrideInfo(workloadID string, stat *types.WorkloadStat, over
 func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1.Pod, clusterID string, workloadInfo *utils.WorkloadInfo, workloadStat *types.WorkloadStat) []map[string]any {
 	cfg := deps.Config
 	if workloadInfo == nil {
-		workloadInfo = utils.GetWorkloadInfoFromPod(pod)
+		if deps.ClusterManager != nil {
+			clients, err := deps.ClusterManager.GetClusterClients(clusterID)
+			if err != nil || clients == nil || clients.KubeClient == nil {
+				workloadInfo = utils.GetWorkloadInfoFromPod(ctx, nil, pod)
+			} else {
+				workloadInfo = utils.GetWorkloadInfoFromPod(ctx, clients.KubeClient, pod)
+			}
+		} else {
+			workloadInfo = utils.GetWorkloadInfoFromPod(ctx, nil, pod)
+		}
 	}
 	if workloadInfo == nil {
 		logging.Warnf(ctx, "Could not determine workload for pod %s/%s, allowing without adjustment", pod.Namespace, getPodName(pod))

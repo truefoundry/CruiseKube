@@ -94,7 +94,7 @@ func (o *Observer) checkContainersForOOM(oldPod, newPod *apiv1.Pod) {
 			containerStatus.LastTerminationState.Terminated.Reason == "OOMKilled" {
 			oldStatus := findStatus(containerStatus.Name, append(oldPod.Status.ContainerStatuses, oldPod.Status.InitContainerStatuses...))
 			if oldStatus != nil && containerStatus.RestartCount > oldStatus.RestartCount {
-				workloadInfo := utils.GetWorkloadInfoFromPod(newPod)
+				workloadInfo := utils.GetWorkloadInfoFromPod(context.Background(), o.kubeClient, newPod)
 				if workloadInfo == nil {
 					continue
 				}
@@ -166,7 +166,7 @@ func (o *Observer) parseEvictionEvent(ctx context.Context, event *apiv1.Event) [
 		return nil
 	}
 
-	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
+	workloadInfo := utils.GetWorkloadInfoFromPod(ctx, o.kubeClient, pod)
 	if workloadInfo == nil {
 		return nil
 	}

@@ -131,7 +131,7 @@ func (p *Processor) processOOMEvent(ctx context.Context, oomInfo Info) {
 		return
 	}
 
-	workloadInfo := utils.GetWorkloadInfoFromPod(pod)
+	workloadInfo := utils.GetWorkloadInfoFromPod(ctx, p.kubeClient, pod)
 	if workloadInfo != nil {
 		workloadID := strings.ReplaceAll(utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name), "/", ":")
 
