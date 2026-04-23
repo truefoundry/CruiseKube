@@ -178,11 +178,11 @@ func EvictPod(ctx context.Context, kubeClient kubernetes.Interface, pod *corev1.
 func BuildPodToWorkloadMapping(ctx context.Context, kubeClient *kubernetes.Clientset, targetNamespace string) (map[PodKey]WorkloadInfo, []*corev1.Pod, error) {
 	logging.Infof(ctx, "Building pod-to-workload mapping for namespace: %s", getNamespaceLogMessage(targetNamespace))
 
-	allPods, err := getScheduledPodsAcrossNamespaces(ctx, kubeClient, targetNamespace)
+	allPods, err := getPodsAcrossNamespaces(ctx, kubeClient, targetNamespace)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load scheduled pods: %w", err)
+		return nil, nil, fmt.Errorf("failed to load pods: %w", err)
 	}
-	logging.Infof(ctx, "Loaded %d scheduled pods (with spec.nodeName set)", len(allPods))
+	logging.Infof(ctx, "Loaded %d pods (all phases, bound and unbound)", len(allPods))
 
 	workloadLabelSelectorList, err := ListAllWorkloadsWithSelectors(ctx, kubeClient, targetNamespace)
 	if err != nil {
@@ -190,13 +190,26 @@ func BuildPodToWorkloadMapping(ctx context.Context, kubeClient *kubernetes.Clien
 	}
 	logging.Infof(ctx, "Built label selector list with %d workloads", len(workloadLabelSelectorList))
 
-	podToWorkloadMap := createPodToWorkloadMapping(allPods, workloadLabelSelectorList)
+	podToWorkloadMap := make(map[PodKey]WorkloadInfo, len(allPods))
+	for _, pod := range allPods {
+		podKey := PodKey{
+			Namespace: pod.Namespace,
+			PodName:   pod.Name,
+		}
+		if wi, ok := ResolveRootWorkloadFromPod(ctx, kubeClient, pod); ok {
+			podToWorkloadMap[podKey] = wi
+			continue
+		}
+		if wi, ok := MatchWorkloadBySelector(pod, workloadLabelSelectorList); ok {
+			podToWorkloadMap[podKey] = wi
+		}
+	}
 	logging.Infof(ctx, "Created mapping for %d pods to their parent workloads", len(podToWorkloadMap))
 
 	return podToWorkloadMap, allPods, nil
 }
 
-func getScheduledPodsAcrossNamespaces(ctx context.Context, kubeClient *kubernetes.Clientset, targetNamespace string) ([]*corev1.Pod, error) {
+func getPodsAcrossNamespaces(ctx context.Context, kubeClient *kubernetes.Clientset, targetNamespace string) ([]*corev1.Pod, error) {
 	var podList *corev1.PodList
 	var err error
 
@@ -210,39 +223,11 @@ func getScheduledPodsAcrossNamespaces(ctx context.Context, kubeClient *kubernete
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 
-	var scheduledPods []*corev1.Pod
-	for _, pod := range podList.Items {
-		if pod.Spec.NodeName != "" && pod.Status.Phase == corev1.PodRunning {
-			scheduledPods = append(scheduledPods, &pod)
-		}
+	out := make([]*corev1.Pod, 0, len(podList.Items))
+	for i := range podList.Items {
+		out = append(out, &podList.Items[i])
 	}
-
-	return scheduledPods, nil
-}
-
-func createPodToWorkloadMapping(pods []*corev1.Pod, workloadCache []WorkloadLabelSelectorList) map[PodKey]WorkloadInfo {
-	podToWorkloadMap := make(map[PodKey]WorkloadInfo)
-
-	for _, pod := range pods {
-		podLabels := labels.Set(pod.Labels)
-		podKey := PodKey{
-			Namespace: pod.Namespace,
-			PodName:   pod.Name,
-		}
-
-		for _, workload := range workloadCache {
-			if workload.Namespace == pod.Namespace && workload.Selector.Matches(podLabels) {
-				podToWorkloadMap[podKey] = WorkloadInfo{
-					Kind:      workload.Kind,
-					Namespace: workload.Namespace,
-					Name:      workload.Name,
-				}
-				break
-			}
-		}
-	}
-
-	return podToWorkloadMap
+	return out, nil
 }
 
 func getNamespaceLogMessage(namespace string) string {
@@ -473,7 +458,22 @@ func GetPodKey(namespace, name string) string {
 	return fmt.Sprintf("%s:%s", namespace, name)
 }
 
-func GetWorkloadInfoFromPod(pod *corev1.Pod) *WorkloadInfo {
+// GetWorkloadInfoFromPod resolves the pod to its root workload using the API when kube is non-nil.
+// If kube is nil, it falls back to owner metadata heuristics (Deployment/StatefulSet/DaemonSet only).
+func GetWorkloadInfoFromPod(ctx context.Context, kube kubernetes.Interface, pod *corev1.Pod) *WorkloadInfo {
+	if pod == nil {
+		return nil
+	}
+	if kube != nil {
+		if w, ok := ResolveRootWorkloadFromPod(ctx, kube, pod); ok {
+			cp := w
+			return &cp
+		}
+	}
+	return workloadInfoFromPodMetadataOnly(pod)
+}
+
+func workloadInfoFromPodMetadataOnly(pod *corev1.Pod) *WorkloadInfo {
 	if len(pod.OwnerReferences) == 0 {
 		return nil
 	}
