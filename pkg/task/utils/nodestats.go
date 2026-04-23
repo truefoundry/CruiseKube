@@ -26,6 +26,8 @@ type PodInfo struct {
 	Name         string `json:"name"`
 	WorkloadKind string `json:"workload_kind,omitempty"`
 	WorkloadName string `json:"workload_name,omitempty"`
+	// Phase is pod.status.phase at observation time (used by apply task to skip non-Running pods).
+	Phase string `json:"phase,omitempty"`
 	// Sum of cpu request for all containers in the pod
 	RequestedCPU float64 `json:"requested_cpu"`
 	// Sum of memory request for all containers in the pod

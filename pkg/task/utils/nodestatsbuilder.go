@@ -32,6 +32,62 @@ func CreatePodToStatsMapping(ctx context.Context, podToWorkloadMap map[PodKey]Wo
 	return podStats
 }
 
+func appendPodToNodeResourceInfo(
+	nodeInfo *NodeResourceInfo,
+	pod *corev1.Pod,
+	podToWorkloadMap map[PodKey]WorkloadInfo,
+	podStats map[PodKey]*WorkloadStat,
+) {
+	podKey := PodKey{
+		Namespace: pod.Namespace,
+		PodName:   pod.Name,
+	}
+
+	currentCPU := getCurrentPodCPU(pod)
+	currentMemory := getCurrentPodMemory(pod)
+	limitCPU := getCurrentPodCPULimit(pod)
+	limitMemory := getCurrentPodMemoryLimit(pod)
+
+	nodeInfo.RequestedCPU += currentCPU
+	nodeInfo.RequestedMemory += currentMemory
+
+	phase := pod.Status.Phase
+	if phase == "" {
+		phase = corev1.PodUnknown
+	}
+
+	podInfo := PodInfo{
+		Namespace:       pod.Namespace,
+		Name:            pod.Name,
+		Phase:           string(phase),
+		RequestedCPU:    currentCPU,
+		RequestedMemory: currentMemory,
+		LimitCPU:        limitCPU,
+		LimitMemory:     limitMemory,
+	}
+
+	if workloadInfo, hasWorkloadInfo := podToWorkloadMap[podKey]; hasWorkloadInfo {
+		podInfo.WorkloadKind = workloadInfo.Kind
+		podInfo.WorkloadName = workloadInfo.Name
+	}
+
+	if stat, hasStat := podStats[podKey]; hasStat {
+		podInfo.Stats = stat
+	}
+
+	for _, container := range pod.Spec.Containers {
+		podInfo.ContainerResources = append(podInfo.ContainerResources, getCurrentContainerResources(&container))
+	}
+
+	for _, container := range pod.Spec.InitContainers {
+		if IsSidecarContainer(container) {
+			podInfo.ContainerResources = append(podInfo.ContainerResources, getCurrentContainerResources(&container))
+		}
+	}
+
+	nodeInfo.Pods = append(nodeInfo.Pods, podInfo)
+}
+
 func CreateNodeStatsMapping(
 	ctx context.Context,
 	kubeClient *kubernetes.Clientset,
@@ -75,51 +131,31 @@ func CreateNodeStatsMapping(
 		}
 
 		for _, pod := range podsOnNode {
-			podKey := PodKey{
-				Namespace: pod.Namespace,
-				PodName:   pod.Name,
-			}
-
-			currentCPU := getCurrentPodCPU(pod)
-			currentMemory := getCurrentPodMemory(pod)
-			limitCPU := getCurrentPodCPULimit(pod)
-			limitMemory := getCurrentPodMemoryLimit(pod)
-
-			nodeInfo.RequestedCPU += currentCPU
-			nodeInfo.RequestedMemory += currentMemory
-
-			podInfo := PodInfo{
-				Namespace:       pod.Namespace,
-				Name:            pod.Name,
-				RequestedCPU:    currentCPU,
-				RequestedMemory: currentMemory,
-				LimitCPU:        limitCPU,
-				LimitMemory:     limitMemory,
-			}
-
-			if workloadInfo, hasWorkloadInfo := podToWorkloadMap[podKey]; hasWorkloadInfo {
-				podInfo.WorkloadKind = workloadInfo.Kind
-				podInfo.WorkloadName = workloadInfo.Name
-			}
-
-			if stat, hasStat := podStats[podKey]; hasStat {
-				podInfo.Stats = stat
-			}
-
-			for _, container := range pod.Spec.Containers {
-				podInfo.ContainerResources = append(podInfo.ContainerResources, getCurrentContainerResources(&container))
-			}
-
-			for _, container := range pod.Spec.InitContainers {
-				if IsSidecarContainer(container) {
-					podInfo.ContainerResources = append(podInfo.ContainerResources, getCurrentContainerResources(&container))
-				}
-			}
-
-			nodeInfo.Pods = append(nodeInfo.Pods, podInfo)
+			appendPodToNodeResourceInfo(&nodeInfo, pod, podToWorkloadMap, podStats)
 		}
 
 		nodeMap[nodeName] = nodeInfo
+	}
+
+	var unschedPods []*corev1.Pod
+	for _, pod := range allPods {
+		if pod.Spec.NodeName == "" {
+			unschedPods = append(unschedPods, pod)
+		}
+	}
+	if len(unschedPods) > 0 {
+		unschedInfo := NodeResourceInfo{
+			AllocatableCPU:    0,
+			AllocatableMemory: 0,
+			RequestedCPU:      0,
+			RequestedMemory:   0,
+			Pods:              make([]PodInfo, 0, len(unschedPods)),
+		}
+		for _, pod := range unschedPods {
+			appendPodToNodeResourceInfo(&unschedInfo, pod, podToWorkloadMap, podStats)
+		}
+		nodeMap[UnscheduledPodsNodeName] = unschedInfo
+		logging.Infof(ctx, "Added %d unscheduled pods under synthetic node %s", len(unschedPods), UnscheduledPodsNodeName)
 	}
 
 	logging.Infof(ctx, "Successfully created node stats mapping")
@@ -248,9 +284,14 @@ func getCurrentPodCPU(pod *corev1.Pod) float64 {
 // BuildPodInfoFromPod builds PodInfo from a pod and optional workload info and stat.
 // Used by the admission webhook to build PodInfo for the incoming pod.
 func BuildPodInfoFromPod(pod *corev1.Pod, workloadInfo *WorkloadInfo, stat *WorkloadStat) PodInfo {
+	phase := pod.Status.Phase
+	if phase == "" {
+		phase = corev1.PodUnknown
+	}
 	info := PodInfo{
 		Namespace:       pod.Namespace,
 		Name:            pod.Name,
+		Phase:           string(phase),
 		RequestedCPU:    getCurrentPodCPU(pod),
 		RequestedMemory: getCurrentPodMemory(pod),
 		LimitCPU:        getCurrentPodCPULimit(pod),
