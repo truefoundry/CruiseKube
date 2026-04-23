@@ -23,10 +23,11 @@ type SnapshotPodsCount map[string]int
 
 // SnapshotData is the JSON stored in the snapshots.data column.
 type SnapshotData struct {
-	CPU       SnapshotResourceMetrics `json:"cpu"`
-	Memory    SnapshotResourceMetrics `json:"memory"`
-	Nodes     SnapshotNodes           `json:"nodes"`
-	PodsCount SnapshotPodsCount       `json:"podsCount"`
+	CPU                    SnapshotResourceMetrics `json:"cpu"`
+	Memory                 SnapshotResourceMetrics `json:"memory"`
+	Nodes                  SnapshotNodes           `json:"nodes"`
+	PodsCount              SnapshotPodsCount       `json:"podsCount"`
+	PodsByWorkloadKind SnapshotPodsCount `json:"podsByWorkloadKind,omitempty"`
 }
 
 // SnapshotPayload is the in-memory payload for a single snapshot row (cluster-level, one per run).
