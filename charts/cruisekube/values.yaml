@@ -25,13 +25,11 @@ cruisekubeController:
     ## @param cruisekubeController.admin.passwordKey Key in the secret for the admin password.
     passwordKey: admin-password
     credentialGen:
-      ## @param cruisekubeController.admin.credentialGen.image.repository Image for the hook Job that creates the admin Secret when existingSecret is not set.
       image:
-        repository: bitnami/kubectl
+        ## @param cruisekubeController.admin.credentialGen.image.repository Image for the hook Job that creates the admin Secret when existingSecret is not set.
+        repository: public.ecr.aws/bitnami/kubectl
         ## @param cruisekubeController.admin.credentialGen.image.tag Image tag for the credential generator Job.
-        tag: "latest"
-        ## @param cruisekubeController.admin.credentialGen.image.imagePullPolicy imagePullPolicy for the credential generator Job.
-        imagePullPolicy: IfNotPresent
+        tag: "1.36.0-debian-12-r0"
       resources:
         limits:
           ## @param cruisekubeController.admin.credentialGen.resources.limits.cpu Resource limits (CPU) for the credential generator Job.

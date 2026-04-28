@@ -242,6 +242,7 @@ nav:
       - Introduction: about/overview.md
       - Use Cases: about/overview-use-cases.md
       - CruiseKube vs VPA: about/comp-vs-vpa.md
+      - Adopters: about/adopters.md
       - FAQ: about/overview-faq.md
   - Install:
       - Installation: install/gs-installation.md
