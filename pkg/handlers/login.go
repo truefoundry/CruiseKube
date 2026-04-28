@@ -30,14 +30,16 @@ func HandleLogin(auth config.AuthConfig) gin.HandlerFunc {
 			return
 		}
 
+		accounts := gin.Accounts{auth.Username: auth.Password}
+
 		var req loginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "username and password are required"})
 			return
 		}
 
-		if subtle.ConstantTimeCompare([]byte(req.Username), []byte(auth.Username)) != 1 ||
-			subtle.ConstantTimeCompare([]byte(req.Password), []byte(auth.Password)) != 1 {
+		expectedPassword, ok := accounts[req.Username]
+		if !ok || subtle.ConstantTimeCompare([]byte(req.Password), []byte(expectedPassword)) != 1 {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 			return
 		}
