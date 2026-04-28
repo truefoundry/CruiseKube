@@ -9,6 +9,8 @@ global:
 cruisekubeController:
   enabled: true
   admin:
+    existingSecret: "cruisekube-controller-admin-e2e"
+    # This is used when we don't have to use and existing secret.
     credentialGen:
       image:
         repository: bitnami/kubectl
