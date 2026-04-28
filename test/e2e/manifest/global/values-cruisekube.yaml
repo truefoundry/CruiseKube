@@ -8,14 +8,17 @@ global:
 
 cruisekubeController:
   enabled: true
+  admin:
+    credentialGen:
+      image:
+        repository: bitnami/kubectl
+        tag: "latest"
   serviceMonitor:
     enabled: false
   image:
     repository: cruisekube
     tag: latest
     imagePullPolicy: Never
-  admin:
-    existingSecret: "cruisekube-controller-admin-e2e"
   env:
     CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY: "false"
     CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://localhost:9090"
