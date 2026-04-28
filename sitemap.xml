@@ -13,6 +13,9 @@
         <loc>https://cruisekube.com/about/comp-vs-vpa/</loc>
       </url>
       <url>
+        <loc>https://cruisekube.com/about/adopters/</loc>
+      </url>
+      <url>
         <loc>https://cruisekube.com/about/overview-faq/</loc>
       </url>
       <url>
@@ -35,6 +38,9 @@
       </url>
       <url>
         <loc>https://cruisekube.com/documentation/operate/config-dashboard/</loc>
+      </url>
+      <url>
+        <loc>https://cruisekube.com/documentation/operate/authentication/</loc>
       </url>
       <url>
         <loc>https://cruisekube.com/documentation/operate/operate-policies/</loc>

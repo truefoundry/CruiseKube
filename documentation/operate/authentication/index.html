@@ -6,19 +6,19 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Learn about the limitations and constraints of CruiseKube's resource optimization system.">
+        <meta name="description" content="How CruiseKube secures the API and UI with Helm-managed credentials, how the admin Secret is created, and how to read or rotate the password.">
       
       
         <meta name="author" content="TrueFoundry">
       
       
-        <link rel="canonical" href="https://cruisekube.com/documentation/concepts/arch-tradeoffs/">
+        <link rel="canonical" href="https://cruisekube.com/documentation/operate/authentication/">
       
       
-        <link rel="prev" href="../arch-algorithm/">
+        <link rel="prev" href="../config-dashboard/">
       
       
-        <link rel="next" href="../../operate/config-dashboard/">
+        <link rel="next" href="../operate-policies/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>CruiseKube Tradeoffs - CruiseKube</title>
+        <title>Login & authentication - CruiseKube</title>
       
     
     
@@ -162,7 +162,7 @@
   
   <!-- Dynamic Keywords from Page Meta -->
   
-    <meta name="keywords" content="CruiseKube Tradeoffs, Kubernetes resource optimization constraints, CruiseKube known issues, optimization limitations">
+    <meta name="keywords" content="CruiseKube login, HTTP Basic authentication, Helm admin secret, password rotation">
   
   
   <!-- Open Graph Meta Tags -->
@@ -170,23 +170,23 @@
   <meta property="og:site_name" content="CruiseKube Documentation">
   <meta property="og:locale" content="en_US">
   
-  <meta property="og:url" content="https://cruisekube.com/documentation/concepts/arch-tradeoffs/">
+  <meta property="og:url" content="https://cruisekube.com/documentation/operate/authentication/">
   
-  <meta property="og:title" content="CruiseKube Tradeoffs">
-  <meta property="og:description" content="Learn about the limitations and constraints of CruiseKube's resource optimization system.">
+  <meta property="og:title" content="Login & authentication">
+  <meta property="og:description" content="How CruiseKube secures the API and UI with Helm-managed credentials, how the admin Secret is created, and how to read or rotate the password.">
   <meta property="og:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
   
   <!-- Twitter Card Meta Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@truefoundry">
   <meta name="twitter:creator" content="@truefoundry">
-  <meta name="twitter:title" content="CruiseKube Tradeoffs">
-  <meta name="twitter:description" content="Learn about the limitations and constraints of CruiseKube's resource optimization system.">
+  <meta name="twitter:title" content="Login & authentication">
+  <meta name="twitter:description" content="How CruiseKube secures the API and UI with Helm-managed credentials, how the admin Secret is created, and how to read or rotate the password.">
   <meta name="twitter:image" content="https://cruisekube.com/assets/images/logo/logo_white_full.png">
   
   <!-- Canonical URL -->
   
-  <link rel="canonical" href="https://cruisekube.com/documentation/concepts/arch-tradeoffs/">
+  <link rel="canonical" href="https://cruisekube.com/documentation/operate/authentication/">
   
   
   <!-- Additional Meta Tags -->
@@ -253,7 +253,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#limitations-and-tradeoffs" class="md-skip">
+        <a href="#login-authentication" class="md-skip">
           Skip to content
         </a>
       
@@ -286,7 +286,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              CruiseKube Tradeoffs
+              Login & authentication
             
           </span>
         </div>
@@ -437,7 +437,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../arch-introduction/" class="md-tabs__link">
+        <a href="../../concepts/arch-introduction/" class="md-tabs__link">
           
   
   Documentation
@@ -742,8 +742,6 @@
                 
   
   
-    
-  
   
   
     
@@ -769,11 +767,11 @@
     
       
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_1" >
         
           
           <label class="md-nav__link" for="__nav_4_1" id="__nav_4_1_label" tabindex="">
@@ -794,7 +792,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_1_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4_1">
             <span class="md-nav__icon md-icon"></span>
             
@@ -812,7 +810,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../arch-introduction/" class="md-nav__link">
+      <a href="../../concepts/arch-introduction/" class="md-nav__link">
         
   
   
@@ -842,7 +840,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../arch-algorithm/" class="md-nav__link">
+      <a href="../../concepts/arch-algorithm/" class="md-nav__link">
         
   
   
@@ -869,37 +867,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-scale" viewBox="0 0 24 24"><path d="M12 3v18M19 8l3 8a5 5 0 0 1-6 0zV7"/><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1M5 8l3 8a5 5 0 0 1-6 0zV7M7 21h10"/></svg>
-  
-  <span class="md-ellipsis">
-    
-  
-    TradeOffs
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="././" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../concepts/arch-tradeoffs/" class="md-nav__link">
         
   
   
@@ -917,75 +888,6 @@
   
 
       </a>
-      
-        
-
-
-<nav class="md-nav md-nav--secondary" aria-label="On this page">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      On this page
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#limitations-and-tradeoffs" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Limitations and Tradeoffs
-      </span>
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Limitations and Tradeoffs">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#pod-eviction-can-cause-disruption" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Pod eviction can cause disruption
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#interaction-with-hpa-enabled-workloads-can-be-unpredictable" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Interaction with HPA-enabled workloads can be unpredictable
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sudden-memory-spikes-can-cause-short-downtime" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Sudden memory spikes can cause short downtime
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1003,6 +905,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1032,11 +936,11 @@
     
       
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
         
           
           <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
@@ -1057,7 +961,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1075,7 +979,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operate/config-dashboard/" class="md-nav__link">
+      <a href="../config-dashboard/" class="md-nav__link">
         
   
   
@@ -1102,10 +1006,39 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../operate/authentication/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+  
+  <span class="md-ellipsis">
+    
+  
+    Login & authentication
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1123,6 +1056,149 @@
   
 
       </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#helm-values-how-credentials-are-wired" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Helm values (how credentials are wired)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-the-password-is-generated-first-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How the password is generated (first install)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-read-the-username-and-password" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How to read the username and password
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How to read the username and password">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#after-helm-install-helm-upgrade" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        After <code>helm install</code> / <code>helm upgrade</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#any-time-replace-namespace-and-secret-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Any time (replace namespace and Secret name)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-reset-the-password" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How to reset the password
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How to reset the password">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-let-the-hook-recreate-credentials-simplest-for-dev" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Option A — Let the hook recreate credentials (simplest for dev)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-patch-the-secret-in-place-no-helm-hook" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Option B — Patch the Secret in place (no Helm hook)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-c-bring-your-own-secret-existingsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Option C — Bring your own Secret (<code>existingSecret</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-topics" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Related topics
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1135,7 +1211,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operate/operate-policies/" class="md-nav__link">
+      <a href="../operate-policies/" class="md-nav__link">
         
   
   
@@ -1165,7 +1241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operate/operate-resource-pricing/" class="md-nav__link">
+      <a href="../operate-resource-pricing/" class="md-nav__link">
         
   
   
@@ -1195,7 +1271,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operate/operate-troubleshooting/" class="md-nav__link">
+      <a href="../operate-troubleshooting/" class="md-nav__link">
         
   
   
@@ -1630,6 +1706,8 @@
                     
                     
                     
+                      
+                    
                     
                       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
                       <div class="md-sidebar-button__wrapper">
@@ -1645,6 +1723,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1653,22 +1733,44 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#limitations-and-tradeoffs" class="md-nav__link">
+  <a href="#helm-values-how-credentials-are-wired" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Limitations and Tradeoffs
+        Helm values (how credentials are wired)
       </span>
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Limitations and Tradeoffs">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-the-password-is-generated-first-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How the password is generated (first install)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-read-the-username-and-password" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How to read the username and password
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How to read the username and password">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#pod-eviction-can-cause-disruption" class="md-nav__link">
+  <a href="#after-helm-install-helm-upgrade" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Pod eviction can cause disruption
+        After <code>helm install</code> / <code>helm upgrade</code>
       </span>
     </span>
   </a>
@@ -1676,21 +1778,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#interaction-with-hpa-enabled-workloads-can-be-unpredictable" class="md-nav__link">
+  <a href="#any-time-replace-namespace-and-secret-name" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
-        Interaction with HPA-enabled workloads can be unpredictable
-      </span>
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#sudden-memory-spikes-can-cause-short-downtime" class="md-nav__link">
-    <span class="md-ellipsis">
-      <span class="md-typeset">
-        Sudden memory spikes can cause short downtime
+        Any time (replace namespace and Secret name)
       </span>
     </span>
   </a>
@@ -1699,6 +1790,67 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-to-reset-the-password" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How to reset the password
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How to reset the password">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-let-the-hook-recreate-credentials-simplest-for-dev" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Option A — Let the hook recreate credentials (simplest for dev)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-patch-the-secret-in-place-no-helm-hook" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Option B — Patch the Secret in place (no Helm hook)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-c-bring-your-own-secret-existingsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Option C — Bring your own Secret (<code>existingSecret</code>)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-topics" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Related topics
+      </span>
+    </span>
+  </a>
   
 </li>
       
@@ -1750,7 +1902,7 @@
     
     
       <li class="md-path__item">
-        <a href="../arch-introduction/" class="md-path__link">
+        <a href="../../concepts/arch-introduction/" class="md-path__link">
           
   <span class="md-ellipsis">
     Documentation
@@ -1771,10 +1923,10 @@
     
     
       <li class="md-path__item">
-        <a href="../arch-introduction/" class="md-path__link">
+        <a href="../config-dashboard/" class="md-path__link">
           
   <span class="md-ellipsis">
-    Concepts
+    Operate
   </span>
 
         </a>
@@ -1794,41 +1946,105 @@
   
 
 
-  <h1 id="__skip">CruiseKube Tradeoffs</h1>
-
-<h2 id="limitations-and-tradeoffs">Limitations and Tradeoffs<a class="headerlink" href="#limitations-and-tradeoffs" title="Permanent link">&para;</a></h2>
-<p>This page outlines known limitations and tradeoffs when running CruiseKube. These are not bugs, but consequences of the design choices CruiseKube makes to optimize pod-level resources.</p>
-<h3 id="pod-eviction-can-cause-disruption">Pod eviction can cause disruption<a class="headerlink" href="#pod-eviction-can-cause-disruption" title="Permanent link">&para;</a></h3>
-<p>CruiseKube may evict pods when a node cannot safely accommodate the optimized set of workloads.</p>
-<p>This has the following implications:</p>
+<h1 id="login-authentication">Login &amp; authentication<a class="headerlink" href="#login-authentication" title="Permanent link">&para;</a></h1>
+<p>CruiseKube protects the <strong>controller HTTP API</strong> (and the dashboard, which proxies to that API) with <strong>HTTP Basic authentication</strong>. Users sign in through the web UI; the browser then sends <code>Authorization: Basic …</code> on subsequent API calls.</p>
+<p><img alt="CruiseKube sign-in page" src="/assets/screenshots/feat_login.png" /></p>
+<h2 id="helm-values-how-credentials-are-wired">Helm values (how credentials are wired)<a class="headerlink" href="#helm-values-how-credentials-are-wired" title="Permanent link">&para;</a></h2>
+<p>Credentials always come from a <strong>Kubernetes Secret</strong> in the same namespace as the release. Configure them under <code>cruisekubeController.admin</code> in your Helm values file or <code>--set</code> flags.</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cruisekubeController.admin.existingSecret</code></td>
+<td>Name of a Secret <strong>you</strong> create and manage. When non-empty, the chart <strong>does not</strong> run the bootstrap Job and <strong>does not</strong> generate a password.</td>
+</tr>
+<tr>
+<td><code>cruisekubeController.admin.userKey</code></td>
+<td>Secret key for the username (default <code>admin-user</code>).</td>
+</tr>
+<tr>
+<td><code>cruisekubeController.admin.passwordKey</code></td>
+<td>Secret key for the password (default <code>admin-password</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>The controller Deployment reads that Secret via environment variables (<code>CRUISEKUBE_SERVER_AUTH_USERNAME</code> / <code>CRUISEKUBE_SERVER_AUTH_PASSWORD</code>).</p>
+<p>When <code>existingSecret</code> is <strong>empty</strong>, the chart uses a generated Secret name of the form <strong><code>{controller-fullname}-admin-credentials</code></strong>. For a typical release named <code>cruisekube</code>, the controller full name is <code>cruisekube-controller</code>, so the Secret is often:</p>
+<p><code>cruisekube-controller-admin-credentials</code></p>
+<h2 id="how-the-password-is-generated-first-install">How the password is generated (first install)<a class="headerlink" href="#how-the-password-is-generated-first-install" title="Permanent link">&para;</a></h2>
+<p>If <code>cruisekubeController.admin.existingSecret</code> is <strong>not</strong> set:</p>
+<ol>
+<li>A <strong>pre-install / pre-upgrade</strong> Helm hook runs a short <strong>Job</strong> (<code>…-admin-credentials</code>) in the release namespace.</li>
+<li>If the Secret <strong>already exists</strong>, the Job exits without changes (so upgrades keep the same password).</li>
+<li>If the Secret <strong>does not exist</strong>, the Job creates it with:</li>
+<li><strong>Username</strong> fixed to <strong><code>cruisekube</code></strong> (stored under <code>userKey</code>).</li>
+<li><strong>Password</strong> a random <strong>32-character</strong> string from <code>A–Z</code>, <code>a–z</code>, and <code>0–9</code> (stored under <code>passwordKey</code>).</li>
+</ol>
+<p>Implementation lives in the chart template <code>charts/cruisekube/templates/controller/admin-credentials-job.yaml</code>.</p>
+<h2 id="how-to-read-the-username-and-password">How to read the username and password<a class="headerlink" href="#how-to-read-the-username-and-password" title="Permanent link">&para;</a></h2>
+<h3 id="after-helm-install-helm-upgrade">After <code>helm install</code> / <code>helm upgrade</code><a class="headerlink" href="#after-helm-install-helm-upgrade" title="Permanent link">&para;</a></h3>
+<p>The chart prints <strong>NOTES</strong> with ready-to-run <code>kubectl</code> commands (same idea as below). Read them from the command output.</p>
+<h3 id="any-time-replace-namespace-and-secret-name">Any time (replace namespace and Secret name)<a class="headerlink" href="#any-time-replace-namespace-and-secret-name" title="Permanent link">&para;</a></h3>
+<p>Use the keys from your values (<code>admin-user</code> / <code>admin-password</code> unless you changed them):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">NAMESPACE</span><span class="o">=</span>cruisekube-system
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nv">SECRET</span><span class="o">=</span>cruisekube-controller-admin-credentials
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SECRET</span><span class="s2">&quot;</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAMESPACE</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.admin-user}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SECRET</span><span class="s2">&quot;</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAMESPACE</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.admin-password}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
+</span></code></pre></div>
+<p>Sign in to the UI with that username and password. The UI calls <code>POST /api/v1/auth/login</code> and then stores the returned Basic token for later requests.</p>
+<h2 id="how-to-reset-the-password">How to reset the password<a class="headerlink" href="#how-to-reset-the-password" title="Permanent link">&para;</a></h2>
+<p>Pick one approach.</p>
+<h3 id="option-a-let-the-hook-recreate-credentials-simplest-for-dev">Option A — Let the hook recreate credentials (simplest for dev)<a class="headerlink" href="#option-a-let-the-hook-recreate-credentials-simplest-for-dev" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Delete</strong> the generated Secret (only do this if you are happy to discard the old password):</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>kubectl<span class="w"> </span>delete<span class="w"> </span>secret<span class="w"> </span>cruisekube-controller-admin-credentials<span class="w"> </span>-n<span class="w"> </span>cruisekube-system
+</span></code></pre></div>
+<ol>
+<li>
+<p>Run <strong><code>helm upgrade</code></strong> for the same release (same values are fine). The hook Job runs again and <strong>creates a new Secret</strong> with a new random password (username remains <code>cruisekube</code>).</p>
+</li>
+<li>
+<p><strong>Restart</strong> the controller so it reloads env vars from the Secret:</p>
+</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>kubectl<span class="w"> </span>rollout<span class="w"> </span>restart<span class="w"> </span>deployment/cruisekube-controller<span class="w"> </span>-n<span class="w"> </span>cruisekube-system
+</span></code></pre></div>
+<p>Environment variables populated from <code>secretKeyRef</code> are <strong>not</strong> live-updated when the Secret changes; a restart (or new pod) is required.</p>
+<h3 id="option-b-patch-the-secret-in-place-no-helm-hook">Option B — Patch the Secret in place (no Helm hook)<a class="headerlink" href="#option-b-patch-the-secret-in-place-no-helm-hook" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Choose a new password string, for example <code>NEW_PASSWORD</code>.</li>
+<li>Base64-encode the <strong>literal string</strong> (not the <code>username:password</code> pair) for the key <code>admin-password</code> (or your custom <code>passwordKey</code>):</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">NEW_PASSWORD</span><span class="o">=</span><span class="s1">&#39;...&#39;</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">ENC</span><span class="o">=</span><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%s&#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NEW_PASSWORD</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="k">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>kubectl<span class="w"> </span>patch<span class="w"> </span>secret<span class="w"> </span>cruisekube-controller-admin-credentials<span class="w"> </span>-n<span class="w"> </span>cruisekube-system<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--type<span class="w"> </span>merge<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;{\&quot;data\&quot;:{\&quot;admin-password\&quot;:\&quot;</span><span class="nv">$ENC</span><span class="s2">\&quot;}}&quot;</span>
+</span></code></pre></div>
+<ol>
+<li><strong>Restart</strong> the controller Deployment as above.</li>
+</ol>
+<h3 id="option-c-bring-your-own-secret-existingsecret">Option C — Bring your own Secret (<code>existingSecret</code>)<a class="headerlink" href="#option-c-bring-your-own-secret-existingsecret" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Create a Secret with your chosen keys (<code>userKey</code> / <code>passwordKey</code>).</li>
+<li>Set <code>cruisekubeController.admin.existingSecret</code> to that Secret’s name.</li>
+<li>Upgrade the release and restart the controller if needed.</li>
+</ol>
+<h2 id="related-topics">Related topics<a class="headerlink" href="#related-topics" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Pod eviction is inherently disruptive and can lead to temporary unavailability</li>
-<li>Evicted pods will be restarted or rescheduled by Kubernetes</li>
-<li>Latency-sensitive or stateful workloads may observe brief impact if not properly isolated</li>
+<li><a href="../../../install/basic-usage/">Basic usage</a> — port-forward to the frontend service.</li>
+<li><a href="../config-dashboard/">Configuration dashboard</a> — using the UI after sign-in.</li>
+<li><a href="../../reference/reference-helm-chart/">Helm chart reference</a> — full values list.</li>
 </ul>
-<p>Operators should assume that enabling CruiseKube introduces eviction as a possible operational outcome, rather than relying exclusively on static over-provisioning to absorb pressure.</p>
-<hr />
-<h3 id="interaction-with-hpa-enabled-workloads-can-be-unpredictable">Interaction with HPA-enabled workloads can be unpredictable<a class="headerlink" href="#interaction-with-hpa-enabled-workloads-can-be-unpredictable" title="Permanent link">&para;</a></h3>
-<p>CruiseKube operates its own control loop, and when combined with other controllers such as Horizontal Pod Autoscaler, the overall system behavior can become harder to reason about.</p>
-<p>Key limitations:</p>
-<ul>
-<li>Workloads using CPU or memory based HPA are completely skipped by CruiseKube</li>
-<li>For other HPA modes, CruiseKube and HPA may influence the same workloads indirectly</li>
-<li>Competing control loops can lead to oscillations or delayed convergence</li>
-<li>Resource changes and replica scaling may interact in unexpected ways</li>
-</ul>
-<p>CruiseKube does not attempt to coordinate with HPA beyond exclusion rules, and users should be cautious when running multiple autonomous controllers against the same workloads.</p>
-<hr />
-<h3 id="sudden-memory-spikes-can-cause-short-downtime">Sudden memory spikes can cause short downtime<a class="headerlink" href="#sudden-memory-spikes-can-cause-short-downtime" title="Permanent link">&para;</a></h3>
-<p>Memory optimization carries higher risk compared to CPU optimization.</p>
-<p>Limitations to be aware of:</p>
-<ul>
-<li>Unexpected memory spikes can exceed assigned limits</li>
-<li>Containers may be OOM killed as a result</li>
-<li>Pod restarts can cause brief service interruptions</li>
-<li>The first occurrence of a new memory usage pattern may result in downtime</li>
-</ul>
-<p>This behavior is inherent to memory management in Kubernetes and cannot be fully avoided by dynamic right-sizing systems.</p>
 
 
 
@@ -1873,7 +2089,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../arch-algorithm/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Algorithm">
+          <a href="../config-dashboard/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Dashboard">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><!--! Font Awesome Free 7.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256l137.3-137.4c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg>
@@ -1883,20 +2099,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Algorithm
+                Dashboard
               </div>
             </div>
           </a>
         
         
           
-          <a href="../../operate/config-dashboard/" class="md-footer__link md-footer__link--next" aria-label="Next: Dashboard">
+          <a href="../operate-policies/" class="md-footer__link md-footer__link--next" aria-label="Next: Policies &amp; Modes">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Dashboard
+                Policies & Modes
               </div>
             </div>
             <div class="md-footer__button md-icon">
