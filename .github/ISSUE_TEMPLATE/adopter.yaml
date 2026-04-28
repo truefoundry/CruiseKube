@@ -1,0 +1,48 @@
+name: Add us to Adopters
+description: Get listed as a CruiseKube adopter (helps motivate OSS work)
+title: "[ADOPTER] <your org/team name>"
+labels:
+  - adopters
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for using **CruiseKube**.
+        
+        Adding your team as an adopter helps us stay motivated to keep investing in open source, and it adds credibility for new teams evaluating the project.
+        
+        If you prefer not to share details publicly, you can keep the description brief.
+
+  - type: input
+    id: name
+    attributes:
+      label: Organization / team name
+      placeholder: "Acme Corp (Platform Team)"
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: Website (optional)
+      placeholder: "https://acme.com"
+    validations:
+      required: false
+
+  - type: textarea
+    id: usage
+    attributes:
+      label: How are you using CruiseKube?
+      description: One or two sentences is perfect (e.g. workloads, clusters, modes).
+      placeholder: "Using CruiseKube in Recommend mode across our production clusters to continuously right-size CPU/memory requests for microservices."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Consent
+      options:
+        - label: I confirm the information above is OK to publish in the CruiseKube adopters.
+          required: true
+
