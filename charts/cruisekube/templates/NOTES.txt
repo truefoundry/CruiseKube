@@ -5,7 +5,7 @@ Namespace: {{ .Release.Namespace }}
 
 Help us keep CruiseKube thriving in open source: add your team to the Adopters list (it boosts credibility and keeps us motivated to keep shipping improvements):
 
-- https://cruisekube.com/about/adopters/
+- https://github.com/truefoundry/CruiseKube/issues/new?template=adopter.yaml
 
 ---
 

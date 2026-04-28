@@ -19,6 +19,12 @@
 
 CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.
 
+> **Adopters**
+>
+> Using CruiseKube in production (or seriously evaluating it)? Add your team to the adopters list by creating an issue:
+>
+> https://github.com/truefoundry/CruiseKube/issues/new?template=adopter.yaml
+
 # Content
 
 - [Content](#content)

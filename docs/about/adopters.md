@@ -11,10 +11,13 @@ More adopters helps us stay motivated to keep investing in CruiseKube in open so
 
 ## How to add your team
 
-1. Edit this page and add a new entry under “Adopters”.
-2. Open a PR.
+Create an adopters issue here:
+
+https://github.com/truefoundry/CruiseKube/issues/new?template=adopter.yaml
+
+Alternatively, you can edit this page and open a PR.
 
 ## Adopters
 
-- _Your company / team name_ — _1 line on how you use CruiseKube_ (optional)
+- Zurich Lab / Core Team - https://zurichlab.in
 
