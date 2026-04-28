@@ -37,10 +37,6 @@ type ClientConfig struct {
 	Timeout      time.Duration
 }
 
-type HealthResponse struct {
-	Status string `json:"status"`
-}
-
 // MutatingPatchRequest is the request body for mutating patch
 // Manifest is the complete incoming object; the controller handles Pod and PDB separately.
 type MutatingPatchRequest struct {
