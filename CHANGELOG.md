@@ -9,9 +9,17 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+### Documentation
+
+* Add [Login & authentication](https://cruisekube.com/documentation/operate/authentication/) guide (Helm admin Secret, generated password, retrieval, rotation).
+
+### Breaking changes
+
+* Add authentication layer to all the APIs & expose login API by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/227
+
 ## v0.2.6-rc.2 [2026-04-08]
 
-## Improvements
+### Improvements
 * Standardize Go file and package naming by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/219
 * increasing timeout for timeseries prediction by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/220
 * Move docs to zensical by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/215

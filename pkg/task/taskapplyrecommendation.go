@@ -49,7 +49,7 @@ type ApplyRecommendationTaskConfig struct {
 	ClusterID              string
 	TargetClusterID        string
 	TargetNamespace        string
-	BasicAuth              config.BasicAuthConfig
+	Auth                   config.AuthConfig
 	RecommendationSettings config.RecommendationSettings
 	Metadata               ApplyRecommendationMetadata
 }
@@ -838,11 +838,11 @@ func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Contex
 	var statsFile *types.StatsResponse
 
 	if a.config.Metadata.NodeStatsURL.Host != "" {
-		recommenderClient := client.NewRecommenderServiceClientWithBasicAuth(
-			a.config.Metadata.NodeStatsURL.Host,
-			a.config.BasicAuth.Username,
-			a.config.BasicAuth.Password,
-		)
+		recommenderClient := client.NewRecommenderServiceClient(client.ClientConfig{
+			Host:     a.config.Metadata.NodeStatsURL.Host,
+			Username: a.config.Auth.Username,
+			Password: a.config.Auth.Password,
+		})
 		var err error
 		statsFile, err = recommenderClient.GetClusterStats(ctx, a.config.ClusterID)
 		if err != nil {

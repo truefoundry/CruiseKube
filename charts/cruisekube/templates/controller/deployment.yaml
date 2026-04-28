@@ -30,7 +30,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}-controller
           image: "{{ .Values.cruisekubeController.image.repository }}:{{ include "cruisekubeController.imageTag" . }}"
-          imagePullPolicy: {{ .Values.cruisekubeController.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.cruisekubeController.image.imagePullPolicy }}
           command: ["./cruisekube"]
           args:
             - "--execution-mode=controller"
@@ -78,6 +78,16 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            - name: CRUISEKUBE_SERVER_AUTH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cruisekubeController.adminSecretName" . }}
+                  key: {{ .Values.cruisekubeController.admin.userKey }}
+            - name: CRUISEKUBE_SERVER_AUTH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cruisekubeController.adminSecretName" . }}
+                  key: {{ .Values.cruisekubeController.admin.passwordKey }}
           volumeMounts:
             {{- with .Values.cruisekubeController.volumeMounts }}
             {{- toYaml . | nindent 12 }}

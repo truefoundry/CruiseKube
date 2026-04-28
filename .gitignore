@@ -55,3 +55,4 @@ site
 temp/
 cmd/cruisekube/__debug*
 .vscode/
+.venv/

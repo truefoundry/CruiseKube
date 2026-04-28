@@ -2,6 +2,8 @@
 CLUSTER_NAME := cruisekube-e2e
 NAMESPACE := cruisekube-system
 CONTROLLER_IMAGE := cruisekube:latest
+FRONTEND_IMAGE := cruisekube-frontend:latest
+FRONTEND_DIR := ../../cruiseKube-frontend
 T ?= ./tests
 TIMEOUT := 400s
 
@@ -13,7 +15,7 @@ all:
 	@echo "Run 'make test' to run tests"
 	@echo "Run 'make clean' to clean environment"
 
-setup: kind-up apply-deps
+setup: build-images kind-up apply-deps
 clean: kind-down
 
 reset: uninstall-ck
@@ -35,6 +37,13 @@ build-images: ## Build controller image
 	@echo "Building controller image..."
 	@cd ../.. && docker build -t $(CONTROLLER_IMAGE) .
 	@echo "Controller image built successfully"
+	@echo "Building frontend image..."
+	@if [ -d "$(FRONTEND_DIR)" ]; then \
+		cd "$(FRONTEND_DIR)" && docker build -t $(FRONTEND_IMAGE) .; \
+		echo "Frontend image built successfully"; \
+	else \
+		echo "Skipping frontend image: directory $(FRONTEND_DIR) not found."; \
+	fi
 
 .PHONY: kind-up
 kind-up: ## Create Kind cluster and load images
@@ -51,7 +60,12 @@ kind-up: ## Create Kind cluster and load images
 	@kubectl wait --for=condition=Ready nodes --all --timeout=120s
 	kubectl scale --replicas=1 deployment/coredns -n kube-system
 	@echo "Loading controller image into kind cluster..."
-	@docker save $(CONTROLLER_IMAGE) | docker exec -i $(CLUSTER_NAME)-control-plane ctr -n k8s.io images import -
+	@kind load docker-image $(CONTROLLER_IMAGE) --name $(CLUSTER_NAME)
+	@if docker image inspect $(FRONTEND_IMAGE) >/dev/null 2>&1; then \
+		kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME); \
+	else \
+		echo "Skipping kind load for $(FRONTEND_IMAGE): image not present locally."; \
+	fi
 	@echo "Image loaded successfully"
 
 .PHONY: kind-down
@@ -68,6 +82,8 @@ kind-down: ## Delete Kind cluster
 apply-deps: ## Install all dependencies
 	@echo "Creating namespace..."
 	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
+	@echo "Applying controller admin credentials secret for e2e..."
+	@kubectl apply -f ./manifest/global/controller-admin-secret.yaml -n $(NAMESPACE)
 	@echo "Building Helm dependencies..."
 	@cd ../../charts/cruisekube && helm dependency build
 	@echo "Installing CruiseKube via Helm..."
@@ -77,20 +93,28 @@ apply-deps: ## Install all dependencies
 .PHONY: reload-images
 reload-images: ## Reload images into kind and restart deployments
 	@echo "Loading images into kind cluster..."
-	@docker save $(CONTROLLER_IMAGE) | docker exec -i $(CLUSTER_NAME)-control-plane ctr -n k8s.io images import -
+	@kind load docker-image $(CONTROLLER_IMAGE) --name $(CLUSTER_NAME)
+	@if docker image inspect $(FRONTEND_IMAGE) >/dev/null 2>&1; then \
+		kind load docker-image $(FRONTEND_IMAGE) --name $(CLUSTER_NAME); \
+	else \
+		echo "Skipping kind load for $(FRONTEND_IMAGE): image not present locally."; \
+	fi
 	@echo "Restarting cruisekube controller deployment..."
 	@kubectl rollout restart deployment cruisekube-controller -n $(NAMESPACE)
 	@kubectl rollout restart deployment cruisekube-webhook -n $(NAMESPACE)
+	-@kubectl rollout restart deployment cruisekube-frontend -n $(NAMESPACE) 2>/dev/null || true
 	@echo "Images reloaded and deployment restarted."
 
 ick: install-ck
 
 install-ck: ## Update helm chart
 	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
+	@kubectl apply -f ./manifest/global/controller-admin-secret.yaml
 	@cd ../../charts/cruisekube && helm dependency build
 	@helm upgrade --wait --timeout $(TIMEOUT) --install --create-namespace cruisekube ../../charts/cruisekube -n $(NAMESPACE) -f ./manifest/global/values-cruisekube.yaml
 
 uick: uninstall-ck
 uninstall-ck: ## Delete cruisekube
 	@echo "Deleting cruisekube..."
+	
 	-@helm delete cruisekube -n $(NAMESPACE)
