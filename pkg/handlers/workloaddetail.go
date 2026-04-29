@@ -13,12 +13,13 @@ import (
 )
 
 type rowWithValues struct {
-	row    types.PodResourceRecommendationRow
-	rec    types.PodResourceRecommendation
-	cpuReq float64
-	memReq float64
-	cpuRec float64
-	memRec float64
+	row     types.PodResourceRecommendationRow
+	rec     types.PodResourceRecommendation
+	current types.PodCurrentResources
+	cpuReq  float64
+	memReq  float64
+	cpuRec  float64
+	memRec  float64
 }
 
 // HandleWorkloadDetail returns pod-level details for a single workload in one response,
@@ -94,6 +95,8 @@ func (deps HandlerDependencies) HandleWorkloadDetail(c *gin.Context) {
 		CurrentCpuLimit:     math.Round(currentCpuLimit*1000) / 1000,
 		CurrentMemRequest:   math.Round(currentMemReq),
 		CurrentMemLimit:     math.Round(currentMemLimit),
+		CurrentPodAvgCPU:    0,
+		CurrentPodAvgMemory: 0,
 		PotentialCpuSavings: 0,
 		PotentialMemSavings: 0,
 		Pods:                []types.PodDetail{},
@@ -106,12 +109,19 @@ func (deps HandlerDependencies) HandleWorkloadDetail(c *gin.Context) {
 
 	// 3. Build per-row: current (from stat) and recommended (from row.Recommendation JSON)
 	var parsed []rowWithValues
+	var podCurrents []types.PodCurrentResources
 	for _, row := range rows {
 		var rec types.PodResourceRecommendation
 		if row.Recommendation != "" {
 			if err := json.Unmarshal([]byte(row.Recommendation), &rec); err != nil {
 				logging.Errorf(ctx, "Failed to unmarshal recommendation for pod %s container %s: %v", row.Pod, row.Container, err)
 				continue
+			}
+		}
+		var current types.PodCurrentResources
+		if row.Current != "" {
+			if err := json.Unmarshal([]byte(row.Current), &current); err != nil {
+				logging.Warnf(ctx, "Failed to unmarshal current resources for pod %s container %s: %v", row.Pod, row.Container, err)
 			}
 		}
 		cpuRec := rec.CPURequest
@@ -127,8 +137,13 @@ func (deps HandlerDependencies) HandleWorkloadDetail(c *gin.Context) {
 			cpuRec = cpuReq
 			memRec = memReq
 		}
-		parsed = append(parsed, rowWithValues{row: row, rec: rec, cpuReq: cpuReq, memReq: memReq, cpuRec: cpuRec, memRec: memRec})
+		podCurrents = append(podCurrents, current)
+		parsed = append(parsed, rowWithValues{row: row, rec: rec, current: current, cpuReq: cpuReq, memReq: memReq, cpuRec: cpuRec, memRec: memRec})
 	}
+
+	currentPodAvg := aggregatePodCurrentsForWorkload(podCurrents, stat)
+	resp.CurrentPodAvgCPU = math.Round(currentPodAvg.CurrentCPURequest*1000) / 1000
+	resp.CurrentPodAvgMemory = math.Round(currentPodAvg.CurrentMemoryRequest)
 
 	// 4. potentialCpu / potentialMem
 	var totalCpuDiff, totalMemDiff float64
@@ -177,11 +192,13 @@ func (deps HandlerDependencies) HandleWorkloadDetail(c *gin.Context) {
 			memReqRounded := math.Round(p.memReq)
 			memRecRounded := math.Round(p.memRec)
 			pod.Containers = append(pod.Containers, types.ContainerDetail{
-				Container:     row.Container,
-				CpuRequest:    cpuReqRounded,
-				CpuRecRequest: cpuRecRounded,
-				MemRequest:    memReqRounded,
-				MemRecRequest: memRecRounded,
+				Container:          row.Container,
+				WorkloadCpuRequest: cpuReqRounded,
+				RecomCpuRequest:    cpuRecRounded,
+				WorkloadMemRequest: memReqRounded,
+				RecomMemRequest:    memRecRounded,
+				CurrentCpuRequest:  p.current.CurrentCPURequest,
+				CurrentMemRequest:  p.current.CurrentMemoryRequest,
 			})
 		}
 	}

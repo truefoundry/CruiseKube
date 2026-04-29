@@ -60,6 +60,7 @@ type PodResourceRecommendation struct {
 	Pod            string    `gorm:"column:pod"`
 	Container      string    `gorm:"column:container"`
 	Recommendation string    `gorm:"column:recommendation"`
+	Current        string    `gorm:"column:current"`
 	CreatedAt      time.Time `gorm:"column:created_at;autoCreateTime"`
 	UpdatedAt      time.Time `gorm:"column:updated_at;autoUpdateTime"`
 }
