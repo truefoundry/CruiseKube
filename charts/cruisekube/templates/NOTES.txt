@@ -1,0 +1,25 @@
+Thank you for installing {{ .Chart.Name }}.
+
+Release: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+
+Help us keep CruiseKube thriving in open source: add your team to the Adopters list (it boosts credibility and keeps us motivated to keep shipping improvements):
+
+- https://github.com/truefoundry/CruiseKube/issues/new?template=adopter.yaml
+
+---
+
+{{- if and .Values.cruisekubeController.enabled (not .Values.cruisekubeController.admin.existingSecret) }}
+
+Controller HTTP basic auth credentials are stored in Secret {{ include "cruisekubeController.adminSecretName" . }} (created by the pre-install hook when missing).
+
+Read the generated admin username:
+
+  kubectl get secret {{ include "cruisekubeController.adminSecretName" . }} -n {{ .Release.Namespace }} -o jsonpath="{.data['{{ .Values.cruisekubeController.admin.userKey }}']}" | base64 -d && echo
+
+Read the generated admin password:
+
+  kubectl get secret {{ include "cruisekubeController.adminSecretName" . }} -n {{ .Release.Namespace }} -o jsonpath="{.data['{{ .Values.cruisekubeController.admin.passwordKey }}']}" | base64 -d && echo
+
+If you used helm install --dry-run, these commands apply after a real install once the hook Job has created the Secret.
+{{- end }}

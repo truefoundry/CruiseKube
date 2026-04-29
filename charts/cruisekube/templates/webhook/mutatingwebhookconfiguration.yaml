@@ -13,7 +13,9 @@ webhooks:
       namespace: {{ .Release.Namespace }}
       path: {{ printf "/clusters/%s/webhook/mutate" .Values.cruisekubeWebhook.mutatingWebhookConfiguration.clusterID }}
       port: {{ .Values.cruisekubeWebhook.service.httpsPort }}
-    caBundle: Cg==
+    # caBundle is intentionally omitted: it is managed by the webhook cert generator
+    # (kube-webhook-certgen) via its patch Job. Keeping this field out of the Helm-
+    # managed manifest avoids server-side apply conflicts on upgrade.
   rules:
   - operations: ["CREATE"]
     apiGroups: [""]

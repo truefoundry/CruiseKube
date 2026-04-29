@@ -18,12 +18,6 @@ func AuthWebhook() gin.HandlerFunc {
 	}
 }
 
-func AuthAPI() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Next()
-	}
-}
-
 func CorsMiddleware() gin.HandlerFunc {
 	cfg := cors.Config{
 		AllowAllOrigins:  true,
