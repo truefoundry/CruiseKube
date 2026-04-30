@@ -30,7 +30,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}-webhook
           image: "{{ .Values.cruisekubeWebhook.image.repository }}:{{ include "cruisekubeWebhook.imageTag" . }}"
-          imagePullPolicy: {{ .Values.cruisekubeWebhook.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.cruisekubeWebhook.image.imagePullPolicy }}
           command: ["./cruisekube"]
           args:
             - "--execution-mode=webhook"

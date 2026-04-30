@@ -18,12 +18,12 @@ deadcode:
 
 serve-docs: ## Serve docs
 	@command -v zensical >/dev/null 2>&1 || { \
-	  echo "mkdocs not found - please install it (pip install zensical)"; exit 1; } ; \
+	  echo "zensical not found - please install it (pip install zensical)"; exit 1; } ; \
 	zensical serve
 	
 build-docs: ## Build docs
 	@command -v zensical >/dev/null 2>&1 || { \
-	  echo "mkdocs not found - please install it (pip install zensical)"; exit 1; } ; \
+	  echo "zensical not found - please install it (pip install zensical)"; exit 1; } ; \
 	zensical build
 
 fetch-contributors: ## Fetch contributors

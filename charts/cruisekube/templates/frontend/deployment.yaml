@@ -29,7 +29,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}-frontend
           image: "{{ .Values.cruisekubeFrontend.image.repository }}:{{ include "cruisekubeFrontend.imageTag" . }}"
-          imagePullPolicy: {{ .Values.cruisekubeFrontend.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.cruisekubeFrontend.image.imagePullPolicy }}
           ports:
             - name: http
               containerPort: 3000

@@ -27,7 +27,7 @@ Expect **`cruisekube-controller-manager-*`**, **`cruisekube-webhook-server-*`**,
 kubectl port-forward -n cruisekube-system svc/cruisekube-frontend 3000:3000
 ```
 
-Open **http://localhost:3000**. See [Dashboard](../documentation/operate/config-dashboard.md) for UI concepts.
+Open **http://localhost:3000** and sign in (see [Login & authentication](../documentation/operate/authentication.md)). See [Dashboard](../documentation/operate/config-dashboard.md) for UI concepts.
 
 <br />
 

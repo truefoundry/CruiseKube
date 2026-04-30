@@ -67,6 +67,23 @@ Get image tag
 {{- define "cruisekubeController.imageTag" -}}
 {{- .Values.cruisekubeController.image.tag | default .Chart.AppVersion }}
 {{- end }}
+
+{{/*
+Name of the Secret that holds controller HTTP basic auth credentials (admin user + password).
+When admin.existingSecret is set, that name is used; otherwise a Helm-managed name is used and
+a pre-install/pre-upgrade hook Job creates the Secret on first install.
+*/}}
+{{- define "cruisekubeController.adminSecretName" -}}
+{{- if .Values.cruisekubeController.admin.existingSecret }}
+{{- .Values.cruisekubeController.admin.existingSecret }}
+{{- else }}
+{{- printf "%s-admin-credentials" (include "cruisekubeController.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+
+{{- define "cruisekubeController.adminCredentialGen.serviceAccountName" -}}
+{{- printf "%s-admin-credential-generator" (include "cruisekubeController.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
 {{/*
 ServiceMonitor labels - merges common labels with servicemonitor-specific labels
 */}}

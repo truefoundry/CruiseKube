@@ -17,6 +17,32 @@ global:
 cruisekubeController:
   ## @param cruisekubeController.enabled Enable CruiseKube Controller deployment
   enabled: true
+  admin:
+    ## @param cruisekubeController.admin.existingSecret Name of an existing Secret for HTTP basic auth (username + password). If empty, the chart creates a Secret via a Helm hook Job on install/upgrade (credentials are preserved across upgrades once the Secret exists).
+    existingSecret: ""
+    ## @param cruisekubeController.admin.userKey Key in the secret for the admin username.
+    userKey: admin-user
+    ## @param cruisekubeController.admin.passwordKey Key in the secret for the admin password.
+    passwordKey: admin-password
+    credentialGen:
+      image:
+        ## @param cruisekubeController.admin.credentialGen.image.repository Image for the hook Job that creates the admin Secret when existingSecret is not set.
+        repository: public.ecr.aws/bitnami/kubectl
+        ## @param cruisekubeController.admin.credentialGen.image.tag Image tag for the credential generator Job.
+        tag: "1.36.0"
+        ## @param cruisekubeController.admin.credentialGen.image.imagePullPolicy Image pull policy for the credential generator Job.
+        imagePullPolicy: IfNotPresent
+      resources:
+        limits:
+          ## @param cruisekubeController.admin.credentialGen.resources.limits.cpu Resource limits (CPU) for the credential generator Job.
+          cpu: 200m
+          ## @param cruisekubeController.admin.credentialGen.resources.limits.memory Resource limits (memory) for the credential generator Job.
+          memory: 128Mi
+        requests:
+          ## @param cruisekubeController.admin.credentialGen.resources.requests.cpu Resource requests (CPU) for the credential generator Job.
+          cpu: 50m
+          ## @param cruisekubeController.admin.credentialGen.resources.requests.memory Resource requests (memory) for the credential generator Job.
+          memory: 64Mi
   ## @param cruisekubeController.replicas Number of CruiseKube Controller replicas to deploy
   replicas: 1
   image:
@@ -114,8 +140,6 @@ cruisekubeController:
     CRUISEKUBE_METRICS_ENABLED: "true"
     CRUISEKUBE_METRICS_PORT: "8081"
     CRUISEKUBE_SERVER_PORT: "8080"
-    CRUISEKUBE_SERVER_BASICAUTH_USERNAME: "admin"
-    CRUISEKUBE_SERVER_BASICAUTH_PASSWORD: "admin"
     CRUISEKUBE_DB_TYPE: "postgres"
     CRUISEKUBE_DB_SSLMODE: "disable"
     CRUISEKUBE_RECOMMENDATIONSETTINGS_NEWWORKLOADTHRESHOLDHOURS: "1"
