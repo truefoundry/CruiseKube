@@ -6,6 +6,7 @@ commands:
       kubectl run curl-trigger-incomplete --rm -i --restart=Never --image=docker.io/curlimages/curl@sha256:d94d07ba9e7d6de898b6d96c1a072f6f8266c687af78a74f380087a0addf5d17 -n cruisekube-system -- \
         curl --fail-with-body -sS --max-time 10 -X POST \
         -H "Content-Type: application/json" \
+        -u "admin:admin" \
         -w "\nHTTP Status: %{http_code}\n" \
         http://cruisekube-controller.cruisekube-system.svc.cluster.local:8080/api/v1/dev/clusters/default/tasks/default_applyrecommendation/trigger
   - command: echo ""

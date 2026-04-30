@@ -92,6 +92,7 @@ type parsedPodRecommendation struct {
 	Namespace  string
 	Pod        string
 	Rec        types.PodResourceRecommendation
+	Current    types.PodCurrentResources
 }
 
 type workloadRecAgg struct {
@@ -117,7 +118,13 @@ func (deps HandlerDependencies) getPodRecommendationsForCluster(ctx context.Cont
 		if err := json.Unmarshal([]byte(row.Recommendation), &rec); err != nil {
 			continue
 		}
-		parsedRecs = append(parsedRecs, parsedPodRecommendation{WorkloadID: row.WorkloadID, Namespace: row.Namespace, Pod: row.Pod, Rec: rec})
+		var current types.PodCurrentResources
+		if row.Current != "" {
+			if err := json.Unmarshal([]byte(row.Current), &current); err != nil {
+				logging.Warnf(ctx, "Failed to unmarshal pod current resources for workload %s pod %s: %v", row.WorkloadID, row.Pod, err)
+			}
+		}
+		parsedRecs = append(parsedRecs, parsedPodRecommendation{WorkloadID: row.WorkloadID, Namespace: row.Namespace, Pod: row.Pod, Rec: rec, Current: current})
 	}
 	return parsedRecs, nil
 }
@@ -173,6 +180,32 @@ func aggregateRecsForWorkload(recs []parsedPodRecommendation, stat *types.Worklo
 		memAvg = totalMem / float64(len(recs))
 	}
 	return workloadRecAgg{CPUMin: cpuMin, CPUAvg: cpuAvg, CPUMax: cpuMax, MemMin: memMin, MemAvg: memAvg, MemMax: memMax, TotalCPU: totalCPU, TotalMem: totalMem}
+}
+
+func aggregatePodCurrentsForWorkload(podCurrents []types.PodCurrentResources, stat *types.WorkloadStat) types.PodCurrentResources {
+	if len(podCurrents) == 0 {
+		return types.PodCurrentResources{}
+	}
+
+	var currentCPURequest, currentMemoryRequest float64
+	for _, p := range podCurrents {
+		currentCPURequest += p.CurrentCPURequest
+		currentMemoryRequest += p.CurrentMemoryRequest
+	}
+
+	var avgCPURequest, avgMemoryRequest float64
+	if stat.Replicas > 0 {
+		avgCPURequest = currentCPURequest / float64(stat.Replicas)
+		avgMemoryRequest = currentMemoryRequest / float64(stat.Replicas)
+	} else {
+		avgCPURequest = currentCPURequest / float64(len(podCurrents))
+		avgMemoryRequest = currentMemoryRequest / float64(len(podCurrents))
+	}
+
+	return types.PodCurrentResources{
+		CurrentCPURequest:    avgCPURequest,
+		CurrentMemoryRequest: avgMemoryRequest,
+	}
 }
 
 // buildWorkloadDetail builds a single WorkloadDetail from a workload and its stat.
@@ -243,8 +276,8 @@ func buildWorkloadDetail(w *types.WorkloadInCluster, stat *types.WorkloadStat) t
 // fillWorkloadDetailDollars sets dollar savings and expenditure on a single WorkloadDetail from aggregated recommendations.
 // d.CPU.Current and d.Memory.Current are expected to be totals (per-pod request * number of pods).
 func fillWorkloadDetailDollars(d *types.WorkloadDetail, agg workloadRecAgg, p workloadPricing) {
-	totalCurrentCPU := d.CPU.CurrentPerPod * float64(d.PodsCount)
-	totalCurrentMem := d.Memory.CurrentPerPod * float64(d.PodsCount)
+	totalCurrentCPU := d.CPU.Current * float64(d.PodsCount)
+	totalCurrentMem := d.Memory.Current * float64(d.PodsCount)
 	totalRecCPU := agg.TotalCPU
 	totalRecMem := agg.TotalMem
 	cpuSavings := 0.0
@@ -284,8 +317,10 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 
 	// Index recommendations by workload ID for fast lookup
 	recsByWorkload := make(map[string][]parsedPodRecommendation)
+	podCurrentsByWorkload := make(map[string][]types.PodCurrentResources)
 	for _, p := range parsedRecs {
 		recsByWorkload[p.WorkloadID] = append(recsByWorkload[p.WorkloadID], p)
+		podCurrentsByWorkload[p.WorkloadID] = append(podCurrentsByWorkload[p.WorkloadID], p.Current)
 	}
 
 	var clusterReqCPU, clusterReqMem, clusterRecCPU, clusterRecMem float64
@@ -308,6 +343,8 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 
 		detail := buildWorkloadDetail(w, &effectiveStat)
 		agg := aggregateRecsForWorkload(workloadRecs, &effectiveStat)
+		podCurrents := podCurrentsByWorkload[w.WorkloadID]
+		podCurrentAvg := aggregatePodCurrentsForWorkload(podCurrents, &effectiveStat)
 
 		recAgg[w.WorkloadID] = agg
 
@@ -333,16 +370,18 @@ func (deps HandlerDependencies) getWorkloadsData(ctx context.Context, clusterID 
 		}
 
 		detail.CPU = types.WorkloadCPU{
-			CurrentPerPod: currentCPUPerPod,
+			Current: currentCPUPerPod,
 			Recommended: types.CPURecommended{
 				Min: agg.CPUMin, Avg: agg.CPUAvg, Max: agg.CPUMax, Change: cpuChange,
 			},
+			PodCurrentAvg: podCurrentAvg.CurrentCPURequest,
 		}
 		detail.Memory = types.WorkloadMemory{
-			CurrentPerPod: currentMemPerPod,
+			Current: currentMemPerPod,
 			Recommended: types.MemoryRecommended{
 				Min: agg.MemMin, Avg: agg.MemAvg, Max: agg.MemMax, Change: memChange,
 			},
+			PodCurrentAvg: podCurrentAvg.CurrentMemoryRequest,
 		}
 		details = append(details, detail)
 	}

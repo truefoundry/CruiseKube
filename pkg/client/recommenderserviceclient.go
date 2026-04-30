@@ -22,11 +22,11 @@ import (
 
 // TODO: This client should be getting generated and not hardcoded
 type RecommenderServiceClient struct {
-	host         string
-	httpClient   *http.Client
-	username     string
-	password     string
-	clusterToken string
+	host          string
+	httpClient    *http.Client
+	basicUser     string
+	basicPassword string
+	clusterToken  string
 }
 
 type ClientConfig struct {
@@ -35,10 +35,6 @@ type ClientConfig struct {
 	Password     string
 	ClusterToken string
 	Timeout      time.Duration
-}
-
-type HealthResponse struct {
-	Status string `json:"status"`
 }
 
 // MutatingPatchRequest is the request body for mutating patch
@@ -67,18 +63,10 @@ func NewRecommenderServiceClient(config ClientConfig) *RecommenderServiceClient 
 			Transport: otelhttp.NewTransport(http.DefaultTransport),
 			Timeout:   timeout,
 		},
-		username:     config.Username,
-		password:     config.Password,
-		clusterToken: config.ClusterToken,
+		basicUser:     config.Username,
+		basicPassword: config.Password,
+		clusterToken:  config.ClusterToken,
 	}
-}
-
-func NewRecommenderServiceClientWithBasicAuth(host, username, password string) *RecommenderServiceClient {
-	return NewRecommenderServiceClient(ClientConfig{
-		Host:     host,
-		Username: username,
-		Password: password,
-	})
 }
 
 func NewRecommenderServiceClientWithClusterToken(host, clusterToken string) *RecommenderServiceClient {
@@ -119,12 +107,11 @@ func (c *RecommenderServiceClient) makeRequest(ctx context.Context, method, endp
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	if c.clusterToken != "" {
+	if c.basicUser != "" || c.basicPassword != "" {
+		req.SetBasicAuth(c.basicUser, c.basicPassword)
+	} else if c.clusterToken != "" {
 		logging.Infof(ctx, "Setting cluster token")
 		req.Header.Set("x-cluster-token", c.clusterToken)
-	} else if c.username != "" && c.password != "" {
-		logging.Infof(ctx, "Setting basic auth")
-		req.SetBasicAuth(c.username, c.password)
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -155,24 +142,11 @@ func (c *RecommenderServiceClient) makeRequest(ctx context.Context, method, endp
 	return nil
 }
 
-func (c *RecommenderServiceClient) Health(ctx context.Context) (*HealthResponse, error) {
-	var result HealthResponse
-	err := c.makeRequest(ctx, "GET", "/health", nil, &result)
-	return &result, err
-}
-
 func (c *RecommenderServiceClient) GetClusterStats(ctx context.Context, clusterID string) (*types.StatsResponse, error) {
 	var result types.StatsResponse
 	endpoint := fmt.Sprintf("/api/v1/clusters/%s/stats", clusterID)
 	err := c.makeRequest(ctx, "GET", endpoint, nil, &result)
 	return &result, err
-}
-
-func (c *RecommenderServiceClient) ListWorkloads(ctx context.Context, clusterID string) ([]types.WorkloadOverrideInfo, error) {
-	var result []types.WorkloadOverrideInfo
-	endpoint := fmt.Sprintf("/api/v1/clusters/%s/workloads", clusterID)
-	err := c.makeRequest(ctx, "GET", endpoint, nil, &result)
-	return result, err
 }
 
 // WebhookMutatingPatch POSTs the given body to the controller's mutatingPatch endpoint and returns the response body (JSON patch array).
@@ -182,24 +156,4 @@ func (c *RecommenderServiceClient) WebhookMutatingPatch(ctx context.Context, clu
 	var result []JSONPatchOp
 	err := c.makeRequest(ctx, "POST", endpoint, body, &result)
 	return result, err
-}
-
-func (c *RecommenderServiceClient) SetHost(host string) {
-	c.host = strings.TrimSuffix(host, "/")
-}
-
-func (c *RecommenderServiceClient) SetAuth(username, password string) {
-	c.username = username
-	c.password = password
-	c.clusterToken = ""
-}
-
-func (c *RecommenderServiceClient) SetClusterToken(token string) {
-	c.clusterToken = token
-	c.username = ""
-	c.password = ""
-}
-
-func (c *RecommenderServiceClient) GetHost() string {
-	return c.host
 }

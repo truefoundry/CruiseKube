@@ -59,13 +59,15 @@ type WorkloadConfig struct {
 }
 
 type WorkloadCPU struct {
-	CurrentPerPod float64        `json:"current"`
+	Current       float64        `json:"current"`
 	Recommended   CPURecommended `json:"recommended"`
+	PodCurrentAvg float64        `json:"podCurrentAvg"`
 }
 
 type WorkloadMemory struct {
-	CurrentPerPod float64           `json:"current"`
+	Current       float64           `json:"current"`
 	Recommended   MemoryRecommended `json:"recommended"`
+	PodCurrentAvg float64           `json:"podCurrentAvg"`
 }
 
 type WorkloadDetail struct {

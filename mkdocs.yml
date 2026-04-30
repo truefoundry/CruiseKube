@@ -242,6 +242,7 @@ nav:
       - Introduction: about/overview.md
       - Use Cases: about/overview-use-cases.md
       - CruiseKube vs VPA: about/comp-vs-vpa.md
+      - Adopters: about/adopters.md
       - FAQ: about/overview-faq.md
   - Install:
       - Installation: install/gs-installation.md
@@ -254,6 +255,7 @@ nav:
         - TradeOffs: documentation/concepts/arch-tradeoffs.md
       - Operate:
         - Dashboard: documentation/operate/config-dashboard.md
+        - Login & authentication: documentation/operate/authentication.md
         - Policies & Modes: documentation/operate/operate-policies.md
         - Resource Pricing: documentation/operate/operate-resource-pricing.md
         - Troubleshooting: documentation/operate/operate-troubleshooting.md

@@ -45,7 +45,7 @@ metrics:
   port: "8081"   
 server:
   port: "8080"
-  basicAuth:
+  auth:
     username: "admin"
     password: "admin"
 webhook:

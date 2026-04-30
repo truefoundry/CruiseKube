@@ -49,7 +49,7 @@ type ApplyRecommendationTaskConfig struct {
 	ClusterID              string
 	TargetClusterID        string
 	TargetNamespace        string
-	BasicAuth              config.BasicAuthConfig
+	Auth                   config.AuthConfig
 	RecommendationSettings config.RecommendationSettings
 	Metadata               ApplyRecommendationMetadata
 }
@@ -746,6 +746,15 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 			kind, namespace, name := rec.PodInfo.WorkloadKind, rec.PodInfo.Namespace, rec.PodInfo.WorkloadName
 			workloadID := utils.GetWorkloadKey(kind, namespace, name)
 			cpuRequest, memoryRequest, cpuLimit, memoryLimit := utils.ComputeRecommendedResourceValues(ctx, rec, allocatableCPU)
+
+			var currentCPURequest, currentMemoryRequest, currentCPULimit, currentMemoryLimit float64
+			if currentContainerResource, err := rec.PodInfo.GetContainerResource(rec.ContainerName); err == nil && currentContainerResource != nil {
+				currentCPURequest = currentContainerResource.CPURequest
+				currentMemoryRequest = currentContainerResource.MemoryRequest
+				currentCPULimit = currentContainerResource.CPULimit
+				currentMemoryLimit = currentContainerResource.MemoryLimit
+			}
+
 			if _, skip := nonOptKeys[utils.GetPodKey(rec.PodInfo.Namespace, rec.PodInfo.Name)]; skip {
 				// if pod is non-optimizable, we don't compute recommended values
 				for _, container := range rec.PodInfo.ContainerResources {
@@ -765,6 +774,17 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 				MemoryLimit:   memoryLimit,
 				ToBeEvicted:   utils.ToBeEvicted(rec),
 			}
+			currentResources := types.PodCurrentResources{
+				CurrentCPURequest:    currentCPURequest,
+				CurrentMemoryRequest: currentMemoryRequest,
+				CurrentCPULimit:      currentCPULimit,
+				CurrentMemoryLimit:   currentMemoryLimit,
+			}
+			currentResourcesJSON, err := json.Marshal(currentResources)
+			if err != nil {
+				logging.Errorf(ctx, "failed to marshal pod current resources for %s/%s container %s: %v; persisting row with empty Current", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
+				currentResourcesJSON = []byte("{}")
+			}
 			recJSON, err := json.Marshal(payload)
 			if err != nil {
 				logging.Errorf(ctx, "failed to marshal pod recommendation for %s/%s container %s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, rec.ContainerName, err)
@@ -777,6 +797,7 @@ func (a *ApplyRecommendationTask) buildPodRecommendationRows(ctx context.Context
 				Pod:            rec.PodInfo.Name,
 				Container:      rec.ContainerName,
 				Recommendation: string(recJSON),
+				Current:        string(currentResourcesJSON),
 			})
 		}
 	}
@@ -838,11 +859,11 @@ func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Contex
 	var statsFile *types.StatsResponse
 
 	if a.config.Metadata.NodeStatsURL.Host != "" {
-		recommenderClient := client.NewRecommenderServiceClientWithBasicAuth(
-			a.config.Metadata.NodeStatsURL.Host,
-			a.config.BasicAuth.Username,
-			a.config.BasicAuth.Password,
-		)
+		recommenderClient := client.NewRecommenderServiceClient(client.ClientConfig{
+			Host:     a.config.Metadata.NodeStatsURL.Host,
+			Username: a.config.Auth.Username,
+			Password: a.config.Auth.Password,
+		})
 		var err error
 		statsFile, err = recommenderClient.GetClusterStats(ctx, a.config.ClusterID)
 		if err != nil {

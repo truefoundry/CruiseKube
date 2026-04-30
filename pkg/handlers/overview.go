@@ -175,17 +175,17 @@ func (deps HandlerDependencies) OverviewHandler(c *gin.Context) {
 
 	for i := range details {
 		d := details[i]
-		totalRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
-		totalRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
+		totalRequestedCPU += d.CPU.Current * float64(d.PodsCount)
+		totalRequestedMem += d.Memory.Current * float64(d.PodsCount)
 		switch {
 		case isNonOptimizableWorkload(d):
-			totalRequestedCPU -= d.CPU.CurrentPerPod * float64(d.PodsCount)
-			totalRequestedMem -= d.Memory.CurrentPerPod * float64(d.PodsCount)
+			totalRequestedCPU -= d.CPU.Current * float64(d.PodsCount)
+			totalRequestedMem -= d.Memory.Current * float64(d.PodsCount)
 			nonOptimizableWorkloads++
 		case d.Config.CruiseEnabled:
 			optimizableWorkloads++
-			enabledRequestedCPU += d.CPU.CurrentPerPod * float64(d.PodsCount)
-			enabledRequestedMem += d.Memory.CurrentPerPod * float64(d.PodsCount)
+			enabledRequestedCPU += d.CPU.Current * float64(d.PodsCount)
+			enabledRequestedMem += d.Memory.Current * float64(d.PodsCount)
 		default:
 			optimizableButExcludedWorkloads++
 		}

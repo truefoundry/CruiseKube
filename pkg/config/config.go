@@ -71,12 +71,12 @@ type URLConfig struct {
 }
 
 type ServerConfig struct {
-	Port          string          `yaml:"port" mapstructure:"port"`
-	BasicAuth     BasicAuthConfig `yaml:"basicAuth" mapstructure:"basicAuth"`
-	EnableDevAPIs bool            `yaml:"enableDevAPIs" mapstructure:"enableDevAPIs"`
+	Port          string     `yaml:"port" mapstructure:"port"`
+	Auth          AuthConfig `yaml:"auth" mapstructure:"auth"`
+	EnableDevAPIs bool       `yaml:"enableDevAPIs" mapstructure:"enableDevAPIs"`
 }
 
-type BasicAuthConfig struct {
+type AuthConfig struct {
 	Username string `yaml:"username" mapstructure:"username"`
 	Password string `yaml:"password" mapstructure:"password"`
 }
