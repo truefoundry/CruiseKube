@@ -96,11 +96,34 @@ func BuildBatchMemoryUsageExpression(namespace string) string {
 	return fmt.Sprintf(template, namespace, podInfo)
 }
 
+// SupportedWorkloadPodsMaxByNamespacePod is a PromQL fragment (already wrapped in max by (namespace, pod))
+// matching pods from workloads we manage: DaemonSet, StatefulSet, and Deployment (pods owned by a ReplicaSet
+// whose owner is Deployment or Argo Rollout). CronJobs, Jobs, and other controllers are excluded.
+func SupportedWorkloadPodsMaxByNamespacePod() string {
+	return `max by (namespace, pod) (
+      kube_pod_owner{job="kube-state-metrics", owner_kind=~"DaemonSet|StatefulSet"}
+      or
+      (
+        label_replace(
+          kube_pod_owner{job="kube-state-metrics", owner_kind="ReplicaSet"},
+          "replicaset", "$1", "owner_name", "(.*)"
+        )
+        * on (namespace, replicaset) group_left
+        kube_replicaset_owner{job="kube-state-metrics", owner_kind=~"Deployment|Rollout"}
+      )
+    )`
+}
+
 func BuildClusterMemoryUtilizationExpression() string {
+	wl := SupportedWorkloadPodsMaxByNamespacePod()
 	template := `round(
       sum(
         sum by (node) (
-          node_memory_MemTotal_bytes{job="node-exporter"} - (node_memory_MemFree_bytes{job="node-exporter"} + node_memory_Buffers_bytes{job="node-exporter"} + node_memory_Cached_bytes{job="node-exporter"})
+          sum by (namespace, pod, node) (
+            container_memory_working_set_bytes{job="kubelet", container!~"POD|"}
+          )
+          * on (namespace, pod) group_left ()
+          ` + wl + `
         )
         unless
         max by (node) (
@@ -128,6 +151,8 @@ func BuildClusterMemoryRequestExpression() string {
           )
           * on (namespace, pod) group_left
             sum by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"})
+          * on (namespace, pod) group_left ()
+            ` + SupportedWorkloadPodsMaxByNamespacePod() + `
         )
         unless on (node)
         (
@@ -162,10 +187,15 @@ func BuildClusterMemoryAllocatableExpression() string {
 }
 
 func BuildClusterCPUUtilizationExpression() string {
+	wl := SupportedWorkloadPodsMaxByNamespacePod()
 	template := `round(
       sum(
         sum by (node) (
-          rate(node_cpu_seconds_total{job="node-exporter", mode=~"user|system"}[1m])
+          sum by (namespace, pod, node) (
+            rate(container_cpu_usage_seconds_total{job="kubelet", container!~"POD|"}[1m])
+          )
+          * on (namespace, pod) group_left ()
+          ` + wl + `
         )
         unless max by (node) (
           max_over_time(kube_node_status_allocatable{
@@ -194,6 +224,8 @@ func BuildClusterCPURequestExpression() string {
           )
           * on (namespace, pod) group_left
             sum by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"})
+          * on (namespace, pod) group_left ()
+            ` + SupportedWorkloadPodsMaxByNamespacePod() + `
         )
         unless on (node)
         (

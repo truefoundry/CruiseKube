@@ -14,6 +14,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/metrics"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
+	"github.com/truefoundry/cruisekube/pkg/task/utils"
 )
 
 type FetchMetricsTaskConfig struct {
@@ -81,7 +82,11 @@ func (f *FetchMetricsTask) Run(ctx context.Context) error {
 func (f *FetchMetricsTask) fetchClusterCPUUtilization(ctx context.Context) {
 	query := `sum(
 		sum by (node) (
-			rate(container_cpu_usage_seconds_total{job="kubelet",container!~"POD|"}[1m])
+			sum by (namespace, pod, node) (
+				rate(container_cpu_usage_seconds_total{job="kubelet",container!~"POD|"}[1m])
+			)
+			* on (namespace, pod) group_left ()
+			` + utils.SupportedWorkloadPodsMaxByNamespacePod() + `
 		)
 		unless sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)
 	)`
@@ -106,6 +111,8 @@ func (f *FetchMetricsTask) fetchClusterCPURequest(ctx context.Context) {
 				)
 			* on (namespace, pod) group_left ()
 			  max by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics",phase="Running"} > 0)
+			* on (namespace, pod) group_left ()
+			  ` + utils.SupportedWorkloadPodsMaxByNamespacePod() + `
 			)
 			unless
 			  sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)
@@ -196,7 +203,11 @@ func (f *FetchMetricsTask) fetchContainerCPUWaiting(ctx context.Context) {
 func (f *FetchMetricsTask) fetchClusterMemoryUtilization(ctx context.Context) {
 	query := `sum(
 		sum by (node) (
-			container_memory_working_set_bytes{job="kubelet",container!~"POD|"}
+			sum by (namespace, pod, node) (
+				container_memory_working_set_bytes{job="kubelet",container!~"POD|"}
+			)
+			* on (namespace, pod) group_left ()
+			` + utils.SupportedWorkloadPodsMaxByNamespacePod() + `
 		)
 		unless sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)
 	)`
@@ -222,6 +233,8 @@ func (f *FetchMetricsTask) fetchClusterMemoryRequest(ctx context.Context) {
                 )
 				* on (namespace, pod) group_left ()
 				max by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics",phase="Running"} > 0)
+				* on (namespace, pod) group_left ()
+				` + utils.SupportedWorkloadPodsMaxByNamespacePod() + `
             )
 			unless
 			  sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)
