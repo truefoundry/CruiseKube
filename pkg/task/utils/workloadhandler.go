@@ -274,8 +274,8 @@ func GetWorkloadObject(ctx context.Context, kubeClient *kubernetes.Clientset, ki
 	}
 }
 
-// ListAllWorkloads lists all workloads of all supported types in a namespace
-func ListAllWorkloads(ctx context.Context, kubeClient *kubernetes.Clientset, targetNamespace string) ([]WorkloadInfo, error) {
+// ListInScopeWorkloads lists all workloads of all supported types in a namespace
+func ListInScopeWorkloads(ctx context.Context, kubeClient *kubernetes.Clientset, targetNamespace string) ([]WorkloadInfo, error) {
 	var workloads []WorkloadInfo
 
 	// List Deployments

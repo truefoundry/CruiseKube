@@ -80,43 +80,31 @@ func (c *CreateStatsTask) IsEnabled() bool {
 func (c *CreateStatsTask) Run(ctx context.Context) error {
 	ctx = contextutils.WithTask(ctx, c.config.Name)
 	ctx = contextutils.WithCluster(ctx, c.config.ClusterID)
-
+	// Debug Logs
 	targetNamespace := c.config.TargetNamespace
-
 	startTime := time.Now().UTC()
 	logging.Infof(ctx, "Running task: CreateStats")
-
-	workloadList, err := utils.ListAllWorkloads(ctx, c.kubeClient, targetNamespace)
+	isPSIEnabled := c.isPSIEnabled(ctx)
+	logging.Infof(ctx, "PSI is enabled: %v", isPSIEnabled)
+	// Step 1: List all workloads in scope
+	workloadList, err := utils.ListInScopeWorkloads(ctx, c.kubeClient, targetNamespace)
 	if err != nil {
 		logging.Errorf(ctx, "Error getting workload list: %v", err)
 		return fmt.Errorf("failed to list workloads: %w", err)
 	}
-
-	currentWorkloadIds := make(map[string]struct{}, len(workloadList))
-	for _, w := range workloadList {
-		currentWorkloadIds[utils.GetWorkloadKey(w.Kind, w.Namespace, w.Name)] = struct{}{}
-	}
-	if deleted, err := c.storage.DeleteStaleWorkloads(c.config.ClusterID, currentWorkloadIds); err != nil {
-		logging.Errorf(ctx, "Error deleting stale workloads: %v", err)
-	} else if deleted > 0 {
-		logging.Infof(ctx, "Deleted %d stale workloads from DB", deleted)
-	}
-
-	isPSIEnabled := c.isPSIEnabled(ctx)
-	logging.Infof(ctx, "PSI is enabled: %v", isPSIEnabled)
-
+	// Step 2: Create a map with workloadId, using kind, namespace and name.
 	uniqueWorkloads := make(map[string]utils.WorkloadInfo)
+	keepWorkloadIds := make([]string, 0, len(workloadList))
 	filteredCount := 0
 	for _, workloadInfo := range workloadList {
 		workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-
 		uniqueWorkloads[workloadKey] = workloadInfo
+		// Used for deleting stale workloads
+		keepWorkloadIds = append(keepWorkloadIds, workloadKey)
 	}
-
-	logging.Infof(ctx, "Filtered out %d workloads with recent stats (within %d minutes)", filteredCount, utils.RecentStatsLookbackMinutes)
 	namespaces := utils.ExtractUniqueNamespaces(uniqueWorkloads)
+	logging.Infof(ctx, "Filtered out %d workloads with recent stats (within %d minutes)", filteredCount, utils.RecentStatsLookbackMinutes)
 	logging.Infof(ctx, "Found %d unique namespaces to process: %v", len(namespaces), namespaces)
-
 	namespaceQueryResults, namespaceVsWorkloadMetrics, err := c.promClient.FetchStatsForNamespaces(ctx, c.config.ClusterID, namespaces, isPSIEnabled)
 	if err != nil {
 		logging.Errorf(ctx, "Error executing batch queries: %v", err)
@@ -180,6 +168,14 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 		); stat != nil {
 			newStats = append(newStats, stat)
 		}
+	}
+
+	if deleted, err := c.storage.DeleteStaleWorkloads(c.config.ClusterID, keepWorkloadIds); err != nil {
+		logging.Errorf(ctx, "Error deleting stale workloads: %v", err)
+	} else if deleted > 0 {
+		logging.Infof(ctx, "Deleted %d stale workloads from DB", deleted)
+	} else if deleted == 0 {
+		logging.Debugf(ctx, "No stale workloads to delete")
 	}
 
 	if len(newStats) > 0 {
