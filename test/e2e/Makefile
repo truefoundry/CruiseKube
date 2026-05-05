@@ -105,6 +105,25 @@ reload-images: ## Reload images into kind and restart deployments
 	-@kubectl rollout restart deployment cruisekube-frontend -n $(NAMESPACE) 2>/dev/null || true
 	@echo "Images reloaded and deployment restarted."
 
+install-prom: ## Install prometheus
+	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	@helm repo update prometheus-community
+	@helm upgrade --install prometheus \
+        prometheus-community/kube-prometheus-stack \
+        --namespace monitoring \
+        --create-namespace \
+        --set prometheus.service.type=NodePort \
+        --set prometheus.service.nodePort=30090 \
+        --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+        --set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false \
+        --set prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false \
+        --set grafana.enabled=false \
+        --set alertmanager.enabled=false \
+        --set kubeStateMetrics.enabled=true \
+        --set nodeExporter.enabled=true \
+        --set prometheusOperator.enabled=true \
+        --wait --timeout=150s
+
 ick: install-ck
 
 install-ck: ## Update helm chart
