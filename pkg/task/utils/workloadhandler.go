@@ -47,6 +47,7 @@ func mergeContainers(workloadContainers, podContainers []corev1.Container) []cor
 
 // WorkloadObject represents any Kubernetes workload that can be managed
 type WorkloadObject interface {
+	GetKind() string
 	GetNamespace() string
 	GetName() string
 	GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container
@@ -54,11 +55,16 @@ type WorkloadObject interface {
 	GetSelector() (labels.Selector, error)
 	GetCreationTime() time.Time
 	GetReplicas() int32
+	GetWorkloadInfo() WorkloadInfo
 }
 
 // DeploymentWrapper wraps appsv1.Deployment to implement WorkloadObject
 type DeploymentWrapper struct {
 	*appsv1.Deployment
+}
+
+func (d DeploymentWrapper) GetKind() string {
+	return DeploymentKind
 }
 
 func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
@@ -120,9 +126,21 @@ func (d DeploymentWrapper) GetReplicas() int32 {
 	return *d.Spec.Replicas
 }
 
+func (d DeploymentWrapper) GetWorkloadInfo() WorkloadInfo {
+	return WorkloadInfo{
+		Kind:      DeploymentKind,
+		Namespace: d.Namespace,
+		Name:      d.Name,
+	}
+}
+
 // StatefulSetWrapper wraps appsv1.StatefulSet to implement WorkloadObject
 type StatefulSetWrapper struct {
 	*appsv1.StatefulSet
+}
+
+func (s StatefulSetWrapper) GetKind() string {
+	return StatefulSetKind
 }
 
 func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
@@ -184,9 +202,21 @@ func (s StatefulSetWrapper) GetReplicas() int32 {
 	return *s.Spec.Replicas
 }
 
+func (s StatefulSetWrapper) GetWorkloadInfo() WorkloadInfo {
+	return WorkloadInfo{
+		Kind:      StatefulSetKind,
+		Namespace: s.Namespace,
+		Name:      s.Name,
+	}
+}
+
 // DaemonSetWrapper wraps appsv1.DaemonSet to implement WorkloadObject
 type DaemonSetWrapper struct {
 	*appsv1.DaemonSet
+}
+
+func (d DaemonSetWrapper) GetKind() string {
+	return DaemonSetKind
 }
 
 func (d DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
@@ -245,6 +275,14 @@ func (d DaemonSetWrapper) GetReplicas() int32 {
 	return d.Status.DesiredNumberScheduled
 }
 
+func (d DaemonSetWrapper) GetWorkloadInfo() WorkloadInfo {
+	return WorkloadInfo{
+		Kind:      DaemonSetKind,
+		Namespace: d.Namespace,
+		Name:      d.Name,
+	}
+}
+
 // GetWorkloadObject retrieves a workload object by kind, namespace, and name
 func GetWorkloadObject(ctx context.Context, kubeClient *kubernetes.Clientset, kind, namespace, name string) (WorkloadObject, error) {
 	switch kind {
@@ -274,9 +312,9 @@ func GetWorkloadObject(ctx context.Context, kubeClient *kubernetes.Clientset, ki
 	}
 }
 
-// ListAllWorkloads lists all workloads of all supported types in a namespace
-func ListAllWorkloads(ctx context.Context, kubeClient *kubernetes.Clientset, targetNamespace string) ([]WorkloadInfo, error) {
-	var workloads []WorkloadInfo
+// ListAllWorkloadObjects lists all workloads of all supported types in a namespace
+func ListAllWorkloadObjects(ctx context.Context, kubeClient *kubernetes.Clientset, targetNamespace string) ([]WorkloadObject, error) {
+	var workloadObjects []WorkloadObject
 
 	// List Deployments
 	deployments, err := kubeClient.AppsV1().Deployments(targetNamespace).List(ctx, metav1.ListOptions{})
@@ -285,11 +323,7 @@ func ListAllWorkloads(ctx context.Context, kubeClient *kubernetes.Clientset, tar
 	}
 	for _, deployment := range deployments.Items {
 		if deployment.Spec.Selector != nil {
-			workloads = append(workloads, WorkloadInfo{
-				Kind:      DeploymentKind,
-				Namespace: deployment.Namespace,
-				Name:      deployment.Name,
-			})
+			workloadObjects = append(workloadObjects, DeploymentWrapper{&deployment})
 		}
 	}
 
@@ -300,11 +334,7 @@ func ListAllWorkloads(ctx context.Context, kubeClient *kubernetes.Clientset, tar
 	}
 	for _, statefulSet := range statefulSets.Items {
 		if statefulSet.Spec.Selector != nil {
-			workloads = append(workloads, WorkloadInfo{
-				Kind:      StatefulSetKind,
-				Namespace: statefulSet.Namespace,
-				Name:      statefulSet.Name,
-			})
+			workloadObjects = append(workloadObjects, StatefulSetWrapper{&statefulSet})
 		}
 	}
 
@@ -315,15 +345,11 @@ func ListAllWorkloads(ctx context.Context, kubeClient *kubernetes.Clientset, tar
 	}
 	for _, daemonSet := range daemonSets.Items {
 		if daemonSet.Spec.Selector != nil {
-			workloads = append(workloads, WorkloadInfo{
-				Kind:      DaemonSetKind,
-				Namespace: daemonSet.Namespace,
-				Name:      daemonSet.Name,
-			})
+			workloadObjects = append(workloadObjects, DaemonSetWrapper{&daemonSet})
 		}
 	}
 
-	return workloads, nil
+	return workloadObjects, nil
 }
 
 // ListAllWorkloadsWithSelectors lists all workloads with their label selectors
@@ -400,11 +426,11 @@ func ListAllWorkloadsWithSelectors(ctx context.Context, kubeClient *kubernetes.C
 }
 
 // ExtractUniqueNamespaces extracts all unique namespaces from a workload map
-func ExtractUniqueNamespaces(workloads map[string]WorkloadInfo) []string {
+func ExtractUniqueNamespaces(workloads map[string]WorkloadObject) []string {
 	namespaceSet := make(map[string]bool)
-	for _, workloadInfo := range workloads {
-		if workloadInfo.Namespace != "" {
-			namespaceSet[workloadInfo.Namespace] = true
+	for _, workloadObject := range workloads {
+		if workloadObject.GetNamespace() != "" {
+			namespaceSet[workloadObject.GetNamespace()] = true
 		}
 	}
 
