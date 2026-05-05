@@ -68,8 +68,8 @@ func CreateNodeStatsMapping(
 			// 2. Calculate the pod info, and add it to the nodeInfo.Pods
 			if pod.Spec.NodeName == nodeName {
 				// Calculate the allocatable CPU and Memory based on the pods in scope
-				nodeInfo.AllocatableCPU += getCurrentPodCPU(pod)
-				nodeInfo.AllocatableMemory += getCurrentPodMemory(pod)
+				nodeInfo.AllocatableCPU += getPodAllocatableCPU(pod)
+				nodeInfo.AllocatableMemory += getPodAllocatableMemory(pod)
 
 				podKey := PodKey{
 					Namespace: pod.Namespace,
@@ -231,6 +231,70 @@ func getCurrentPodCPU(pod *corev1.Pod) float64 {
 
 		if q, ok := c.Resources.Requests[corev1.ResourceCPU]; ok {
 			v := float64(q.MilliValue()) / 1000.0
+			if IsSidecarContainer(c) {
+				sumAppSidecar += v
+			} else {
+				maxInit = max(maxInit, v)
+			}
+		}
+	}
+
+	return max(sumAppSidecar, maxInit)
+}
+
+func getPodAllocatableCPU(pod *corev1.Pod) float64 {
+	sumAppSidecar := 0.0
+	maxInit := 0.0
+
+	for _, c := range pod.Spec.Containers {
+		if c.Resources.Limits == nil {
+			continue
+		}
+
+		if q, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
+			sumAppSidecar += float64(q.MilliValue()) / 1000.0
+		}
+	}
+
+	for _, c := range pod.Spec.InitContainers {
+		if c.Resources.Limits == nil {
+			continue
+		}
+
+		if q, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
+			v := float64(q.MilliValue()) / 1000.0
+			if IsSidecarContainer(c) {
+				sumAppSidecar += v
+			} else {
+				maxInit = max(maxInit, v)
+			}
+		}
+	}
+
+	return max(sumAppSidecar, maxInit)
+}
+
+func getPodAllocatableMemory(pod *corev1.Pod) float64 {
+	sumAppSidecar := 0.0
+	maxInit := 0.0
+
+	for _, c := range pod.Spec.Containers {
+		if c.Resources.Limits == nil {
+			continue
+		}
+
+		if q, ok := c.Resources.Limits[corev1.ResourceMemory]; ok {
+			sumAppSidecar += float64(q.Value()) / BytesToMBDivisor
+		}
+	}
+
+	for _, c := range pod.Spec.InitContainers {
+		if c.Resources.Limits == nil {
+			continue
+		}
+
+		if q, ok := c.Resources.Limits[corev1.ResourceMemory]; ok {
+			v := float64(q.Value()) / BytesToMBDivisor
 			if IsSidecarContainer(c) {
 				sumAppSidecar += v
 			} else {

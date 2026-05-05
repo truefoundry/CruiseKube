@@ -100,7 +100,16 @@ func BuildClusterMemoryUtilizationExpression() string {
 	template := `round(
       sum(
         sum by (node) (
-          node_memory_MemTotal_bytes{job="node-exporter"} - (node_memory_MemFree_bytes{job="node-exporter"} + node_memory_Buffers_bytes{job="node-exporter"} + node_memory_Cached_bytes{job="node-exporter"})
+          sum by (namespace, pod, node) (
+            container_memory_working_set_bytes{job="kubelet", container!~""}
+          )
+          * on (namespace, pod, node) group_left
+            max by (namespace, pod, node) (
+              kube_pod_info{
+                job="kube-state-metrics",
+                created_by_kind=~"Deployment|StatefulSet|DaemonSet"
+              }
+            )
         )
         unless
         max by (node) (
@@ -127,6 +136,13 @@ func BuildClusterMemoryRequestExpression() string {
             )
           )
           * on (namespace, pod) group_left
+            max by (namespace, pod) (
+              kube_pod_info{
+                job="kube-state-metrics",
+                created_by_kind=~"Deployment|StatefulSet|DaemonSet"
+              }
+            )
+          * on (namespace, pod) group_left
             sum by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"})
         )
         unless on (node)
@@ -148,7 +164,20 @@ func BuildClusterMemoryRequestExpression() string {
 func BuildClusterMemoryAllocatableExpression() string {
 	template := `round(
       sum(
-        sum by (node) (kube_node_status_allocatable{job="kube-state-metrics", resource="memory"})
+        sum by (node) (
+          kube_node_status_allocatable{job="kube-state-metrics", resource="memory"}
+          * on (node) group_left
+            (
+              max by (node) (
+                kube_pod_info{
+                  job="kube-state-metrics",
+                  created_by_kind=~"Deployment|StatefulSet|DaemonSet"
+                }
+                * on (namespace, pod) group_left
+                  kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"}
+              ) > 0
+            )
+        )
         unless (
           sum by (node) (kube_node_spec_taint{job="kube-state-metrics", key="nvidia.com/gpu"})
         )
@@ -165,7 +194,16 @@ func BuildClusterCPUUtilizationExpression() string {
 	template := `round(
       sum(
         sum by (node) (
-          rate(node_cpu_seconds_total{job="node-exporter", mode=~"user|system"}[1m])
+          sum by (namespace, pod, node) (
+            rate(container_cpu_usage_seconds_total{job="kubelet", container!~""}[1m])
+          )
+          * on (namespace, pod, node) group_left
+            max by (namespace, pod, node) (
+              kube_pod_info{
+                job="kube-state-metrics",
+                created_by_kind=~"Deployment|StatefulSet|DaemonSet"
+              }
+            )
         )
         unless max by (node) (
           max_over_time(kube_node_status_allocatable{
@@ -193,6 +231,13 @@ func BuildClusterCPURequestExpression() string {
             )
           )
           * on (namespace, pod) group_left
+            max by (namespace, pod) (
+              kube_pod_info{
+                job="kube-state-metrics",
+                created_by_kind=~"Deployment|StatefulSet|DaemonSet"
+              }
+            )
+          * on (namespace, pod) group_left
             sum by (namespace, pod) (kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"})
         )
         unless on (node)
@@ -214,7 +259,20 @@ func BuildClusterCPURequestExpression() string {
 func BuildClusterCPUAllocatableExpression() string {
 	template := `round(
       sum(
-        sum by (node) (kube_node_status_allocatable{job="kube-state-metrics", resource="cpu"})
+        sum by (node) (
+          kube_node_status_allocatable{job="kube-state-metrics", resource="cpu"}
+          * on (node) group_left
+            (
+              max by (node) (
+                kube_pod_info{
+                  job="kube-state-metrics",
+                  created_by_kind=~"Deployment|StatefulSet|DaemonSet"
+                }
+                * on (namespace, pod) group_left
+                  kube_pod_status_phase{job="kube-state-metrics", phase!~"Failed|Succeeded|Unknown|Pending"}
+              ) > 0
+            )
+        )
         unless (
           sum by (node) (
             kube_node_spec_taint{job="kube-state-metrics", key="nvidia.com/gpu"}
