@@ -98,7 +98,7 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 	uniqueWorkloads := make(map[string]utils.WorkloadObject)
 	filteredCount := 0
 	for _, workloadObject := range workloadObjectsList {
-		uniqueWorkloads[utils.GetWorkloadKey(workloadObject.GetKind(), workloadObject.GetWorkloadInfo().Namespace, workloadObject.GetWorkloadInfo().Name)] = workloadObject
+		uniqueWorkloads[utils.GetWorkloadKey(workloadObject.GetKind(), workloadObject.GetNamespace(), workloadObject.GetName())] = workloadObject
 	}
 
 	logging.Infof(ctx, "Filtered out %d workloads with recent stats (within %d minutes)", filteredCount, utils.RecentStatsLookbackMinutes)
