@@ -1,8 +1,9 @@
 # Variables
 CLUSTER_NAME := cruisekube-e2e
 NAMESPACE := cruisekube-system
-CONTROLLER_IMAGE := cruisekube:latest
-FRONTEND_IMAGE := cruisekube-frontend:latest
+TAG ?= latest
+CONTROLLER_IMAGE := cruisekube:$(TAG)
+FRONTEND_IMAGE := cruisekube-frontend:$(TAG)
 FRONTEND_DIR := ../../cruiseKube-frontend
 T ?= ./tests
 TIMEOUT := 400s
