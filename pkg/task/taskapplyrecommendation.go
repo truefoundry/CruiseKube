@@ -851,7 +851,7 @@ func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Contex
 
 	targetNamespace := ""
 
-	podToWorkloadMap, allPods, err := utils.BuildPodToWorkloadMapping(ctx, a.kubeClient, targetNamespace)
+	podToWorkloadMap, podsInScope, err := utils.BuildPodToWorkloadMapping(ctx, a.kubeClient, targetNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build pod-to-workload mapping: %w", err)
 	}
@@ -885,7 +885,7 @@ func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Contex
 
 	podStats := utils.CreatePodToStatsMapping(ctx, podToWorkloadMap, statsMap)
 
-	nodeMap, err := utils.CreateNodeStatsMapping(ctx, a.kubeClient, podStats, podToWorkloadMap, allPods)
+	nodeMap, err := utils.CreateNodeStatsMapping(ctx, a.kubeClient, podStats, podToWorkloadMap, podsInScope)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create node stats mapping: %w", err)
 	}

@@ -190,10 +190,10 @@ func BuildPodToWorkloadMapping(ctx context.Context, kubeClient *kubernetes.Clien
 	}
 	logging.Infof(ctx, "Built label selector list with %d workloads", len(workloadLabelSelectorList))
 
-	podToWorkloadMap := createPodToWorkloadMapping(allPods, workloadLabelSelectorList)
+	podToWorkloadMap, podsInScope := createPodToWorkloadMapping(allPods, workloadLabelSelectorList)
 	logging.Infof(ctx, "Created mapping for %d pods to their parent workloads", len(podToWorkloadMap))
 
-	return podToWorkloadMap, allPods, nil
+	return podToWorkloadMap, podsInScope, nil
 }
 
 func getScheduledPodsAcrossNamespaces(ctx context.Context, kubeClient *kubernetes.Clientset, targetNamespace string) ([]*corev1.Pod, error) {
@@ -220,8 +220,9 @@ func getScheduledPodsAcrossNamespaces(ctx context.Context, kubeClient *kubernete
 	return scheduledPods, nil
 }
 
-func createPodToWorkloadMapping(pods []*corev1.Pod, workloadCache []WorkloadLabelSelectorList) map[PodKey]WorkloadInfo {
+func createPodToWorkloadMapping(pods []*corev1.Pod, workloadCache []WorkloadLabelSelectorList) (map[PodKey]WorkloadInfo, []*corev1.Pod) {
 	podToWorkloadMap := make(map[PodKey]WorkloadInfo)
+	podsInScope := make([]*corev1.Pod, 0, len(pods))
 
 	for _, pod := range pods {
 		podLabels := labels.Set(pod.Labels)
@@ -237,12 +238,13 @@ func createPodToWorkloadMapping(pods []*corev1.Pod, workloadCache []WorkloadLabe
 					Namespace: workload.Namespace,
 					Name:      workload.Name,
 				}
+				podsInScope = append(podsInScope, pod)
 				break
 			}
 		}
 	}
 
-	return podToWorkloadMap
+	return podToWorkloadMap, podsInScope
 }
 
 func getNamespaceLogMessage(namespace string) string {

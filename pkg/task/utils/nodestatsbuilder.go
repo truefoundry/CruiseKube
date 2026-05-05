@@ -54,69 +54,66 @@ func CreateNodeStatsMapping(
 		}
 		nodeName := node.Name
 
-		allocatableCPUQuantity := node.Status.Allocatable[corev1.ResourceCPU]
-		allocatableMemoryQuantity := node.Status.Allocatable[corev1.ResourceMemory]
-		allocatableCPU := float64(allocatableCPUQuantity.MilliValue()) / 1000.0
-		allocatableMemory := float64(allocatableMemoryQuantity.Value()) / BytesToMBDivisor
-
-		var podsOnNode []*corev1.Pod
-		for _, pod := range allPods {
-			if pod.Spec.NodeName == nodeName {
-				podsOnNode = append(podsOnNode, pod)
-			}
-		}
-
 		nodeInfo := NodeResourceInfo{
-			AllocatableCPU:    allocatableCPU,
-			AllocatableMemory: allocatableMemory,
+			AllocatableCPU:    0,
+			AllocatableMemory: 0,
 			RequestedCPU:      0,
 			RequestedMemory:   0,
 			Pods:              make([]PodInfo, 0),
 		}
+		// Iterate over all the pods
+		for _, pod := range allPods {
+			// If the Pod is on the node
+			// 1. Add the allocatable CPU and memory for the pod to the node info
+			// 2. Calculate the pod info, and add it to the nodeInfo.Pods
+			if pod.Spec.NodeName == nodeName {
+				// Calculate the allocatable CPU and Memory based on the pods in scope
+				nodeInfo.AllocatableCPU += getCurrentPodCPU(pod)
+				nodeInfo.AllocatableMemory += getCurrentPodMemory(pod)
 
-		for _, pod := range podsOnNode {
-			podKey := PodKey{
-				Namespace: pod.Namespace,
-				PodName:   pod.Name,
-			}
+				podKey := PodKey{
+					Namespace: pod.Namespace,
+					PodName:   pod.Name,
+				}
 
-			currentCPU := getCurrentPodCPU(pod)
-			currentMemory := getCurrentPodMemory(pod)
-			limitCPU := getCurrentPodCPULimit(pod)
-			limitMemory := getCurrentPodMemoryLimit(pod)
+				currentCPU := getCurrentPodCPU(pod)
+				currentMemory := getCurrentPodMemory(pod)
+				limitCPU := getCurrentPodCPULimit(pod)
+				limitMemory := getCurrentPodMemoryLimit(pod)
 
-			nodeInfo.RequestedCPU += currentCPU
-			nodeInfo.RequestedMemory += currentMemory
+				nodeInfo.RequestedCPU += currentCPU
+				nodeInfo.RequestedMemory += currentMemory
 
-			podInfo := PodInfo{
-				Namespace:       pod.Namespace,
-				Name:            pod.Name,
-				RequestedCPU:    currentCPU,
-				RequestedMemory: currentMemory,
-				LimitCPU:        limitCPU,
-				LimitMemory:     limitMemory,
-			}
+				podInfo := PodInfo{
+					Namespace:       pod.Namespace,
+					Name:            pod.Name,
+					RequestedCPU:    currentCPU,
+					RequestedMemory: currentMemory,
+					LimitCPU:        limitCPU,
+					LimitMemory:     limitMemory,
+				}
 
-			if workloadInfo, hasWorkloadInfo := podToWorkloadMap[podKey]; hasWorkloadInfo {
-				podInfo.WorkloadKind = workloadInfo.Kind
-				podInfo.WorkloadName = workloadInfo.Name
-			}
+				if workloadInfo, hasWorkloadInfo := podToWorkloadMap[podKey]; hasWorkloadInfo {
+					podInfo.WorkloadKind = workloadInfo.Kind
+					podInfo.WorkloadName = workloadInfo.Name
+				}
 
-			if stat, hasStat := podStats[podKey]; hasStat {
-				podInfo.Stats = stat
-			}
+				if stat, hasStat := podStats[podKey]; hasStat {
+					podInfo.Stats = stat
+				}
 
-			for _, container := range pod.Spec.Containers {
-				podInfo.ContainerResources = append(podInfo.ContainerResources, getCurrentContainerResources(&container))
-			}
-
-			for _, container := range pod.Spec.InitContainers {
-				if IsSidecarContainer(container) {
+				for _, container := range pod.Spec.Containers {
 					podInfo.ContainerResources = append(podInfo.ContainerResources, getCurrentContainerResources(&container))
 				}
-			}
 
-			nodeInfo.Pods = append(nodeInfo.Pods, podInfo)
+				for _, container := range pod.Spec.InitContainers {
+					if IsSidecarContainer(container) {
+						podInfo.ContainerResources = append(podInfo.ContainerResources, getCurrentContainerResources(&container))
+					}
+				}
+
+				nodeInfo.Pods = append(nodeInfo.Pods, podInfo)
+			}
 		}
 
 		nodeMap[nodeName] = nodeInfo
