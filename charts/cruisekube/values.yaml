@@ -43,6 +43,19 @@ cruisekubeController:
           cpu: 50m
           ## @param cruisekubeController.admin.credentialGen.resources.requests.memory Resource requests (memory) for the credential generator Job.
           memory: 64Mi
+  ## @section CruiseKube Controller usage telemetry (optional heartbeats)
+  usageTelemetry:
+    ## @param cruisekubeController.usageTelemetry.enabled Send anonymous usage heartbeats when true (requires install-id Secret and providerConfig).
+    enabled: false
+    ## @param cruisekubeController.usageTelemetry.interval Heartbeat period (Go duration, e.g. 30m, 1h).
+    interval: 30m
+    installId:
+      ## @param cruisekubeController.usageTelemetry.installId.existingSecret If set, use this Secret for distinct install id instead of chart-created Secret.
+      existingSecret: ""
+      ## @param cruisekubeController.usageTelemetry.installId.key Data key in the install-id Secret.
+      key: install-id
+    ## @param cruisekubeController.usageTelemetry.providerConfig Opaque map passed to the compiled-in reporter (e.g. PostHog: api_key, api_host). Serialized to JSON for the controller.
+    providerConfig: {}
   ## @param cruisekubeController.replicas Number of CruiseKube Controller replicas to deploy
   replicas: 1
   image:

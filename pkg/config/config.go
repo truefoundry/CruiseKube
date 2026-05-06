@@ -19,6 +19,7 @@ type Config struct {
 	DB                     DatabaseConfig         `yaml:"db" mapstructure:"db"`
 	RecommendationSettings RecommendationSettings `yaml:"recommendationSettings" mapstructure:"recommendationSettings"`
 	Telemetry              TelemetryConfig        `yaml:"telemetry" mapstructure:"telemetry"`
+	UsageTelemetry         UsageTelemetryConfig   `yaml:"usageTelemetry" mapstructure:"usageTelemetry"`
 	Metrics                MetricsConfig          `yaml:"metrics" mapstructure:"metrics"`
 	Sentry                 SentryConfig           `yaml:"sentry" mapstructure:"sentry"`
 	Custom                 map[string]interface{} `yaml:",inline" mapstructure:",remain"`
@@ -111,6 +112,17 @@ type TelemetryConfig struct {
 	ExporterOTLPHeaders  string  `yaml:"exporterOTLPHeaders" mapstructure:"exporterOTLPHeaders"`
 	ServiceName          string  `yaml:"serviceName" mapstructure:"serviceName"`
 	TraceRatio           float64 `yaml:"traceRatio" mapstructure:"traceRatio"`
+}
+
+// UsageTelemetryConfig controls optional product usage heartbeats (distinct from OTLP telemetry).
+// ProviderConfig is opaque to core config; the wired reporter unmarshals it.
+type UsageTelemetryConfig struct {
+	Enabled            bool                   `yaml:"enabled" mapstructure:"enabled"`
+	Interval           string                 `yaml:"interval" mapstructure:"interval"`
+	InstallID          string                 `yaml:"installID" mapstructure:"installID"`
+	ProviderConfig     map[string]interface{} `yaml:"providerConfig" mapstructure:"providerConfig"`
+	ProviderConfigJSON string                 `yaml:"providerConfigJSON" mapstructure:"providerConfigJSON"`
+	HelmChartVersion   string                 `yaml:"helmChartVersion" mapstructure:"helmChartVersion"`
 }
 
 type MetricsConfig struct {

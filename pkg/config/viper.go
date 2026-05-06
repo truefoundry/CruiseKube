@@ -2,8 +2,10 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -34,6 +36,8 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("db.filePath", "cruisekube.db")
 	v.SetDefault("telemetry.enabled", false)
 	v.SetDefault("telemetry.traceRatio", 0.1)
+	v.SetDefault("usageTelemetry.enabled", false)
+	v.SetDefault("usageTelemetry.interval", "30m")
 
 	v.SetConfigType("yaml")
 	v.SetConfigFile(configFilePath)
@@ -51,7 +55,30 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
+	if err := mergeUsageTelemetryProviderConfigJSON(&cfg); err != nil {
+		return nil, err
+	}
+
 	return &cfg, nil
+}
+
+func mergeUsageTelemetryProviderConfigJSON(cfg *Config) error {
+	raw := strings.TrimSpace(cfg.UsageTelemetry.ProviderConfigJSON)
+	if raw == "" {
+		return nil
+	}
+	var parsed map[string]interface{}
+	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+		return fmt.Errorf("usageTelemetry.providerConfigJSON: %w", err)
+	}
+	if cfg.UsageTelemetry.ProviderConfig == nil {
+		cfg.UsageTelemetry.ProviderConfig = parsed
+		return nil
+	}
+	for k, v := range parsed {
+		cfg.UsageTelemetry.ProviderConfig[k] = v
+	}
+	return nil
 }
 
 func (c *Config) Validate() error {
@@ -116,5 +143,24 @@ func (c *Config) ValidateControllerExecutionMode() error {
 		return fmt.Errorf("missing required controller task configurations: %s", strings.Join(missingTaskConfigs, ", "))
 	}
 
+	return c.validateUsageTelemetryForController()
+}
+
+func (c *Config) validateUsageTelemetryForController() error {
+	if !c.UsageTelemetry.Enabled {
+		return nil
+	}
+	if strings.TrimSpace(c.UsageTelemetry.Interval) == "" {
+		return fmt.Errorf("usageTelemetry.interval is required when usageTelemetry.enabled is true")
+	}
+	if _, err := time.ParseDuration(strings.TrimSpace(c.UsageTelemetry.Interval)); err != nil {
+		return fmt.Errorf("usageTelemetry.interval: %w", err)
+	}
+	if strings.TrimSpace(c.UsageTelemetry.InstallID) == "" {
+		return fmt.Errorf("usageTelemetry.installID is required when usageTelemetry.enabled is true (set CRUISEKUBE_USAGETELEMETRY_INSTALLID)")
+	}
+	if len(c.UsageTelemetry.ProviderConfig) == 0 && strings.TrimSpace(c.UsageTelemetry.ProviderConfigJSON) == "" {
+		return fmt.Errorf("usageTelemetry.providerConfig or providerConfigJSON must be non-empty when usageTelemetry.enabled is true")
+	}
 	return nil
 }
