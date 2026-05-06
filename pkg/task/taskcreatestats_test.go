@@ -17,6 +17,7 @@ type fakeWorkloadObject struct {
 	replicas     int32
 }
 
+func (f fakeWorkloadObject) GetKind() string      { return utils.DeploymentKind }
 func (f fakeWorkloadObject) GetNamespace() string { return "ns" }
 func (f fakeWorkloadObject) GetName() string      { return "app" }
 func (f fakeWorkloadObject) GetContainerSpecs(context.Context, *kubernetes.Clientset) []corev1.Container {
@@ -28,14 +29,22 @@ func (f fakeWorkloadObject) GetInitContainerSpecs(context.Context, *kubernetes.C
 func (f fakeWorkloadObject) GetSelector() (labels.Selector, error) { return labels.Everything(), nil }
 func (f fakeWorkloadObject) GetCreationTime() time.Time            { return f.creationTime }
 func (f fakeWorkloadObject) GetReplicas() int32                    { return f.replicas }
+func (f fakeWorkloadObject) GetWorkloadInfo() utils.WorkloadInfo {
+	return utils.WorkloadInfo{
+		Kind:      utils.DeploymentKind,
+		Namespace: f.GetNamespace(),
+		Name:      f.GetName(),
+	}
+}
 
 func TestBuildBaseWorkloadStatUsesWorkloadReplicaFallback(t *testing.T) {
 	task := &CreateStatsTask{}
 	workloadInfo := utils.WorkloadInfo{Kind: "Deployment", Namespace: "ns", Name: "app"}
 	workloadObj := fakeWorkloadObject{creationTime: time.Unix(100, 0).UTC(), replicas: 3}
 	containerResources := []utils.OriginalContainerResources{{Name: "main", Type: types.AppContainer, CPURequest: 1, MemoryRequest: 256}}
+	workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
 
-	stat := task.buildBaseWorkloadStat(workloadInfo, workloadObj, containerResources, nil)
+	stat := task.buildBaseWorkloadStat(workloadKey, workloadObj, containerResources, nil)
 
 	if stat.Replicas != 3 {
 		t.Fatalf("expected workload replicas fallback to be used, got %d", stat.Replicas)
@@ -57,7 +66,7 @@ func TestBuildBaseWorkloadStatPrefersWorkloadMetricsReplicaCount(t *testing.T) {
 		},
 	}
 
-	stat := task.buildBaseWorkloadStat(workloadInfo, workloadObj, containerResources, workloadMetrics)
+	stat := task.buildBaseWorkloadStat(workloadKey, workloadObj, containerResources, workloadMetrics)
 
 	if stat.Replicas != 5 {
 		t.Fatalf("expected workload metrics replicas to override workload replicas, got %d", stat.Replicas)
@@ -76,7 +85,7 @@ func TestBuildBaseWorkloadStatDoesNotOverwriteReplicaFallbackWithZeroMetric(t *t
 		},
 	}
 
-	stat := task.buildBaseWorkloadStat(workloadInfo, workloadObj, containerResources, workloadMetrics)
+	stat := task.buildBaseWorkloadStat(workloadKey, workloadObj, containerResources, workloadMetrics)
 
 	if stat.Replicas != 3 {
 		t.Fatalf("expected workload replica fallback to be preserved when metric replicas are zero, got %d", stat.Replicas)

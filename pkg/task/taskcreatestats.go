@@ -86,34 +86,20 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 	startTime := time.Now().UTC()
 	logging.Infof(ctx, "Running task: CreateStats")
 
-	workloadList, err := utils.ListAllWorkloads(ctx, c.kubeClient, targetNamespace)
+	workloadObjectsList, err := utils.ListAllWorkloadObjects(ctx, c.kubeClient, targetNamespace)
 	if err != nil {
 		logging.Errorf(ctx, "Error getting workload list: %v", err)
 		return fmt.Errorf("failed to list workloads: %w", err)
 	}
 
-	currentWorkloadIds := make(map[string]struct{}, len(workloadList))
-	for _, w := range workloadList {
-		currentWorkloadIds[utils.GetWorkloadKey(w.Kind, w.Namespace, w.Name)] = struct{}{}
-	}
-	if deleted, err := c.storage.DeleteStaleWorkloads(c.config.ClusterID, currentWorkloadIds); err != nil {
-		logging.Errorf(ctx, "Error deleting stale workloads: %v", err)
-	} else if deleted > 0 {
-		logging.Infof(ctx, "Deleted %d stale workloads from DB", deleted)
-	}
-
 	isPSIEnabled := c.isPSIEnabled(ctx)
 	logging.Infof(ctx, "PSI is enabled: %v", isPSIEnabled)
 
-	uniqueWorkloads := make(map[string]utils.WorkloadInfo)
-	filteredCount := 0
-	for _, workloadInfo := range workloadList {
-		workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-
-		uniqueWorkloads[workloadKey] = workloadInfo
+	uniqueWorkloads := make(map[string]utils.WorkloadObject)
+	for _, workloadObject := range workloadObjectsList {
+		uniqueWorkloads[utils.GetWorkloadKey(workloadObject.GetKind(), workloadObject.GetNamespace(), workloadObject.GetName())] = workloadObject
 	}
 
-	logging.Infof(ctx, "Filtered out %d workloads with recent stats (within %d minutes)", filteredCount, utils.RecentStatsLookbackMinutes)
 	namespaces := utils.ExtractUniqueNamespaces(uniqueWorkloads)
 	logging.Infof(ctx, "Found %d unique namespaces to process: %v", len(namespaces), namespaces)
 
@@ -164,15 +150,16 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 	// namespaceVsWorkloadPredictions := map[string]map[string]contextutils.WorkloadPrediction{}
 
 	var newStats []*utils.WorkloadStat
-	for _, workloadInfo := range uniqueWorkloads {
+	for key, workloadObject := range uniqueWorkloads {
 		if stat := c.prepareStatsFromMetrics(
 			ctx,
 			c.kubeClient,
-			workloadInfo,
+			key,
+			workloadObject,
 			namespaceQueryResults,
 			namespaceVsWorkloadMetrics,
-			namespaceVsSimpleCPUPredictions[workloadInfo.Namespace],
-			namespaceVsSimpleMemoryPredictions[workloadInfo.Namespace],
+			namespaceVsSimpleCPUPredictions[workloadObject.GetNamespace()],
+			namespaceVsSimpleMemoryPredictions[workloadObject.GetNamespace()],
 			workloadHpaCpuMap,
 			workloadHpaMemoryMap,
 			c.dynamicClient,
@@ -183,7 +170,17 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 	}
 
 	if len(newStats) > 0 {
-		if err := c.writeStatsToFile(ctx, c.config.ClusterID, newStats, startTime); err != nil {
+		currentWorkloadIds := make([]string, 0)
+		for key := range uniqueWorkloads {
+			currentWorkloadIds = append(currentWorkloadIds, key)
+		}
+		if deleted, err := c.storage.DeleteStaleWorkloads(c.config.ClusterID, currentWorkloadIds); err != nil {
+			logging.Errorf(ctx, "Error deleting stale workloads: %v", err)
+		} else if deleted > 0 {
+			logging.Infof(ctx, "Deleted %d stale workloads from DB", deleted)
+		}
+
+		if err := c.storeStats(ctx, c.config.ClusterID, newStats, startTime); err != nil {
 			logging.Errorf(ctx, "Error writing stats to file: %v", err)
 			return err
 		}
@@ -206,11 +203,7 @@ func (c *CreateStatsTask) isPSIEnabled(ctx context.Context) bool {
 	return len(vector) != 0
 }
 
-func (c *CreateStatsTask) writeStatsToFile(ctx context.Context, clusterID string, newStats []*utils.WorkloadStat, generatedAt time.Time) error {
-	return c.writeStatsToFileForCluster(ctx, clusterID, newStats, generatedAt)
-}
-
-func (c *CreateStatsTask) writeStatsToFileForCluster(ctx context.Context, clusterID string, newStats []*utils.WorkloadStat, generatedAt time.Time) error {
+func (c *CreateStatsTask) storeStats(ctx context.Context, clusterID string, newStats []*utils.WorkloadStat, generatedAt time.Time) error {
 	var allStats = utils.StatsResponse{}
 	for _, stat := range newStats {
 		allStats.Stats = append(allStats.Stats, *stat)
@@ -227,7 +220,8 @@ func (c *CreateStatsTask) writeStatsToFileForCluster(ctx context.Context, cluste
 func (c *CreateStatsTask) prepareStatsFromMetrics(
 	ctx context.Context,
 	kubeClient *kubernetes.Clientset,
-	workloadInfo utils.WorkloadInfo,
+	workloadKey string,
+	workloadObject utils.WorkloadObject,
 	nsVsContainerMetrics utils.NamespaceVsContainerMetrics,
 	nsVsWorkloadMetrics utils.NamespaceVsWorkloadMetrics,
 	workloadContainerKeyVsSimpleCPUPrediction map[string]utils.SimplePrediction,
@@ -237,29 +231,22 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	dynamicClient dynamic.Interface,
 	pdbCache map[string][]policyv1.PodDisruptionBudget,
 ) *utils.WorkloadStat {
-	workloadKey := utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-	workloadObj, err := utils.GetWorkloadObject(ctx, kubeClient, workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name)
-	if err != nil {
-		logging.Warnf(ctx, "Error getting workload %s: %v", workloadKey, err)
-		return nil
-	}
-
-	containerSpecs := workloadObj.GetContainerSpecs(ctx, kubeClient)
-	initContainerSpecs := workloadObj.GetInitContainerSpecs(ctx, kubeClient)
+	containerSpecs := workloadObject.GetContainerSpecs(ctx, kubeClient)
+	initContainerSpecs := workloadObject.GetInitContainerSpecs(ctx, kubeClient)
 
 	containerResources := c.getAllContainerResourcesFromContainerSpecs(ctx, containerSpecs, initContainerSpecs)
-	workloadStat := c.buildBaseWorkloadStat(workloadInfo, workloadObj, containerResources, nsVsWorkloadMetrics)
+	workloadStat := c.buildBaseWorkloadStat(workloadKey, workloadObject, containerResources, nsVsWorkloadMetrics)
 
-	workloadKeyVsContainerMetrics, exists := nsVsContainerMetrics[workloadInfo.Namespace]
+	workloadKeyVsContainerMetrics, exists := nsVsContainerMetrics[workloadObject.GetNamespace()]
 	switch {
 	case !exists:
-		logging.Warnf(ctx, "No batch cache found for namespace %s; storing workload %s as incomplete", workloadInfo.Namespace, workloadKey)
+		logging.Warnf(ctx, "No batch cache found for namespace %s; storing workload %s as incomplete", workloadObject.GetNamespace(), workloadKey)
 		c.markWorkloadStatIncomplete(workloadStat)
 	case workloadKeyVsContainerMetrics[workloadKey] == nil:
 		logging.Warnf(ctx, "No prometheus metrics found for workload %s; storing incomplete workload stat", workloadKey)
 		c.markWorkloadStatIncomplete(workloadStat)
 	default:
-		metricsStat := utils.BuildContainerStatFromCache(ctx, workloadInfo, workloadKeyVsContainerMetrics, containerResources)
+		metricsStat := utils.BuildContainerStatFromCache(ctx, workloadObject.GetWorkloadInfo(), workloadKeyVsContainerMetrics, containerResources)
 		if metricsStat == nil {
 			logging.Warnf(ctx, "Could not build container stat for %s; storing incomplete workload stat", workloadKey)
 			c.markWorkloadStatIncomplete(workloadStat)
@@ -310,7 +297,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 
 	// Detect workload constraints
 	if dynamicClient != nil {
-		constraints, err := utils.DetectWorkloadConstraints(ctx, kubeClient, dynamicClient, workloadObj, pdbCache)
+		constraints, err := utils.DetectWorkloadConstraints(ctx, kubeClient, dynamicClient, workloadObject, pdbCache)
 		if err != nil {
 			logging.Errorf(ctx, "Error detecting constraints for workload %s: %v", workloadKey, err)
 		} else {
@@ -320,7 +307,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 
 	for i := range workloadStat.ContainerStats {
 		containerStat := &workloadStat.ContainerStats[i]
-		workloadContainerKey := utils.GetWorkloadContainerKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name, containerStat.ContainerName)
+		workloadContainerKey := utils.GetWorkloadContainerKey(workloadObject.GetKind(), workloadObject.GetNamespace(), workloadObject.GetName(), containerStat.ContainerName)
 
 		if simpleCPUPrediction, exists := workloadContainerKeyVsSimpleCPUPrediction[workloadContainerKey]; exists {
 			containerStat.SimplePredictionsCPU = &simpleCPUPrediction
@@ -340,7 +327,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	case workloadStat.Constraints != nil && workloadStat.Constraints.DoNotDisruptAnnotation:
 		workloadStat.EvictionRanking = types.EvictionRankingDisabled
 
-	case workloadInfo.Kind == "StatefulSet" || workloadStat.Replicas == 1:
+	case workloadObject.GetKind() == utils.StatefulSetKind || workloadStat.Replicas == 1:
 		workloadStat.EvictionRanking = types.EvictionRankingMedium
 
 	default:
@@ -353,16 +340,16 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 }
 
 func (c *CreateStatsTask) buildBaseWorkloadStat(
-	workloadInfo utils.WorkloadInfo,
+	workloadKey string,
 	workloadObj utils.WorkloadObject,
 	containerResources []utils.OriginalContainerResources,
 	nsVsWorkloadMetrics utils.NamespaceVsWorkloadMetrics,
 ) *utils.WorkloadStat {
 	workloadStat := &utils.WorkloadStat{
-		WorkloadIdentifier:         utils.GetWorkloadKey(workloadInfo.Kind, workloadInfo.Namespace, workloadInfo.Name),
-		Kind:                       workloadInfo.Kind,
-		Namespace:                  workloadInfo.Namespace,
-		Name:                       workloadInfo.Name,
+		WorkloadIdentifier:         workloadKey,
+		Kind:                       workloadObj.GetKind(),
+		Namespace:                  workloadObj.GetNamespace(),
+		Name:                       workloadObj.GetName(),
 		CreationTime:               workloadObj.GetCreationTime(),
 		UpdatedAt:                  time.Now(),
 		Replicas:                   workloadObj.GetReplicas(),
@@ -370,7 +357,7 @@ func (c *CreateStatsTask) buildBaseWorkloadStat(
 		OriginalContainerResources: containerResources,
 	}
 
-	if workloadMetricsByNamespace, exists := nsVsWorkloadMetrics[workloadInfo.Namespace]; exists {
+	if workloadMetricsByNamespace, exists := nsVsWorkloadMetrics[workloadObj.GetNamespace()]; exists {
 		if workloadMetrics, exists := workloadMetricsByNamespace[workloadStat.WorkloadIdentifier]; exists && workloadMetrics.MedianReplicas > 0 {
 			workloadStat.Replicas = int32(workloadMetrics.MedianReplicas)
 		}
