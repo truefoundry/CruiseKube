@@ -141,12 +141,8 @@ func (s *Storage) GetWorkloadsInCluster(clusterID string) ([]*types.WorkloadInCl
 
 // DeleteStaleWorkloads removes workloads from the DB that are no longer present in the cluster.
 // currentWorkloadIds is the complete set of workload keys currently observed in the cluster.
-func (s *Storage) DeleteStaleWorkloads(clusterID string, currentWorkloadIds map[string]struct{}) (int, error) {
-	keepIDs := make([]string, 0, len(currentWorkloadIds))
-	for id := range currentWorkloadIds {
-		keepIDs = append(keepIDs, id)
-	}
-	deleted, err := s.DB.DeleteWorkloadsNotInCluster(clusterID, keepIDs)
+func (s *Storage) DeleteStaleWorkloads(clusterID string, currentWorkloadIds []string) (int, error) {
+	deleted, err := s.DB.DeleteWorkloadsNotInCluster(clusterID, currentWorkloadIds)
 	if err != nil {
 		return 0, fmt.Errorf("failed to delete stale workloads: %w", err)
 	}

@@ -96,12 +96,10 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 	logging.Infof(ctx, "PSI is enabled: %v", isPSIEnabled)
 
 	uniqueWorkloads := make(map[string]utils.WorkloadObject)
-	filteredCount := 0
 	for _, workloadObject := range workloadObjectsList {
 		uniqueWorkloads[utils.GetWorkloadKey(workloadObject.GetKind(), workloadObject.GetNamespace(), workloadObject.GetName())] = workloadObject
 	}
 
-	logging.Infof(ctx, "Filtered out %d workloads with recent stats (within %d minutes)", filteredCount, utils.RecentStatsLookbackMinutes)
 	namespaces := utils.ExtractUniqueNamespaces(uniqueWorkloads)
 	logging.Infof(ctx, "Found %d unique namespaces to process: %v", len(namespaces), namespaces)
 
@@ -172,9 +170,9 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 	}
 
 	if len(newStats) > 0 {
-		currentWorkloadIds := make(map[string]struct{}, len(workloadObjectsList))
-		for _, w := range workloadObjectsList {
-			currentWorkloadIds[utils.GetWorkloadKey(w.GetKind(), w.GetNamespace(), w.GetName())] = struct{}{}
+		currentWorkloadIds := make([]string, len(uniqueWorkloads))
+		for key := range uniqueWorkloads {
+			currentWorkloadIds = append(currentWorkloadIds, key)
 		}
 		if deleted, err := c.storage.DeleteStaleWorkloads(c.config.ClusterID, currentWorkloadIds); err != nil {
 			logging.Errorf(ctx, "Error deleting stale workloads: %v", err)
