@@ -35,13 +35,13 @@ When `existingSecret` is **empty**, the chart uses a generated Secret name of th
 
 If `cruisekubeController.admin.existingSecret` is **not** set:
 
-1. A **pre-install / pre-upgrade** Helm hook runs a short **Job** (`…-admin-credentials`) in the release namespace.
+1. A **pre-install / pre-upgrade** Helm hook runs a short **bootstrap Job** (resource name `…-admin-credentials`) in the release namespace. It may also create the usage-telemetry install-id Secret when enabled.
 2. If the Secret **already exists**, the Job exits without changes (so upgrades keep the same password).
 3. If the Secret **does not exist**, the Job creates it with:
    - **Username** fixed to **`cruisekube`** (stored under `userKey`).
    - **Password** a random **32-character** string from `A–Z`, `a–z`, and `0–9` (stored under `passwordKey`).
 
-Implementation lives in the chart template `charts/cruisekube/templates/controller/admin-credentials-job.yaml`.
+Implementation lives in the chart template `charts/cruisekube/templates/controller/bootstrap-secrets-job.yaml` (RBAC in `bootstrap-secrets-rbac.yaml`).
 
 ## How to read the username and password
 
