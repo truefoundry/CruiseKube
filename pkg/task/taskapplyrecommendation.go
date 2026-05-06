@@ -665,6 +665,8 @@ func (a *ApplyRecommendationTask) buildAndSaveSnapshot(ctx context.Context, node
 
 		for _, pod := range ni.Pods {
 			if pod.Stats == nil {
+				workloadRequestedCPU += pod.RequestedCPU
+				workloadRequestedMemory += pod.RequestedMemory
 				continue
 			}
 			workloadRequestedCPU += pod.Stats.CalculateTotalCPURequest()
@@ -821,6 +823,8 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 
 	for _, podInfo := range allPodInfos {
 		if podInfo.Stats == nil {
+			// If the pod has no stats, it is non-optimizable
+			// Most likely because it is out of scope
 			nonOptimizablePods = append(nonOptimizablePods, podInfo)
 			continue
 		}
