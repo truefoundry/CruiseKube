@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -518,6 +519,19 @@ func GetPods(ctx context.Context, kubeClient *kubernetes.Clientset, namespace st
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
 	return pods, nil
+}
+
+func GetMatchingPodFromPodCache(ctx context.Context, podCache map[string][]v1.Pod, namespace string, selector labels.Selector) *v1.Pod {
+	podsInNamespace, ok := podCache[namespace]
+	if !ok || len(podsInNamespace) == 0 {
+		return nil
+	}
+	for _, pod := range podsInNamespace {
+		if selector.Matches(labels.Merge(pod.Labels, make(labels.Set))) {
+			return &pod
+		}
+	}
+	return nil
 }
 
 func GetWorkloadPodSpec(ctx context.Context, kubeClient *kubernetes.Clientset, workloadInfo *WorkloadInfo) (*corev1.PodTemplateSpec, error) {

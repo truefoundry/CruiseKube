@@ -12,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -50,8 +51,8 @@ type WorkloadObject interface {
 	GetKind() string
 	GetNamespace() string
 	GetName() string
-	GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container
-	GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container
+	GetContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container
+	GetInitContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container
 	GetSelector() (labels.Selector, error)
 	GetCreationTime() time.Time
 	GetReplicas() int32
@@ -67,7 +68,7 @@ func (d DeploymentWrapper) GetKind() string {
 	return DeploymentKind
 }
 
-func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
+func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
 	selector, err := d.GetSelector()
 	if err != nil {
 		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
@@ -75,36 +76,25 @@ func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil || len(pods.Items) == 0 {
-		logging.Warnf(ctx, "Could not get pods for deployment %s/%s, falling back to template: %v", d.Namespace, d.Name, err)
-		return d.Spec.Template.Spec.InitContainers
-	}
+	pod := GetMatchingPodFromPodCache(ctx, podCache, d.Namespace, selector)
 
-	return pods.Items[0].Spec.InitContainers
+	return pod.Spec.InitContainers
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
-func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
-	workload := d.Spec.Template.Spec.Containers
+func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+	containers := d.Spec.Template.Spec.Containers
 	selector, err := d.GetSelector()
 	if err != nil {
 		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
-		return workload
+		return containers
 	}
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
-	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil {
-		logging.Errorf(ctx, "Error getting pods for deployment %s/%s: %v", d.Namespace, d.Name, err)
-		return workload
-	}
-	if len(pods.Items) == 0 {
-		return workload
-	}
+	pod := GetMatchingPodFromPodCache(ctx, podCache, d.Namespace, selector)
 
-	podContainers := pods.Items[0].Spec.Containers
-	return mergeContainers(workload, podContainers)
+	podContainers := pod.Spec.Containers
+	return mergeContainers(containers, podContainers)
 }
 
 func (d DeploymentWrapper) GetSelector() (labels.Selector, error) {
@@ -143,44 +133,33 @@ func (s StatefulSetWrapper) GetKind() string {
 	return StatefulSetKind
 }
 
-func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
+func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
 	selector, err := s.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for statefulset %s/%s: %v", s.Namespace, s.Name, err)
+		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
 		return s.Spec.Template.Spec.InitContainers
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pods, err := GetPods(ctx, kubeClient, s.Namespace, selector)
-	if err != nil || len(pods.Items) == 0 {
-		logging.Warnf(ctx, "Could not get pods for statefulset %s/%s, falling back to template: %v", s.Namespace, s.Name, err)
-		return s.Spec.Template.Spec.InitContainers
-	}
+	pod := GetMatchingPodFromPodCache(ctx, podCache, s.Namespace, selector)
 
-	return pods.Items[0].Spec.InitContainers
+	return pod.Spec.InitContainers
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
-func (d StatefulSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
-	workload := d.Spec.Template.Spec.Containers
-	selector, err := d.GetSelector()
+func (s StatefulSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+	containers := s.Spec.Template.Spec.Containers
+	selector, err := s.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for statefulset %s/%s: %v", d.Namespace, d.Name, err)
-		return workload
+		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
+		return containers
 	}
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
-	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil {
-		logging.Errorf(ctx, "Error getting pods for statefulset %s/%s: %v", d.Namespace, d.Name, err)
-		return workload
-	}
-	if len(pods.Items) == 0 {
-		return workload
-	}
+	pod := GetMatchingPodFromPodCache(ctx, podCache, s.Namespace, selector)
 
-	podContainers := pods.Items[0].Spec.Containers
-	return mergeContainers(workload, podContainers)
+	podContainers := pod.Spec.Containers
+	return mergeContainers(containers, podContainers)
 }
 
 func (s StatefulSetWrapper) GetSelector() (labels.Selector, error) {
@@ -219,44 +198,33 @@ func (d DaemonSetWrapper) GetKind() string {
 	return DaemonSetKind
 }
 
-func (d DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
-	selector, err := d.GetSelector()
+func (s DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+	selector, err := s.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for daemonset %s/%s: %v", d.Namespace, d.Name, err)
-		return d.Spec.Template.Spec.InitContainers
+		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
+		return s.Spec.Template.Spec.InitContainers
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil || len(pods.Items) == 0 {
-		logging.Warnf(ctx, "Could not get pods for daemonset %s/%s, falling back to template: %v", d.Namespace, d.Name, err)
-		return d.Spec.Template.Spec.InitContainers
-	}
+	pod := GetMatchingPodFromPodCache(ctx, podCache, s.Namespace, selector)
 
-	return pods.Items[0].Spec.InitContainers
+	return pod.Spec.InitContainers
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
-func (d DaemonSetWrapper) GetContainerSpecs(ctx context.Context, kubeClient *kubernetes.Clientset) []corev1.Container {
-	workload := d.Spec.Template.Spec.Containers
-	selector, err := d.GetSelector()
+func (s DaemonSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+	containers := s.Spec.Template.Spec.Containers
+	selector, err := s.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for daemonset %s/%s: %v", d.Namespace, d.Name, err)
-		return workload
+		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
+		return containers
 	}
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
-	pods, err := GetPods(ctx, kubeClient, d.Namespace, selector)
-	if err != nil {
-		logging.Errorf(ctx, "Error getting pods for daemonset %s/%s: %v", d.Namespace, d.Name, err)
-		return workload
-	}
-	if len(pods.Items) == 0 {
-		return workload
-	}
+	pod := GetMatchingPodFromPodCache(ctx, podCache, s.Namespace, selector)
 
-	podContainers := pods.Items[0].Spec.Containers
-	return mergeContainers(workload, podContainers)
+	podContainers := pod.Spec.Containers
+	return mergeContainers(containers, podContainers)
 }
 
 func (d DaemonSetWrapper) GetSelector() (labels.Selector, error) {
@@ -604,6 +572,21 @@ func checkWorkloadAgainstPDBs(ctx context.Context, workloadObj WorkloadObject, p
 	}
 
 	return false
+}
+
+func FetchPodsForNamespaces(ctx context.Context, kubeClient *kubernetes.Clientset, namespaces []string) (map[string][]v1.Pod, error) {
+	podCache := make(map[string][]v1.Pod)
+
+	for _, namespace := range namespaces {
+		podList, err := kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			logging.Warnf(ctx, "Error listing Pods for namespace %s: %v", namespace, err)
+			continue
+		}
+		podCache[namespace] = podList.Items
+	}
+
+	return podCache, nil
 }
 
 func GetPodTemplateSpec(workloadObj WorkloadObject) *corev1.PodTemplateSpec {
