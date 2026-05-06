@@ -150,11 +150,16 @@ func (c *Config) validateUsageTelemetryForController() error {
 	if !c.UsageTelemetry.Enabled {
 		return nil
 	}
-	if strings.TrimSpace(c.UsageTelemetry.Interval) == "" {
+	interval := strings.TrimSpace(c.UsageTelemetry.Interval)
+	if interval == "" {
 		return fmt.Errorf("usageTelemetry.interval is required when usageTelemetry.enabled is true")
 	}
-	if _, err := time.ParseDuration(strings.TrimSpace(c.UsageTelemetry.Interval)); err != nil {
+	d, err := time.ParseDuration(interval)
+	if err != nil {
 		return fmt.Errorf("usageTelemetry.interval: %w", err)
+	}
+	if d <= 0 {
+		return fmt.Errorf("usageTelemetry.interval must be positive, got %q", c.UsageTelemetry.Interval)
 	}
 	if strings.TrimSpace(c.UsageTelemetry.InstallID) == "" {
 		return fmt.Errorf("usageTelemetry.installID is required when usageTelemetry.enabled is true (set CRUISEKUBE_USAGETELEMETRY_INSTALLID)")

@@ -75,6 +75,13 @@ telemetry:
   exporterOTLPHeaders: ""
   serviceName: ""
   traceRatio: 0.1
+usageTelemetry:
+  enabled: false
+  interval: "30m"
+  installID: ""
+  providerConfig: {}
+  providerConfigJSON: ""
+  helmChartVersion: ""
 sentry:
   enabled: false
   dsn: ""

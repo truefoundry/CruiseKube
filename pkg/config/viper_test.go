@@ -74,6 +74,29 @@ func TestValidateRejectsMissingLocalPrometheusURL(t *testing.T) {
 	}
 }
 
+func TestValidateRejectsUsageTelemetryNonPositiveInterval(t *testing.T) {
+	t.Parallel()
+	for _, interval := range []string{"0s", "0", "-5m", "-1ns"} {
+		t.Run(interval, func(t *testing.T) {
+			t.Parallel()
+			cfg := validControllerConfig()
+			cfg.UsageTelemetry = UsageTelemetryConfig{
+				Enabled:        true,
+				Interval:       interval,
+				InstallID:      "abc",
+				ProviderConfig: map[string]interface{}{"api_key": "x"},
+			}
+			err := cfg.Validate()
+			if err == nil {
+				t.Fatal("expected validation error")
+			}
+			if !strings.Contains(err.Error(), "usageTelemetry.interval must be positive") {
+				t.Fatalf("expected positive interval error, got %v", err)
+			}
+		})
+	}
+}
+
 func TestValidateRejectsMissingWebhookFields(t *testing.T) {
 	cfg := validWebhookConfig()
 	cfg.Webhook.Port = ""
