@@ -170,7 +170,7 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 	}
 
 	if len(newStats) > 0 {
-		currentWorkloadIds := make([]string, len(uniqueWorkloads))
+		currentWorkloadIds := make([]string, 0)
 		for key := range uniqueWorkloads {
 			currentWorkloadIds = append(currentWorkloadIds, key)
 		}
