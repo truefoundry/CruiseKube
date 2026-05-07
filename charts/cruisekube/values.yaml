@@ -45,17 +45,14 @@ cruisekubeController:
           memory: 64Mi
   ## @section CruiseKube Controller usage telemetry (optional heartbeats)
   usageTelemetry:
-    ## @param cruisekubeController.usageTelemetry.enabled Send anonymous usage heartbeats when true (requires install-id Secret and providerConfig).
+    ## @param cruisekubeController.usageTelemetry.enabled Send anonymous usage heartbeats when true (requires providerConfig). When enabled, the chart creates a Secret named `{controller-fullname}-install-id` with key `install-id` (bootstrap hook) for the stable distinct id.
     enabled: false
     ## @param cruisekubeController.usageTelemetry.interval Heartbeat period (Go duration, e.g. 30m, 1h).
     interval: 30m
-    installId:
-      ## @param cruisekubeController.usageTelemetry.installId.existingSecret If set, use this Secret for distinct install id instead of chart-created Secret.
-      existingSecret: ""
-      ## @param cruisekubeController.usageTelemetry.installId.key Data key in the install-id Secret.
-      key: install-id
-    ## @param cruisekubeController.usageTelemetry.providerConfig Opaque map passed to the compiled-in reporter (e.g. PostHog: api_key, api_host). Serialized to JSON for the controller.
-    providerConfig: {}
+    ## @param cruisekubeController.usageTelemetry.providerConfig Opaque map for the compiled-in reporter (PostHog: api_key, optional host defaulting to US cloud). Serialized to JSON env CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG for the controller.
+    providerConfig: 
+      api_key: "phc_hlVTQvSWqDUBwXrsph0v8xhfc5lsSK9lvejrlZ5AiOG"
+      host: "https://us.i.posthog.com"
   ## @param cruisekubeController.replicas Number of CruiseKube Controller replicas to deploy
   replicas: 1
   image:

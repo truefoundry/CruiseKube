@@ -98,8 +98,8 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "cruisekubeController.installIdSecretName" . }}
-                  key: {{ ($ut.installId | default dict).key | default "install-id" }}
-            - name: CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIGJSON
+                  key: {{ include "cruisekubeController.installIdSecretDataKey" . }}
+            - name: CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG
               value: {{ $ut.providerConfig | default dict | toJson | quote }}
             - name: CRUISEKUBE_USAGETELEMETRY_HELMCHARTVERSION
               value: {{ .Chart.AppVersion | quote }}
