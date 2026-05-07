@@ -92,7 +92,7 @@ func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, podCache map[s
 		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
 		return containers
 	}
-	
+
 	// getting pods as dynamically injected containers might not be tracked in workload spec
 	pods := GetMatchingPodsFromPodCache(ctx, podCache, d.Namespace, selector)
 	podContainers := []corev1.Container{}
