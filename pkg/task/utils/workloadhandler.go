@@ -139,7 +139,7 @@ func (s StatefulSetWrapper) GetKind() string {
 func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	selector, err := s.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
+		logging.Errorf(ctx, "Error getting selector for statefulset %s/%s: %v", s.Namespace, s.Name, err)
 		return s.Spec.Template.Spec.InitContainers
 	}
 
@@ -157,7 +157,7 @@ func (s StatefulSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[
 	containers := s.Spec.Template.Spec.Containers
 	selector, err := s.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
+		logging.Errorf(ctx, "Error getting selector for statefulset %s/%s: %v", s.Namespace, s.Name, err)
 		return containers
 	}
 
@@ -210,7 +210,7 @@ func (d DaemonSetWrapper) GetKind() string {
 func (d DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	selector, err := d.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
+		logging.Errorf(ctx, "Error getting selector for daemonSet %s/%s: %v", d.Namespace, d.Name, err)
 		return d.Spec.Template.Spec.InitContainers
 	}
 
@@ -228,7 +228,7 @@ func (d DaemonSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[st
 	containers := d.Spec.Template.Spec.Containers
 	selector, err := d.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
+		logging.Errorf(ctx, "Error getting selector for daemonSet %s/%s: %v", d.Namespace, d.Name, err)
 		return containers
 	}
 

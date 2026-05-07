@@ -527,7 +527,7 @@ func GetMatchingPodsFromPodCache(ctx context.Context, podCache map[string][]core
 	}
 	matchingPods := []corev1.Pod{}
 	for _, pod := range podsInNamespace {
-		if selector.Matches(labels.Merge(pod.Labels, make(labels.Set))) {
+		if selector.Matches(labels.Set(pod.Labels)) {
 			matchingPods = append(matchingPods, pod)
 		}
 	}
