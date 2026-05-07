@@ -68,18 +68,20 @@ func (d DeploymentWrapper) GetKind() string {
 }
 
 func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
+	workloadContainers := d.Spec.Template.Spec.InitContainers
 	selector, err := d.GetSelector()
 	if err != nil {
 		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
-		return d.Spec.Template.Spec.InitContainers
+		return workloadContainers
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
 	pods := GetMatchingPodsFromPodCache(ctx, podCache, d.Namespace, selector)
-	if len(pods) == 0 {
-		return []corev1.Container{}
+	podContainers := []corev1.Container{}
+	if len(pods) > 0 {
+		podContainers = pods[0].Spec.InitContainers
 	}
-	return pods[0].Spec.InitContainers
+	return mergeContainers(workloadContainers, podContainers)
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
@@ -90,13 +92,13 @@ func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, podCache map[s
 		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
 		return containers
 	}
-
+	
 	// getting pods as dynamically injected containers might not be tracked in workload spec
 	pods := GetMatchingPodsFromPodCache(ctx, podCache, d.Namespace, selector)
-	if len(pods) == 0 {
-		return []corev1.Container{}
+	podContainers := []corev1.Container{}
+	if len(pods) > 0 {
+		podContainers = pods[0].Spec.Containers
 	}
-	podContainers := pods[0].Spec.Containers
 	return mergeContainers(containers, podContainers)
 }
 
@@ -137,19 +139,21 @@ func (s StatefulSetWrapper) GetKind() string {
 }
 
 func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
+	workloadContainers := s.Spec.Template.Spec.InitContainers
 	selector, err := s.GetSelector()
 	if err != nil {
 		logging.Errorf(ctx, "Error getting selector for statefulset %s/%s: %v", s.Namespace, s.Name, err)
-		return s.Spec.Template.Spec.InitContainers
+		return workloadContainers
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
 	pods := GetMatchingPodsFromPodCache(ctx, podCache, s.Namespace, selector)
-	if len(pods) == 0 {
-		return []corev1.Container{}
+	podContainers := []corev1.Container{}
+	if len(pods) > 0 {
+		podContainers = pods[0].Spec.InitContainers
 	}
 
-	return pods[0].Spec.InitContainers
+	return mergeContainers(workloadContainers, podContainers)
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
@@ -163,11 +167,10 @@ func (s StatefulSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
 	pods := GetMatchingPodsFromPodCache(ctx, podCache, s.Namespace, selector)
-	if len(pods) == 0 {
-		return []corev1.Container{}
+	podContainers := []corev1.Container{}
+	if len(pods) > 0 {
+		podContainers = pods[0].Spec.Containers
 	}
-
-	podContainers := pods[0].Spec.Containers
 	return mergeContainers(containers, podContainers)
 }
 
@@ -208,19 +211,21 @@ func (d DaemonSetWrapper) GetKind() string {
 }
 
 func (d DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
+	workloadContainers := d.Spec.Template.Spec.InitContainers
 	selector, err := d.GetSelector()
 	if err != nil {
 		logging.Errorf(ctx, "Error getting selector for daemonset %s/%s: %v", d.Namespace, d.Name, err)
-		return d.Spec.Template.Spec.InitContainers
+		return workloadContainers
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
 	pods := GetMatchingPodsFromPodCache(ctx, podCache, d.Namespace, selector)
-	if len(pods) == 0 {
-		return []corev1.Container{}
+	podContainers := []corev1.Container{}
+	if len(pods) > 0 {
+		podContainers = pods[0].Spec.InitContainers
 	}
 
-	return pods[0].Spec.InitContainers
+	return mergeContainers(workloadContainers, podContainers)
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
@@ -234,11 +239,10 @@ func (d DaemonSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[st
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
 	pods := GetMatchingPodsFromPodCache(ctx, podCache, d.Namespace, selector)
-	if len(pods) == 0 {
-		return []corev1.Container{}
+	podContainers := []corev1.Container{}
+	if len(pods) > 0 {
+		podContainers = pods[0].Spec.Containers
 	}
-
-	podContainers := pods[0].Spec.Containers
 	return mergeContainers(containers, podContainers)
 }
 
