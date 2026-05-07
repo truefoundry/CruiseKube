@@ -122,7 +122,7 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 
 		workloadObj, err := utils.GetWorkloadObject(ctx, t.kubeClient, stat.Kind, stat.Namespace, stat.Name)
 		if err != nil {
-			logging.Errorf(ctx, "Failed to get workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+			logging.Infof(ctx, "Failed to get workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
 			continue
 		}
 
