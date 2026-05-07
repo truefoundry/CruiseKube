@@ -67,6 +67,9 @@ func NewReporterFromProviderConfig(distinctID string, providerConfigMap map[stri
 
 // ReportHeartbeat implements ports.UsageTelemetryReporter.
 func (r *Reporter) ReportHeartbeat(ctx context.Context, hb ports.UsageHeartbeat) error {
+	if r.client == nil {
+		return fmt.Errorf("posthog reporter: client is closed or not initialized")
+	}
 	props := posthog.NewProperties().
 		Set("cruisekube_version", hb.CruisekubeVersion).
 		Set("node_total", hb.NodeTotal).
