@@ -9,12 +9,16 @@ global:
 cruisekubeController:
   enabled: true
   admin:
-    existingSecret: "cruisekube-controller-admin-e2e"
+    existingSecret: "cruisekube-controller-admin-e2e-user-created"
     # This is used when we don't have to use and existing secret.
     credentialGen:
       image:
         repository: bitnami/kubectl
         tag: "latest"
+  usageTelemetry:
+    enabled: true
+    interval: 1m
+    # providerConfig: {}
   serviceMonitor:
     enabled: false
   image:

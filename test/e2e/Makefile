@@ -79,8 +79,8 @@ kind-down: ## Delete Kind cluster
 		echo "Kind cluster '$(CLUSTER_NAME)' does not exist."; \
 	fi
 
-.PHONY: apply-deps
-apply-deps: ## Install all dependencies
+.PHONY: install-deps
+install-deps: ## Install all dependencies
 	@echo "Creating namespace..."
 	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
 	@echo "Applying controller admin credentials secret for e2e..."
@@ -90,6 +90,14 @@ apply-deps: ## Install all dependencies
 	@echo "Installing CruiseKube via Helm..."
 	@helm upgrade --wait --timeout $(TIMEOUT) --install --create-namespace cruisekube ../../charts/cruisekube -n $(NAMESPACE) -f ./manifest/global/values-cruisekube.yaml
 	@echo "All dependencies installed successfully."
+
+.PHONY: uninstall-deps
+uninstall-deps: ## Uninstall all dependencies
+	@echo "Uninstalling CruiseKube via Helm..."
+	@helm delete cruisekube -n $(NAMESPACE)
+	@echo "Uninstalling dependencies..."
+	@kubectl delete namespace $(NAMESPACE)
+	@echo "All dependencies uninstalled successfully."
 
 .PHONY: reload-images
 reload-images: ## Reload images into kind and restart deployments
@@ -124,17 +132,3 @@ install-prom: ## Install prometheus
         --set nodeExporter.enabled=true \
         --set prometheusOperator.enabled=true \
         --wait --timeout=150s
-
-ick: install-ck
-
-install-ck: ## Update helm chart
-	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
-	@kubectl apply -f ./manifest/global/controller-admin-secret.yaml
-	@cd ../../charts/cruisekube && helm dependency build
-	@helm upgrade --wait --timeout $(TIMEOUT) --install --create-namespace cruisekube ../../charts/cruisekube -n $(NAMESPACE) -f ./manifest/global/values-cruisekube.yaml
-
-uick: uninstall-ck
-uninstall-ck: ## Delete cruisekube
-	@echo "Deleting cruisekube..."
-	
-	-@helm delete cruisekube -n $(NAMESPACE)
