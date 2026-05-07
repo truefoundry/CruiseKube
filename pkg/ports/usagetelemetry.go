@@ -17,4 +17,5 @@ type UsageHeartbeat struct {
 // UsageTelemetryReporter sends a heartbeat to the configured product analytics backend.
 type UsageTelemetryReporter interface {
 	ReportHeartbeat(ctx context.Context, hb UsageHeartbeat) error
+	Close() error
 }

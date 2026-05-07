@@ -38,6 +38,9 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("telemetry.traceRatio", 0.1)
 	v.SetDefault("usageTelemetry.enabled", false)
 	v.SetDefault("usageTelemetry.interval", "30m")
+	v.SetDefault("usageTelemetry.installID", "")
+	// providerConfig must come from config file, Helm (CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG JSON), or other env; no defaults with secrets.
+	v.SetDefault("usageTelemetry.helmChartVersion", "")
 
 	v.SetConfigType("yaml")
 	v.SetConfigFile(configFilePath)
@@ -55,28 +58,31 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	if err := mergeUsageTelemetryProviderConfigJSON(&cfg); err != nil {
+	if err := hydrateUsageTelemetryProviderConfig(v, &cfg); err != nil {
 		return nil, err
 	}
 
 	return &cfg, nil
 }
 
-func mergeUsageTelemetryProviderConfigJSON(cfg *Config) error {
-	raw := strings.TrimSpace(cfg.UsageTelemetry.ProviderConfigJSON)
-	if raw == "" {
+// hydrateUsageTelemetryProviderConfig fills providerConfig when Unmarshal left it empty:
+// 1) CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG is a JSON object string (Helm toJson), or
+// 2) Viper has nested keys under usageTelemetry.providerConfig (e.g. from env).
+func hydrateUsageTelemetryProviderConfig(v *viper.Viper, cfg *Config) error {
+	if len(cfg.UsageTelemetry.ProviderConfig) > 0 {
 		return nil
 	}
-	var parsed map[string]interface{}
-	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
-		return fmt.Errorf("usageTelemetry.providerConfigJSON: %w", err)
-	}
-	if cfg.UsageTelemetry.ProviderConfig == nil {
+	raw := strings.TrimSpace(v.GetString("usageTelemetry.providerConfig"))
+	if raw != "" && strings.HasPrefix(raw, "{") {
+		var parsed map[string]interface{}
+		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+			return fmt.Errorf("usageTelemetry.providerConfig: invalid JSON: %w", err)
+		}
 		cfg.UsageTelemetry.ProviderConfig = parsed
 		return nil
 	}
-	for k, v := range parsed {
-		cfg.UsageTelemetry.ProviderConfig[k] = v
+	if sm := v.GetStringMap("usageTelemetry.providerConfig"); len(sm) > 0 {
+		cfg.UsageTelemetry.ProviderConfig = sm
 	}
 	return nil
 }
@@ -164,8 +170,8 @@ func (c *Config) validateUsageTelemetryForController() error {
 	if strings.TrimSpace(c.UsageTelemetry.InstallID) == "" {
 		return fmt.Errorf("usageTelemetry.installID is required when usageTelemetry.enabled is true (set CRUISEKUBE_USAGETELEMETRY_INSTALLID)")
 	}
-	if len(c.UsageTelemetry.ProviderConfig) == 0 && strings.TrimSpace(c.UsageTelemetry.ProviderConfigJSON) == "" {
-		return fmt.Errorf("usageTelemetry.providerConfig or providerConfigJSON must be non-empty when usageTelemetry.enabled is true")
+	if len(c.UsageTelemetry.ProviderConfig) == 0 {
+		return fmt.Errorf("usageTelemetry.providerConfig must be non-empty when usageTelemetry.enabled is true")
 	}
 	return nil
 }
