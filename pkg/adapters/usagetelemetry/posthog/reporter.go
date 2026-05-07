@@ -71,13 +71,8 @@ func (r *Reporter) ReportHeartbeat(ctx context.Context, hb ports.UsageHeartbeat)
 		return fmt.Errorf("posthog reporter: client is closed or not initialized")
 	}
 	props := posthog.NewProperties().
-		Set("cruisekube_version", hb.CruisekubeVersion).
-		Set("node_total", hb.NodeTotal).
-		Set("node_ready", hb.NodeReady).
 		Set("k8s_major", hb.K8sMajor).
 		Set("k8s_minor", hb.K8sMinor).
-		Set("controller_mode", hb.ControllerMode).
-		Set("target_namespace_set", hb.TargetNamespaceSet).
 		Set("helm_chart_version", hb.HelmChartVersion)
 
 	if err := r.client.Enqueue(posthog.Capture{

@@ -17,7 +17,7 @@ cruisekubeController:
         tag: "latest"
   usageTelemetry:
     enabled: true
-    interval: 1m
+    interval: 30m
     # providerConfig: {}
   serviceMonitor:
     enabled: false

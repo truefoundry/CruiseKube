@@ -35,7 +35,7 @@ When `existingSecret` is **empty**, the chart uses a generated Secret name of th
 
 If `cruisekubeController.admin.existingSecret` is **not** set:
 
-1. A **pre-install / pre-upgrade** Helm hook runs a short **bootstrap Job** (resource name `…-bootstrap-secrets`) in the release namespace. It may also create the usage-telemetry install-id Secret when enabled.
+1. A **pre-install / pre-upgrade** Helm hook runs a short **bootstrap Job** (resource name `…-bootstrap-secrets`) in the release namespace. It may also create or patch the chart-managed controller runtime-data Secret (usage-telemetry `install-id` key) when enabled.
 2. If the Secret **already exists**, the Job exits without changes (so upgrades keep the same password).
 3. If the Secret **does not exist**, the Job creates it with:
    - **Username** fixed to **`cruisekube`** (stored under `userKey`).
