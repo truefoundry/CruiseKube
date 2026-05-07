@@ -51,7 +51,7 @@ cruisekubeController:
     interval: 30m
     providerConfig: 
       ## @param cruisekubeController.usageTelemetry.providerConfig.api_key PostHog API key
-      api_key: "phc_hlVTQvSWqDUBwXrsph0v8xhfc5lsSK9lvejrlZ5AiOG"
+      api_key: ""
       ## @param cruisekubeController.usageTelemetry.providerConfig.host PostHog host
       host: "https://us.i.posthog.com"
   ## @param cruisekubeController.replicas Number of CruiseKube Controller replicas to deploy

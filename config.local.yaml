@@ -80,7 +80,7 @@ usageTelemetry:
   interval: "30m"
   installID: "local"
   providerConfig:
-    api_key: "phc_hlVTQvSWqDUBwXrsph0v8xhfc5lsSK9lvejrlZ5AiOG"
+    api_key: ""
     host: "https://us.i.posthog.com"
   helmChartVersion: "dev"
 sentry:
