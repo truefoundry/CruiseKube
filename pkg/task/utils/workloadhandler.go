@@ -207,15 +207,15 @@ func (d DaemonSetWrapper) GetKind() string {
 	return DaemonSetKind
 }
 
-func (s DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
-	selector, err := s.GetSelector()
+func (d DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
+	selector, err := d.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
-		return s.Spec.Template.Spec.InitContainers
+		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
+		return d.Spec.Template.Spec.InitContainers
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pods := GetMatchingPodsFromPodCache(ctx, podCache, s.Namespace, selector)
+	pods := GetMatchingPodsFromPodCache(ctx, podCache, d.Namespace, selector)
 	if len(pods) == 0 {
 		return []corev1.Container{}
 	}
@@ -224,16 +224,16 @@ func (s DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache ma
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
-func (s DaemonSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
-	containers := s.Spec.Template.Spec.Containers
-	selector, err := s.GetSelector()
+func (d DaemonSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
+	containers := d.Spec.Template.Spec.Containers
+	selector, err := d.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
+		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
 		return containers
 	}
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
-	pods := GetMatchingPodsFromPodCache(ctx, podCache, s.Namespace, selector)
+	pods := GetMatchingPodsFromPodCache(ctx, podCache, d.Namespace, selector)
 	if len(pods) == 0 {
 		return []corev1.Container{}
 	}
