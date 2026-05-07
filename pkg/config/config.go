@@ -115,14 +115,12 @@ type TelemetryConfig struct {
 }
 
 // UsageTelemetryConfig controls optional product usage heartbeats (distinct from OTLP telemetry).
-// ProviderConfig is opaque to core config; the wired reporter unmarshals it.
 type UsageTelemetryConfig struct {
-	Enabled            bool                   `yaml:"enabled" mapstructure:"enabled"`
-	Interval           string                 `yaml:"interval" mapstructure:"interval"`
-	InstallID          string                 `yaml:"installID" mapstructure:"installID"`
-	ProviderConfig     map[string]interface{} `yaml:"providerConfig" mapstructure:"providerConfig"`
-	ProviderConfigJSON string                 `yaml:"providerConfigJSON" mapstructure:"providerConfigJSON"`
-	HelmChartVersion   string                 `yaml:"helmChartVersion" mapstructure:"helmChartVersion"`
+	Enabled          bool                   `yaml:"enabled" mapstructure:"enabled"`
+	Interval         string                 `yaml:"interval" mapstructure:"interval"`
+	InstallID        string                 `yaml:"installID" mapstructure:"installID"`
+	ProviderConfig   map[string]interface{} `yaml:"providerConfig" mapstructure:"providerConfig"`
+	HelmChartVersion string                 `yaml:"helmChartVersion" mapstructure:"helmChartVersion"`
 }
 
 type MetricsConfig struct {
