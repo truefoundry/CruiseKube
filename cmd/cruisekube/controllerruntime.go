@@ -83,6 +83,9 @@ func startUsageTelemetryHeartbeat(runtimeManager *runtimeManager, cfg *config.Co
 		logging.Errorf(runtimeManager.ctx, "usage telemetry: reporter init failed: %v", err)
 		return
 	}
+	runtimeManager.AddCleanup(func(context.Context) error {
+		return reporter.Close()
+	})
 	runtimeManager.Go("usage telemetry heartbeat", func(ctx context.Context) error {
 		return usageheartbeat.Start(ctx, clients.KubeClient, cfg, reporter)
 	})
