@@ -16,7 +16,7 @@ cruisekubeController:
         repository: bitnami/kubectl
         tag: "latest"
   usageTelemetry:
-    enabled: true
+    enabled: false
     interval: 30m
     providerApiKey: ""
     providerConfig: {}
