@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -521,7 +520,7 @@ func GetPods(ctx context.Context, kubeClient *kubernetes.Clientset, namespace st
 	return pods, nil
 }
 
-func GetMatchingPodFromPodCache(ctx context.Context, podCache map[string][]v1.Pod, namespace string, selector labels.Selector) *v1.Pod {
+func GetMatchingPodFromPodCache(ctx context.Context, podCache map[string][]corev1.Pod, namespace string, selector labels.Selector) *corev1.Pod {
 	podsInNamespace, ok := podCache[namespace]
 	if !ok || len(podsInNamespace) == 0 {
 		return nil
