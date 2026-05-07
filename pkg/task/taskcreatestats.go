@@ -147,6 +147,12 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to fetch PDBs for namespaces: %w", err)
 	}
 
+	podCache, err := utils.FetchPodsForNamespaces(ctx, c.kubeClient, namespaces)
+	if err != nil {
+		logging.Errorf(ctx, "Error fetching Pods: %v", err)
+		return fmt.Errorf("failed to fetch Pods for namespaces: %w", err)
+	}
+
 	// namespaceVsWorkloadPredictions := map[string]map[string]contextutils.WorkloadPrediction{}
 
 	var newStats []*utils.WorkloadStat
@@ -164,6 +170,7 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 			workloadHpaMemoryMap,
 			c.dynamicClient,
 			pdbCache,
+			podCache,
 		); stat != nil {
 			newStats = append(newStats, stat)
 		}
@@ -230,9 +237,10 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	workloadHpaMemoryMap map[string]bool,
 	dynamicClient dynamic.Interface,
 	pdbCache map[string][]policyv1.PodDisruptionBudget,
+	podCache map[string][]corev1.Pod,
 ) *utils.WorkloadStat {
-	containerSpecs := workloadObject.GetContainerSpecs(ctx, kubeClient)
-	initContainerSpecs := workloadObject.GetInitContainerSpecs(ctx, kubeClient)
+	containerSpecs := workloadObject.GetContainerSpecs(ctx, podCache)
+	initContainerSpecs := workloadObject.GetInitContainerSpecs(ctx, podCache)
 
 	containerResources := c.getAllContainerResourcesFromContainerSpecs(ctx, containerSpecs, initContainerSpecs)
 	workloadStat := c.buildBaseWorkloadStat(workloadKey, workloadObject, containerResources, nsVsWorkloadMetrics)

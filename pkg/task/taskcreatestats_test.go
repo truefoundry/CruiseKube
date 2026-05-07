@@ -9,7 +9,6 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
 )
 
 type fakeWorkloadObject struct {
@@ -20,10 +19,10 @@ type fakeWorkloadObject struct {
 func (f fakeWorkloadObject) GetKind() string      { return utils.DeploymentKind }
 func (f fakeWorkloadObject) GetNamespace() string { return "ns" }
 func (f fakeWorkloadObject) GetName() string      { return "app" }
-func (f fakeWorkloadObject) GetContainerSpecs(context.Context, *kubernetes.Clientset) []corev1.Container {
+func (f fakeWorkloadObject) GetContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	return nil
 }
-func (f fakeWorkloadObject) GetInitContainerSpecs(context.Context, *kubernetes.Clientset) []corev1.Container {
+func (f fakeWorkloadObject) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	return nil
 }
 func (f fakeWorkloadObject) GetSelector() (labels.Selector, error) { return labels.Everything(), nil }
