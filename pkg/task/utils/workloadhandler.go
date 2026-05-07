@@ -12,7 +12,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -51,8 +50,8 @@ type WorkloadObject interface {
 	GetKind() string
 	GetNamespace() string
 	GetName() string
-	GetContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container
-	GetInitContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container
+	GetContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container
+	GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container
 	GetSelector() (labels.Selector, error)
 	GetCreationTime() time.Time
 	GetReplicas() int32
@@ -68,7 +67,7 @@ func (d DeploymentWrapper) GetKind() string {
 	return DeploymentKind
 }
 
-func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	selector, err := d.GetSelector()
 	if err != nil {
 		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", d.Namespace, d.Name, err)
@@ -82,7 +81,7 @@ func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, podCache m
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
-func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	containers := d.Spec.Template.Spec.Containers
 	selector, err := d.GetSelector()
 	if err != nil {
@@ -133,7 +132,7 @@ func (s StatefulSetWrapper) GetKind() string {
 	return StatefulSetKind
 }
 
-func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	selector, err := s.GetSelector()
 	if err != nil {
 		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
@@ -147,7 +146,7 @@ func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache 
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
-func (s StatefulSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+func (s StatefulSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	containers := s.Spec.Template.Spec.Containers
 	selector, err := s.GetSelector()
 	if err != nil {
@@ -198,7 +197,7 @@ func (d DaemonSetWrapper) GetKind() string {
 	return DaemonSetKind
 }
 
-func (s DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+func (s DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	selector, err := s.GetSelector()
 	if err != nil {
 		logging.Errorf(ctx, "Error getting selector for deployment %s/%s: %v", s.Namespace, s.Name, err)
@@ -212,7 +211,7 @@ func (s DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache ma
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
-func (s DaemonSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]v1.Pod) []corev1.Container {
+func (s DaemonSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	containers := s.Spec.Template.Spec.Containers
 	selector, err := s.GetSelector()
 	if err != nil {
@@ -574,8 +573,8 @@ func checkWorkloadAgainstPDBs(ctx context.Context, workloadObj WorkloadObject, p
 	return false
 }
 
-func FetchPodsForNamespaces(ctx context.Context, kubeClient *kubernetes.Clientset, namespaces []string) (map[string][]v1.Pod, error) {
-	podCache := make(map[string][]v1.Pod)
+func FetchPodsForNamespaces(ctx context.Context, kubeClient *kubernetes.Clientset, namespaces []string) (map[string][]corev1.Pod, error) {
+	podCache := make(map[string][]corev1.Pod)
 
 	for _, namespace := range namespaces {
 		podList, err := kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
