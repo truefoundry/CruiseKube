@@ -535,14 +535,19 @@ func DetectWorkloadConstraints(ctx context.Context, kubeClient *kubernetes.Clien
 
 func FetchPDBsForNamespaces(ctx context.Context, kubeClient *kubernetes.Clientset, namespaces []string) (map[string][]policyv1.PodDisruptionBudget, error) {
 	pdbCache := make(map[string][]policyv1.PodDisruptionBudget)
+	failedNamespaces := make([]string, 0)
 
 	for _, namespace := range namespaces {
 		pdbList, err := kubeClient.PolicyV1().PodDisruptionBudgets(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			logging.Warnf(ctx, "Error listing PodDisruptionBudgets for namespace %s: %v", namespace, err)
+			failedNamespaces = append(failedNamespaces, namespace)
 			continue
 		}
 		pdbCache[namespace] = pdbList.Items
+	}
+	if len(failedNamespaces) > 0 {
+		return pdbCache, fmt.Errorf("failed to prefetch pdbs for namespaces: %s", strings.Join(failedNamespaces, ", "))
 	}
 
 	return pdbCache, nil
