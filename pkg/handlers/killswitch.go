@@ -109,7 +109,7 @@ func (deps HandlerDependencies) analyzeAndKillPods(ctx context.Context, kubeClie
 			continue
 		}
 
-		hasResourceDiff, reason := comparePodWithWorkload(ctx, kubeClient, pod, workloadObj)
+		hasResourceDiff, reason := comparePodWithWorkload(ctx, pod, workloadObj)
 		if hasResourceDiff {
 			success, evictErr := utils.EvictPod(ctx, kubeClient, pod)
 
@@ -142,9 +142,9 @@ func (deps HandlerDependencies) analyzeAndKillPods(ctx context.Context, kubeClie
 	return podsAnalyzed, podsKilled, killedPods, errors
 }
 
-func comparePodWithWorkload(ctx context.Context, kubeClient *kubernetes.Clientset, pod *corev1.Pod, workload utils.WorkloadObject) (bool, string) {
-	workloadContainers := workload.GetContainerSpecs(ctx, kubeClient)
-	workloadInitContainers := workload.GetInitContainerSpecs(ctx, kubeClient)
+func comparePodWithWorkload(ctx context.Context, pod *corev1.Pod, workload utils.WorkloadObject) (bool, string) {
+	workloadContainers := workload.GetContainerSpecs(ctx, map[string][]corev1.Pod{})
+	workloadInitContainers := workload.GetInitContainerSpecs(ctx, map[string][]corev1.Pod{})
 
 	allContainers := make([]corev1.Container, 0, len(workloadContainers)+len(workloadInitContainers))
 	allContainers = append(allContainers, workloadContainers...)

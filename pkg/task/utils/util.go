@@ -520,6 +520,20 @@ func GetPods(ctx context.Context, kubeClient *kubernetes.Clientset, namespace st
 	return pods, nil
 }
 
+func GetMatchingPodsFromPodCache(ctx context.Context, podCache map[string][]corev1.Pod, namespace string, selector labels.Selector) []corev1.Pod {
+	podsInNamespace, ok := podCache[namespace]
+	if !ok || len(podsInNamespace) == 0 {
+		return []corev1.Pod{}
+	}
+	matchingPods := []corev1.Pod{}
+	for _, pod := range podsInNamespace {
+		if selector.Matches(labels.Set(pod.Labels)) {
+			matchingPods = append(matchingPods, pod)
+		}
+	}
+	return matchingPods
+}
+
 func GetWorkloadPodSpec(ctx context.Context, kubeClient *kubernetes.Clientset, workloadInfo *WorkloadInfo) (*corev1.PodTemplateSpec, error) {
 	switch workloadInfo.Kind {
 	case DeploymentKind:
