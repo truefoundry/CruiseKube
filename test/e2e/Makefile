@@ -7,6 +7,7 @@ FRONTEND_IMAGE := cruisekube-frontend:$(TAG)
 FRONTEND_DIR := ../../cruiseKube-frontend
 T ?= ./tests
 TIMEOUT := 400s
+USAGETELEMETRY_PROVIDER_API_KEY := 
 
 .PHONY: all setup clean test
 
@@ -36,7 +37,7 @@ test:
 .PHONY: build-images
 build-images: ## Build controller image
 	@echo "Building controller image..."
-	@cd ../.. && docker build -t $(CONTROLLER_IMAGE) .
+	@cd ../.. && docker build -t $(CONTROLLER_IMAGE) --build-arg USAGETELEMETRY_PROVIDER_API_KEY=$(USAGETELEMETRY_PROVIDER_API_KEY) .
 	@echo "Controller image built successfully"
 	@echo "Building frontend image..."
 	@if [ -d "$(FRONTEND_DIR)" ]; then \
