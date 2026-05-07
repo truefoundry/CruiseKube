@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/posthog/posthog-go"
 	"github.com/truefoundry/cruisekube/pkg/logging"
@@ -18,6 +19,8 @@ type providerConfig struct {
 
 // Reporter sends capture events via the official PostHog Go client.
 type Reporter struct {
+	// This is to prevent the race condition between the ReportHeartbeat and Close method.
+	clientMu   sync.RWMutex
 	client     posthog.Client
 	distinctID string
 }
@@ -67,6 +70,8 @@ func NewReporterFromProviderConfig(distinctID string, providerConfigMap map[stri
 
 // ReportHeartbeat implements ports.UsageTelemetryReporter.
 func (r *Reporter) ReportHeartbeat(ctx context.Context, hb ports.UsageHeartbeat) error {
+	r.clientMu.RLock()
+	defer r.clientMu.RUnlock()
 	if r.client == nil {
 		return fmt.Errorf("posthog reporter: client is closed or not initialized")
 	}
@@ -87,6 +92,8 @@ func (r *Reporter) ReportHeartbeat(ctx context.Context, hb ports.UsageHeartbeat)
 
 // Close flushes pending events and shuts down the PostHog client.
 func (r *Reporter) Close() error {
+	r.clientMu.Lock()
+	defer r.clientMu.Unlock()
 	if r.client == nil {
 		return nil
 	}
