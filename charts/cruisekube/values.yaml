@@ -49,9 +49,10 @@ cruisekubeController:
     enabled: false
     ## @param cruisekubeController.usageTelemetry.interval Heartbeat period (Go duration, e.g. 30m, 1h).
     interval: 30m
-    ## @param cruisekubeController.usageTelemetry.providerConfig Opaque map for the compiled-in reporter (PostHog: api_key, optional host defaulting to US cloud). Serialized to JSON env CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG for the controller.
     providerConfig: 
+      ## @param cruisekubeController.usageTelemetry.providerConfig.api_key PostHog API key
       api_key: "phc_hlVTQvSWqDUBwXrsph0v8xhfc5lsSK9lvejrlZ5AiOG"
+      ## @param cruisekubeController.usageTelemetry.providerConfig.host PostHog host
       host: "https://us.i.posthog.com"
   ## @param cruisekubeController.replicas Number of CruiseKube Controller replicas to deploy
   replicas: 1
