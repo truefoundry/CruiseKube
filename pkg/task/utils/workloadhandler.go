@@ -75,9 +75,11 @@ func (d DeploymentWrapper) GetInitContainerSpecs(ctx context.Context, podCache m
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pod := GetMatchingPodFromPodCache(ctx, podCache, d.Namespace, selector)
-
-	return pod.Spec.InitContainers
+	pods := GetMatchingPodsFromPodCache(ctx, podCache, d.Namespace, selector)
+	if len(pods) == 0 {
+		return []corev1.Container{}
+	}
+	return pods[0].Spec.InitContainers
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
@@ -90,9 +92,11 @@ func (d DeploymentWrapper) GetContainerSpecs(ctx context.Context, podCache map[s
 	}
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
-	pod := GetMatchingPodFromPodCache(ctx, podCache, d.Namespace, selector)
-
-	podContainers := pod.Spec.Containers
+	pods := GetMatchingPodsFromPodCache(ctx, podCache, d.Namespace, selector)
+	if len(pods) == 0 {
+		return []corev1.Container{}
+	}
+	podContainers := pods[0].Spec.Containers
 	return mergeContainers(containers, podContainers)
 }
 
@@ -140,9 +144,12 @@ func (s StatefulSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache 
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pod := GetMatchingPodFromPodCache(ctx, podCache, s.Namespace, selector)
+	pods := GetMatchingPodsFromPodCache(ctx, podCache, s.Namespace, selector)
+	if len(pods) == 0 {
+		return []corev1.Container{}
+	}
 
-	return pod.Spec.InitContainers
+	return pods[0].Spec.InitContainers
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
@@ -155,9 +162,12 @@ func (s StatefulSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[
 	}
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
-	pod := GetMatchingPodFromPodCache(ctx, podCache, s.Namespace, selector)
+	pods := GetMatchingPodsFromPodCache(ctx, podCache, s.Namespace, selector)
+	if len(pods) == 0 {
+		return []corev1.Container{}
+	}
 
-	podContainers := pod.Spec.Containers
+	podContainers := pods[0].Spec.Containers
 	return mergeContainers(containers, podContainers)
 }
 
@@ -205,9 +215,12 @@ func (s DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache ma
 	}
 
 	// getting fresh pods as dynamically injected containers are not tracked in workload spec
-	pod := GetMatchingPodFromPodCache(ctx, podCache, s.Namespace, selector)
+	pods := GetMatchingPodsFromPodCache(ctx, podCache, s.Namespace, selector)
+	if len(pods) == 0 {
+		return []corev1.Container{}
+	}
 
-	return pod.Spec.InitContainers
+	return pods[0].Spec.InitContainers
 }
 
 // GetContainerSpecs returns workload container specs plus any from the pod not in the spec (e.g. dynamically injected).
@@ -220,9 +233,12 @@ func (s DaemonSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[st
 	}
 
 	// getting pods as dynamically injected containers might not be tracked in workload spec
-	pod := GetMatchingPodFromPodCache(ctx, podCache, s.Namespace, selector)
+	pods := GetMatchingPodsFromPodCache(ctx, podCache, s.Namespace, selector)
+	if len(pods) == 0 {
+		return []corev1.Container{}
+	}
 
-	podContainers := pod.Spec.Containers
+	podContainers := pods[0].Spec.Containers
 	return mergeContainers(containers, podContainers)
 }
 
