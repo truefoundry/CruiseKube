@@ -36,9 +36,10 @@ func TestReporter_ReportHeartbeat(t *testing.T) {
 	}
 
 	hb := ports.UsageHeartbeat{
-		K8sMajor:         "1",
-		K8sMinor:         "28",
-		HelmChartVersion: "0.9.0",
+		CruisekubeVersion: "1.2.3",
+		K8sMajor:          "1",
+		K8sMinor:          "28",
+		HelmChartVersion:  "0.9.0",
 	}
 	if err := r.ReportHeartbeat(context.Background(), hb); err != nil {
 		t.Fatal(err)
@@ -50,7 +51,7 @@ func TestReporter_ReportHeartbeat(t *testing.T) {
 	if !strings.Contains(body, "phc_test") || !strings.Contains(body, eventName) || !strings.Contains(body, "install-xyz") {
 		t.Fatalf("unexpected batch body: %s", body)
 	}
-	if !strings.Contains(body, "helm_chart_version") {
+	if !strings.Contains(body, "cruisekube_version") {
 		t.Fatalf("missing properties in body: %s", body)
 	}
 }

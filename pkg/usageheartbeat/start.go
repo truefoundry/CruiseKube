@@ -8,6 +8,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/ports"
+	"github.com/truefoundry/cruisekube/pkg/version"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -27,6 +28,7 @@ func Start(ctx context.Context, kube kubernetes.Interface, cfg *config.Config, r
 			logging.Warnf(ctx, "usage heartbeat: collect failed: %v", err)
 			return
 		}
+		hb.CruisekubeVersion = version.Version
 		if err := reporter.ReportHeartbeat(ctx, hb); err != nil {
 			logging.Warnf(ctx, "usage heartbeat: report failed: %v", err)
 		}

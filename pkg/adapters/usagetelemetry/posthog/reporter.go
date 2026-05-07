@@ -76,6 +76,7 @@ func (r *Reporter) ReportHeartbeat(ctx context.Context, hb ports.UsageHeartbeat)
 		return fmt.Errorf("posthog reporter: client is closed or not initialized")
 	}
 	props := posthog.NewProperties().
+		Set("cruisekube_version", hb.CruisekubeVersion).
 		Set("k8s_major", hb.K8sMajor).
 		Set("k8s_minor", hb.K8sMinor).
 		Set("helm_chart_version", hb.HelmChartVersion)
