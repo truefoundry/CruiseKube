@@ -94,5 +94,8 @@ func (r *Reporter) Close() error {
 	}
 	err := r.client.Close()
 	r.client = nil
-	return err
+	if err != nil {
+		return fmt.Errorf("posthog client close: %w", err)
+	}
+	return nil
 }

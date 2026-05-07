@@ -2,6 +2,8 @@
 package usageadapter
 
 import (
+	"fmt"
+
 	"github.com/truefoundry/cruisekube/pkg/adapters/usagetelemetry/posthog"
 	"github.com/truefoundry/cruisekube/pkg/ports"
 )
@@ -11,5 +13,9 @@ func NewReporter(installID string, providerConfig map[string]interface{}) (ports
 	if providerConfig == nil {
 		providerConfig = map[string]interface{}{}
 	}
-	return posthog.NewReporterFromProviderConfig(installID, providerConfig)
+	rep, err := posthog.NewReporterFromProviderConfig(installID, providerConfig)
+	if err != nil {
+		return nil, fmt.Errorf("usage telemetry reporter: %w", err)
+	}
+	return rep, nil
 }
