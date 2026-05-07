@@ -45,7 +45,7 @@ cruisekubeController:
           memory: 64Mi
   ## @section CruiseKube Controller usage telemetry (optional heartbeats)
   usageTelemetry:
-    ## @param cruisekubeController.usageTelemetry.enabled Send anonymous usage heartbeats when true (requires providerConfig). When enabled, the chart creates a Secret named `{controller-fullname}-install-id` with key `install-id` (bootstrap hook) for the stable distinct id.
+    ## @param cruisekubeController.usageTelemetry.enabled Send anonymous usage heartbeats when true (requires providerConfig). When enabled, the chart ensures a chart-managed Secret named `{controller-fullname}-runtime-data` with key `install-id` (bootstrap hook) for the stable distinct id; that Secret may hold additional controller data keys in the future.
     enabled: false
     ## @param cruisekubeController.usageTelemetry.interval Heartbeat period (Go duration, e.g. 30m, 1h).
     interval: 30m

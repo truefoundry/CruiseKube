@@ -97,8 +97,8 @@ spec:
             - name: CRUISEKUBE_USAGETELEMETRY_INSTALLID
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "cruisekubeController.installIdSecretName" . }}
-                  key: {{ include "cruisekubeController.installIdSecretDataKey" . }}
+                  name: {{ include "cruisekubeController.runtimeDataSecretName" . }}
+                  key: {{ include "cruisekubeController.runtimeDataSecretInstallIdKey" . }}
             - name: CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG
               value: {{ $ut.providerConfig | default dict | toJson | quote }}
             - name: CRUISEKUBE_USAGETELEMETRY_HELMCHARTVERSION

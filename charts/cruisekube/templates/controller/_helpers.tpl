@@ -86,21 +86,21 @@ a pre-install/pre-upgrade hook Job creates the Secret on first install.
 {{- end }}
 
 {{/*
-Dedicated Secret for usage telemetry install / distinct_id (chart-managed, fixed name pattern).
+Chart-managed Secret for controller runtime data (usage-telemetry distinct id today; additional keys later).
 */}}
-{{- define "cruisekubeController.installIdSecretName" -}}
-{{- printf "%s-install-id" (include "cruisekubeController.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- define "cruisekubeController.runtimeDataSecretName" -}}
+{{- printf "%s-runtime-data" (include "cruisekubeController.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
-Fixed data key in the install-id Secret (must match bootstrap Job and Deployment secretKeyRef).
+Data key for the stable usage-telemetry install / distinct_id (must match bootstrap Job and Deployment secretKeyRef).
 */}}
-{{- define "cruisekubeController.installIdSecretDataKey" -}}
+{{- define "cruisekubeController.runtimeDataSecretInstallIdKey" -}}
 install-id
 {{- end }}
 
 {{/*
-Whether the bootstrap hook Job should run (admin and/or install-id Secret lifecycle).
+Whether the bootstrap hook Job should run (admin and/or runtime-data Secret lifecycle).
 */}}
 {{- define "cruisekubeController.bootstrapSecretsJobEnabled" -}}
 {{- $ut := .Values.cruisekubeController.usageTelemetry | default dict -}}
