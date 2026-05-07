@@ -10,8 +10,11 @@ COPY ./pkg ./pkg
 # Baked into the API (e.g. /config version). CI passes VERSION to match the image tag:
 # release: charts/cruisekube/values.yaml cruisekubeController.image.tag; main: github.sha.
 ARG VERSION=dev
+# Optional usage telemetry provider API key baked into the binary (overridable at deploy via CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY / chart providerApiKey).
+ARG USAGETELEMETRY_PROVIDER_API_KEY=
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
-	-ldflags "-X github.com/truefoundry/cruisekube/pkg/version.Version=${VERSION}" \
+	-ldflags "-X github.com/truefoundry/cruisekube/pkg/version.Version=${VERSION} \
+	-X github.com/truefoundry/cruisekube/pkg/usageembed.DefaultUsageTelemetryProviderAPIKey=${USAGETELEMETRY_PROVIDER_API_KEY}" \
 	-o cruisekube ./cmd/cruisekube
 
 # Runtime stage

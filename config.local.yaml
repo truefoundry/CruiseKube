@@ -79,8 +79,8 @@ usageTelemetry:
   enabled: false
   interval: "30m"
   installID: "local"
+  providerApiKey: ""
   providerConfig:
-    api_key: ""
     host: "https://us.i.posthog.com"
   helmChartVersion: "dev"
 sentry:

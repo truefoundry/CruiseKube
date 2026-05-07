@@ -3,6 +3,8 @@ package config
 import (
 	"strings"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 func TestValidateRejectsInvalidExecutionMode(t *testing.T) {
@@ -71,6 +73,43 @@ func TestValidateRejectsMissingLocalPrometheusURL(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "dependencies.local.prometheusURL is required") {
 		t.Fatalf("expected missing dependencies.local.prometheusURL error, got %v", err)
+	}
+}
+
+func TestValidateRequiresUsageTelemetryProviderAPIKey(t *testing.T) {
+	t.Parallel()
+	cfg := validControllerConfig()
+	cfg.UsageTelemetry = UsageTelemetryConfig{
+		Enabled:        true,
+		Interval:       "30m",
+		InstallID:      "install",
+		ProviderConfig: map[string]interface{}{"host": "https://us.i.posthog.com"},
+	}
+	err := cfg.Validate()
+	if err == nil {
+		t.Fatal("expected validation error when api_key is missing")
+	}
+	if !strings.Contains(err.Error(), "api_key") {
+		t.Fatalf("expected api_key error, got %v", err)
+	}
+}
+
+func TestValidateAllowsUsageTelemetryAfterHydrateWithProviderApiKeyField(t *testing.T) {
+	t.Parallel()
+	cfg := validControllerConfig()
+	cfg.UsageTelemetry = UsageTelemetryConfig{
+		Enabled:        true,
+		Interval:       "30m",
+		InstallID:      "install",
+		ProviderAPIKey: "phc_test",
+		ProviderConfig: map[string]interface{}{"host": "https://us.i.posthog.com"},
+	}
+	v := viper.New()
+	if err := hydrateUsageTelemetryProviderConfig(v, cfg); err != nil {
+		t.Fatal(err)
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Fatal(err)
 	}
 }
 

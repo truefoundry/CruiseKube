@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/truefoundry/cruisekube/pkg/usageembed"
 )
 
 // LoadWithViperInstance loads configuration using a provided Viper instance (for flag binding).
@@ -39,7 +41,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("usageTelemetry.enabled", false)
 	v.SetDefault("usageTelemetry.interval", "30m")
 	v.SetDefault("usageTelemetry.installID", "")
-	// providerConfig must come from config file, Helm (CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG JSON), or other env; no defaults with secrets.
+	// providerConfig is merged in hydrateUsageTelemetryProviderConfig (Helm JSON, providerApiKey env, link-time provider API key).
 	v.SetDefault("usageTelemetry.helmChartVersion", "")
 
 	v.SetConfigType("yaml")
@@ -65,26 +67,56 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	return &cfg, nil
 }
 
-// hydrateUsageTelemetryProviderConfig fills providerConfig when Unmarshal left it empty:
-// 1) CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG is a JSON object string (Helm toJson), or
-// 2) Viper has nested keys under usageTelemetry.providerConfig (e.g. from env).
+// hydrateUsageTelemetryProviderConfig builds usageTelemetry.providerConfig from, in order:
+// 1) YAML / CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG JSON / viper string map (e.g. host),
+// 2) usageTelemetry.providerApiKey (e.g. CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY from Helm),
+// 3) link-time provider API key (pkg/usageembed from Docker build -ldflags).
 func hydrateUsageTelemetryProviderConfig(v *viper.Viper, cfg *Config) error {
+	var m map[string]interface{}
 	if len(cfg.UsageTelemetry.ProviderConfig) > 0 {
-		return nil
-	}
-	raw := strings.TrimSpace(v.GetString("usageTelemetry.providerConfig"))
-	if raw != "" && strings.HasPrefix(raw, "{") {
-		var parsed map[string]interface{}
-		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
-			return fmt.Errorf("usageTelemetry.providerConfig: invalid JSON: %w", err)
+		m = maps.Clone(cfg.UsageTelemetry.ProviderConfig)
+	} else {
+		raw := strings.TrimSpace(v.GetString("usageTelemetry.providerConfig"))
+		if raw != "" && strings.HasPrefix(raw, "{") {
+			var parsed map[string]interface{}
+			if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+				return fmt.Errorf("usageTelemetry.providerConfig: invalid JSON: %w", err)
+			}
+			m = parsed
+		} else if sm := v.GetStringMap("usageTelemetry.providerConfig"); len(sm) > 0 {
+			m = maps.Clone(sm)
 		}
-		cfg.UsageTelemetry.ProviderConfig = parsed
-		return nil
 	}
-	if sm := v.GetStringMap("usageTelemetry.providerConfig"); len(sm) > 0 {
-		cfg.UsageTelemetry.ProviderConfig = sm
+	if m == nil {
+		m = map[string]interface{}{}
 	}
+
+	if k := strings.TrimSpace(cfg.UsageTelemetry.ProviderAPIKey); k != "" {
+		m["api_key"] = k
+	} else if usageTelemetryStringFromMap(m, "api_key") == "" {
+		if k := strings.TrimSpace(usageembed.DefaultUsageTelemetryProviderAPIKey); k != "" {
+			m["api_key"] = k
+		}
+	}
+
+	cfg.UsageTelemetry.ProviderConfig = m
 	return nil
+}
+
+func usageTelemetryStringFromMap(m map[string]interface{}, key string) string {
+	if m == nil {
+		return ""
+	}
+	v, ok := m[key]
+	if !ok || v == nil {
+		return ""
+	}
+	switch s := v.(type) {
+	case string:
+		return strings.TrimSpace(s)
+	default:
+		return strings.TrimSpace(fmt.Sprint(s))
+	}
 }
 
 func (c *Config) Validate() error {
@@ -172,6 +204,9 @@ func (c *Config) validateUsageTelemetryForController() error {
 	}
 	if len(c.UsageTelemetry.ProviderConfig) == 0 {
 		return fmt.Errorf("usageTelemetry.providerConfig must be non-empty when usageTelemetry.enabled is true")
+	}
+	if usageTelemetryStringFromMap(c.UsageTelemetry.ProviderConfig, "api_key") == "" {
+		return fmt.Errorf("usageTelemetry provider api_key is required when usageTelemetry.enabled is true (set usageTelemetry.providerApiKey / CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY, providerConfig.api_key, or bake USAGETELEMETRY_PROVIDER_API_KEY at image build)")
 	}
 	return nil
 }

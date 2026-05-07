@@ -119,6 +119,7 @@ type UsageTelemetryConfig struct {
 	Enabled          bool                   `yaml:"enabled" mapstructure:"enabled"`
 	Interval         string                 `yaml:"interval" mapstructure:"interval"`
 	InstallID        string                 `yaml:"installID" mapstructure:"installID"`
+	ProviderAPIKey   string                 `yaml:"providerApiKey,omitempty" mapstructure:"providerApiKey"`
 	ProviderConfig   map[string]interface{} `yaml:"providerConfig" mapstructure:"providerConfig"`
 	HelmChartVersion string                 `yaml:"helmChartVersion" mapstructure:"helmChartVersion"`
 }
