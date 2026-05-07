@@ -210,7 +210,7 @@ func (d DaemonSetWrapper) GetKind() string {
 func (d DaemonSetWrapper) GetInitContainerSpecs(ctx context.Context, podCache map[string][]corev1.Pod) []corev1.Container {
 	selector, err := d.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for daemonSet %s/%s: %v", d.Namespace, d.Name, err)
+		logging.Errorf(ctx, "Error getting selector for daemonset %s/%s: %v", d.Namespace, d.Name, err)
 		return d.Spec.Template.Spec.InitContainers
 	}
 
@@ -228,7 +228,7 @@ func (d DaemonSetWrapper) GetContainerSpecs(ctx context.Context, podCache map[st
 	containers := d.Spec.Template.Spec.Containers
 	selector, err := d.GetSelector()
 	if err != nil {
-		logging.Errorf(ctx, "Error getting selector for daemonSet %s/%s: %v", d.Namespace, d.Name, err)
+		logging.Errorf(ctx, "Error getting selector for daemonset %s/%s: %v", d.Namespace, d.Name, err)
 		return containers
 	}
 
@@ -591,14 +591,19 @@ func checkWorkloadAgainstPDBs(ctx context.Context, workloadObj WorkloadObject, p
 
 func FetchPodsForNamespaces(ctx context.Context, kubeClient *kubernetes.Clientset, namespaces []string) (map[string][]corev1.Pod, error) {
 	podCache := make(map[string][]corev1.Pod)
+	failedNamespaces := make([]string, 0)
 
 	for _, namespace := range namespaces {
 		podList, err := kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			logging.Warnf(ctx, "Error listing Pods for namespace %s: %v", namespace, err)
+			failedNamespaces = append(failedNamespaces, namespace)
 			continue
 		}
 		podCache[namespace] = podList.Items
+	}
+	if len(failedNamespaces) > 0 {
+		return podCache, fmt.Errorf("failed to prefetch pods for namespaces: %s", strings.Join(failedNamespaces, ", "))
 	}
 
 	return podCache, nil
