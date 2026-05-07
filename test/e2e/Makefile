@@ -79,8 +79,8 @@ kind-down: ## Delete Kind cluster
 		echo "Kind cluster '$(CLUSTER_NAME)' does not exist."; \
 	fi
 
-.PHONY: install-deps
-install-deps: ## Install all dependencies
+.PHONY: apply-deps
+apply-deps: ## Install all dependencies
 	@echo "Creating namespace..."
 	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
 	@echo "Applying controller admin credentials secret for e2e..."
