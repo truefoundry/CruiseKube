@@ -41,7 +41,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("usageTelemetry.enabled", false)
 	v.SetDefault("usageTelemetry.interval", "30m")
 	v.SetDefault("usageTelemetry.installID", "")
-	// providerConfig is merged in hydrateUsageTelemetryProviderConfig (Helm JSON, providerApiKey env, link-time provider API key).
+	// providerConfig is merged in hydrateUsageTelemetryProviderConfig (JSON env / file map, providerApiKey from config file or env, link-time provider API key).
 	v.SetDefault("usageTelemetry.helmChartVersion", "")
 
 	v.SetConfigType("yaml")
@@ -69,7 +69,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 
 // hydrateUsageTelemetryProviderConfig builds usageTelemetry.providerConfig from, in order:
 // 1) YAML / CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG JSON / viper string map (e.g. host),
-// 2) usageTelemetry.providerApiKey (e.g. CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY from Helm),
+// 2) usageTelemetry.providerApiKey (YAML config file or CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY),
 // 3) link-time provider API key (pkg/buildmetadata from Docker build -ldflags).
 func hydrateUsageTelemetryProviderConfig(v *viper.Viper, cfg *Config) error {
 	var m map[string]interface{}

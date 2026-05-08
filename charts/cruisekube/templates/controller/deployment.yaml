@@ -99,10 +99,6 @@ spec:
                 secretKeyRef:
                   name: {{ include "cruisekubeController.runtimeDataSecretName" . }}
                   key: {{ include "cruisekubeController.runtimeDataSecretInstallIdKey" . }}
-            {{- if ($ut.providerApiKey | default "") }}
-            - name: CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY
-              value: {{ $ut.providerApiKey | quote }}
-            {{- end }}
             - name: CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG
               value: {{ $ut.providerConfig | default dict | toJson | quote }}
             - name: CRUISEKUBE_USAGETELEMETRY_HELMCHARTVERSION

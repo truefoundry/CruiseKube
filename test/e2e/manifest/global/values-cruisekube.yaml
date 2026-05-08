@@ -18,7 +18,6 @@ cruisekubeController:
   usageTelemetry:
     enabled: false
     interval: 30m
-    providerApiKey: ""
     providerConfig: {}
   serviceMonitor:
     enabled: false

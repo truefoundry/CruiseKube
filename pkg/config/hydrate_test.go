@@ -69,7 +69,7 @@ func TestHydrateUsageTelemetryProviderConfig_structWinsOverEmbed(t *testing.T) {
 	}
 }
 
-// Helm sets CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY; keep this test so the env name stays aligned with Viper's nested key.
+// CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY binds to usageTelemetry.providerApiKey; keep this test so the env name stays aligned with Viper's nested key.
 func TestViperBindsProviderApiKeyEnv(t *testing.T) {
 	v := viper.New()
 	v.SetEnvPrefix("cruisekube")
