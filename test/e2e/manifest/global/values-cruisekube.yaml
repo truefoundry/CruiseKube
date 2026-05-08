@@ -24,7 +24,7 @@ cruisekubeController:
   image:
     repository: cruisekube
     tag: latest
-    imagePullPolicy: IfNotPresent
+    imagePullPolicy: Never
   env:
     CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY: "false"
     CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://localhost:9090"
