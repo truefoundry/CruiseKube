@@ -99,9 +99,9 @@ func (n *NodeLoadMonitoringTask) Run(ctx context.Context) error {
 		}
 
 		if isOverloaded && !hasOverloadTaint {
-			if err := n.addOverloadTaint(ctx, node.Name); err != nil {
+			if changeDone, err := n.addOverloadTaint(ctx, node.Name); err != nil {
 				logging.Errorf(ctx, "Error adding taint to node %s: %v", node.Name, err)
-			} else {
+			} else if changeDone {
 				taintsAdded++
 				logging.Infof(ctx, "Added overload taint to node %s (load: %.2f%%)", node.Name, loadAvg*100)
 				if audit.Recorder != nil {
@@ -117,9 +117,9 @@ func (n *NodeLoadMonitoringTask) Run(ctx context.Context) error {
 				}
 			}
 		} else if !isOverloaded && hasOverloadTaint {
-			if err := n.removeOverloadTaint(ctx, node.Name); err != nil {
+			if changeDone, err := n.removeOverloadTaint(ctx, node.Name); err != nil {
 				logging.Errorf(ctx, "Error removing taint from node %s: %v", node.Name, err)
-			} else {
+			} else if changeDone {
 				taintsRemoved++
 				if loadDataExists {
 					logging.Infof(ctx, "Removed overload taint from node %s (load: %.2f%%)", node.Name, loadAvg*100)
@@ -208,7 +208,8 @@ func (n *NodeLoadMonitoringTask) nodeHasOverloadTaint(node *corev1.Node) bool {
 	return false
 }
 
-func (n *NodeLoadMonitoringTask) addOverloadTaint(ctx context.Context, nodeName string) error {
+func (n *NodeLoadMonitoringTask) addOverloadTaint(ctx context.Context, nodeName string) (bool, error) {
+	var updated bool
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		node, err := n.kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		if err != nil {
@@ -223,18 +224,19 @@ func (n *NodeLoadMonitoringTask) addOverloadTaint(ctx context.Context, nodeName 
 			Value:  NodeOverloadTaintValue,
 			Effect: NodeOverloadTaintEffect,
 		})
-		_, err = n.kubeClient.CoreV1().Nodes().Update(ctx, nodeCopy, metav1.UpdateOptions{})
-		if err != nil {
+		if _, err := n.kubeClient.CoreV1().Nodes().Update(ctx, nodeCopy, metav1.UpdateOptions{}); err != nil {
 			return fmt.Errorf("update node %s: %w", nodeName, err)
 		}
+		updated = true
 		return nil
 	}); err != nil {
-		return fmt.Errorf("add overload taint to node %s: %w", nodeName, err)
+		return false, fmt.Errorf("add overload taint to node %s: %w", nodeName, err)
 	}
-	return nil
+	return updated, nil
 }
 
-func (n *NodeLoadMonitoringTask) removeOverloadTaint(ctx context.Context, nodeName string) error {
+func (n *NodeLoadMonitoringTask) removeOverloadTaint(ctx context.Context, nodeName string) (bool, error) {
+	var updated bool
 	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		node, err := n.kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		if err != nil {
@@ -253,13 +255,13 @@ func (n *NodeLoadMonitoringTask) removeOverloadTaint(ctx context.Context, nodeNa
 			}
 		}
 		nodeCopy.Spec.Taints = newTaints
-		_, err = n.kubeClient.CoreV1().Nodes().Update(ctx, nodeCopy, metav1.UpdateOptions{})
-		if err != nil {
+		if _, err := n.kubeClient.CoreV1().Nodes().Update(ctx, nodeCopy, metav1.UpdateOptions{}); err != nil {
 			return fmt.Errorf("update node %s: %w", nodeName, err)
 		}
+		updated = true
 		return nil
 	}); err != nil {
-		return fmt.Errorf("remove overload taint from node %s: %w", nodeName, err)
+		return false, fmt.Errorf("remove overload taint from node %s: %w", nodeName, err)
 	}
-	return nil
+	return updated, nil
 }
