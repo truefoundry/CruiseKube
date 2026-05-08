@@ -18,7 +18,8 @@ env:
 jobs:
   build-operator:
     name: Build and Push Docker Images
-    
+    env:
+      USAGETELEMETRY_PROVIDER_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
     uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
