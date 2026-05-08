@@ -12,6 +12,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/adapters/database"
 	"github.com/truefoundry/cruisekube/pkg/adapters/kube"
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsprovider/prometheus"
+	usageadapter "github.com/truefoundry/cruisekube/pkg/adapters/usagetelemetry"
 	"github.com/truefoundry/cruisekube/pkg/audit"
 	"github.com/truefoundry/cruisekube/pkg/cluster"
 	"github.com/truefoundry/cruisekube/pkg/config"
@@ -24,6 +25,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
 	"github.com/truefoundry/cruisekube/pkg/server"
 	"github.com/truefoundry/cruisekube/pkg/task"
+	"github.com/truefoundry/cruisekube/pkg/usageheartbeat"
 )
 
 type controllerRuntime struct {
@@ -62,7 +64,31 @@ func startControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) 
 		return fmt.Errorf("failed to schedule tasks: %w", err)
 	}
 
+	startUsageTelemetryHeartbeat(runtimeManager, cfg, runtime.clusterManager)
+
 	return nil
+}
+
+func startUsageTelemetryHeartbeat(runtimeManager *runtimeManager, cfg *config.Config, clusterManager cluster.Manager) {
+	if !cfg.UsageTelemetry.Enabled {
+		return
+	}
+	clients, err := clusterManager.GetClusterClients(cluster.SingleClusterID)
+	if err != nil {
+		logging.Errorf(runtimeManager.ctx, "usage telemetry: no cluster client: %v", err)
+		return
+	}
+	reporter, err := usageadapter.NewReporter(cfg.UsageTelemetry.InstallID, cfg.UsageTelemetry.ProviderConfig, cfg.EffectiveUsageTelemetryProviderAPIKey())
+	if err != nil {
+		logging.Errorf(runtimeManager.ctx, "usage telemetry: reporter init failed: %v", err)
+		return
+	}
+	runtimeManager.AddCleanup(func(context.Context) error {
+		return reporter.Close()
+	})
+	runtimeManager.Go("usage telemetry heartbeat", func(ctx context.Context) error {
+		return usageheartbeat.Start(ctx, clients.KubeClient, cfg, reporter)
+	})
 }
 
 func buildControllerRuntime(runtimeManager *runtimeManager, cfg *config.Config) (controllerRuntime, error) {

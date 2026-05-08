@@ -7,6 +7,7 @@ FRONTEND_IMAGE := cruisekube-frontend:$(TAG)
 FRONTEND_DIR := ../../cruiseKube-frontend
 T ?= ./tests
 TIMEOUT := 400s
+USAGETELEMETRY_PROVIDER_API_KEY := 
 
 .PHONY: all setup clean test
 
@@ -36,7 +37,7 @@ test:
 .PHONY: build-images
 build-images: ## Build controller image
 	@echo "Building controller image..."
-	@cd ../.. && docker build -t $(CONTROLLER_IMAGE) .
+	@cd ../.. && docker build -t $(CONTROLLER_IMAGE) --build-arg USAGETELEMETRY_PROVIDER_API_KEY=$(USAGETELEMETRY_PROVIDER_API_KEY) .
 	@echo "Controller image built successfully"
 	@echo "Building frontend image..."
 	@if [ -d "$(FRONTEND_DIR)" ]; then \
@@ -91,6 +92,14 @@ apply-deps: ## Install all dependencies
 	@helm upgrade --wait --timeout $(TIMEOUT) --install --create-namespace cruisekube ../../charts/cruisekube -n $(NAMESPACE) -f ./manifest/global/values-cruisekube.yaml
 	@echo "All dependencies installed successfully."
 
+.PHONY: uninstall-deps
+uninstall-deps: ## Uninstall all dependencies
+	@echo "Uninstalling CruiseKube via Helm..."
+	@helm delete cruisekube -n $(NAMESPACE)
+	@echo "Uninstalling dependencies..."
+	@kubectl delete namespace $(NAMESPACE)
+	@echo "All dependencies uninstalled successfully."
+
 .PHONY: reload-images
 reload-images: ## Reload images into kind and restart deployments
 	@echo "Loading images into kind cluster..."
@@ -124,17 +133,3 @@ install-prom: ## Install prometheus
         --set nodeExporter.enabled=true \
         --set prometheusOperator.enabled=true \
         --wait --timeout=150s
-
-ick: install-ck
-
-install-ck: ## Update helm chart
-	@printf 'apiVersion: v1\nkind: Namespace\nmetadata:\n  name: %s\n' "$(NAMESPACE)" | kubectl apply -f -
-	@kubectl apply -f ./manifest/global/controller-admin-secret.yaml
-	@cd ../../charts/cruisekube && helm dependency build
-	@helm upgrade --wait --timeout $(TIMEOUT) --install --create-namespace cruisekube ../../charts/cruisekube -n $(NAMESPACE) -f ./manifest/global/values-cruisekube.yaml
-
-uick: uninstall-ck
-uninstall-ck: ## Delete cruisekube
-	@echo "Deleting cruisekube..."
-	
-	-@helm delete cruisekube -n $(NAMESPACE)
