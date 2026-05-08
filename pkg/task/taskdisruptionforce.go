@@ -388,7 +388,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 		return nil
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("reconcile PDB %s/%s: %w", ns, name, err)
 	}
 
 	if updated {
