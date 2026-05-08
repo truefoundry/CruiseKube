@@ -20,7 +20,7 @@ jobs:
       image_tag: ${{ github.sha }}
       image_build_args: |
         VERSION=${{ github.sha }}
-        USAGETELEMETRY_PROVIDER_API_KEY="123"
+        USAGETELEMETRY_PROVIDER_API_KEY=${{ vars.POSTHOG_API_KEY }}
       image_artifact_name: 'cruisekube'
       dockerfile_path: 'Dockerfile'
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
