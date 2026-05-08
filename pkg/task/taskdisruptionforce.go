@@ -14,6 +14,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -123,7 +124,11 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 
 		workloadObj, err := utils.GetWorkloadObject(ctx, t.kubeClient, stat.Kind, stat.Namespace, stat.Name)
 		if err != nil {
-			logging.Infof(ctx, "Failed to get workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+			if apierrors.IsNotFound(err) {
+				logging.Infof(ctx, "Workload %s/%s/%s not found, skipping: %v", stat.Kind, stat.Namespace, stat.Name, err)
+			} else {
+				logging.Errorf(ctx, "Failed to get workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+			}
 			continue
 		}
 
