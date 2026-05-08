@@ -76,7 +76,7 @@ func TestValidateRejectsMissingLocalPrometheusURL(t *testing.T) {
 	}
 }
 
-func TestValidateRequiresUsageTelemetryProviderAPIKey(t *testing.T) {
+func TestValidateAllowsUsageTelemetryWithoutProviderAPIKey(t *testing.T) {
 	t.Parallel()
 	cfg := validControllerConfig()
 	cfg.UsageTelemetry = UsageTelemetryConfig{
@@ -86,11 +86,8 @@ func TestValidateRequiresUsageTelemetryProviderAPIKey(t *testing.T) {
 		ProviderConfig: map[string]interface{}{"host": "https://us.i.posthog.com"},
 	}
 	err := cfg.Validate()
-	if err == nil {
-		t.Fatal("expected validation error when api_key is missing")
-	}
-	if !strings.Contains(err.Error(), "provider API key") {
-		t.Fatalf("expected provider API key error, got %v", err)
+	if err != nil {
+		t.Fatalf("expected validation to pass even when provider API key is missing, got %v", err)
 	}
 }
 
@@ -123,14 +120,15 @@ func TestValidateRejectsUsageTelemetryNonPositiveInterval(t *testing.T) {
 				Enabled:        true,
 				Interval:       interval,
 				InstallID:      "abc",
-				ProviderConfig: map[string]interface{}{"api_key": "x"},
+				ProviderAPIKey: "x",
+				ProviderConfig: map[string]interface{}{"host": "https://us.i.posthog.com"},
 			}
 			err := cfg.Validate()
-			if err == nil {
-				t.Fatal("expected validation error")
+			if err != nil {
+				t.Fatalf("expected validation to pass (interval should default), got %v", err)
 			}
-			if !strings.Contains(err.Error(), "usageTelemetry.interval must be positive") {
-				t.Fatalf("expected positive interval error, got %v", err)
+			if cfg.UsageTelemetry.Interval != "30m" {
+				t.Fatalf("expected interval to default to 30m, got %q", cfg.UsageTelemetry.Interval)
 			}
 		})
 	}

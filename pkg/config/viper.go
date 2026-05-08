@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/truefoundry/cruisekube/pkg/buildmetadata"
+	"github.com/truefoundry/cruisekube/pkg/logging"
 )
 
 // LoadWithViperInstance loads configuration using a provided Viper instance (for flag binding).
@@ -191,23 +192,34 @@ func (c *Config) validateUsageTelemetryForController() error {
 	}
 	interval := strings.TrimSpace(c.UsageTelemetry.Interval)
 	if interval == "" {
-		return fmt.Errorf("usageTelemetry.interval is required when usageTelemetry.enabled is true")
+		logging.Warnf(context.Background(), "usageTelemetry.enabled=true but interval is empty; defaulting to 30m")
+		c.UsageTelemetry.Interval = "30m"
+		interval = "30m"
 	}
 	d, err := time.ParseDuration(interval)
 	if err != nil {
-		return fmt.Errorf("usageTelemetry.interval: %w", err)
+		logging.Warnf(context.Background(), "usageTelemetry.enabled=true but interval %q is invalid (%v); defaulting to 30m", c.UsageTelemetry.Interval, err)
+		c.UsageTelemetry.Interval = "30m"
+		d = 30 * time.Minute
 	}
 	if d <= 0 {
-		return fmt.Errorf("usageTelemetry.interval must be positive, got %q", c.UsageTelemetry.Interval)
+		logging.Warnf(context.Background(), "usageTelemetry.enabled=true but interval %q is non-positive; defaulting to 30m", c.UsageTelemetry.Interval)
+		c.UsageTelemetry.Interval = "30m"
 	}
 	if strings.TrimSpace(c.UsageTelemetry.InstallID) == "" {
-		return fmt.Errorf("usageTelemetry.installID is required when usageTelemetry.enabled is true (set CRUISEKUBE_USAGETELEMETRY_INSTALLID)")
+		logging.Warnf(context.Background(), "usageTelemetry.enabled=true but no install id found; disabling usage telemetry (set CRUISEKUBE_USAGETELEMETRY_INSTALLID to enable)")
+		c.UsageTelemetry.Enabled = false
+		return nil
 	}
 	if len(c.UsageTelemetry.ProviderConfig) == 0 {
-		return fmt.Errorf("usageTelemetry.providerConfig must be non-empty when usageTelemetry.enabled is true")
+		logging.Warnf(context.Background(), "usageTelemetry.enabled=true but providerConfig is empty; disabling usage telemetry (set usageTelemetry.providerConfig.host to enable)")
+		c.UsageTelemetry.Enabled = false
+		return nil
 	}
 	if c.EffectiveUsageTelemetryProviderAPIKey() == "" {
-		return fmt.Errorf("usageTelemetry provider API key is required when usageTelemetry.enabled is true (set usageTelemetry.providerApiKey / CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY, providerConfig.api_key in YAML, or bake USAGETELEMETRY_PROVIDER_API_KEY at image build)")
+		logging.Warnf(context.Background(), "usageTelemetry.enabled=true but no provider API key found; disabling usage telemetry (set usageTelemetry.providerApiKey / CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY, providerConfig.api_key, or bake USAGETELEMETRY_PROVIDER_API_KEY at image build)")
+		c.UsageTelemetry.Enabled = false
+		return nil
 	}
 	return nil
 }
