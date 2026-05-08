@@ -43,6 +43,15 @@ cruisekubeController:
           cpu: 50m
           ## @param cruisekubeController.admin.credentialGen.resources.requests.memory Resource requests (memory) for the credential generator Job.
           memory: 64Mi
+  ## @section CruiseKube Controller usage telemetry (optional heartbeats)
+  usageTelemetry:
+    ## @param cruisekubeController.usageTelemetry.enabled Send anonymous usage heartbeats when true (requires provider api_key baked into the image at build USAGETELEMETRY_PROVIDER_API_KEY, or providerConfig.api_key in values for overrides; host from providerConfig.host or client default). When enabled, the chart ensures a chart-managed Secret named `{controller-fullname}-runtime-data` with key `install-id` (bootstrap hook) for the stable distinct id; that Secret may hold additional controller data keys in the future.
+    enabled: true
+    ## @param cruisekubeController.usageTelemetry.interval Heartbeat period (Go duration, e.g. 30m, 1h).
+    interval: 30m
+    providerConfig:
+      ## @param cruisekubeController.usageTelemetry.providerConfig.host Usage Telemetry provider host (JSON in CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG)
+      host: "https://us.i.posthog.com"
   ## @param cruisekubeController.replicas Number of CruiseKube Controller replicas to deploy
   replicas: 1
   image:
@@ -51,7 +60,7 @@ cruisekubeController:
     ## @param cruisekubeController.image.imagePullPolicy CruiseKube Controller image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeController.image.tag CruiseKube Controller image tag (immutable tags are recommended)
-    tag: "cae0a0b719754b957f7a42ddde9527795c1376b0"
+    tag: "6079dfcfbe95c07b90721e14bbce978565ec5cad"
   ## @param cruisekubeController.imagePullSecrets [array] CruiseKube Controller image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeController.nameOverride String to partially override cruisekube.fullname
@@ -166,7 +175,7 @@ cruisekubeWebhook:
     ## @param cruisekubeWebhook.image.imagePullPolicy CruiseKube Webhook image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeWebhook.image.tag CruiseKube Webhook image tag (immutable tags are recommended)
-    tag: "cae0a0b719754b957f7a42ddde9527795c1376b0"
+    tag: "6079dfcfbe95c07b90721e14bbce978565ec5cad"
   ## @param cruisekubeWebhook.imagePullSecrets [array] CruiseKube Webhook image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeWebhook.nameOverride String to partially override cruisekube.fullname
@@ -307,7 +316,7 @@ cruisekubeFrontend:
     ## @param cruisekubeFrontend.image.imagePullPolicy CruiseKube Frontend image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeFrontend.image.tag CruiseKube Frontend image tag (immutable tags are recommended)
-    tag: "cae0a0b719754b957f7a42ddde9527795c1376b0"
+    tag: "6079dfcfbe95c07b90721e14bbce978565ec5cad"
   ## @param cruisekubeFrontend.imagePullSecrets [array] CruiseKube Frontend image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeFrontend.nameOverride String to partially override cruisekube.fullname
