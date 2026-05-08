@@ -16,14 +16,14 @@ cruisekubeController:
         repository: bitnami/kubectl
         tag: "latest"
   usageTelemetry:
-    enabled: true
+    enabled: false
     interval: 30m
     providerConfig: {}
   serviceMonitor:
     enabled: false
   image:
-    repository: tfy.jfrog.io/tfy-images/cruisekube
-    tag: f50dec7c5a33cfc4cbd1459e4dbe1d8f22abf9b0
+    repository: cruisekube
+    tag: latest
     imagePullPolicy: IfNotPresent
   env:
     CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY: "false"
