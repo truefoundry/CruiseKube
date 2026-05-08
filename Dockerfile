@@ -1,6 +1,6 @@
 # Build stage
 FROM public.ecr.aws/docker/library/golang:1.25.9-alpine3.23 AS builder
-RUN apk add --no-cache git gcc musl-dev
+RUN apk add --no-cache git gcc musl-dev sqlite-dev
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
