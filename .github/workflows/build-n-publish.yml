@@ -12,9 +12,13 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  USAGETELEMETRY_PROVIDER_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
+
 jobs:
   build-operator:
     name: Build and Push Docker Images
+    
     uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}

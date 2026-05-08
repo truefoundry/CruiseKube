@@ -11,7 +11,7 @@ COPY ./pkg ./pkg
 # release: charts/cruisekube/values.yaml cruisekubeController.image.tag; main: github.sha.
 ARG VERSION=dev
 
-ARG USAGETELEMETRY_PROVIDER_API_KEY=
+ENV USAGETELEMETRY_PROVIDER_API_KEY=
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo \
 	-ldflags "-X github.com/truefoundry/cruisekube/pkg/buildmetadata.Version=${VERSION} \
 	-X github.com/truefoundry/cruisekube/pkg/buildmetadata.DefaultUsageTelemetryProviderAPIKey=${USAGETELEMETRY_PROVIDER_API_KEY}" \
