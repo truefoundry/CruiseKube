@@ -15,6 +15,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 ### Breaking changes
 
 * Add authentication layer to all the APIs & expose login API by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/227
+* feat: add usage telemetry to cruisekube by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/238
 
 ### Bug Fixes
 
