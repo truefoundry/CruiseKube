@@ -13,8 +13,7 @@ import (
 )
 
 type providerConfig struct {
-	APIKey string `json:"api_key"`
-	Host   string `json:"host"`
+	Host string `json:"host"`
 }
 
 // Reporter sends capture events via the official PostHog Go client.
@@ -27,8 +26,8 @@ type Reporter struct {
 
 const eventName = "cruisekube_cluster_heartbeat"
 
-// NewReporterFromProviderConfig unmarshals providerConfig (api_key, optional host) and opens a PostHog client.
-func NewReporterFromProviderConfig(distinctID string, providerConfigMap map[string]interface{}) (*Reporter, error) {
+// NewReporterFromProviderConfig unmarshals providerConfig
+func NewReporterFromProviderConfig(distinctID string, providerConfigMap map[string]interface{}, providerAPIKey string) (*Reporter, error) {
 	if strings.TrimSpace(distinctID) == "" {
 		return nil, fmt.Errorf("posthog reporter: distinct install id is empty")
 	}
@@ -44,8 +43,8 @@ func NewReporterFromProviderConfig(distinctID string, providerConfigMap map[stri
 	if err := json.Unmarshal(raw, &cfg); err != nil {
 		return nil, fmt.Errorf("posthog reporter: parse provider config: %w", err)
 	}
-	if strings.TrimSpace(cfg.APIKey) == "" {
-		return nil, fmt.Errorf("posthog reporter: providerConfig.api_key is required")
+	if strings.TrimSpace(providerAPIKey) == "" {
+		return nil, fmt.Errorf("posthog reporter: providerAPIKey is required")
 	}
 	endpoint := strings.TrimSpace(cfg.Host)
 	if endpoint == "" {
@@ -53,7 +52,7 @@ func NewReporterFromProviderConfig(distinctID string, providerConfigMap map[stri
 	}
 	endpoint = strings.TrimRight(endpoint, "/")
 
-	client, err := posthog.NewWithConfig(strings.TrimSpace(cfg.APIKey), posthog.Config{
+	client, err := posthog.NewWithConfig(strings.TrimSpace(providerAPIKey), posthog.Config{
 		Endpoint:  endpoint,
 		BatchSize: 1,
 	})

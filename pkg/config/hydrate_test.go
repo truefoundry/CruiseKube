@@ -8,7 +8,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/buildmetadata"
 )
 
-func TestHydrateUsageTelemetryProviderConfig_providerApiKeyFromStruct(t *testing.T) {
+func TestHydrateUsageTelemetryProviderConfig_doesNotInjectProviderApiKey(t *testing.T) {
 	t.Parallel()
 	v := viper.New()
 	cfg := &Config{
@@ -20,15 +20,18 @@ func TestHydrateUsageTelemetryProviderConfig_providerApiKeyFromStruct(t *testing
 	if err := hydrateUsageTelemetryProviderConfig(v, cfg); err != nil {
 		t.Fatal(err)
 	}
-	if got := usageTelemetryStringFromMap(cfg.UsageTelemetry.ProviderConfig, "api_key"); got != "key-from-struct" {
-		t.Fatalf("api_key=%q", got)
+	if got := usageTelemetryStringFromMap(cfg.UsageTelemetry.ProviderConfig, "api_key"); got != "" {
+		t.Fatalf("expected no api_key in providerConfig, got %q", got)
 	}
 	if got := usageTelemetryStringFromMap(cfg.UsageTelemetry.ProviderConfig, "host"); got != "https://x.example" {
 		t.Fatalf("host=%q", got)
 	}
+	if got := cfg.EffectiveUsageTelemetryProviderAPIKey(); got != "key-from-struct" {
+		t.Fatalf("effective key=%q", got)
+	}
 }
 
-func TestHydrateUsageTelemetryProviderConfig_embedDefault(t *testing.T) {
+func TestEffectiveUsageTelemetryProviderAPIKey_bakedFallback(t *testing.T) {
 	t.Parallel()
 	prev := buildmetadata.DefaultUsageTelemetryProviderAPIKey
 	buildmetadata.DefaultUsageTelemetryProviderAPIKey = "baked-key"
@@ -43,12 +46,15 @@ func TestHydrateUsageTelemetryProviderConfig_embedDefault(t *testing.T) {
 	if err := hydrateUsageTelemetryProviderConfig(v, cfg); err != nil {
 		t.Fatal(err)
 	}
-	if got := usageTelemetryStringFromMap(cfg.UsageTelemetry.ProviderConfig, "api_key"); got != "baked-key" {
-		t.Fatalf("api_key=%q", got)
+	if got := usageTelemetryStringFromMap(cfg.UsageTelemetry.ProviderConfig, "api_key"); got != "" {
+		t.Fatalf("expected no api_key in providerConfig after hydrate")
+	}
+	if got := cfg.EffectiveUsageTelemetryProviderAPIKey(); got != "baked-key" {
+		t.Fatalf("effective key=%q", got)
 	}
 }
 
-func TestHydrateUsageTelemetryProviderConfig_structWinsOverEmbed(t *testing.T) {
+func TestEffectiveUsageTelemetryProviderAPIKey_explicitWinsOverBaked(t *testing.T) {
 	t.Parallel()
 	prev := buildmetadata.DefaultUsageTelemetryProviderAPIKey
 	buildmetadata.DefaultUsageTelemetryProviderAPIKey = "baked"
@@ -64,8 +70,20 @@ func TestHydrateUsageTelemetryProviderConfig_structWinsOverEmbed(t *testing.T) {
 	if err := hydrateUsageTelemetryProviderConfig(v, cfg); err != nil {
 		t.Fatal(err)
 	}
-	if got := usageTelemetryStringFromMap(cfg.UsageTelemetry.ProviderConfig, "api_key"); got != "from-struct" {
-		t.Fatalf("api_key=%q", got)
+	if cfg.EffectiveUsageTelemetryProviderAPIKey() != "from-struct" {
+		t.Fatal("expected ProviderAPIKey to win")
+	}
+}
+
+func TestEffectiveUsageTelemetryProviderAPIKey_providerConfigApiKeyFallback(t *testing.T) {
+	t.Parallel()
+	cfg := &Config{
+		UsageTelemetry: UsageTelemetryConfig{
+			ProviderConfig: map[string]interface{}{"host": "https://h", "api_key": "yaml-only"},
+		},
+	}
+	if cfg.EffectiveUsageTelemetryProviderAPIKey() != "yaml-only" {
+		t.Fatalf("got %q", cfg.EffectiveUsageTelemetryProviderAPIKey())
 	}
 }
 

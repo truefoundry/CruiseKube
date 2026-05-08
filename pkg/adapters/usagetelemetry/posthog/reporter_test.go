@@ -28,9 +28,8 @@ func TestReporter_ReportHeartbeat(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	r, err := NewReporterFromProviderConfig("install-xyz", map[string]interface{}{
-		"api_key": "phc_test",
-		"host":    srv.URL,
-	})
+		"host": srv.URL,
+	}, "phc_test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +57,7 @@ func TestReporter_ReportHeartbeat(t *testing.T) {
 
 func TestNewReporterFromProviderConfig_requiresAPIKey(t *testing.T) {
 	t.Parallel()
-	_, err := NewReporterFromProviderConfig("id", map[string]interface{}{"host": "https://example.com"})
+	_, err := NewReporterFromProviderConfig("id", map[string]interface{}{"host": "https://example.com"}, "")
 	if err == nil {
 		t.Fatal("expected error")
 	}

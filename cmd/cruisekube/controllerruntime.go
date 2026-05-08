@@ -78,7 +78,7 @@ func startUsageTelemetryHeartbeat(runtimeManager *runtimeManager, cfg *config.Co
 		logging.Errorf(runtimeManager.ctx, "usage telemetry: no cluster client: %v", err)
 		return
 	}
-	reporter, err := usageadapter.NewReporter(cfg.UsageTelemetry.InstallID, cfg.UsageTelemetry.ProviderConfig)
+	reporter, err := usageadapter.NewReporter(cfg.UsageTelemetry.InstallID, cfg.UsageTelemetry.ProviderConfig, cfg.EffectiveUsageTelemetryProviderAPIKey())
 	if err != nil {
 		logging.Errorf(runtimeManager.ctx, "usage telemetry: reporter init failed: %v", err)
 		return

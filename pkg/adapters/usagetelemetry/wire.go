@@ -9,11 +9,11 @@ import (
 )
 
 // NewReporter returns the compiled-in usage telemetry reporter implementation.
-func NewReporter(installID string, providerConfig map[string]interface{}) (ports.UsageTelemetryReporter, error) {
+func NewReporter(installID string, providerConfig map[string]interface{}, providerAPIKey string) (ports.UsageTelemetryReporter, error) {
 	if providerConfig == nil {
 		providerConfig = map[string]interface{}{}
 	}
-	rep, err := posthog.NewReporterFromProviderConfig(installID, providerConfig)
+	rep, err := posthog.NewReporterFromProviderConfig(installID, providerConfig, providerAPIKey)
 	if err != nil {
 		return nil, fmt.Errorf("usage telemetry reporter: %w", err)
 	}

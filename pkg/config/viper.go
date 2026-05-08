@@ -41,7 +41,6 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("usageTelemetry.enabled", false)
 	v.SetDefault("usageTelemetry.interval", "30m")
 	v.SetDefault("usageTelemetry.installID", "")
-	// providerConfig is merged in hydrateUsageTelemetryProviderConfig (JSON env / file map, providerApiKey from config file or env, link-time provider API key).
 	v.SetDefault("usageTelemetry.helmChartVersion", "")
 
 	v.SetConfigType("yaml")
@@ -67,10 +66,8 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	return &cfg, nil
 }
 
-// hydrateUsageTelemetryProviderConfig builds usageTelemetry.providerConfig from, in order:
-// 1) YAML / CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG JSON / viper string map (e.g. host),
-// 2) usageTelemetry.providerApiKey (YAML config file or CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY),
-// 3) link-time provider API key (pkg/buildmetadata from Docker build -ldflags).
+// hydrateUsageTelemetryProviderConfig normalizes usageTelemetry.providerConfig from YAML,
+// CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG JSON, or viper string map (e.g. host).
 func hydrateUsageTelemetryProviderConfig(v *viper.Viper, cfg *Config) error {
 	var m map[string]interface{}
 	if len(cfg.UsageTelemetry.ProviderConfig) > 0 {
@@ -91,16 +88,20 @@ func hydrateUsageTelemetryProviderConfig(v *viper.Viper, cfg *Config) error {
 		m = map[string]interface{}{}
 	}
 
-	if k := strings.TrimSpace(cfg.UsageTelemetry.ProviderAPIKey); k != "" {
-		m["api_key"] = k
-	} else if usageTelemetryStringFromMap(m, "api_key") == "" {
-		if k := strings.TrimSpace(buildmetadata.DefaultUsageTelemetryProviderAPIKey); k != "" {
-			m["api_key"] = k
-		}
-	}
-
 	cfg.UsageTelemetry.ProviderConfig = m
 	return nil
+}
+
+// EffectiveUsageTelemetryProviderAPIKey returns the API key for usage telemetry: usageTelemetry.providerApiKey
+// (or CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY), else the link-time image default, else providerConfig.api_key from YAML/JSON if present.
+func (c *Config) EffectiveUsageTelemetryProviderAPIKey() string {
+	if k := strings.TrimSpace(c.UsageTelemetry.ProviderAPIKey); k != "" {
+		return k
+	}
+	if k := strings.TrimSpace(buildmetadata.DefaultUsageTelemetryProviderAPIKey); k != "" {
+		return k
+	}
+	return usageTelemetryStringFromMap(c.UsageTelemetry.ProviderConfig, "api_key")
 }
 
 func usageTelemetryStringFromMap(m map[string]interface{}, key string) string {
@@ -205,8 +206,8 @@ func (c *Config) validateUsageTelemetryForController() error {
 	if len(c.UsageTelemetry.ProviderConfig) == 0 {
 		return fmt.Errorf("usageTelemetry.providerConfig must be non-empty when usageTelemetry.enabled is true")
 	}
-	if usageTelemetryStringFromMap(c.UsageTelemetry.ProviderConfig, "api_key") == "" {
-		return fmt.Errorf("usageTelemetry provider api_key is required when usageTelemetry.enabled is true (set usageTelemetry.providerApiKey / CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY, providerConfig.api_key, or bake USAGETELEMETRY_PROVIDER_API_KEY at image build)")
+	if c.EffectiveUsageTelemetryProviderAPIKey() == "" {
+		return fmt.Errorf("usageTelemetry provider API key is required when usageTelemetry.enabled is true (set usageTelemetry.providerApiKey / CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY, providerConfig.api_key in YAML, or bake USAGETELEMETRY_PROVIDER_API_KEY at image build)")
 	}
 	return nil
 }

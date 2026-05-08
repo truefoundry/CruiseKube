@@ -89,8 +89,8 @@ func TestValidateRequiresUsageTelemetryProviderAPIKey(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected validation error when api_key is missing")
 	}
-	if !strings.Contains(err.Error(), "api_key") {
-		t.Fatalf("expected api_key error, got %v", err)
+	if !strings.Contains(err.Error(), "provider API key") {
+		t.Fatalf("expected provider API key error, got %v", err)
 	}
 }
 
