@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build-values:
-  runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     outputs:
       posthog_api_key: ${{ secrets.POSTHOG_API_KEY }}
   build-operator:
