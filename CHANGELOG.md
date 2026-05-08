@@ -37,6 +37,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * feat: update gh pages by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/221
 
 ### Other
+
 * Add a issue type for adopters by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/233
 * hotfix: update minor bug by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/234
 * release v0.2.6-rc.2 by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/223
@@ -49,6 +50,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 * build(deps): bump github.com/jackc/pgx/v5 from 5.6.0 to 5.9.0 by @dependabot[bot] in https://github.com/truefoundry/CruiseKube/pull/229
 
 ### New Contributors
+
 * @koundykarthik made their first contribution in https://github.com/truefoundry/CruiseKube/pull/222
 
 
