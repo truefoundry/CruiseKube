@@ -23,3 +23,15 @@ Read the generated admin password:
 
 If you used helm install --dry-run, these commands apply after a real install once the hook Job has created the Secret.
 {{- end }}
+
+---
+
+{{- $ut := .Values.cruisekubeController.usageTelemetry | default dict }}
+{{- if and .Values.cruisekubeController.enabled ($ut.enabled | default false) }}
+
+Usage telemetry is enabled: the controller sends anonymous periodic heartbeats to help improve CruiseKube. A stable install identifier is stored in Secret {{ include "cruisekubeController.runtimeDataSecretName" . }} (key {{ include "cruisekubeController.runtimeDataSecretInstallIdKey" . }}). To turn this off, set cruisekubeController.usageTelemetry.enabled to false and upgrade the release.
+{{- end }}
+
+---
+
+
