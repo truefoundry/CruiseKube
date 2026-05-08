@@ -9,7 +9,7 @@ COPY ./pkg ./pkg
 
 # Baked into the API (e.g. /config version). CI passes VERSION to match the image tag:
 # release: charts/cruisekube/values.yaml cruisekubeController.image.tag; main: github.sha.
-ENV VERSION=dev
+ARG VERSION=dev
 ARG USAGETELEMETRY_PROVIDER_API_KEY
 RUN if [ -n "${VERSION}" ]; then echo "build: version (VERSION build-arg): present"; else echo "build: version (VERSION build-arg): empty"; fi && \
 	if [ -n "${USAGETELEMETRY_PROVIDER_API_KEY}" ]; then echo "build: usage telemetry provider api key: present"; else echo "build: usage telemetry provider api key: empty"; fi
