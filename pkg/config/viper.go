@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"github.com/truefoundry/cruisekube/pkg/usageembed"
+	"github.com/truefoundry/cruisekube/pkg/buildmetadata"
 )
 
 // LoadWithViperInstance loads configuration using a provided Viper instance (for flag binding).
@@ -70,7 +70,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 // hydrateUsageTelemetryProviderConfig builds usageTelemetry.providerConfig from, in order:
 // 1) YAML / CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG JSON / viper string map (e.g. host),
 // 2) usageTelemetry.providerApiKey (e.g. CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY from Helm),
-// 3) link-time provider API key (pkg/usageembed from Docker build -ldflags).
+// 3) link-time provider API key (pkg/buildmetadata from Docker build -ldflags).
 func hydrateUsageTelemetryProviderConfig(v *viper.Viper, cfg *Config) error {
 	var m map[string]interface{}
 	if len(cfg.UsageTelemetry.ProviderConfig) > 0 {
@@ -94,7 +94,7 @@ func hydrateUsageTelemetryProviderConfig(v *viper.Viper, cfg *Config) error {
 	if k := strings.TrimSpace(cfg.UsageTelemetry.ProviderAPIKey); k != "" {
 		m["api_key"] = k
 	} else if usageTelemetryStringFromMap(m, "api_key") == "" {
-		if k := strings.TrimSpace(usageembed.DefaultUsageTelemetryProviderAPIKey); k != "" {
+		if k := strings.TrimSpace(buildmetadata.DefaultUsageTelemetryProviderAPIKey); k != "" {
 			m["api_key"] = k
 		}
 	}

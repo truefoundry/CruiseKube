@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
-	"github.com/truefoundry/cruisekube/pkg/usageembed"
+	"github.com/truefoundry/cruisekube/pkg/buildmetadata"
 )
 
 func TestHydrateUsageTelemetryProviderConfig_providerApiKeyFromStruct(t *testing.T) {
@@ -30,9 +30,9 @@ func TestHydrateUsageTelemetryProviderConfig_providerApiKeyFromStruct(t *testing
 
 func TestHydrateUsageTelemetryProviderConfig_embedDefault(t *testing.T) {
 	t.Parallel()
-	prev := usageembed.DefaultUsageTelemetryProviderAPIKey
-	usageembed.DefaultUsageTelemetryProviderAPIKey = "baked-key"
-	t.Cleanup(func() { usageembed.DefaultUsageTelemetryProviderAPIKey = prev })
+	prev := buildmetadata.DefaultUsageTelemetryProviderAPIKey
+	buildmetadata.DefaultUsageTelemetryProviderAPIKey = "baked-key"
+	t.Cleanup(func() { buildmetadata.DefaultUsageTelemetryProviderAPIKey = prev })
 
 	v := viper.New()
 	cfg := &Config{
@@ -50,9 +50,9 @@ func TestHydrateUsageTelemetryProviderConfig_embedDefault(t *testing.T) {
 
 func TestHydrateUsageTelemetryProviderConfig_structWinsOverEmbed(t *testing.T) {
 	t.Parallel()
-	prev := usageembed.DefaultUsageTelemetryProviderAPIKey
-	usageembed.DefaultUsageTelemetryProviderAPIKey = "baked"
-	t.Cleanup(func() { usageembed.DefaultUsageTelemetryProviderAPIKey = prev })
+	prev := buildmetadata.DefaultUsageTelemetryProviderAPIKey
+	buildmetadata.DefaultUsageTelemetryProviderAPIKey = "baked"
+	t.Cleanup(func() { buildmetadata.DefaultUsageTelemetryProviderAPIKey = prev })
 
 	v := viper.New()
 	cfg := &Config{
