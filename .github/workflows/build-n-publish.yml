@@ -13,19 +13,13 @@ permissions:
   contents: read
 
 jobs:
-  build-values:
-    runs-on: ubuntu-latest
-    outputs:
-      posthog_api_key: ${{ secrets.POSTHOG_API_KEY }}
   build-operator:
     name: Build and Push Docker Images
-    needs: [build-values]
-    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
+    uses: truefoundry/workflows/.github/workflows/build.yml@main
     with:
       image_tag: ${{ github.sha }}
       image_build_args: |
         VERSION=${{ github.sha }}
-        USAGETELEMETRY_PROVIDER_API_KEY=${{ needs.build-values.outputs.posthog_api_key }}
       image_artifact_name: 'cruisekube'
       dockerfile_path: 'Dockerfile'
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
@@ -34,6 +28,8 @@ jobs:
     secrets:
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+      secret_image_build_args: |
+        USAGETELEMETRY_PROVIDER_API_KEY=${{ secrets.POSTHOG_API_KEY }}
   
   # Build and push cruisekube-frontend image
   build-cruisekube-frontend:
