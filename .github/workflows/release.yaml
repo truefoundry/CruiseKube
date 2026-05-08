@@ -1,6 +1,9 @@
 name: Release cruisekube Helm Chart
 
-on:                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+on:  
+  pull_request:
+    branches:
+      - 'main'
   push:
     tags:
       - v*
@@ -21,6 +24,7 @@ jobs:
       chart_name: ${{ steps.read_chart.outputs.CHART_NAME }}
       cruisekube_tag: ${{ steps.read_chart.outputs.cruisekube_TAG }}
       cruisekube_frontend_tag: ${{ steps.read_chart.outputs.cruisekube_frontend_TAG }}
+      posthog_api_key: ${{ secrets.POSTHOG_API_KEY }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
