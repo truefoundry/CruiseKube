@@ -9,13 +9,47 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
-### Documentation
 
-* Add [Login & authentication](https://cruisekube.com/documentation/operate/authentication/) guide (Helm admin Secret, generated password, retrieval, rotation).
+## v0.3.0 (08-05-2025)
 
 ### Breaking changes
 
 * Add authentication layer to all the APIs & expose login API by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/227
+
+### Bug Fixes
+
+* fix: add missing values to original requested by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/236
+* Fix duplicate pod owner joins in createStats by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/216
+
+### Improvements
+
+* Show pod average resources in workload by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/230
+* pre-fetching all pods before matching pod to workloads by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/239
+* reusing already fetched workload object to make create stats faster by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/237
+* Fetch workload overrides from database instead of API in apply recommendation task by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/226
+* Add imagePullSecrets parameter for certificate generator by @koundykarthik in https://github.com/truefoundry/CruiseKube/pull/222
+
+### Documentation
+
+* Add [Login & authentication](https://cruisekube.com/documentation/operate/authentication/) guide (Helm admin Secret, generated password, retrieval, rotation).
+* Move docs to zensical by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/215
+* feat: update gh pages by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/221
+
+### Other
+* Add a issue type for adopters by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/233
+* hotfix: update minor bug by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/234
+* release v0.2.6-rc.2 by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/223
+* release: v0.2.6-rc.1 by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/217
+* Standardize Go file and package naming by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/219
+* increasing timeout for timeseries prediction by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/220
+* build(deps): bump github.com/jackc/pgx/v5 from 5.9.0 to 5.9.2 by @dependabot[bot] in https://github.com/truefoundry/CruiseKube/pull/231
+* build(deps): bump go.opentelemetry.io/otel/sdk from 1.40.0 to 1.43.0 by @dependabot[bot] in https://github.com/truefoundry/CruiseKube/pull/225
+* build(deps): bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp from 1.38.0 to 1.43.0 by @dependabot[bot] in https://github.com/truefoundry/CruiseKube/pull/224
+* build(deps): bump github.com/jackc/pgx/v5 from 5.6.0 to 5.9.0 by @dependabot[bot] in https://github.com/truefoundry/CruiseKube/pull/229
+
+### New Contributors
+* @koundykarthik made their first contribution in https://github.com/truefoundry/CruiseKube/pull/222
+
 
 ## v0.2.6-rc.2 [2026-04-08]
 
