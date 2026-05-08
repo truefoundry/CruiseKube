@@ -76,7 +76,7 @@ jobs:
           cache-from: type=registry,ref=${{ steps.prepare_tags.outputs.image_name }}:buildcache
           cache-to: type=registry,ref=${{ steps.prepare_tags.outputs.image_name }}:buildcache,mode=max,image-manifest=true,compression=zstd
           build-args: |
-            USAGETELEMETRY_PROVIDER_API_KEY=${{ vars.POSTHOG_API_KEY }}
+            USAGETELEMETRY_PROVIDER_API_KEY=${{ secrets.POSTHOG_API_KEY }}
             VERSION=${{ github.sha }}
 
   # Build and push cruisekube-frontend image
