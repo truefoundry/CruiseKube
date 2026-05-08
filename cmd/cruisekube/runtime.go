@@ -67,7 +67,7 @@ func loadRuntimeConfig(ctx context.Context) (*config.Config, error) {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	if err := cfg.Validate(); err != nil {
+	if err := cfg.Validate(ctx); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 

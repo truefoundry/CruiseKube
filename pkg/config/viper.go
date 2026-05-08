@@ -10,7 +10,10 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/truefoundry/cruisekube/pkg/buildmetadata"
+	"github.com/truefoundry/cruisekube/pkg/logging"
 )
+
+const defaultUsageTelemetryInterval = "30m"
 
 // LoadWithViperInstance loads configuration using a provided Viper instance (for flag binding).
 func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath string) (*Config, error) {
@@ -39,7 +42,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("telemetry.enabled", false)
 	v.SetDefault("telemetry.traceRatio", 0.1)
 	v.SetDefault("usageTelemetry.enabled", false)
-	v.SetDefault("usageTelemetry.interval", "30m")
+	v.SetDefault("usageTelemetry.interval", defaultUsageTelemetryInterval)
 	v.SetDefault("usageTelemetry.installID", "")
 	v.SetDefault("usageTelemetry.helmChartVersion", "")
 
@@ -120,17 +123,17 @@ func usageTelemetryStringFromMap(m map[string]interface{}, key string) string {
 	}
 }
 
-func (c *Config) Validate() error {
+func (c *Config) Validate(ctx context.Context) error {
 	switch c.ExecutionMode {
 	case ExecutionModeWebhook:
-		return c.ValidateWebhookExecutionMode()
+		return c.ValidateWebhookExecutionMode(ctx)
 	case ExecutionModeController:
-		return c.ValidateControllerExecutionMode()
+		return c.ValidateControllerExecutionMode(ctx)
 	case ExecutionModeBoth:
-		if err := c.ValidateWebhookExecutionMode(); err != nil {
+		if err := c.ValidateWebhookExecutionMode(ctx); err != nil {
 			return err
 		}
-		if err := c.ValidateControllerExecutionMode(); err != nil {
+		if err := c.ValidateControllerExecutionMode(ctx); err != nil {
 			return err
 		}
 		return nil
@@ -139,7 +142,7 @@ func (c *Config) Validate() error {
 	}
 }
 
-func (c *Config) ValidateWebhookExecutionMode() error {
+func (c *Config) ValidateWebhookExecutionMode(ctx context.Context) error {
 	var missing []string
 	if c.Webhook.Port == "" {
 		missing = append(missing, "webhook.port")
@@ -157,7 +160,7 @@ func (c *Config) ValidateWebhookExecutionMode() error {
 	return nil
 }
 
-func (c *Config) ValidateControllerExecutionMode() error {
+func (c *Config) ValidateControllerExecutionMode(ctx context.Context) error {
 	controllerMode := strings.TrimSpace(string(c.ControllerMode))
 	switch controllerMode {
 	case string(ClusterModeLocal):
@@ -182,32 +185,43 @@ func (c *Config) ValidateControllerExecutionMode() error {
 		return fmt.Errorf("missing required controller task configurations: %s", strings.Join(missingTaskConfigs, ", "))
 	}
 
-	return c.validateUsageTelemetryForController()
+	return c.validateUsageTelemetryForController(ctx)
 }
 
-func (c *Config) validateUsageTelemetryForController() error {
+func (c *Config) validateUsageTelemetryForController(ctx context.Context) error {
 	if !c.UsageTelemetry.Enabled {
 		return nil
 	}
 	interval := strings.TrimSpace(c.UsageTelemetry.Interval)
 	if interval == "" {
-		return fmt.Errorf("usageTelemetry.interval is required when usageTelemetry.enabled is true")
+		logging.Warnf(ctx, "usageTelemetry.enabled=true but interval is empty; defaulting to %s", defaultUsageTelemetryInterval)
+		c.UsageTelemetry.Interval = defaultUsageTelemetryInterval
+		interval = defaultUsageTelemetryInterval
 	}
 	d, err := time.ParseDuration(interval)
 	if err != nil {
-		return fmt.Errorf("usageTelemetry.interval: %w", err)
+		logging.Warnf(ctx, "usageTelemetry.enabled=true but interval %q is invalid (%v); defaulting to %s", c.UsageTelemetry.Interval, err, defaultUsageTelemetryInterval)
+		c.UsageTelemetry.Interval = defaultUsageTelemetryInterval
+		d = 30 * time.Minute
 	}
 	if d <= 0 {
-		return fmt.Errorf("usageTelemetry.interval must be positive, got %q", c.UsageTelemetry.Interval)
+		logging.Warnf(ctx, "usageTelemetry.enabled=true but interval %q is non-positive; defaulting to %s", c.UsageTelemetry.Interval, defaultUsageTelemetryInterval)
+		c.UsageTelemetry.Interval = defaultUsageTelemetryInterval
 	}
 	if strings.TrimSpace(c.UsageTelemetry.InstallID) == "" {
-		return fmt.Errorf("usageTelemetry.installID is required when usageTelemetry.enabled is true (set CRUISEKUBE_USAGETELEMETRY_INSTALLID)")
+		logging.Warnf(ctx, "usageTelemetry.enabled=true but no install id found; disabling usage telemetry (set CRUISEKUBE_USAGETELEMETRY_INSTALLID to enable)")
+		c.UsageTelemetry.Enabled = false
+		return nil
 	}
 	if len(c.UsageTelemetry.ProviderConfig) == 0 {
-		return fmt.Errorf("usageTelemetry.providerConfig must be non-empty when usageTelemetry.enabled is true")
+		logging.Warnf(ctx, "usageTelemetry.enabled=true but providerConfig is empty; disabling usage telemetry (set usageTelemetry.providerConfig.host to enable)")
+		c.UsageTelemetry.Enabled = false
+		return nil
 	}
 	if c.EffectiveUsageTelemetryProviderAPIKey() == "" {
-		return fmt.Errorf("usageTelemetry provider API key is required when usageTelemetry.enabled is true (set usageTelemetry.providerApiKey / CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY, providerConfig.api_key in YAML, or bake USAGETELEMETRY_PROVIDER_API_KEY at image build)")
+		logging.Warnf(ctx, "usageTelemetry.enabled=true but no provider API key found; disabling usage telemetry (set usageTelemetry.providerApiKey / CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY, providerConfig.api_key, or bake USAGETELEMETRY_PROVIDER_API_KEY at image build)")
+		c.UsageTelemetry.Enabled = false
+		return nil
 	}
 	return nil
 }
