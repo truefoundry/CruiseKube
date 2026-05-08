@@ -5,11 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
-	"github.com/truefoundry/cruisekube/pkg/buildmetadata"
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/server"
@@ -70,33 +67,12 @@ func loadRuntimeConfig(ctx context.Context) (*config.Config, error) {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	if err := cfg.Validate(); err != nil {
+	if err := cfg.Validate(ctx); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	logUsageTelemetryKeySources(ctx, cfg)
 	logging.Infof(ctx, "Configuration loaded: controllerMode=%s executionMode=%s", cfg.ControllerMode, cfg.ExecutionMode)
 	return cfg, nil
-}
-
-func logUsageTelemetryKeySources(ctx context.Context, cfg *config.Config) {
-	if cfg == nil {
-		return
-	}
-
-	_, envKeyPresent := os.LookupEnv("CRUISEKUBE_USAGETELEMETRY_PROVIDERAPIKEY")
-	cfgKeyPresent := strings.TrimSpace(cfg.UsageTelemetry.ProviderAPIKey) != ""
-	bakedKeyPresent := strings.TrimSpace(buildmetadata.DefaultUsageTelemetryProviderAPIKey) != ""
-	effectiveKeyPresent := strings.TrimSpace(cfg.EffectiveUsageTelemetryProviderAPIKey()) != ""
-
-	logging.Infof(
-		ctx,
-		"Usage telemetry key sources: env_present=%t config_present=%t baked_present=%t effective_present=%t",
-		envKeyPresent,
-		cfgKeyPresent,
-		bakedKeyPresent,
-		effectiveKeyPresent,
-	)
 }
 
 func setupSentry(ctx context.Context, cfg *config.Config) {
