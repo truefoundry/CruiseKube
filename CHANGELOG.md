@@ -10,7 +10,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 ## Unreleased
 
 
-## v0.3.0 (08-05-2025)
+## v0.3.0 (08-05-2026)
 
 ### Breaking changes
 
