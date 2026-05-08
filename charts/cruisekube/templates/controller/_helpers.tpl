@@ -84,6 +84,28 @@ a pre-install/pre-upgrade hook Job creates the Secret on first install.
 {{- define "cruisekubeController.adminCredentialGen.serviceAccountName" -}}
 {{- printf "%s-admin-credential-generator" (include "cruisekubeController.fullname" .) | trunc 63 | trimSuffix "-" }}
 {{- end }}
+
+{{/*
+Chart-managed Secret for controller runtime data (usage-telemetry distinct id today; additional keys later).
+*/}}
+{{- define "cruisekubeController.runtimeDataSecretName" -}}
+{{- printf "%s-runtime-data" (include "cruisekubeController.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Data key for the stable usage-telemetry install / distinct_id (must match bootstrap Job and Deployment secretKeyRef).
+*/}}
+{{- define "cruisekubeController.runtimeDataSecretInstallIdKey" -}}
+install-id
+{{- end }}
+
+{{/*
+Whether the bootstrap hook Job should run (admin and/or runtime-data Secret lifecycle).
+*/}}
+{{- define "cruisekubeController.bootstrapSecretsJobEnabled" -}}
+{{- $ut := .Values.cruisekubeController.usageTelemetry | default dict -}}
+{{- if and .Values.cruisekubeController.enabled (or (not .Values.cruisekubeController.admin.existingSecret) ($ut.enabled | default false)) -}}true{{- end -}}
+{{- end }}
 {{/*
 ServiceMonitor labels - merges common labels with servicemonitor-specific labels
 */}}

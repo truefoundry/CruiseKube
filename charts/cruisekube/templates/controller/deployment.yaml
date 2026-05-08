@@ -88,6 +88,22 @@ spec:
                 secretKeyRef:
                   name: {{ include "cruisekubeController.adminSecretName" . }}
                   key: {{ .Values.cruisekubeController.admin.passwordKey }}
+            {{- $ut := .Values.cruisekubeController.usageTelemetry | default dict }}
+            - name: CRUISEKUBE_USAGETELEMETRY_ENABLED
+              value: {{ $ut.enabled | default false | quote }}
+            - name: CRUISEKUBE_USAGETELEMETRY_INTERVAL
+              value: {{ $ut.interval | default "30m" | quote }}
+            {{- if ($ut.enabled | default false) }}
+            - name: CRUISEKUBE_USAGETELEMETRY_INSTALLID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cruisekubeController.runtimeDataSecretName" . }}
+                  key: {{ include "cruisekubeController.runtimeDataSecretInstallIdKey" . }}
+            - name: CRUISEKUBE_USAGETELEMETRY_PROVIDERCONFIG
+              value: {{ $ut.providerConfig | default dict | toJson | quote }}
+            - name: CRUISEKUBE_USAGETELEMETRY_HELMCHARTVERSION
+              value: {{ .Chart.AppVersion | quote }}
+            {{- end }}
           volumeMounts:
             {{- with .Values.cruisekubeController.volumeMounts }}
             {{- toYaml . | nindent 12 }}
