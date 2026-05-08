@@ -1,6 +1,6 @@
 name: Release cruisekube Helm Chart
 
-on:
+on:  
   push:
     tags:
       - v*
@@ -63,7 +63,9 @@ jobs:
     uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     with:
       image_tag: ${{ needs.read-chart-values.outputs.cruisekube_tag }}
-      image_build_args: VERSION=${{ needs.read-chart-values.outputs.cruisekube_tag }},USAGETELEMETRY_PROVIDER_API_KEY=${{ secrets.POSTHOG_API_KEY }}
+      image_build_args: |
+        VERSION=${{ needs.read-chart-values.outputs.cruisekube_tag }}
+        USAGETELEMETRY_PROVIDER_API_KEY=${{ vars.POSTHOG_API_KEY }}
       image_artifact_name: "cruisekube"
       dockerfile_path: "Dockerfile"
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
