@@ -30,7 +30,6 @@ jobs:
     secrets:
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
-      POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}
   
   # Build and push cruisekube-frontend image
   build-cruisekube-frontend:
