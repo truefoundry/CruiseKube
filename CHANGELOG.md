@@ -10,12 +10,12 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 ## Unreleased
 
 
-## v0.3.0 (08-05-2026)
+## v0.3.0-rc.1 (11-05-2026)
 
 ### Breaking changes
 
 * Add authentication layer to all the APIs & expose login API by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/227
-* feat: add usage telemetry to cruisekube by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/238
+
 
 ### Bug Fixes
 
@@ -26,6 +26,7 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 * Show pod average resources in workload by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/230
 * pre-fetching all pods before matching pod to workloads by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/239
+* feat: add usage telemetry to cruisekube by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/238
 * reusing already fetched workload object to make create stats faster by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/237
 * Fetch workload overrides from database instead of API in apply recommendation task by @shubhamrai1993 in https://github.com/truefoundry/CruiseKube/pull/226
 * Add imagePullSecrets parameter for certificate generator by @koundykarthik in https://github.com/truefoundry/CruiseKube/pull/222
