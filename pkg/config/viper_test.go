@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -11,7 +12,7 @@ func TestValidateRejectsInvalidExecutionMode(t *testing.T) {
 	cfg := validControllerConfig()
 	cfg.ExecutionMode = ExecutionMode("invalid")
 
-	err := cfg.Validate()
+	err := cfg.Validate(context.Background())
 	if err == nil {
 		t.Fatal("expected validation error for invalid execution mode")
 	}
@@ -24,7 +25,7 @@ func TestValidateRejectsInvalidControllerMode(t *testing.T) {
 	cfg := validControllerConfig()
 	cfg.ControllerMode = ControllerMode("invalid")
 
-	err := cfg.Validate()
+	err := cfg.Validate(context.Background())
 	if err == nil {
 		t.Fatal("expected validation error for invalid controller mode")
 	}
@@ -37,7 +38,7 @@ func TestValidateRejectsMissingTaskConfigs(t *testing.T) {
 	cfg := validControllerConfig()
 	delete(cfg.Controller.Tasks, CreateStatsKey)
 
-	err := cfg.Validate()
+	err := cfg.Validate(context.Background())
 	if err == nil {
 		t.Fatal("expected validation error for missing task config")
 	}
@@ -53,7 +54,7 @@ func TestValidateRejectsMissingInClusterPrometheusURL(t *testing.T) {
 	cfg := validControllerConfig()
 	cfg.Dependencies.InCluster.PrometheusURL = ""
 
-	err := cfg.Validate()
+	err := cfg.Validate(context.Background())
 	if err == nil {
 		t.Fatal("expected validation error for missing prometheus URL")
 	}
@@ -67,7 +68,7 @@ func TestValidateRejectsMissingLocalPrometheusURL(t *testing.T) {
 	cfg.ControllerMode = ClusterModeLocal
 	cfg.Dependencies.Local.PrometheusURL = ""
 
-	err := cfg.Validate()
+	err := cfg.Validate(context.Background())
 	if err == nil {
 		t.Fatal("expected validation error for missing local prometheus URL")
 	}
@@ -76,7 +77,7 @@ func TestValidateRejectsMissingLocalPrometheusURL(t *testing.T) {
 	}
 }
 
-func TestValidateRequiresUsageTelemetryProviderAPIKey(t *testing.T) {
+func TestValidateAllowsUsageTelemetryWithoutProviderAPIKey(t *testing.T) {
 	t.Parallel()
 	cfg := validControllerConfig()
 	cfg.UsageTelemetry = UsageTelemetryConfig{
@@ -85,12 +86,9 @@ func TestValidateRequiresUsageTelemetryProviderAPIKey(t *testing.T) {
 		InstallID:      "install",
 		ProviderConfig: map[string]interface{}{"host": "https://us.i.posthog.com"},
 	}
-	err := cfg.Validate()
-	if err == nil {
-		t.Fatal("expected validation error when api_key is missing")
-	}
-	if !strings.Contains(err.Error(), "provider API key") {
-		t.Fatalf("expected provider API key error, got %v", err)
+	err := cfg.Validate(context.Background())
+	if err != nil {
+		t.Fatalf("expected validation to pass even when provider API key is missing, got %v", err)
 	}
 }
 
@@ -108,7 +106,7 @@ func TestValidateAllowsUsageTelemetryAfterHydrateWithProviderApiKeyField(t *test
 	if err := hydrateUsageTelemetryProviderConfig(v, cfg); err != nil {
 		t.Fatal(err)
 	}
-	if err := cfg.Validate(); err != nil {
+	if err := cfg.Validate(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -123,14 +121,15 @@ func TestValidateRejectsUsageTelemetryNonPositiveInterval(t *testing.T) {
 				Enabled:        true,
 				Interval:       interval,
 				InstallID:      "abc",
-				ProviderConfig: map[string]interface{}{"api_key": "x"},
+				ProviderAPIKey: "x",
+				ProviderConfig: map[string]interface{}{"host": "https://us.i.posthog.com"},
 			}
-			err := cfg.Validate()
-			if err == nil {
-				t.Fatal("expected validation error")
+			err := cfg.Validate(context.Background())
+			if err != nil {
+				t.Fatalf("expected validation to pass (interval should default), got %v", err)
 			}
-			if !strings.Contains(err.Error(), "usageTelemetry.interval must be positive") {
-				t.Fatalf("expected positive interval error, got %v", err)
+			if cfg.UsageTelemetry.Interval != "30m" {
+				t.Fatalf("expected interval to default to 30m, got %q", cfg.UsageTelemetry.Interval)
 			}
 		})
 	}
@@ -141,7 +140,7 @@ func TestValidateRejectsMissingWebhookFields(t *testing.T) {
 	cfg.Webhook.Port = ""
 	cfg.Webhook.CertsDir = ""
 
-	err := cfg.Validate()
+	err := cfg.Validate(context.Background())
 	if err == nil {
 		t.Fatal("expected validation error for missing webhook fields")
 	}
