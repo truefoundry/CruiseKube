@@ -12,20 +12,23 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-func HandleRoot(c *gin.Context) {
-	c.Data(http.StatusOK, "application/json",
-		[]byte(`{
-			"message": "cruisekube API Server",
-			"endpoints": {
-				"/clusters": "Lists all available clusters",
-				"/clusters/{clusterId}/stats": "Serves stats file for specific cluster",
-				"/clusters/{clusterId}/killswitch": "Deletes MutatingWebhookConfiguration objects and kills pods with resource differences (POST only)",
-				"/clusters/{clusterId}/webhook/mutate": "Mutating admission webhook for pod resource adjustment",
-				"/dev/clusters/{clusterId}/tasks/{taskName}/trigger": "Manually triggers a specific task (POST)",
-				"/health": "Health check endpoint"
-			}
-		}`),
-	)
+func HandleRoot(authEnabled bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Data(http.StatusOK, "application/json",
+			[]byte(fmt.Sprintf(`{
+	"message": "cruisekube API Server",
+	"auth_enabled": %t,
+	"endpoints": {
+		"/clusters": "Lists all available clusters",
+		"/clusters/{clusterId}/stats": "Serves stats file for specific cluster",
+		"/clusters/{clusterId}/killswitch": "Deletes MutatingWebhookConfiguration objects and kills pods with resource differences (POST only)",
+		"/clusters/{clusterId}/webhook/mutate": "Mutating admission webhook for pod resource adjustment",
+		"/dev/clusters/{clusterId}/tasks/{taskName}/trigger": "Manually triggers a specific task (POST)",
+		"/health": "Health check endpoint"
+	}
+}`, authEnabled)),
+		)
+	}
 }
 
 func HandleHealth(c *gin.Context) {

@@ -46,6 +46,7 @@ metrics:
 server:
   port: "8080"
   auth:
+    enabled: true
     username: "admin"
     password: "admin"
 webhook:

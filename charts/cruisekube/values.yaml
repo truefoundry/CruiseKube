@@ -18,6 +18,8 @@ cruisekubeController:
   ## @param cruisekubeController.enabled Enable CruiseKube Controller deployment
   enabled: true
   admin:
+    ## @param cruisekubeController.admin.enabled Enable HTTP basic authentication for the controller API and dashboard. When false, the API is unauthenticated, the login page is hidden, and the bootstrap-secrets hook skips admin credential creation. Default: true.
+    enabled: true
     ## @param cruisekubeController.admin.existingSecret Name of an existing Secret for HTTP basic auth (username + password). If empty, the chart creates a Secret via a Helm hook Job on install/upgrade (credentials are preserved across upgrades once the Secret exists).
     existingSecret: ""
     ## @param cruisekubeController.admin.userKey Key in the secret for the admin username.

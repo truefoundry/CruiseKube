@@ -21,6 +21,7 @@ Credentials always come from a **Kubernetes Secret** in the same namespace as th
 
 | Value | Purpose |
 | --- | --- |
+| `cruisekubeController.admin.enabled` | Enable or disable HTTP basic authentication. When `false`, the API is unauthenticated and the login page is hidden. Default: `true`. |
 | `cruisekubeController.admin.existingSecret` | Name of a Secret **you** create and manage. When non-empty, the chart **does not** run the bootstrap Job and **does not** generate a password. |
 | `cruisekubeController.admin.userKey` | Secret key for the username (default `admin-user`). |
 | `cruisekubeController.admin.passwordKey` | Secret key for the password (default `admin-password`). |
@@ -30,6 +31,33 @@ The controller Deployment reads that Secret via environment variables (`CRUISEKU
 When `existingSecret` is **empty**, the chart uses a generated Secret name of the form **`{controller-fullname}-admin-credentials`**. For a typical release named `cruisekube`, the controller full name is `cruisekube-controller`, so the Secret is often:
 
 `cruisekube-controller-admin-credentials`
+
+## Disabling authentication
+
+To run CruiseKube without HTTP basic auth (for example, behind a VPN or corporate SSO proxy), set:
+
+```yaml
+cruisekubeController:
+  admin:
+    enabled: false
+```
+
+Then install or upgrade the release:
+
+```bash
+helm upgrade cruisekube ./charts/cruisekube -n cruisekube-system -f values.yaml
+```
+
+When authentication is disabled:
+
+- The bootstrap hook **does not** create an admin Secret (existing Secrets are not deleted).
+- The controller API accepts all requests **without** an `Authorization` header.
+- The dashboard **skips the login page** and loads directly into the overview.
+- The `POST /api/v1/auth/login` endpoint returns `404`.
+
+To re-enable authentication, set `cruisekubeController.admin.enabled` back to `true` and upgrade. If no admin Secret exists, the bootstrap hook creates one with a new random password.
+
+> **Security warning:** Only disable authentication when the cluster is protected by network-level access control (VPN, firewall rules, SSO proxy, etc.). Without authentication, anyone who can reach the CruiseKube service can view and modify workload configurations.
 
 ## How the password is generated (first install)
 
