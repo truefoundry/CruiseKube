@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 420" width="540" height="420">
+  <defs></defs>
+  <g transform="translate(142, 20)">
+    <g fill="none" stroke="#FFFFFF" stroke-linejoin="round" stroke-linecap="round" stroke-width="13">
+    <path d="M71 223 L30 166 L35 125 L74 125 L89 86 L167 86 L182 125 L221 125 L226 166 L185 223 Z"></path>
+    <line x1="128" y1="86" x2="128" y2="32"></line>
+    <circle cx="128" cy="19" r="12"></circle>
+    <path d="M30 245 Q 128 220 226 245"></path>
+  </g>
+  </g>
+  <text x="270" y="376" text-anchor="middle" font-family="&#39;Plus Jakarta Sans&#39;, system-ui, -apple-system, &#39;Segoe UI&#39;, sans-serif" font-weight="500" font-size="96" fill="#FFFFFF">cruisekube</text>
+</svg>
