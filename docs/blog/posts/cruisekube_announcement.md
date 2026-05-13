@@ -16,7 +16,7 @@ author:
 
 # Introducing CruiseKube - Runtime Resource Optimization for Kubernetes
 
-<img src="/assets/images/logo/cruiseKube_Colour.png" alt="CruiseKube Logo" width="200">
+<img src="/assets/images/logo/variants/cruisekube-stacked-color.svg" alt="CruiseKube Logo" width="200">
 
 Today, we’re excited to announce the release of **CruiseKube** - a runtime resource optimization engine for Kubernetes that continuously right-sizes pods *without restarts*, unlocking significant cost efficiency gains while preserving reliability.
 

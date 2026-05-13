@@ -163,7 +163,7 @@ extra:
       "@type": "Organization"
       name: "TrueFoundry"
       url: "https://truefoundry.com"
-      logo: "https://cruisekube.com/assets/images/logo/cruiseKube_Colour.png"
+      logo: "https://cruisekube.com/assets/images/logo/variants/cruisekube-stacked-color.svg"
       sameAs:
         - "https://github.com/truefoundry"
         - "https://discord.gg/Dqek4xJa3N"
@@ -224,7 +224,7 @@ extra:
         url: "https://truefoundry.com"
         logo:
           "@type": "ImageObject"
-          url: "https://cruisekube.com/assets/images/logo/cruiseKube_Colour.png"
+          url: "https://cruisekube.com/assets/images/logo/variants/cruisekube-stacked-color.svg"
       mainEntityOfPage:
         "@type": "WebPage"
         "@id": "https://cruisekube.com"

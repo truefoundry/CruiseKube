@@ -1,6 +1,6 @@
 <div align="center">
-<img src="./docs/assets/images/logo/cruiseKube_Colour.png" width="200">
-<p align="center">
+<img src="./docs/assets/images/logo/variants/cruisekube-stacked-color.svg" width="200" alt="cruisekube logo">
+<p align="center" >
 <a>
   <img src="https://img.shields.io/badge/go-1.24-green.svg" align="center">
 </a>
@@ -24,6 +24,13 @@ CruiseKube is an intelligent Kubernetes resource optimization controller that au
 > Using CruiseKube in production (or seriously evaluating it)? Add your team to the adopters list by creating an issue:
 >
 > https://github.com/truefoundry/CruiseKube/issues/new?template=adopter.yaml
+
+
+## ▶️ Live Demo
+
+[**Click here to view demo CruiseKube dashboard**](https://truefoundry.github.io/cruiseKube-frontend/)
+
+
 
 # Content
 
