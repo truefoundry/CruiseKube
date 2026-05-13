@@ -1,6 +1,6 @@
 <div align="center">
-<img src="./docs/assets/images/logo/variants/cruisekube-stacked-color.svg" width="200">
-<p align="center" alt="cruisekube logo">
+<img src="./docs/assets/images/logo/variants/cruisekube-stacked-color.svg" width="200" alt="cruisekube logo">
+<p align="center" >
 <a>
   <img src="https://img.shields.io/badge/go-1.24-green.svg" align="center">
 </a>
