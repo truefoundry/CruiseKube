@@ -1127,6 +1127,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#disabling-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Disabling authentication
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#how-the-password-is-generated-first-install" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -1772,6 +1783,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#disabling-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Disabling authentication
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#how-the-password-is-generated-first-install" class="md-nav__link">
     <span class="md-ellipsis">
       <span class="md-typeset">
@@ -2030,6 +2052,10 @@
 </thead>
 <tbody>
 <tr>
+<td><code>cruisekubeController.admin.enabled</code></td>
+<td>Enable or disable HTTP basic authentication. When <code>false</code>, the API is unauthenticated and the login page is hidden. Default: <code>true</code>.</td>
+</tr>
+<tr>
 <td><code>cruisekubeController.admin.existingSecret</code></td>
 <td>Name of a Secret <strong>you</strong> create and manage. When non-empty, the chart <strong>does not</strong> run the bootstrap Job and <strong>does not</strong> generate a password.</td>
 </tr>
@@ -2046,6 +2072,26 @@
 <p>The controller Deployment reads that Secret via environment variables (<code>CRUISEKUBE_SERVER_AUTH_USERNAME</code> / <code>CRUISEKUBE_SERVER_AUTH_PASSWORD</code>).</p>
 <p>When <code>existingSecret</code> is <strong>empty</strong>, the chart uses a generated Secret name of the form <strong><code>{controller-fullname}-admin-credentials</code></strong>. For a typical release named <code>cruisekube</code>, the controller full name is <code>cruisekube-controller</code>, so the Secret is often:</p>
 <p><code>cruisekube-controller-admin-credentials</code></p>
+<h2 id="disabling-authentication">Disabling authentication<a class="headerlink" href="#disabling-authentication" title="Permanent link">&para;</a></h2>
+<p>To run CruiseKube without HTTP basic auth (for example, behind a VPN or corporate SSO proxy), set:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">cruisekubeController</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">admin</span><span class="p">:</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</span></code></pre></div>
+<p>Then install or upgrade the release:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>helm<span class="w"> </span>upgrade<span class="w"> </span>cruisekube<span class="w"> </span>./charts/cruisekube<span class="w"> </span>-n<span class="w"> </span>cruisekube-system<span class="w"> </span>-f<span class="w"> </span>values.yaml
+</span></code></pre></div>
+<p>When authentication is disabled:</p>
+<ul>
+<li>The bootstrap hook <strong>does not</strong> create an admin Secret (existing Secrets are not deleted).</li>
+<li>The controller API accepts all requests <strong>without</strong> an <code>Authorization</code> header.</li>
+<li>The dashboard <strong>skips the login page</strong> and loads directly into the overview.</li>
+<li>The <code>POST /api/v1/auth/login</code> endpoint returns <code>404</code>.</li>
+</ul>
+<p>To re-enable authentication, set <code>cruisekubeController.admin.enabled</code> back to <code>true</code> and upgrade. If no admin Secret exists, the bootstrap hook creates one with a new random password.</p>
+<blockquote>
+<p><strong>Security warning:</strong> Only disable authentication when the cluster is protected by network-level access control (VPN, firewall rules, SSO proxy, etc.). Without authentication, anyone who can reach the CruiseKube service can view and modify workload configurations.</p>
+</blockquote>
 <h2 id="how-the-password-is-generated-first-install">How the password is generated (first install)<a class="headerlink" href="#how-the-password-is-generated-first-install" title="Permanent link">&para;</a></h2>
 <p>If <code>cruisekubeController.admin.existingSecret</code> is <strong>not</strong> set:</p>
 <ol>
@@ -2061,14 +2107,14 @@
 <p>The chart prints <strong>NOTES</strong> with ready-to-run <code>kubectl</code> commands (same idea as below). Read them from the command output.</p>
 <h3 id="any-time-replace-namespace-and-secret-name">Any time (replace namespace and Secret name)<a class="headerlink" href="#any-time-replace-namespace-and-secret-name" title="Permanent link">&para;</a></h3>
 <p>Use the keys from your values (<code>admin-user</code> / <code>admin-password</code> unless you changed them):</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">NAMESPACE</span><span class="o">=</span>cruisekube-system
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nv">SECRET</span><span class="o">=</span>cruisekube-controller-admin-credentials
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SECRET</span><span class="s2">&quot;</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAMESPACE</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.admin-user}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SECRET</span><span class="s2">&quot;</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAMESPACE</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.admin-password}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">NAMESPACE</span><span class="o">=</span>cruisekube-system
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">SECRET</span><span class="o">=</span>cruisekube-controller-admin-credentials
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SECRET</span><span class="s2">&quot;</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAMESPACE</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.admin-user}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SECRET</span><span class="s2">&quot;</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NAMESPACE</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.admin-password}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
 </span></code></pre></div>
 <p>Sign in to the UI with that username and password. The UI calls <code>POST /api/v1/auth/login</code> and then stores the returned Basic token for later requests.</p>
 <h2 id="how-to-reset-the-password">How to reset the password<a class="headerlink" href="#how-to-reset-the-password" title="Permanent link">&para;</a></h2>
@@ -2077,7 +2123,7 @@
 <ol>
 <li><strong>Delete</strong> the generated Secret (only do this if you are happy to discard the old password):</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>kubectl<span class="w"> </span>delete<span class="w"> </span>secret<span class="w"> </span>cruisekube-controller-admin-credentials<span class="w"> </span>-n<span class="w"> </span>cruisekube-system
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>kubectl<span class="w"> </span>delete<span class="w"> </span>secret<span class="w"> </span>cruisekube-controller-admin-credentials<span class="w"> </span>-n<span class="w"> </span>cruisekube-system
 </span></code></pre></div>
 <ol>
 <li>
@@ -2087,7 +2133,7 @@
 <p><strong>Restart</strong> the controller so it reloads env vars from the Secret:</p>
 </li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>kubectl<span class="w"> </span>rollout<span class="w"> </span>restart<span class="w"> </span>deployment/cruisekube-controller<span class="w"> </span>-n<span class="w"> </span>cruisekube-system
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>kubectl<span class="w"> </span>rollout<span class="w"> </span>restart<span class="w"> </span>deployment/cruisekube-controller<span class="w"> </span>-n<span class="w"> </span>cruisekube-system
 </span></code></pre></div>
 <p>Environment variables populated from <code>secretKeyRef</code> are <strong>not</strong> live-updated when the Secret changes; a restart (or new pod) is required.</p>
 <h3 id="option-b-patch-the-secret-in-place-no-helm-hook">Option B — Patch the Secret in place (no Helm hook)<a class="headerlink" href="#option-b-patch-the-secret-in-place-no-helm-hook" title="Permanent link">&para;</a></h3>
@@ -2095,10 +2141,10 @@
 <li>Choose a new password string, for example <code>NEW_PASSWORD</code>.</li>
 <li>Base64-encode the <strong>literal string</strong> (not the <code>username:password</code> pair) for the key <code>admin-password</code> (or your custom <code>passwordKey</code>):</li>
 </ol>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">NEW_PASSWORD</span><span class="o">=</span><span class="s1">&#39;...&#39;</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">ENC</span><span class="o">=</span><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%s&#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NEW_PASSWORD</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="k">)</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>kubectl<span class="w"> </span>patch<span class="w"> </span>secret<span class="w"> </span>cruisekube-controller-admin-credentials<span class="w"> </span>-n<span class="w"> </span>cruisekube-system<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span>--type<span class="w"> </span>merge<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;{\&quot;data\&quot;:{\&quot;admin-password\&quot;:\&quot;</span><span class="nv">$ENC</span><span class="s2">\&quot;}}&quot;</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">NEW_PASSWORD</span><span class="o">=</span><span class="s1">&#39;...&#39;</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nv">ENC</span><span class="o">=</span><span class="k">$(</span><span class="nb">printf</span><span class="w"> </span><span class="s1">&#39;%s&#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$NEW_PASSWORD</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="k">)</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>kubectl<span class="w"> </span>patch<span class="w"> </span>secret<span class="w"> </span>cruisekube-controller-admin-credentials<span class="w"> </span>-n<span class="w"> </span>cruisekube-system<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span>--type<span class="w"> </span>merge<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;{\&quot;data\&quot;:{\&quot;admin-password\&quot;:\&quot;</span><span class="nv">$ENC</span><span class="s2">\&quot;}}&quot;</span>
 </span></code></pre></div>
 <ol>
 <li><strong>Restart</strong> the controller Deployment as above.</li>
