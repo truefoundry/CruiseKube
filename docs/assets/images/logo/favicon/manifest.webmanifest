@@ -20,5 +20,6 @@
   "display": "standalone",
   "dir": "auto",
   "lang": "en-US",
-  "orientation": "any"
+  "orientation": "any",
+  "start_url": "/?homescreen=1"
 }
