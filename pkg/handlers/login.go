@@ -25,6 +25,11 @@ type loginResponse struct {
 // clients should send Authorization: Basic <token> on subsequent requests.
 func HandleLogin(auth config.AuthConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if !auth.Enabled {
+			c.JSON(http.StatusNotFound, gin.H{"error": "authentication is disabled"})
+			return
+		}
+
 		if auth.Username == "" || auth.Password == "" {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "server authentication is not configured"})
 			return

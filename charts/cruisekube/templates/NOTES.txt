@@ -9,7 +9,8 @@ Help us keep CruiseKube thriving in open source: add your team to the Adopters l
 
 ---
 
-{{- if and .Values.cruisekubeController.enabled (not .Values.cruisekubeController.admin.existingSecret) }}
+{{- $adminEnabled := eq (include "cruisekubeController.adminEnabled" . | trim) "true" -}}
+{{- if and .Values.cruisekubeController.enabled $adminEnabled (not .Values.cruisekubeController.admin.existingSecret) }}
 
 Controller HTTP basic auth credentials are stored in Secret {{ include "cruisekubeController.adminSecretName" . }} (created by the pre-install hook when missing).
 
@@ -22,6 +23,13 @@ Read the generated admin password:
   kubectl get secret {{ include "cruisekubeController.adminSecretName" . }} -n {{ .Release.Namespace }} -o jsonpath="{.data['{{ .Values.cruisekubeController.admin.passwordKey }}']}" | base64 -d && echo
 
 If you used helm install --dry-run, these commands apply after a real install once the hook Job has created the Secret.
+
+---
+{{- end }}
+
+{{- if and .Values.cruisekubeController.enabled (not $adminEnabled) }}
+
+HTTP basic authentication is DISABLED. The controller API and dashboard are accessible without credentials. To enable authentication, set cruisekubeController.admin.enabled to true and upgrade the release.
 
 ---
 {{- end }}

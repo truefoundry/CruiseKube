@@ -12,20 +12,28 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-func HandleRoot(c *gin.Context) {
-	c.Data(http.StatusOK, "application/json",
-		[]byte(`{
-			"message": "cruisekube API Server",
-			"endpoints": {
-				"/clusters": "Lists all available clusters",
-				"/clusters/{clusterId}/stats": "Serves stats file for specific cluster",
-				"/clusters/{clusterId}/killswitch": "Deletes MutatingWebhookConfiguration objects and kills pods with resource differences (POST only)",
-				"/clusters/{clusterId}/webhook/mutate": "Mutating admission webhook for pod resource adjustment",
-				"/dev/clusters/{clusterId}/tasks/{taskName}/trigger": "Manually triggers a specific task (POST)",
-				"/health": "Health check endpoint"
-			}
-		}`),
-	)
+type rootResponse struct {
+	Message     string            `json:"message"`
+	AuthEnabled bool              `json:"auth_enabled"`
+	Endpoints   map[string]string `json:"endpoints"`
+}
+
+func HandleRoot(authEnabled bool) gin.HandlerFunc {
+	resp := rootResponse{
+		Message:     "cruisekube API Server",
+		AuthEnabled: authEnabled,
+		Endpoints: map[string]string{
+			"/clusters":                                          "Lists all available clusters",
+			"/clusters/{clusterId}/stats":                        "Serves stats file for specific cluster",
+			"/clusters/{clusterId}/killswitch":                   "Deletes MutatingWebhookConfiguration objects and kills pods with resource differences (POST only)",
+			"/clusters/{clusterId}/webhook/mutate":               "Mutating admission webhook for pod resource adjustment",
+			"/dev/clusters/{clusterId}/tasks/{taskName}/trigger": "Manually triggers a specific task (POST)",
+			"/health": "Health check endpoint",
+		},
+	}
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, resp)
+	}
 }
 
 func HandleHealth(c *gin.Context) {
