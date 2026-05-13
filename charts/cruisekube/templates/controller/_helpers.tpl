@@ -100,11 +100,26 @@ install-id
 {{- end }}
 
 {{/*
+Whether HTTP basic auth is enabled. Defaults to true when the key is absent.
+Uses hasKey to correctly handle explicit false (Sprig default treats false as empty).
+*/}}
+{{- define "cruisekubeController.adminEnabled" -}}
+{{- $admin := .Values.cruisekubeController.admin | default dict -}}
+{{- if hasKey $admin "enabled" -}}
+{{- ternary "true" "false" $admin.enabled -}}
+{{- else -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/*
 Whether the bootstrap hook Job should run (admin and/or runtime-data Secret lifecycle).
 */}}
 {{- define "cruisekubeController.bootstrapSecretsJobEnabled" -}}
 {{- $ut := .Values.cruisekubeController.usageTelemetry | default dict -}}
-{{- if and .Values.cruisekubeController.enabled (or (not .Values.cruisekubeController.admin.existingSecret) ($ut.enabled | default false)) -}}true{{- end -}}
+{{- $adminEnabled := eq (include "cruisekubeController.adminEnabled" . | trim) "true" -}}
+{{- $manageAdmin := and $adminEnabled (not .Values.cruisekubeController.admin.existingSecret) -}}
+{{- if and .Values.cruisekubeController.enabled (or $manageAdmin ($ut.enabled | default false)) -}}true{{- end -}}
 {{- end }}
 {{/*
 ServiceMonitor labels - merges common labels with servicemonitor-specific labels

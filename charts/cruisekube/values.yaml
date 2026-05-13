@@ -18,6 +18,8 @@ cruisekubeController:
   ## @param cruisekubeController.enabled Enable CruiseKube Controller deployment
   enabled: true
   admin:
+    ## @param cruisekubeController.admin.enabled Enable HTTP basic authentication for the controller API and dashboard. When false, the API is unauthenticated, the login page is hidden, and the bootstrap-secrets hook skips admin credential creation. Default: true.
+    enabled: true
     ## @param cruisekubeController.admin.existingSecret Name of an existing Secret for HTTP basic auth (username + password). If empty, the chart creates a Secret via a Helm hook Job on install/upgrade (credentials are preserved across upgrades once the Secret exists).
     existingSecret: ""
     ## @param cruisekubeController.admin.userKey Key in the secret for the admin username.
@@ -60,7 +62,7 @@ cruisekubeController:
     ## @param cruisekubeController.image.imagePullPolicy CruiseKube Controller image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeController.image.tag CruiseKube Controller image tag (immutable tags are recommended)
-    tag: "08ee8c6aefba52061d3f7f107699731aaefdc692"
+    tag: "afa26f97e6e4facd6a4281e8c9a045940f655bb3"
   ## @param cruisekubeController.imagePullSecrets [array] CruiseKube Controller image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeController.nameOverride String to partially override cruisekube.fullname
@@ -175,7 +177,7 @@ cruisekubeWebhook:
     ## @param cruisekubeWebhook.image.imagePullPolicy CruiseKube Webhook image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeWebhook.image.tag CruiseKube Webhook image tag (immutable tags are recommended)
-    tag: "08ee8c6aefba52061d3f7f107699731aaefdc692"
+    tag: "afa26f97e6e4facd6a4281e8c9a045940f655bb3"
   ## @param cruisekubeWebhook.imagePullSecrets [array] CruiseKube Webhook image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeWebhook.nameOverride String to partially override cruisekube.fullname
@@ -316,7 +318,7 @@ cruisekubeFrontend:
     ## @param cruisekubeFrontend.image.imagePullPolicy CruiseKube Frontend image pull policy
     imagePullPolicy: IfNotPresent
     ## @param cruisekubeFrontend.image.tag CruiseKube Frontend image tag (immutable tags are recommended)
-    tag: "08ee8c6aefba52061d3f7f107699731aaefdc692"
+    tag: "afa26f97e6e4facd6a4281e8c9a045940f655bb3"
   ## @param cruisekubeFrontend.imagePullSecrets [array] CruiseKube Frontend image pull secrets
   imagePullSecrets: []
   ## @param cruisekubeFrontend.nameOverride String to partially override cruisekube.fullname

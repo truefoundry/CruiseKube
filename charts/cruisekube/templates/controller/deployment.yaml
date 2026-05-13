@@ -78,6 +78,10 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- $adminEnabled := eq (include "cruisekubeController.adminEnabled" . | trim) "true" }}
+            - name: CRUISEKUBE_SERVER_AUTH_ENABLED
+              value: {{ $adminEnabled | quote }}
+            {{- if $adminEnabled }}
             - name: CRUISEKUBE_SERVER_AUTH_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -88,6 +92,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "cruisekubeController.adminSecretName" . }}
                   key: {{ .Values.cruisekubeController.admin.passwordKey }}
+            {{- end }}
             {{- $ut := .Values.cruisekubeController.usageTelemetry | default dict }}
             - name: CRUISEKUBE_USAGETELEMETRY_ENABLED
               value: {{ $ut.enabled | default false | quote }}
