@@ -47,7 +47,7 @@ CruiseKube is not a replacement for **Horizontal Pod Autoscaler** (replica scali
 
 **Outcome:** Optimization becomes a policy conversation, not roulette.
 
-![Change criticality of workload](/assets/images/critical_change.gif)
+![Change criticality of workload](/assets/images/screenshots/critical_change.gif)
 
 
 

@@ -14,6 +14,8 @@ keywords:
 
 The CruiseKube dashboard provides a web interface for monitoring and managing your resource optimization settings.
 
+**Hosted demo:** Explore a static build of the UI at [truefoundry.github.io/cruiseKube-frontend](https://truefoundry.github.io/cruiseKube-frontend/) before you install.
+
 ## Accessing the Dashboard
 
 The dashboard is exposed as a Kubernetes Service and can be accessed in several ways:
