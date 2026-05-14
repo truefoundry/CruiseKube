@@ -11,6 +11,7 @@ func TestBuildBatchPodInfoExpressionContainsPhaseFilter(t *testing.T) {
 	required := []string{
 		`kube_pod_status_phase`,
 		`phase="Running"`,
+		`job="kube-state-metrics"`,
 		`> 0`,
 		`max by (namespace, pod)`,
 		`on (namespace, pod)`,

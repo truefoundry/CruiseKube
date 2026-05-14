@@ -50,6 +50,11 @@ func TestAggregatePodCurrentsForWorkloadWithoutRowsReturnsZeroValues(t *testing.
 	}
 }
 
+// TestFillWorkloadDetailDollarsScalesWithPodsCount validates that dollar savings scale
+// proportionally with PodsCount. This is added alongside the failed-pods-savings fix
+// (which filters non-Running pods from the replica count) to confirm that when the
+// PodsCount changes, the savings calculation in fillWorkloadDetailDollars reflects it
+// correctly — i.e. the fix has end-to-end impact on dollar values.
 func TestFillWorkloadDetailDollarsScalesWithPodsCount(t *testing.T) {
 	pricing := workloadPricing{CPUPerCorePerHour: 0.05, MemPerGBPerHour: 0.01}
 	agg := workloadRecAgg{TotalCPU: 0, TotalMem: 0}

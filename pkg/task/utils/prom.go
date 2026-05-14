@@ -68,6 +68,9 @@ func buildBatchCPUUsageExpression(namespace string, psiAdjusted bool) string {
 	return fmt.Sprintf(template, namespace, RateIntervalMinutes, psiAdjustedQuery)
 }
 
+// buildBatchPodInfoExpression returns a PromQL expression for pod info filtered to Running pods.
+// TODO: This duplicates PrometheusProvider.buildBatchPodInfoExpression in pkg/adapters/metricsprovider/prometheus/promql.go.
+// Consider extracting into a shared package to avoid divergence.
 func buildBatchPodInfoExpression(namespace string) string {
 	template := `max by (namespace, pod, container, node, created_by_kind, created_by_name) (
 		kube_pod_info{
