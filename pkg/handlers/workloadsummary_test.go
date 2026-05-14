@@ -49,3 +49,23 @@ func TestAggregatePodCurrentsForWorkloadWithoutRowsReturnsZeroValues(t *testing.
 		t.Fatalf("expected zero current requests, got cpu=%v mem=%v", current.CurrentCPURequest, current.CurrentMemoryRequest)
 	}
 }
+
+func TestFillWorkloadDetailDollarsScalesWithPodsCount(t *testing.T) {
+	pricing := workloadPricing{CPUPerCorePerHour: 0.05, MemPerGBPerHour: 0.01}
+	agg := workloadRecAgg{TotalCPU: 0, TotalMem: 0}
+
+	dA := &types.WorkloadDetail{PodsCount: 2, CPU: types.WorkloadCPU{Current: 1.0}, Memory: types.WorkloadMemory{Current: 512}}
+	dB := &types.WorkloadDetail{PodsCount: 5, CPU: types.WorkloadCPU{Current: 1.0}, Memory: types.WorkloadMemory{Current: 512}}
+
+	fillWorkloadDetailDollars(dA, agg, pricing)
+	fillWorkloadDetailDollars(dB, agg, pricing)
+
+	if dA.DollarSavingsPerMonth <= 0 {
+		t.Fatalf("expected positive savings for dA, got %v", dA.DollarSavingsPerMonth)
+	}
+	ratio := dB.DollarSavingsPerMonth / dA.DollarSavingsPerMonth
+	expectedRatio := float64(5) / float64(2)
+	if math.Abs(ratio-expectedRatio) > 0.001 {
+		t.Fatalf("expected savings ratio of %.1f, got %.4f (dA=%.4f, dB=%.4f)", expectedRatio, ratio, dA.DollarSavingsPerMonth, dB.DollarSavingsPerMonth)
+	}
+}

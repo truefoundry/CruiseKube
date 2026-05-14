@@ -76,8 +76,16 @@ func buildBatchPodInfoExpression(namespace string) string {
 			created_by_kind=~".+",
 			created_by_name=~".+"
 		}
+		* on (namespace, pod) group_left ()
+		max by (namespace, pod) (
+			kube_pod_status_phase{
+				job="kube-state-metrics",
+				namespace="%s",
+				phase="Running"
+			} > 0
+		)
 	)`
-	return fmt.Sprintf(template, namespace)
+	return fmt.Sprintf(template, namespace, namespace)
 }
 
 func BuildBatchMemoryUsageExpression(namespace string) string {
