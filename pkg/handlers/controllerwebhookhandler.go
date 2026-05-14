@@ -375,6 +375,19 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 
 		recommendedMemoryLimitBytes := int64(math.Max(recommendedMemoryLimit, 512) * utils.BytesToMBDivisor)
 
+		// Ensure memory limit is never below memory request.
+		// Kubernetes validates request <= limit for the same resource.
+		recommendedMemoryBytes := int64(recommendedMemory * utils.BytesToMBDivisor)
+		clamped := clampMemoryLimit(recommendedMemoryLimitBytes, recommendedMemoryBytes)
+		if clamped != recommendedMemoryLimitBytes {
+			logging.Warnf(ctx, "Container %s - clamped memory limit from %dMB to %dMB to satisfy request",
+				container.Name,
+				recommendedMemoryLimitBytes/utils.BytesToMBDivisor,
+				clamped/utils.BytesToMBDivisor,
+			)
+			recommendedMemoryLimitBytes = clamped
+		}
+
 		logging.Infof(ctx, "Container %s - Recommended CPU: %s", container.Name, cpuCoresToMillicores(recommendedCPU))
 		logging.Infof(ctx, "Container %s - Recommended Memory: %s", container.Name, memoryBytesToMB(int64(recommendedMemory*utils.BytesToMBDivisor)))
 
@@ -408,7 +421,6 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 
 		// Memory
 		currentMemoryBytes := currentMemoryRequest.Value()
-		recommendedMemoryBytes := int64(recommendedMemory * utils.BytesToMBDivisor)
 		thresholdBytes := float64(16 * utils.BytesToMBDivisor)
 
 		if !cfg.RecommendationSettings.DisableMemoryApplication && currentMemoryBytes > 0 && math.Abs(float64(recommendedMemoryBytes-currentMemoryBytes)) > thresholdBytes {
@@ -469,6 +481,15 @@ func memoryBytesToMB(memoryBytes int64) string {
 
 func cpuCoresToMillicores(cpuCores float64) string {
 	return fmt.Sprintf("%dm", int64(cpuCores*1000))
+}
+
+// clampMemoryLimit ensures the memory limit is never below the memory request.
+// Kubernetes rejects pods where requests.memory > limits.memory.
+func clampMemoryLimit(limitBytes, requestBytes int64) int64 {
+	if limitBytes < requestBytes {
+		return requestBytes
+	}
+	return limitBytes
 }
 
 func buildDisruptionAnnotationPatches(ctx context.Context, pod *corev1.Pod, stat *types.WorkloadStat, overrides *types.Overrides) []map[string]any {

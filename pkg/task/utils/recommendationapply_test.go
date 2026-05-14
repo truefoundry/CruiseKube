@@ -42,37 +42,98 @@ func TestShouldGenerateRecommendationRejectsIncompleteStats(t *testing.T) {
 	}
 }
 
-func TestComputeRecommendedResourceValuesKeepsMemoryLimitAtLeastRequest(t *testing.T) {
-	rec := PodContainerRecommendation{
-		ContainerName: "main",
-		CPU:           1,
-		Memory:        1014,
-		PodInfo: PodInfo{
-			Stats: &WorkloadStat{
-				ContainerStats: []ContainerStats{
-					{
-						ContainerName: "main",
-						MemoryStats: &MemoryStats{
-							OOMMemory: 0,
-						},
-						Memory7Day: &Memory7DayStats{
-							Max: 255,
-						},
-					},
-				},
-			},
+func TestComputeRecommendedResourceValuesKeepsMemoryLimitAtLeastTwiceRequest(t *testing.T) {
+	tests := []struct {
+		name           string
+		recMemory      float64
+		memMax7Day     float64
+		oomMemory      float64
+		wantRequest    float64
+		wantExactLimit float64 // if non-zero, limit must equal this
+	}{
+		{
+			// Original bug scenario: rec.Memory=1014 (from strategy with distributed
+			// headroom), but 7-day max is only 255. Without the 2x-request floor,
+			// limit would be max(1014, 510) = 1014 — barely above request.
+			// With the fix: limit = max(1014*2, 510) = 2028.
+			name:           "high_request_low_7day_max",
+			recMemory:      1014,
+			memMax7Day:     255,
+			oomMemory:      0,
+			wantRequest:    1014,
+			wantExactLimit: 2028,
+		},
+		{
+			// When 7-day max is large, the stats-derived limit dominates.
+			// limit = max(500*2, 800*2) = max(1000, 1600) = 1600.
+			name:           "large_7day_max_dominates",
+			recMemory:      500,
+			memMax7Day:     800,
+			oomMemory:      0,
+			wantRequest:    500,
+			wantExactLimit: 1600,
+		},
+		{
+			// OOM memory drives the limit when it's the largest signal.
+			// limit = max(400*2, max(300, 600)*2) = max(800, 1200) = 1200.
+			name:           "oom_drives_limit",
+			recMemory:      400,
+			memMax7Day:     300,
+			oomMemory:      600,
+			wantRequest:    400,
+			wantExactLimit: 1200,
+		},
+		{
+			// Small request: 2x-request floor ensures reasonable headroom.
+			// limit = max(50*2, max(30, 0)*2) = max(100, 60) = 100.
+			// But EnforceMinimumMemory(60) = 60 (>16), so limit = max(100, 60) = 100.
+			name:           "small_request_2x_floor",
+			recMemory:      50,
+			memMax7Day:     30,
+			oomMemory:      0,
+			wantRequest:    50,
+			wantExactLimit: 100,
 		},
 	}
 
-	_, memoryRequest, _, memoryLimit := ComputeRecommendedResourceValues(context.Background(), rec, 4)
-	if memoryLimit < memoryRequest {
-		t.Fatalf("expected memory limit >= memory request, got limit=%v request=%v", memoryLimit, memoryRequest)
-	}
-	if memoryRequest != 1014 {
-		t.Fatalf("expected memory request to be 1014MB, got %v", memoryRequest)
-	}
-	if memoryLimit != 1014 {
-		t.Fatalf("expected memory limit to be clamped to request (1014MB), got %v", memoryLimit)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			rec := PodContainerRecommendation{
+				ContainerName: "main",
+				CPU:           1,
+				Memory:        tc.recMemory,
+				PodInfo: PodInfo{
+					Stats: &WorkloadStat{
+						ContainerStats: []ContainerStats{
+							{
+								ContainerName: "main",
+								MemoryStats: &MemoryStats{
+									OOMMemory: tc.oomMemory,
+								},
+								Memory7Day: &Memory7DayStats{
+									Max: tc.memMax7Day,
+								},
+							},
+						},
+					},
+				},
+			}
+
+			_, memoryRequest, _, memoryLimit := ComputeRecommendedResourceValues(context.Background(), rec, 4)
+
+			if memoryRequest != tc.wantRequest {
+				t.Fatalf("memory request: got %v, want %v", memoryRequest, tc.wantRequest)
+			}
+			if memoryLimit < memoryRequest {
+				t.Fatalf("memory limit (%v) < memory request (%v)", memoryLimit, memoryRequest)
+			}
+			if memoryLimit < memoryRequest*2 {
+				t.Fatalf("memory limit (%v) < 2x memory request (%v)", memoryLimit, memoryRequest*2)
+			}
+			if tc.wantExactLimit > 0 && memoryLimit != tc.wantExactLimit {
+				t.Fatalf("memory limit: got %v, want %v", memoryLimit, tc.wantExactLimit)
+			}
+		})
 	}
 }
 

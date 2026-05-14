@@ -503,6 +503,16 @@ func (a *ApplyRecommendationTask) applyMemoryRecommendation(
 		recommendedMemoryLimit = 0
 	}
 
+	// Ensure memory limit is never below memory request.
+	// Kubernetes validates request <= limit for the same resource.
+	if recommendedMemoryLimit != 0 && recommendedMemoryLimit < recommendedMemoryRequest {
+		logging.Warnf(ctx, "pod %s/%s - clamped memory limit from %.0fMB to %.0fMB to satisfy request",
+			rec.PodInfo.Namespace, rec.PodInfo.Name,
+			recommendedMemoryLimit, recommendedMemoryRequest,
+		)
+		recommendedMemoryLimit = recommendedMemoryRequest
+	}
+
 	if math.Abs(recommendedMemoryRequest-currentMemoryRequest) > 0 {
 		applied, errStr := utils.UpdatePodMemoryResources(
 			ctx,

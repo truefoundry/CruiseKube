@@ -248,6 +248,148 @@ func assertHasPatch(t *testing.T, patches []map[string]any, op, path string, val
 	t.Fatalf("missing patch %s %s", op, path)
 }
 
+// TestClampMemoryLimit directly exercises the memory-limit guard that ensures
+// limit >= request. The guard in adjustResources cannot be triggered through
+// normal inputs (since the formula produces limit >= 2*request), so this test
+// validates the clamping logic in isolation.
+func TestClampMemoryLimit(t *testing.T) {
+	tests := []struct {
+		name         string
+		limitBytes   int64
+		requestBytes int64
+		wantBytes    int64
+	}{
+		{
+			name:         "limit already above request",
+			limitBytes:   1024_000_000,
+			requestBytes: 512_000_000,
+			wantBytes:    1024_000_000,
+		},
+		{
+			name:         "limit equals request",
+			limitBytes:   512_000_000,
+			requestBytes: 512_000_000,
+			wantBytes:    512_000_000,
+		},
+		{
+			name:         "limit below request is clamped",
+			limitBytes:   256_000_000,
+			requestBytes: 512_000_000,
+			wantBytes:    512_000_000,
+		},
+		{
+			name:         "zero limit clamped to request",
+			limitBytes:   0,
+			requestBytes: 100_000_000,
+			wantBytes:    100_000_000,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := clampMemoryLimit(tc.limitBytes, tc.requestBytes)
+			if got != tc.wantBytes {
+				t.Fatalf("clampMemoryLimit(%d, %d) = %d, want %d", tc.limitBytes, tc.requestBytes, got, tc.wantBytes)
+			}
+		})
+	}
+}
+
+// TestAdjustResourcesMemoryLimitNeverBelowRequest is an integration-level
+// invariant check that verifies the webhook never emits memory patches where
+// request > limit, regardless of the stat inputs. The current formula
+// (limit = 2 * request at minimum) makes this structurally safe today;
+// see TestClampMemoryLimit for direct coverage of the guard itself.
+func TestAdjustResourcesMemoryLimitNeverBelowRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		stat *types.WorkloadStat
+	}{
+		{
+			name: "OOM memory higher than 7-day max",
+			stat: &types.WorkloadStat{
+				ContainerStats: []types.ContainerStats{
+					{
+						ContainerName: "app",
+						CPUStats:      &types.CPUStats{P75: 0.1},
+						MemoryStats:   &types.MemoryStats{P75: 100, OOMMemory: 507},
+						SimplePredictionsCPU:    &types.SimplePrediction{MaxValue: 0.1},
+						SimplePredictionsMemory: &types.SimplePrediction{MaxValue: 100},
+						Memory7Day:              &types.Memory7DayStats{Max: 255},
+					},
+				},
+			},
+		},
+		{
+			name: "high predictions with low 7-day max",
+			stat: &types.WorkloadStat{
+				ContainerStats: []types.ContainerStats{
+					{
+						ContainerName: "app",
+						CPUStats:      &types.CPUStats{P75: 0.2},
+						MemoryStats:   &types.MemoryStats{P75: 800},
+						SimplePredictionsCPU:    &types.SimplePrediction{MaxValue: 0.2},
+						SimplePredictionsMemory: &types.SimplePrediction{MaxValue: 900},
+						Memory7Day:              &types.Memory7DayStats{Max: 100},
+					},
+				},
+			},
+		},
+		{
+			name: "no 7-day stats",
+			stat: &types.WorkloadStat{
+				ContainerStats: []types.ContainerStats{
+					{
+						ContainerName: "app",
+						CPUStats:      &types.CPUStats{P75: 0.1},
+						MemoryStats:   &types.MemoryStats{P75: 600, OOMMemory: 700},
+						SimplePredictionsCPU:    &types.SimplePrediction{MaxValue: 0.1},
+						SimplePredictionsMemory: &types.SimplePrediction{MaxValue: 500},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			deps := HandlerDependencies{
+				Storage: testStorage{
+					statFn: func(clusterID, workloadID string) (*types.WorkloadStat, error) {
+						return tc.stat, nil
+					},
+				},
+				Config: testHandlerConfig(false),
+			}
+
+			patches := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, nil)
+
+			var memRequest, memLimit string
+			for _, p := range patches {
+				path, _ := p["path"].(string)
+				if path == "/spec/containers/0/resources/requests/memory" {
+					memRequest, _ = p["value"].(string)
+				}
+				if path == "/spec/containers/0/resources/limits/memory" {
+					memLimit, _ = p["value"].(string)
+				}
+			}
+
+			if memRequest == "" || memLimit == "" {
+				t.Fatalf("expected both memory request and limit patches, got request=%q limit=%q", memRequest, memLimit)
+			}
+
+			var reqMB, limMB int64
+			fmt.Sscanf(memRequest, "%dM", &reqMB)
+			fmt.Sscanf(memLimit, "%dM", &limMB)
+
+			if reqMB > limMB {
+				t.Fatalf("memory request (%s = %dMB) exceeds memory limit (%s = %dMB)", memRequest, reqMB, memLimit, limMB)
+			}
+		})
+	}
+}
+
 func assertNoPatchAtPath(t *testing.T, patches []map[string]any, path string) {
 	t.Helper()
 
