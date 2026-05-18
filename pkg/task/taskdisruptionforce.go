@@ -14,9 +14,11 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/types"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 )
 
 type ReconcileState int
@@ -122,7 +124,11 @@ func (t *DisruptionForceTask) Run(ctx context.Context) error {
 
 		workloadObj, err := utils.GetWorkloadObject(ctx, t.kubeClient, stat.Kind, stat.Namespace, stat.Name)
 		if err != nil {
-			logging.Errorf(ctx, "Failed to get workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+			if apierrors.IsNotFound(err) {
+				logging.Infof(ctx, "Workload %s/%s/%s not found, skipping: %v", stat.Kind, stat.Namespace, stat.Name, err)
+			} else {
+				logging.Errorf(ctx, "Failed to get workload %s/%s/%s: %v", stat.Kind, stat.Namespace, stat.Name, err)
+			}
 			continue
 		}
 
@@ -313,7 +319,9 @@ func (t *DisruptionForceTask) updateDisruptionWindowMetadata(ctx context.Context
 	}
 }
 
-func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.PodDisruptionBudget, state ReconcileState) (bool, error) {
+// applyPDBReconcileState mutates pdb toward the desired disruption-window state. It returns whether the API object
+// should be written with Update.
+func (t *DisruptionForceTask) applyPDBReconcileState(pdb *policyv1.PodDisruptionBudget, state ReconcileState) bool {
 	if pdb.Annotations == nil {
 		pdb.Annotations = make(map[string]string)
 	}
@@ -363,20 +371,41 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 		}
 	}
 
-	if modified {
-		_, err := t.kubeClient.PolicyV1().PodDisruptionBudgets(pdb.Namespace).Update(ctx, pdb, metav1.UpdateOptions{})
+	return modified
+}
+
+func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.PodDisruptionBudget, state ReconcileState) (bool, error) {
+	ns, name := pdb.Namespace, pdb.Name
+	var updated bool
+
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		cur, err := t.kubeClient.PolicyV1().PodDisruptionBudgets(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			return false, fmt.Errorf("failed to update PDB: %w", err)
+			return fmt.Errorf("get PDB %s/%s: %w", ns, name, err)
 		}
-		logging.Infof(ctx, "Updated PDB %s/%s", pdb.Namespace, pdb.Name)
+		if !t.applyPDBReconcileState(cur, state) {
+			return nil
+		}
+		if _, err := t.kubeClient.PolicyV1().PodDisruptionBudgets(ns).Update(ctx, cur, metav1.UpdateOptions{}); err != nil {
+			return fmt.Errorf("update PDB %s/%s: %w", ns, name, err)
+		}
+		updated = true
+		return nil
+	})
+	if err != nil {
+		return false, fmt.Errorf("reconcile PDB %s/%s: %w", ns, name, err)
+	}
+
+	if updated {
+		logging.Infof(ctx, "Updated PDB %s/%s", ns, name)
 		if audit.Recorder != nil {
-			target := map[string]interface{}{"kind": pdb.Kind, "namespace": pdb.Namespace, "name": pdb.Name}
+			target := map[string]interface{}{"kind": "PodDisruptionBudget", "namespace": ns, "name": name}
 			if state == StateIn {
 				audit.Recorder.Record(ctx, t.config.ClusterID, types.AuditEvent{
 					Type:     types.EventTypeNormal,
 					Category: types.EventCategoryPDBRelaxed,
 					Payload: types.AuditPayload{
-						Message: fmt.Sprintf("PDB %s/%s relaxed for disruption window", pdb.Namespace, pdb.Name),
+						Message: fmt.Sprintf("PDB %s/%s relaxed for disruption window", ns, name),
 						Target:  target,
 						Details: map[string]interface{}{},
 					},
@@ -386,7 +415,7 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 					Type:     types.EventTypeNormal,
 					Category: types.EventCategoryPDBRestored,
 					Payload: types.AuditPayload{
-						Message: fmt.Sprintf("PDB %s/%s restored after disruption window", pdb.Namespace, pdb.Name),
+						Message: fmt.Sprintf("PDB %s/%s restored after disruption window", ns, name),
 						Target:  target,
 						Details: map[string]interface{}{},
 					},
@@ -395,5 +424,5 @@ func (t *DisruptionForceTask) reconcilePDB(ctx context.Context, pdb *policyv1.Po
 		}
 	}
 
-	return modified, nil
+	return updated, nil
 }
