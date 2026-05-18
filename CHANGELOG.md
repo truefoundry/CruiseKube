@@ -9,6 +9,9 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.3.1 (18-05-2026)
+
+
 ## v0.3.0 (11-05-2026)
 
 Same release as v0.3.0-rc.1
