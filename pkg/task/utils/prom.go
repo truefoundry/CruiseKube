@@ -68,7 +68,7 @@ func buildBatchCPUUsageExpression(namespace string, psiAdjusted bool) string {
 	return fmt.Sprintf(template, namespace, RateIntervalMinutes, psiAdjustedQuery)
 }
 
-// buildBatchPodInfoExpression returns a PromQL expression for pod info filtered to Running pods.
+// buildBatchPodInfoExpression returns a PromQL expression for pod info filtered to Ready pods.
 // TODO: This duplicates PrometheusProvider.buildBatchPodInfoExpression in pkg/adapters/metricsprovider/prometheus/promql.go.
 // Consider extracting into a shared package to avoid divergence.
 func buildBatchPodInfoExpression(namespace string) string {
@@ -81,10 +81,10 @@ func buildBatchPodInfoExpression(namespace string) string {
 		}
 		* on (namespace, pod) group_left ()
 		max by (namespace, pod) (
-			kube_pod_status_phase{
+			kube_pod_status_ready{
 				job="kube-state-metrics",
 				namespace="%s",
-				phase="Running"
+				condition="true"
 			} > 0
 		)
 	)`

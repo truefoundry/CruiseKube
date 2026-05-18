@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-func TestBuildBatchPodInfoExpressionContainsPhaseFilter(t *testing.T) {
+func TestBuildBatchPodInfoExpressionContainsReadyFilter(t *testing.T) {
 	expr := buildBatchPodInfoExpression("test-ns")
 
 	required := []string{
-		`kube_pod_status_phase`,
-		`phase="Running"`,
+		`kube_pod_status_ready`,
+		`condition="true"`,
 		`job="kube-state-metrics"`,
 		`> 0`,
 		`max by (namespace, pod)`,
