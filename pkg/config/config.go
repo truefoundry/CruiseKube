@@ -78,6 +78,7 @@ type ServerConfig struct {
 }
 
 type AuthConfig struct {
+	Enabled  bool   `yaml:"enabled" mapstructure:"enabled"`
 	Username string `yaml:"username" mapstructure:"username"`
 	Password string `yaml:"password" mapstructure:"password"`
 }

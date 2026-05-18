@@ -5,12 +5,32 @@ import (
 	"net/http"
 
 	"github.com/truefoundry/cruisekube/pkg/cluster"
+	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
+
+// AuthBasic returns a gin.HandlerFunc that enforces HTTP Basic Auth when auth is enabled.
+// When auth.Enabled is false, it passes all requests through without authentication.
+func AuthBasic(auth config.AuthConfig) gin.HandlerFunc {
+	if !auth.Enabled {
+		return func(c *gin.Context) {
+			c.Next()
+		}
+	}
+	if auth.Username == "" || auth.Password == "" {
+		return func(c *gin.Context) {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "server authentication is enabled but credentials are not configured"})
+			c.Abort()
+		}
+	}
+	return gin.BasicAuth(gin.Accounts{
+		auth.Username: auth.Password,
+	})
+}
 
 func AuthWebhook() gin.HandlerFunc {
 	return func(c *gin.Context) {

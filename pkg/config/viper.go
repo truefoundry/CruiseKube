@@ -34,6 +34,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("controller.tasks.cleanup.enabled", false)
 	v.SetDefault("controller.tasks.cleanup.schedule", "24h")
 	v.SetDefault("controller.tasks.cleanup.metadata.retentionDays", 7)
+	v.SetDefault("server.auth.enabled", true)
 	v.SetDefault("server.port", "8080")
 	v.SetDefault("server.enableDevAPIs", false)
 	v.SetDefault("webhook.port", "8443")
