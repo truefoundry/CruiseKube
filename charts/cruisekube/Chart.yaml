@@ -4,7 +4,7 @@ description: CruiseKube is an intelligent Kubernetes resource optimization contr
 type: application
 version: 0.3.0
 appVersion: "0.3.0"
-icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/variants/cruisekube-icon-color.png
+icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/favicon/android-chrome-192x192.png
 # kubeVersion: ">=1.25.0-0"
 home: https://cruisekube.com
 sources:
