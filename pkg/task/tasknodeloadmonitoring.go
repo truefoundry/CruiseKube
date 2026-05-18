@@ -132,7 +132,7 @@ func (n *NodeLoadMonitoringTask) Run(ctx context.Context) error {
 						Category: types.EventCategoryNodeOverloadTaintRemoved,
 						Payload: types.AuditPayload{
 							Message: fmt.Sprintf("Overload taint removed from node %s", node.Name),
-							Target:  map[string]interface{}{"kind": node.Kind, "name": node.Name},
+							Target:  map[string]interface{}{"kind": "Node", "name": node.Name},
 							Details: details,
 						},
 					})
