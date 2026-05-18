@@ -481,6 +481,9 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 	return cache, workloadKeyVsWorkloadMetrics, nil
 }
 
+// buildBatchPodInfoExpression returns a PromQL expression for pod info filtered to Running pods.
+// TODO: This duplicates buildBatchPodInfoExpression in pkg/task/utils/prom.go.
+// Consider extracting into a shared package to avoid divergence.
 func (p *PrometheusProvider) buildBatchPodInfoExpression(namespace string) string {
 	template := `max by (namespace, pod, container, node, created_by_kind, created_by_name) (
 		kube_pod_info{
@@ -489,8 +492,16 @@ func (p *PrometheusProvider) buildBatchPodInfoExpression(namespace string) strin
 			created_by_kind=~".+",
 			created_by_name=~".+"
 		}
+		* on (namespace, pod) group_left ()
+		max by (namespace, pod) (
+			kube_pod_status_phase{
+				job="kube-state-metrics",
+				namespace="%s",
+				phase="Running"
+			} > 0
+		)
 	)`
-	return fmt.Sprintf(template, namespace)
+	return fmt.Sprintf(template, namespace, namespace)
 }
 
 func (p *PrometheusProvider) buildBatchCPUUsageExpression(namespace string, psiAdjusted bool) string {
