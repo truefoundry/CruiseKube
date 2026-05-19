@@ -10,6 +10,19 @@ import (
 
 type sentryReporter struct{}
 
+// buildFingerprint constructs a Sentry fingerprint that groups issues by error
+// type (msg) and source (task or api). Events with the same fingerprint are
+// collapsed into a single Sentry issue.
+func buildFingerprint(msg string, tags map[string]string) []string {
+	fingerprint := []string{msg}
+	if task := tags["task"]; task != "" {
+		fingerprint = append(fingerprint, "task:"+task)
+	} else if api := tags["api"]; api != "" {
+		fingerprint = append(fingerprint, "api:"+api)
+	}
+	return fingerprint
+}
+
 func (s *sentryReporter) CaptureErrors(errs []error, msg string, tags map[string]string) {
 	if len(errs) == 0 {
 		return
@@ -30,6 +43,7 @@ func (s *sentryReporter) CaptureErrors(errs []error, msg string, tags map[string
 		event := sentry.NewEvent()
 		event.Level = sentry.LevelError
 		event.Message = msg
+		event.Fingerprint = buildFingerprint(msg, tags)
 
 		event.Exception = []sentry.Exception{
 			{
@@ -47,7 +61,11 @@ func (s *sentryReporter) CaptureMessage(msg string, tags map[string]string) {
 		for k, v := range tags {
 			scope.SetTag(k, v)
 		}
-		sentry.CaptureMessage(msg)
+		event := sentry.NewEvent()
+		event.Level = sentry.LevelInfo
+		event.Message = msg
+		event.Fingerprint = buildFingerprint(msg, tags)
+		sentry.CaptureEvent(event)
 	})
 }
 
