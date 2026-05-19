@@ -100,7 +100,13 @@ func Debugf(ctx context.Context, format string, args ...any) {
 }
 
 func Fatalf(ctx context.Context, format string, args ...any) {
-	Errorf(ctx, format, args...)
+	attrs := getContextualAttrs(ctx)
+	msg := fmt.Sprintf(format, args...)
+	defaultLogger.LogAttrs(ctx, slog.LevelError, msg, attrs...)
+	if errorReporter != nil {
+		fingerprint := buildFingerprint(format, 1)
+		CaptureToReporter(ctx, fingerprint, msg, args...)
+	}
 	FlushReporter(2 * time.Second)
 	os.Exit(1)
 }

@@ -17,9 +17,9 @@ type capturingTransport struct {
 	events []*sentry.Event
 }
 
-func (t *capturingTransport) Configure(options sentry.ClientOptions)       {}
-func (t *capturingTransport) Close()                                       {}
-func (t *capturingTransport) FlushWithContext(ctx context.Context) bool     { return true }
+func (t *capturingTransport) Configure(options sentry.ClientOptions)    {}
+func (t *capturingTransport) Close()                                    {}
+func (t *capturingTransport) FlushWithContext(ctx context.Context) bool { return true }
 func (t *capturingTransport) SendEvent(event *sentry.Event) {
 	t.mu.Lock()
 	defer t.mu.Unlock()

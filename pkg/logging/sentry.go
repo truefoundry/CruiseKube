@@ -106,8 +106,8 @@ func buildFingerprint(format string, callerSkip int) []string {
 
 var dynamicPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b`), // UUIDs (case-insensitive, word boundaries)
-	regexp.MustCompile(`\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?\b`),                          // IPv4 addresses with optional port
-	regexp.MustCompile(`\b\d{6,}\b`),                                                                // Numeric IDs (6+ digits)
+	regexp.MustCompile(`\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?\b`),                        // IPv4 addresses with optional port
+	regexp.MustCompile(`\b\d{6,}\b`),                                                           // Numeric IDs (6+ digits)
 }
 
 func normalizeMessage(msg string) string {
