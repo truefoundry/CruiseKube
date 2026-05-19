@@ -30,6 +30,9 @@ func (s *sentryReporter) CaptureErrors(errs []error, msg string, tags map[string
 		event := sentry.NewEvent()
 		event.Level = sentry.LevelError
 		event.Message = msg
+		// Group by call stack so errors from the same code location are clustered
+		// together even when the message contains dynamic values (workload names, etc.).
+		event.Fingerprint = []string{"{{ stack }}"}
 
 		event.Exception = []sentry.Exception{
 			{
@@ -47,6 +50,7 @@ func (s *sentryReporter) CaptureMessage(msg string, tags map[string]string) {
 		for k, v := range tags {
 			scope.SetTag(k, v)
 		}
+		scope.SetFingerprint([]string{"{{ stack }}"})
 		sentry.CaptureMessage(msg)
 	})
 }
