@@ -48,7 +48,10 @@ func Error(ctx context.Context, msg string, args ...any) {
 	allAttrs = append(allAttrs, attrs...)
 	allAttrs = append(allAttrs, argsToAttrs(args...)...)
 	defaultLogger.LogAttrs(ctx, slog.LevelError, msg, allAttrs...)
-	CaptureToReporter(ctx, msg, args...)
+	if errorReporter != nil {
+		fingerprint := buildFingerprint(msg, 1)
+		CaptureToReporter(ctx, fingerprint, msg, args...)
+	}
 }
 
 func Warn(ctx context.Context, msg string, args ...any) {
@@ -78,7 +81,10 @@ func Errorf(ctx context.Context, format string, args ...any) {
 	attrs := getContextualAttrs(ctx)
 	msg := fmt.Sprintf(format, args...)
 	defaultLogger.LogAttrs(ctx, slog.LevelError, msg, attrs...)
-	CaptureToReporter(ctx, msg, args...)
+	if errorReporter != nil {
+		fingerprint := buildFingerprint(format, 1)
+		CaptureToReporter(ctx, fingerprint, msg, args...)
+	}
 }
 
 func Warnf(ctx context.Context, format string, args ...any) {
