@@ -85,6 +85,11 @@ func TestNormalizeMessage(t *testing.T) {
 			expected: "Static error message",
 		},
 		{
+			name:     "uppercase UUID",
+			input:    "Failed for UUID 550E8400-E29B-41D4-A716-446655440000",
+			expected: "Failed for UUID <*>",
+		},
+		{
 			name:     "mixed UUID and IP",
 			input:    "Mixed 550e8400-e29b-41d4-a716-446655440000 and 10.0.0.1",
 			expected: "Mixed <*> and <*>",
