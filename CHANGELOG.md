@@ -9,6 +9,15 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.3.1 (18-05-2026)
+
+* feat: make basic authentication optional via admin.enabled flag by @vorflux[bot] in https://github.com/truefoundry/CruiseKube/pull/246
+* Update logo and update frontend. by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/247
+* fix: filter failed pods from savings replica count by @vorflux[bot] in https://github.com/truefoundry/CruiseKube/pull/249
+* fix: normalize day-of-week 7 to 0 for Sunday in disruption window cron parsing by @vorflux[bot] in https://github.com/truefoundry/CruiseKube/pull/250
+* fix sentry issues by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/240
+
+
 ## v0.3.0 (11-05-2026)
 
 Same release as v0.3.0-rc.1
