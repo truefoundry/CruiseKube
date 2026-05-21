@@ -649,8 +649,22 @@
 
 .md-typeset a.ck-btn--light {
   background: #fff;
-  color: var(--ck-ink);
+  color: #0a0a0a;
   border-color: #fff;
+}
+
+:not([data-md-color-scheme="slate"]) .md-typeset a.ck-btn--light:hover {
+  opacity: 1;
+  background: #f4f4f5;
+  color: #0a0a0a;
+  border-color: #f4f4f5;
+}
+
+[data-md-color-scheme="slate"] .md-typeset a.ck-btn--light:hover {
+  opacity: 1;
+  background: #f4f4f5;
+  color: #0a0a0a;
+  border-color: #f4f4f5;
 }
 
 .md-typeset a.ck-btn--ghost {
@@ -1526,6 +1540,19 @@
   border-color: color-mix(in srgb, #fff 55%, transparent);
   background: color-mix(in srgb, #fff 8%, transparent);
   opacity: 1;
+}
+
+.md-typeset .ck-cta__panel a.ck-btn--light {
+  background: #fff;
+  color: #0a0a0a;
+  border-color: #fff;
+}
+
+.md-typeset .ck-cta__panel a.ck-btn--light:hover {
+  opacity: 1;
+  background: #f4f4f5;
+  color: #0a0a0a;
+  border-color: #f4f4f5;
 }
 
 /* -------------------------------------------------------------------------- */
