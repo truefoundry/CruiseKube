@@ -316,19 +316,3 @@ CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL=\
   </nav>
 </div>
 
-<div class="features-section ck-cta">
-  <div class="ck-cta__panel">
-    <div class="ck-band-inset">
-      <div class="ck-cta__inner">
-        <h2 class="ck-cta__title">Cut cluster cost — on your timeline.</h2>
-        <p class="ck-cta__lead">
-          Install when you're ready, or book a short call if you want help with a first pilot. CruiseKube runs entirely inside your cluster — your metrics, your guardrails, your call.
-        </p>
-        <div class="ck-cta__actions">
-          <a href="/install/gs-installation/" class="ck-btn ck-btn--light">Start saving <span aria-hidden="true">→</span></a>
-          <a href="https://calendar.app.google/aJGRuUjSjNd15vqJ9" class="ck-btn ck-btn--ghost" target="_blank" rel="noopener noreferrer">Schedule a call</a>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
