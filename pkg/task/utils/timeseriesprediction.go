@@ -333,5 +333,8 @@ func queryRangeWithDurationMetric(ctx context.Context, promClient v1.API, query 
 	}
 	clusterID, _ := contextutils.GetCluster(ctx)
 	metrics.ObservePrometheusQueryDuration(clusterID, metrics.PrometheusPhaseRangeQuery, queryKind, queryStatus, queryDuration)
-	return val, queryDuration, err
+	if err != nil {
+		return nil, queryDuration, fmt.Errorf("query range for %s: %w", queryKind, err)
+	}
+	return val, queryDuration, nil
 }
