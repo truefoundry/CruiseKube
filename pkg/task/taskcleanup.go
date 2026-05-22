@@ -55,6 +55,10 @@ func (t *CleanupTask) GetName() string {
 	return t.config.Name
 }
 
+func (t *CleanupTask) GetClusterID() string {
+	return t.config.ClusterID
+}
+
 func (t *CleanupTask) GetSchedule() string {
 	return t.config.Schedule
 }

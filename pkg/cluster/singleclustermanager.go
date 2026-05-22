@@ -64,7 +64,7 @@ func (m *SingleClusterManager) ScheduleAllTasks(ctx context.Context) error {
 
 	for taskName, task := range m.registeredTasks {
 		if task.IsEnabled() {
-			if err := m.scheduler.ScheduleTask(ctx, taskName, task.GetSchedule(), task.Run); err != nil {
+			if err := m.scheduler.ScheduleTask(ctx, taskName, task.GetClusterID(), task.GetSchedule(), task.Run); err != nil {
 				return err
 			}
 		}

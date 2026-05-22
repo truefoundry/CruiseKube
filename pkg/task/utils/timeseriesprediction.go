@@ -9,7 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/metrics"
 
 	"github.com/prometheus/common/model"
 
@@ -259,9 +261,7 @@ func PredictSimpleStatsFromTimeSeriesModel(ctx context.Context, namespaces []str
 			}
 
 			logging.Infof(ctx, "Querying prometheus for simple %s predictions with query: %s", resourceType, CompressQueryForLogging(query))
-			queryStart := time.Now()
-			val, _, err := promClient.QueryRange(ctx, query, r)
-			queryDuration := time.Since(queryStart)
+			val, queryDuration, err := queryRangeWithDurationMetric(ctx, promClient, query, r, metrics.PrometheusQueryKindSimpleCPU)
 			if err != nil {
 				logging.Errorf(ctx, "Prometheus range query for simple %s predictions in namespace %s failed in %v", resourceType, namespace, queryDuration)
 				logging.Errorf(ctx, "Error querying prometheus for simple %s predictions: %v", resourceType, err)
@@ -308,9 +308,7 @@ func fetchMemoryMatrix(ctx context.Context, promClient v1.API, namespace string,
 	), MemoryDecimalPlaces)
 
 	logging.Infof(ctx, "Querying prometheus for memory predictions with query: %s", CompressQueryForLogging(memoryQuery))
-	queryStart := time.Now()
-	memoryVal, _, err := promClient.QueryRange(ctx, memoryQuery, r)
-	queryDuration := time.Since(queryStart)
+	memoryVal, queryDuration, err := queryRangeWithDurationMetric(ctx, promClient, memoryQuery, r, metrics.PrometheusQueryKindSimpleMemory)
 	if err != nil {
 		logging.Errorf(ctx, "Prometheus range query for memory predictions in namespace %s failed in %v", namespace, queryDuration)
 		return nil, fmt.Errorf("error querying prometheus for memory predictions: %w", err)
@@ -323,4 +321,17 @@ func fetchMemoryMatrix(ctx context.Context, promClient v1.API, namespace string,
 	}
 
 	return memoryMatrix, nil
+}
+
+func queryRangeWithDurationMetric(ctx context.Context, promClient v1.API, query string, r v1.Range, queryKind string) (model.Value, time.Duration, error) {
+	queryStart := time.Now()
+	val, _, err := promClient.QueryRange(ctx, query, r)
+	queryDuration := time.Since(queryStart)
+	queryStatus := metrics.StatusSuccess
+	if err != nil {
+		queryStatus = metrics.StatusError
+	}
+	clusterID, _ := contextutils.GetCluster(ctx)
+	metrics.ObservePrometheusQueryDuration(clusterID, metrics.PrometheusPhaseRangeQuery, queryKind, queryStatus, queryDuration)
+	return val, queryDuration, err
 }

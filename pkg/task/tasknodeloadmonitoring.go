@@ -57,6 +57,10 @@ func (n *NodeLoadMonitoringTask) GetName() string {
 	return n.config.Name
 }
 
+func (n *NodeLoadMonitoringTask) GetClusterID() string {
+	return n.config.ClusterID
+}
+
 func (n *NodeLoadMonitoringTask) GetSchedule() string {
 	return n.config.Schedule
 }

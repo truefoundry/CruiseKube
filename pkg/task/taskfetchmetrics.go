@@ -49,6 +49,10 @@ func (f *FetchMetricsTask) GetName() string {
 	return f.config.Name
 }
 
+func (f *FetchMetricsTask) GetClusterID() string {
+	return f.config.ClusterID
+}
+
 func (f *FetchMetricsTask) GetSchedule() string {
 	return f.config.Schedule
 }

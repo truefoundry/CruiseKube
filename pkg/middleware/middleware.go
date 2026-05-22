@@ -8,6 +8,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/config"
 	"github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/metrics"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -68,6 +69,11 @@ func RequestContext() gin.HandlerFunc {
 func Logger() gin.HandlerFunc {
 	return gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 		ctx := param.Request.Context()
+		route := "unmatched"
+		if api, ok := contextutils.GetKey(ctx, contextutils.APIContextKey); ok {
+			route = api
+		}
+		metrics.ObserveHTTPServerRequestDuration(route, param.Method, param.StatusCode, param.Latency)
 		logging.Infof(ctx, "HTTP %s %s - %d %dbytes %s",
 			param.Method,
 			param.Path,

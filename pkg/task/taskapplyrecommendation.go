@@ -87,6 +87,10 @@ func (a *ApplyRecommendationTask) GetName() string {
 	return a.config.Name
 }
 
+func (a *ApplyRecommendationTask) GetClusterID() string {
+	return a.config.ClusterID
+}
+
 func (a *ApplyRecommendationTask) GetSchedule() string {
 	return a.config.Schedule
 }

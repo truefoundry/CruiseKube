@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/metrics"
 )
 
 type taskEntry struct {
@@ -32,6 +33,7 @@ func NewScheduler() *Scheduler {
 func (s *Scheduler) ScheduleTask(
 	ctx context.Context,
 	name string,
+	clusterID string,
 	schedule string,
 	task func(ctx context.Context) error,
 ) error {
@@ -55,12 +57,12 @@ func (s *Scheduler) ScheduleTask(
 
 	go func() {
 		// Run once immediately
-		s.executeTask(ctx, name, entry, task)
+		s.executeTask(ctx, name, clusterID, entry, task)
 
 		for {
 			select {
 			case <-entry.ticker.C:
-				s.executeTask(ctx, name, entry, task)
+				s.executeTask(ctx, name, clusterID, entry, task)
 
 			case <-s.quit:
 				entry.ticker.Stop()
@@ -75,6 +77,7 @@ func (s *Scheduler) ScheduleTask(
 func (s *Scheduler) executeTask(
 	ctx context.Context,
 	name string,
+	clusterID string,
 	entry *taskEntry,
 	task func(ctx context.Context) error,
 ) {
@@ -87,20 +90,24 @@ func (s *Scheduler) executeTask(
 		return
 	}
 
+	startedAt := time.Now()
+	status := metrics.StatusSuccess
+
 	// Install panic recovery before calling task to ensure semaphore is always released
+	// and all outcomes are recorded.
 	defer func() {
 		if r := recover(); r != nil {
+			status = metrics.StatusPanic
 			logging.Errorf(ctx, "Task %s panicked: %v\nStack trace:\n%s", name, r, debug.Stack())
 		}
-	}()
-
-	defer func() {
+		metrics.RecordTaskRun(clusterID, name, status, metrics.TaskSourceScheduled, time.Since(startedAt))
 		<-entry.lock // release
 	}()
 
 	logging.Infof(ctx, "Launching task: %s", name)
 
 	if err := task(ctx); err != nil {
+		status = metrics.StatusError
 		logging.Errorf(ctx, "Failed to run task %s: %v", name, err)
 	}
 }

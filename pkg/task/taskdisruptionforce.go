@@ -58,6 +58,10 @@ func (t *DisruptionForceTask) GetName() string {
 	return t.config.Name
 }
 
+func (t *DisruptionForceTask) GetClusterID() string {
+	return t.config.ClusterID
+}
+
 func (t *DisruptionForceTask) GetSchedule() string {
 	return t.config.Schedule
 }

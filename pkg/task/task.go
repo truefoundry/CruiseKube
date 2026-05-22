@@ -6,6 +6,7 @@ import (
 
 type Task interface {
 	GetName() string
+	GetClusterID() string
 	GetSchedule() string
 	IsEnabled() bool
 	Run(ctx context.Context) error

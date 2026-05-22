@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/metrics"
 	"go.opentelemetry.io/otel/attribute"
 	oteltrace "go.opentelemetry.io/otel/trace"
 )
@@ -35,7 +36,7 @@ func (deps HandlerDependencies) HandleTaskTrigger(c *gin.Context) {
 	if err != nil {
 		logging.Errorf(ctx, "Task '%s' not found: %v", taskName, err)
 		c.JSON(http.StatusNotFound, TaskTriggerResponse{
-			Status: "error",
+			Status: metrics.StatusError,
 			Error:  fmt.Sprintf("Task '%s' not found", taskName),
 		})
 		return
@@ -44,13 +45,20 @@ func (deps HandlerDependencies) HandleTaskTrigger(c *gin.Context) {
 	logging.Infof(ctx, "Manual trigger - executing task '%s'", taskName)
 
 	startedAt := time.Now()
+	defer func() {
+		if r := recover(); r != nil {
+			metrics.RecordTaskRun(clusterID, taskName, metrics.StatusPanic, metrics.TaskSourceManual, time.Since(startedAt))
+			panic(r)
+		}
+	}()
 
 	logging.Infof(ctx, "Starting synchronous execution of task '%s'", taskName)
 	if err := task.Run(ctx); err != nil {
 		duration := time.Since(startedAt)
 		logging.Errorf(ctx, "Task '%s' failed after %v: %v", taskName, duration, err)
+		metrics.RecordTaskRun(clusterID, taskName, metrics.StatusError, metrics.TaskSourceManual, duration)
 		c.JSON(http.StatusInternalServerError, TaskTriggerResponse{
-			Status:   "error",
+			Status:   metrics.StatusError,
 			Error:    err.Error(),
 			Duration: duration.String(),
 		})
@@ -59,8 +67,9 @@ func (deps HandlerDependencies) HandleTaskTrigger(c *gin.Context) {
 
 	duration := time.Since(startedAt)
 	logging.Infof(ctx, "Task '%s' completed successfully in %v", taskName, duration)
+	metrics.RecordTaskRun(clusterID, taskName, metrics.StatusSuccess, metrics.TaskSourceManual, duration)
 	c.JSON(http.StatusOK, TaskTriggerResponse{
-		Status:   "success",
+		Status:   metrics.StatusSuccess,
 		Message:  fmt.Sprintf("Task '%s' completed successfully", taskName),
 		Duration: duration.String(),
 	})

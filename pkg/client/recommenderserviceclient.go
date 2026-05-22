@@ -79,9 +79,9 @@ func NewRecommenderServiceClientWithClusterToken(host, clusterToken string) *Rec
 func (c *RecommenderServiceClient) makeRequest(ctx context.Context, method, endpoint string, body interface{}, result interface{}) error {
 	var err error
 	defer func() {
-		status := "success"
+		status := metrics.StatusSuccess
 		if err != nil {
-			status = "error"
+			status = metrics.StatusError
 		}
 		if clusterId, ok := contextutils.GetCluster(ctx); ok {
 			metrics.WebhookControllerAPICallsTotal.WithLabelValues(clusterId, status, endpoint).Inc()

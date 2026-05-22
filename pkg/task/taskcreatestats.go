@@ -69,6 +69,10 @@ func (c *CreateStatsTask) GetName() string {
 	return c.config.Name
 }
 
+func (c *CreateStatsTask) GetClusterID() string {
+	return c.config.ClusterID
+}
+
 func (c *CreateStatsTask) GetSchedule() string {
 	return c.config.Schedule
 }

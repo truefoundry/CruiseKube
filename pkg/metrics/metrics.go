@@ -1,11 +1,17 @@
 package metrics
 
 import (
+	"strconv"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 var (
+	ShortDurationBuckets = prometheus.DefBuckets
+	LongDurationBuckets  = []float64{0.1, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300, 600}
+
 	// Performance - CPU
 	ClusterCPUUtilizationCores = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "cruisekube_cluster_cpu_utilization_cores",
@@ -161,9 +167,112 @@ var (
 		Help: "Total number of task runs",
 	}, []string{"cluster", "task_name", "status"})
 
+	TaskDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "cruisekube_task_duration_seconds",
+		Help:    "Duration of CruiseKube task runs in seconds",
+		Buckets: LongDurationBuckets,
+	}, []string{"cluster", "task_name", "status", "source"})
+
+	OperationDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "cruisekube_operation_duration_seconds",
+		Help:    "Duration of CruiseKube internal operations in seconds",
+		Buckets: LongDurationBuckets,
+	}, []string{"cluster", "operation", "status"})
+
+	PrometheusQueryDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "cruisekube_prometheus_query_duration_seconds",
+		Help:    "Duration of Prometheus query operations in seconds",
+		Buckets: LongDurationBuckets,
+	}, []string{"cluster", "phase", "query_kind", "status"})
+
+	HTTPServerRequestDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "cruisekube_http_server_request_duration_seconds",
+		Help:    "Duration of HTTP API requests in seconds",
+		Buckets: ShortDurationBuckets,
+	}, []string{"route", "method", "status"})
+
 	// Webhook Metrics
 	WebhookControllerAPICallsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "cruisekube_webhook_controller_api_calls",
 		Help: "Total number of API calls from webhook to controller",
 	}, []string{"cluster", "status", "endpoint"})
 )
+
+const (
+	LabelUnknown = "unknown"
+
+	StatusSuccess  = "success"
+	StatusError    = "error"
+	StatusPanic    = "panic"
+	StatusComplete = "complete"
+
+	TaskSourceManual    = "manual"
+	TaskSourceScheduled = "scheduled"
+
+	PrometheusPhaseInstantAttempt  = "instant_attempt"
+	PrometheusPhaseInstantTotal    = "instant_total"
+	PrometheusPhaseBatchExecute    = "batch_execute"
+	PrometheusPhaseFetchNamespaces = "fetch_namespaces"
+	PrometheusPhaseNamespaceTotal  = "namespace_total"
+	PrometheusPhaseRangeQuery      = "range_query"
+	PrometheusPhaseParse           = "parse"
+
+	PrometheusQueryKindBatch                  = "batch"
+	PrometheusQueryKindNamespaceBatch         = "namespace_batch"
+	PrometheusQueryKindNamespaceCPUP75        = "namespace_cpu_p75"
+	PrometheusQueryKindNamespaceCPUP75PSI     = "namespace_cpu_p75_psi"
+	PrometheusQueryKindNamespaceMemoryP75     = "namespace_memory_p75"
+	PrometheusQueryKindNamespaceMemoryMax7Day = "namespace_memory_max_7day"
+	PrometheusQueryKindNamespaceReplica       = "namespace_replica"
+	PrometheusQueryKindSimpleCPU              = "simple_cpu"
+	PrometheusQueryKindSimpleMemory           = "simple_memory"
+	PrometheusQueryKindOther                  = "other"
+	PrometheusQueryKindCPU                    = "cpu"
+	PrometheusQueryKindPSI                    = "psi"
+	PrometheusQueryKindMemory                 = "memory"
+	PrometheusQueryKindReplica                = "replica"
+)
+
+func ObserveOperationDuration(clusterID, operation, status string, duration time.Duration) {
+	OperationDurationSeconds.WithLabelValues(
+		normalizeLabel(clusterID),
+		normalizeLabel(operation),
+		normalizeLabel(status),
+	).Observe(duration.Seconds())
+}
+
+func ObservePrometheusQueryDuration(clusterID, phase, queryKind, status string, duration time.Duration) {
+	PrometheusQueryDurationSeconds.WithLabelValues(
+		normalizeLabel(clusterID),
+		normalizeLabel(phase),
+		normalizeLabel(queryKind),
+		normalizeLabel(status),
+	).Observe(duration.Seconds())
+}
+
+func ObserveHTTPServerRequestDuration(route, method string, statusCode int, duration time.Duration) {
+	HTTPServerRequestDurationSeconds.WithLabelValues(
+		normalizeLabel(route),
+		normalizeLabel(method),
+		strconv.Itoa(statusCode),
+	).Observe(duration.Seconds())
+}
+
+func RecordTaskRun(clusterID, taskName, status, source string, duration time.Duration) {
+	clusterID = normalizeLabel(clusterID)
+	taskName = normalizeLabel(taskName)
+	status = normalizeLabel(status)
+	source = normalizeLabel(source)
+	durationSeconds := duration.Seconds()
+
+	TaskDurationSeconds.WithLabelValues(clusterID, taskName, status, source).Observe(durationSeconds)
+	TaskCompletionTime.WithLabelValues(clusterID, taskName).Set(durationSeconds)
+	TaskRunCount.WithLabelValues(clusterID, taskName, status).Inc()
+}
+
+func normalizeLabel(label string) string {
+	if label == "" {
+		return LabelUnknown
+	}
+	return label
+}

@@ -9,6 +9,7 @@ import (
 
 	ctxUtils "github.com/truefoundry/cruisekube/pkg/contextutils"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/metrics"
 	"github.com/truefoundry/cruisekube/pkg/task/utils"
 	"github.com/truefoundry/cruisekube/pkg/telemetry"
 
@@ -29,6 +30,30 @@ const (
 	RateIntervalMinutes      = 1
 )
 
+var queryKindByID = map[string]string{
+	"PSI_CHECK":                        "psi_check",
+	"node-load-monitoring":             "node_load_monitoring",
+	"cluster_cpu_utilization":          "cluster_cpu_utilization",
+	"cluster_cpu_request":              "cluster_cpu_request",
+	"cluster_cpu_allocated":            "cluster_cpu_allocated",
+	"cluster_memory_utilization":       "cluster_memory_utilization",
+	"cluster_memory_request":           "cluster_memory_request",
+	"cluster_memory_allocated":         "cluster_memory_allocated",
+	"cluster_oom_events":               "cluster_oom_events",
+	"cluster_unschedulable_pods":       "cluster_unschedulable_pods",
+	"cluster_unschedulable_pods_count": "cluster_unschedulable_pods_count",
+	"node_cpu_waiting_max":             "node_cpu_waiting_max",
+	"node_cpu_waiting_p50":             "node_cpu_waiting_p50",
+	"node_cpu_load_max":                "node_cpu_load_max",
+	"node_cpu_load_p50":                "node_cpu_load_p50",
+	"container_cpu_waiting_max":        "container_cpu_waiting_max",
+	"container_cpu_waiting_p50":        "container_cpu_waiting_p50",
+	"node_memory_waiting_max":          "node_memory_waiting_max",
+	"node_memory_waiting_p50":          "node_memory_waiting_p50",
+	"container_memory_waiting_max":     "container_memory_waiting_max",
+	"container_memory_waiting_p50":     "container_memory_waiting_p50",
+}
+
 var _ = otel.Tracer("cruisekube/tasks/promql") // promqlTracer unused but kept for future use
 
 type QueryResult struct {
@@ -39,8 +64,9 @@ type QueryResult struct {
 }
 
 type ParallelQueryRequest struct {
-	QueryID string
-	Query   string
+	QueryID   string
+	Query     string
+	QueryKind string
 }
 
 type namespaceQueryExecutionStats struct {
@@ -91,7 +117,35 @@ func (p *PrometheusProvider) createQueryContext(ctx context.Context) (context.Co
 	return context.WithTimeout(ctx, p.config.QueryTimeout)
 }
 
+func queryKindFromID(queryID string) string {
+	if queryKind, ok := queryKindByID[queryID]; ok {
+		return queryKind
+	}
+
+	switch {
+	case strings.HasSuffix(queryID, "-cpu_p75"):
+		return metrics.PrometheusQueryKindNamespaceCPUP75
+	case strings.HasSuffix(queryID, "-cpu_p75-psi"):
+		return metrics.PrometheusQueryKindNamespaceCPUP75PSI
+	case strings.HasSuffix(queryID, "-memory_p75-memory"):
+		return metrics.PrometheusQueryKindNamespaceMemoryP75
+	case strings.HasSuffix(queryID, "-memory_max-memory-7day"):
+		return metrics.PrometheusQueryKindNamespaceMemoryMax7Day
+	case strings.HasSuffix(queryID, "-replica"):
+		return metrics.PrometheusQueryKindNamespaceReplica
+	default:
+		// Keep unmatched IDs collapsed to a bounded label. This path is reserved for
+		// ad-hoc or future query IDs that are not semantically useful as their own
+		// metric dimension.
+		return metrics.PrometheusQueryKindOther
+	}
+}
+
 func (p *PrometheusProvider) ExecuteQueryWithRetry(ctx context.Context, clusterId, query, queryID string) (model.Value, []string, error) {
+	return p.executeQueryWithRetry(ctx, clusterId, query, queryID, queryKindFromID(queryID))
+}
+
+func (p *PrometheusProvider) executeQueryWithRetry(ctx context.Context, clusterId, query, queryID, queryKind string) (model.Value, []string, error) {
 	// Put identifiers into context; StartSpan will copy them as attributes
 	ctx = ctxUtils.WithQueryID(ctx, queryID)
 	ctx = ctxUtils.WithCluster(ctx, clusterId)
@@ -103,6 +157,9 @@ func (p *PrometheusProvider) ExecuteQueryWithRetry(ctx context.Context, clusterI
 	var warnings []string
 
 	totalStart := time.Now()
+	if queryKind == "" {
+		queryKind = queryKindFromID(queryID)
+	}
 	for attempt := range p.config.MaxQueryRetries {
 		ctx, cancel := p.createQueryContext(ctx)
 
@@ -117,15 +174,19 @@ func (p *PrometheusProvider) ExecuteQueryWithRetry(ctx context.Context, clusterI
 		cancel()
 
 		if lastErr == nil {
+			metrics.ObservePrometheusQueryDuration(clusterId, metrics.PrometheusPhaseInstantAttempt, queryKind, metrics.StatusSuccess, attemptDuration)
 			logging.Infof(ctx, "Query %s succeeded in %v on attempt %d/%d", queryID, attemptDuration, attempt+1, p.config.MaxQueryRetries)
 			if len(warnings) > 0 {
 				logging.Infof(ctx, "Query %s returned %d warning(s) in %v", queryID, len(warnings), attemptDuration)
 				span.SetAttributes(attribute.Int("warnings.count", len(warnings)))
 			}
-			logging.Infof(ctx, "[PromTiming] phase=query_complete query_id=%s total_duration=%v attempts=%d warnings=%d", queryID, time.Since(totalStart), attempt+1, len(warnings))
+			totalDuration := time.Since(totalStart)
+			metrics.ObservePrometheusQueryDuration(clusterId, metrics.PrometheusPhaseInstantTotal, queryKind, metrics.StatusSuccess, totalDuration)
+			logging.Infof(ctx, "[PromTiming] phase=query_complete query_id=%s total_duration=%v attempts=%d warnings=%d", queryID, totalDuration, attempt+1, len(warnings))
 			return result, warnings, nil
 		}
 
+		metrics.ObservePrometheusQueryDuration(clusterId, metrics.PrometheusPhaseInstantAttempt, queryKind, metrics.StatusError, attemptDuration)
 		logging.Infof(ctx, "Query %s failed in %v on attempt %d/%d: %v", queryID, attemptDuration, attempt+1, p.config.MaxQueryRetries, lastErr)
 
 		if attempt < p.config.MaxQueryRetries-1 {
@@ -140,12 +201,18 @@ func (p *PrometheusProvider) ExecuteQueryWithRetry(ctx context.Context, clusterI
 		span.RecordError(lastErr)
 		span.SetStatus(codes.Error, lastErr.Error())
 	}
-	logging.Infof(ctx, "[PromTiming] phase=query_failed query_id=%s total_duration=%v attempts=%d", queryID, time.Since(totalStart), p.config.MaxQueryRetries)
+	totalDuration := time.Since(totalStart)
+	metrics.ObservePrometheusQueryDuration(clusterId, metrics.PrometheusPhaseInstantTotal, queryKind, metrics.StatusError, totalDuration)
+	logging.Infof(ctx, "[PromTiming] phase=query_failed query_id=%s total_duration=%v attempts=%d", queryID, totalDuration, p.config.MaxQueryRetries)
 	return nil, warnings, fmt.Errorf("query %s failed after %d attempts: %w", queryID, p.config.MaxQueryRetries, lastErr)
 }
 
 func (p *PrometheusProvider) executeQueriesInParallel(ctx context.Context, clusterId string, requests []ParallelQueryRequest) (map[string]QueryResult, error) {
 	batchStart := time.Now()
+	batchStatus := metrics.StatusSuccess
+	defer func() {
+		metrics.ObservePrometheusQueryDuration(clusterId, metrics.PrometheusPhaseBatchExecute, metrics.PrometheusQueryKindBatch, batchStatus, time.Since(batchStart))
+	}()
 	results := make(map[string]QueryResult)
 	resultsChan := make(chan QueryResult, len(requests))
 	var wg sync.WaitGroup
@@ -157,7 +224,7 @@ func (p *PrometheusProvider) executeQueriesInParallel(ctx context.Context, clust
 		go func(request ParallelQueryRequest) {
 			defer wg.Done()
 
-			result, warnings, err := p.ExecuteQueryWithRetry(ctx, clusterId, request.Query, request.QueryID)
+			result, warnings, err := p.executeQueryWithRetry(ctx, clusterId, request.Query, request.QueryID, request.QueryKind)
 
 			resultsChan <- QueryResult{
 				Result:   result,
@@ -174,6 +241,7 @@ func (p *PrometheusProvider) executeQueriesInParallel(ctx context.Context, clust
 	for result := range resultsChan {
 		results[result.QueryID] = result
 		if result.Error != nil {
+			batchStatus = metrics.StatusError
 			logging.Infof(ctx, "[PromTiming] phase=batch_execute_failed query_count=%d duration=%v failed_query=%s", len(requests), time.Since(batchStart), result.QueryID)
 			return nil, fmt.Errorf("error executing query %s: %w", result.QueryID, result.Error)
 		}
@@ -191,6 +259,10 @@ func CompressQueryForLogging(query string) string {
 
 func (p *PrometheusProvider) FetchStatsForNamespaces(ctx context.Context, clusterId string, namespaces []string, isPSIEnabled bool) (utils.NamespaceVsContainerMetrics, utils.NamespaceVsWorkloadMetrics, error) {
 	fetchStart := time.Now()
+	fetchStatus := metrics.StatusSuccess
+	defer func() {
+		metrics.ObservePrometheusQueryDuration(clusterId, metrics.PrometheusPhaseFetchNamespaces, metrics.PrometheusQueryKindNamespaceBatch, fetchStatus, time.Since(fetchStart))
+	}()
 	globalContainerCache := make(utils.NamespaceVsContainerMetrics)
 	globalWorkloadCache := make(utils.NamespaceVsWorkloadMetrics)
 
@@ -232,6 +304,7 @@ func (p *PrometheusProvider) FetchStatsForNamespaces(ctx context.Context, cluste
 			globalWorkloadCache[result.namespace] = result.workloadKeyVsWorkloadMetrics
 			successCount++
 		} else {
+			fetchStatus = metrics.StatusError
 			logging.Infof(ctx, "Failed to execute batch queries for namespace %s: %v", result.namespace, result.error)
 			logging.Infof(ctx, "[PromTiming] phase=fetch_namespaces_failed namespace=%s duration=%v", result.namespace, time.Since(fetchStart))
 			return nil, nil, result.error
@@ -243,8 +316,20 @@ func (p *PrometheusProvider) FetchStatsForNamespaces(ctx context.Context, cluste
 	return globalContainerCache, globalWorkloadCache, nil
 }
 
+func namespaceQueryRequest(namespace, suffix, query, queryKind string) ParallelQueryRequest {
+	return ParallelQueryRequest{
+		QueryID:   fmt.Sprintf("%s-%s", namespace, suffix),
+		Query:     query,
+		QueryKind: queryKind,
+	}
+}
+
 func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, clusterId string, namespace string, isPSIEnabled bool) (utils.WorkloadKeyVsContainerMetrics, utils.WorkloadKeyVsWorkloadMetrics, error) {
 	namespaceStart := time.Now()
+	namespaceStatus := metrics.StatusSuccess
+	defer func() {
+		metrics.ObservePrometheusQueryDuration(clusterId, metrics.PrometheusPhaseNamespaceTotal, metrics.PrometheusQueryKindNamespaceBatch, namespaceStatus, time.Since(namespaceStart))
+	}()
 	logging.Infof(ctx, "Executing all batch queries for namespace: %s", namespace)
 
 	cache := make(utils.WorkloadKeyVsContainerMetrics)
@@ -261,20 +346,14 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 
 	for _, q := range cpuQueries {
 		query := p.buildBatchCPURecommendationQuery(namespace, q.percentile, false)
-		requests = append(requests, ParallelQueryRequest{
-			QueryID: fmt.Sprintf("%s-%s", namespace, q.key),
-			Query:   query,
-		})
+		requests = append(requests, namespaceQueryRequest(namespace, q.key, query, metrics.PrometheusQueryKindNamespaceCPUP75))
 		stats.CPURequests++
 	}
 
 	if isPSIEnabled {
 		for _, q := range cpuQueries {
 			query := p.buildBatchCPURecommendationQuery(namespace, q.percentile, true)
-			requests = append(requests, ParallelQueryRequest{
-				QueryID: fmt.Sprintf("%s-%s-psi", namespace, q.key),
-				Query:   query,
-			})
+			requests = append(requests, namespaceQueryRequest(namespace, q.key+"-psi", query, metrics.PrometheusQueryKindNamespaceCPUP75PSI))
 			stats.PSIRequests++
 		}
 	}
@@ -289,26 +368,17 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 
 	for _, q := range memoryQueries {
 		query := p.EncloseWithinMemoryCleanupFunction(p.buildBatchMemoryRecommendationQuery(namespace, q.percentile), MemoryDecimalPlaces)
-		requests = append(requests, ParallelQueryRequest{
-			QueryID: fmt.Sprintf("%s-%s-memory", namespace, q.key),
-			Query:   query,
-		})
+		requests = append(requests, namespaceQueryRequest(namespace, q.key+"-memory", query, metrics.PrometheusQueryKindNamespaceMemoryP75))
 		stats.MemoryRequests++
 	}
 
 	query := p.EncloseWithinMemoryCleanupFunction(p.buildBatch7DayMemoryRecommendationQuery(namespace, 1.0), MemoryDecimalPlaces)
-	requests = append(requests, ParallelQueryRequest{
-		QueryID: fmt.Sprintf("%s-%s-memory-7day", namespace, memory7DayKey),
-		Query:   query,
-	})
+	requests = append(requests, namespaceQueryRequest(namespace, memory7DayKey+"-memory-7day", query, metrics.PrometheusQueryKindNamespaceMemoryMax7Day))
 	stats.MemoryRequests++
 
 	replicaQueryExpr := p.buildBatchReplicaCountQuery(namespace)
 	replicaQuery := fmt.Sprintf("quantile_over_time(0.5, (%s)[%s:1h])", replicaQueryExpr, ReplicaLookbackWindow.String())
-	requests = append(requests, ParallelQueryRequest{
-		QueryID: fmt.Sprintf("%s-replica", namespace),
-		Query:   replicaQuery,
-	})
+	requests = append(requests, namespaceQueryRequest(namespace, "replica", replicaQuery, metrics.PrometheusQueryKindNamespaceReplica))
 	stats.ReplicaRequests++
 	stats.TotalRequests = len(requests)
 
@@ -326,6 +396,7 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 
 	results, err := p.executeQueriesInParallel(ctx, clusterId, requests)
 	if err != nil {
+		namespaceStatus = metrics.StatusError
 		logging.Infof(ctx, "[PromTiming] phase=namespace_query_failed namespace=%s duration=%v", namespace, time.Since(namespaceStart))
 		return nil, nil, err
 	}
@@ -477,6 +548,19 @@ func (p *PrometheusProvider) fetchStatsForNamespace(ctx context.Context, cluster
 		len(workloadKeyVsWorkloadMetrics),
 		stats.TotalRequests,
 	)
+	for _, observation := range []struct {
+		queryKind string
+		duration  time.Duration
+	}{
+		{metrics.PrometheusQueryKindCPU, cpuParseDuration},
+		{metrics.PrometheusQueryKindPSI, psiParseDuration},
+		{metrics.PrometheusQueryKindMemory, memoryParseDuration},
+		{metrics.PrometheusQueryKindReplica, replicaParseDuration},
+	} {
+		if observation.duration > 0 {
+			metrics.ObservePrometheusQueryDuration(clusterId, metrics.PrometheusPhaseParse, observation.queryKind, metrics.StatusComplete, observation.duration)
+		}
+	}
 
 	return cache, workloadKeyVsWorkloadMetrics, nil
 }

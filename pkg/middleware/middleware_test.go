@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/truefoundry/cruisekube/pkg/metrics/metricstest"
 	"github.com/truefoundry/cruisekube/pkg/config"
 )
 
@@ -83,5 +84,45 @@ func TestAuthBasic_EnabledEmptyCreds_503(t *testing.T) {
 
 	if w.Code != http.StatusServiceUnavailable {
 		t.Errorf("expected 503, got %d", w.Code)
+	}
+}
+
+func TestLoggerUsesUnmatchedRouteForMissingRouteTemplate(t *testing.T) {
+	r := gin.New()
+	r.Use(Logger(), RequestContext())
+
+	beforeUnmatched := metricstest.SampleValue(t, "cruisekube_http_server_request_duration_seconds_count", map[string]string{
+		"route":  "unmatched",
+		"method": http.MethodGet,
+		"status": "404",
+	})
+	beforeRawPath := metricstest.SampleValue(t, "cruisekube_http_server_request_duration_seconds_count", map[string]string{
+		"route":  "/missing-route-for-metrics-test",
+		"method": http.MethodGet,
+		"status": "404",
+	})
+
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/missing-route-for-metrics-test", nil)
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for unmatched route, got %d", w.Code)
+	}
+
+	if got := metricstest.SampleValue(t, "cruisekube_http_server_request_duration_seconds_count", map[string]string{
+		"route":  "unmatched",
+		"method": http.MethodGet,
+		"status": "404",
+	}); got-beforeUnmatched != 1 {
+		t.Fatalf("expected unmatched route histogram count to increase by 1, before=%v after=%v", beforeUnmatched, got)
+	}
+
+	if got := metricstest.SampleValue(t, "cruisekube_http_server_request_duration_seconds_count", map[string]string{
+		"route":  "/missing-route-for-metrics-test",
+		"method": http.MethodGet,
+		"status": "404",
+	}); got != beforeRawPath {
+		t.Fatalf("expected raw path histogram count to remain %v, got %v", beforeRawPath, got)
 	}
 }
