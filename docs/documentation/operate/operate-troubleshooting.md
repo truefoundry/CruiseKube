@@ -31,6 +31,62 @@ Look for Prometheus query errors, auth failures, or TLS issues.
 
 ---
 
+## Metrics provider (Prometheus / PromQL)
+
+CruiseKube’s metrics provider talks to a **Prometheus-compatible HTTP API** and runs **PromQL** queries on a schedule. If the dashboard stays empty or controller logs show query failures, validate the backend and metric names below.
+
+### PromQL support
+
+Your endpoint must accept **instant and range queries** the same way Prometheus does (`/api/v1/query`, `/api/v1/query_range`). This works with:
+
+- Prometheus
+- Grafana Mimir / Cortex / Thanos **query frontends** (when they expose the Prometheus query API)
+- Other vendors **only if** they implement compatible PromQL and return the expected metric labels
+
+Managed metrics stacks that expose a **custom query language** or a limited metric catalog (without the kube-state-metrics / node-exporter style names below) are not supported unless you **remote-write** those series into Prometheus with matching names.
+
+Confirm PromQL from a controller pod (replace URL and namespace):
+
+```bash
+kubectl exec -n cruisekube-system deploy/cruisekube-controller-manager -- \
+  wget -qO- 'http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090/api/v1/query?query=up' | head -c 400
+```
+
+A JSON body with `"status":"success"` means the API is reachable; fix DNS, network policy, TLS, or `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` if not.
+
+### Required metric names
+
+CruiseKube expects these series to exist in the store your URL points at. They usually come from **kube-state-metrics** (pod/node resources) and **node-exporter** (node CPU), but the **metric name** must match—`job` and other labels can differ if your queries still resolve.
+
+| Metric | Role |
+|--------|------|
+| `node_cpu_seconds_total` | Node CPU usage (rate over modes) for capacity and utilization views |
+| `kube_pod_container_resource_requests` | Per-container **requests**; must include `resource="cpu"` and `resource="memory"` time series |
+| `kube_node_status_allocatable` | Per-node **allocatable** CPU and memory (and related resources) |
+
+Verify each name returns data (run in Prometheus UI or `curl` against `/api/v1/query`):
+
+```promql
+node_cpu_seconds_total
+kube_pod_container_resource_requests{resource="cpu"}
+kube_pod_container_resource_requests{resource="memory"}
+kube_node_status_allocatable{resource="cpu"}
+kube_node_status_allocatable{resource="memory"}
+```
+
+If any query is empty:
+
+1. **Scrape targets** — Ensure kube-state-metrics and node-exporter (or your distro’s equivalent) are scraped into this Prometheus.
+2. **Retention** — Series must cover the lookback windows CruiseKube uses (see controller task schedules in chart `values.yaml`).
+3. **RBAC / collectors** — kube-state-metrics needs permission to list pods and nodes; a broken KSM install often drops `kube_*` metrics while node metrics remain.
+4. **Wrong Prometheus** — Point `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` at the instance that actually holds these metrics, not a short-retention or federated subset without them.
+
+Additional series (for example `container_cpu_usage_seconds_total` from the kubelet/cAdvisor scrape) are used for optimization logic; missing **only** the four names above commonly blocks stats and recommendations entirely.
+
+See [Prerequisites — Prometheus](../../install/gs-prerequisites.md) for install pointers.
+
+---
+
 ## Prometheus TLS / HTTPS
 
 If Prometheus uses a **private CA** or self-signed cert, you may need `CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY` (or local equivalent) set to `"true"` **only** in trusted environments. Prefer proper CA trust in production. See chart `values.yaml` env keys.
@@ -107,6 +163,3 @@ Collect and attach:
 - Whether **Prometheus** can run a sample query for `container_cpu_usage_seconds_total`
 
 Then open a [GitHub Issue](https://github.com/truefoundry/CruiseKube/issues) or ask on [Discord](https://discord.gg/Dqek4xJa3N).
-
-!!! tip "Suggested media"
-    **Annotated screenshot** of a healthy dashboard + one of `kubectl get pods -n cruisekube-system` for the docs “all green” reference panel.
