@@ -19,8 +19,8 @@ This page describes how to set up and work with the CruiseKube development envir
 For local development you will:
 
 1. Use a Kubernetes cluster (create a Kind cluster or use your current `kubectl` context).
-2. Install Prometheus in the cluster and expose it (e.g. via port-forward) so CruiseKube can scrape metrics.
-3. Run CruiseKube with a local config file (e.g. `config.local.yaml`) that points to that Prometheus URL.
+2. Install Prometheus in the cluster and expose it (e.g. via port-forward), or use Kloudfuse with Prometheus-compatible Kubernetes metrics ingestion.
+3. Run CruiseKube with a local config file (e.g. `config.local.yaml`) that points to that metrics provider URL.
 4. Optionally run the CruiseKube frontend to view workloads and stats.
 
 ---
@@ -56,15 +56,15 @@ If you already have a cluster (minikube, existing cloud cluster, etc.), ensure `
 ```bash
 kubectl config current-context
 ```
-You will need to install Prometheus in that cluster and then **port-forward** the Prometheus service to `localhost:9090` (or another port and use that URL in config). See the next section.
+You will need either a reachable Prometheus-compatible endpoint or Prometheus installed in that cluster and **port-forwarded** to `localhost:9090` (or another port and URL in config). See the next section.
 
 ---
 
-## 3. Install Prometheus and expose it
+## 3. Configure a metrics provider
 
-CruiseKube needs a Prometheus instance to fetch metrics. Install the kube-prometheus-stack (Prometheus only, no Grafana/Alertmanager) and expose it so the URL in your config is reachable.
+CruiseKube needs one Prometheus-compatible endpoint to fetch metrics. For local development you can either install kube-prometheus-stack (Prometheus only, no Grafana/Alertmanager) and expose it, or point at a Kloudfuse PromQL endpoint that ingests Kubernetes metrics with the expected Prometheus metric names and labels.
 
-### Install via Helm
+### Option A: Install Prometheus via Helm
 
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -95,7 +95,38 @@ helm upgrade --install prometheus \
 
   Keep this running in a separate terminal. Use **`http://localhost:9090`** in your config (or the host/port you actually use).
 
-Set **`dependencies.local.prometheusURL`** (or `dependencies.inCluster.prometheusURL` if running in-cluster) in your config to this URL so CruiseKube can reach Prometheus.
+Set **`dependencies.local.prometheusURL`** (or `dependencies.inCluster.prometheusURL` if running in-cluster) in your config to this URL so CruiseKube can reach Prometheus. Alternatively, use the structured `metricsProvider` fields below for Prometheus or Kloudfuse.
+
+
+### Option B: Use Kloudfuse locally
+
+If your cluster metrics are already ingested into Kloudfuse, configure CruiseKube to use the Kloudfuse Prometheus-compatible query endpoint. Keep the bearer token in an environment variable instead of committing it to `config.local.yaml`:
+
+```bash
+export CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN="$KLOUDFUSE_BEARER_TOKEN"
+# Optional shorthand env vars can override provider type/url for both local and in-cluster blocks.
+export CRUISEKUBE_METRICS_PROVIDER=kloudfuse
+export CRUISEKUBE_METRICS_PROVIDER_URL="https://kloudfuse.example.com"
+```
+
+Then either rely on the shorthand env vars above, or add a non-secret provider block to `config.local.yaml`:
+
+```yaml
+controllerMode: local
+dependencies:
+  local:
+    kubeconfigPath: ""
+    prometheusURL: "http://localhost:9090" # legacy fallback; keep for easy Prometheus switching
+    metricsProvider:
+      type: kloudfuse
+      url: "https://kloudfuse.example.com"
+      # Do not put real tokens here. Set CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN instead.
+      bearerToken: ""
+      insecureSkipTLSVerify: false
+```
+
+!!! warning "Do not inline bearer tokens"
+    Inline bearer tokens in config files or CLI arguments can leak through Git history, shell history, process listings, and copied logs. Use environment variables for local development. For production Helm installs, use an existing Kubernetes Secret rather than `--set ...bearerToken=...`.
 
 ---
 
@@ -112,8 +143,11 @@ go run cmd/cruisekube/main.go --config-file-path config.local.yaml
 You can override any config value with flags, for example:
 
 - `--config-file-path` — Path to the YAML config (default: `config.yaml`).
-- `--controller-mode` — `local` or `inCluster`; for dev use `local`.
-- `--prometheus-url` — Overrides Prometheus URL from the config.
+- `--controller-mode` — `local` or `in-cluster`; for dev use `local`.
+- `--prometheus-url` — Overrides the legacy Prometheus URL in both dependency blocks.
+- `--metrics-provider` — Overrides structured provider type (`prometheus` or `kloudfuse`) in both dependency blocks.
+- `--metrics-provider-url` — Overrides structured provider URL in both dependency blocks.
+- `--metrics-provider-insecure-skip-tls-verify` — Overrides structured provider TLS verification skip in both dependency blocks. Do not pass bearer tokens as CLI args; use env vars.
 - `--kubeconfig-path` — Kubeconfig for local mode (empty = use default/current context).
 - `--server-port` — HTTP server port (default from config, e.g. 8080).
 - `--webhook-port`, `--webhook-certs-dir`, `--webhook-stats-url-host` — Webhook settings.
@@ -124,8 +158,8 @@ You can override any config value with flags, for example:
 | Section | Purpose |
 |--------|---------|
 | **controllerMode** | `local` = run on your machine using kubeconfig; `inCluster` = run inside the cluster. Use `local` for dev. |
-| **dependencies.local** | `kubeconfigPath`: path to kubeconfig (empty = current context). `prometheusURL`: Prometheus URL (e.g. `http://localhost:9090`) — **must match your port-forward or Kind port**. `insecureSkipTLSVerify` disables TLS certificate verification for the local Prometheus connection (insecure; use only for trusted/dev setups such as self-signed certs, and prefer proper certificates in production). |
-| **dependencies.inCluster** | Used when `controllerMode` is `inCluster`; set `prometheusURL` to the in-cluster Prometheus service URL. `insecureSkipTLSVerify` disables TLS certificate verification for the in-cluster Prometheus connection (insecure; use only for trusted/dev setups such as self-signed certs, and prefer proper certificates in production). |
+| **dependencies.local** | `kubeconfigPath`: path to kubeconfig (empty = current context). `prometheusURL`: legacy Prometheus URL (e.g. `http://localhost:9090`) — **must match your port-forward or Kind port**. `metricsProvider`: optional structured provider (`type`, `url`, `bearerToken`, `insecureSkipTLSVerify`) for Prometheus or Kloudfuse. Put local bearer tokens in `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN`, not in YAML. |
+| **dependencies.inCluster** | Used when `controllerMode` is `inCluster`; set legacy `prometheusURL` to the in-cluster Prometheus service URL, or use `metricsProvider` for structured Prometheus/Kloudfuse configuration. In production Helm installs, source bearer tokens from existing Kubernetes Secrets. |
 | **executionMode** | `controller`, `webhook`, or `both`. For local dev you typically use `controller`. |
 | **controller.tasks** | Enable/disable and schedule tasks: `createStats`, `fetchMetrics`, `applyRecommendation`, etc. For dev, `createStats` and `fetchMetrics` are usually enabled. |
 | **server** | HTTP API port (e.g. 8080), optional `basicAuth` for the stats/API. |
@@ -135,7 +169,7 @@ You can override any config value with flags, for example:
 | **metrics** | Optional metrics server (e.g. port 8081). |
 | **telemetry** | Optional OpenTelemetry (tracing). |
 
-For minimal local dev, the critical parts are: **controllerMode: local**, **dependencies.local.prometheusURL** set to your Prometheus URL, and **db** pointing to a local SQLite file (e.g. `stats-data/cruisekube.db`).
+For minimal local dev, the critical parts are: **controllerMode: local**, one reachable metrics provider (`dependencies.local.prometheusURL` for legacy Prometheus or `dependencies.local.metricsProvider` for structured Prometheus/Kloudfuse), and **db** pointing to a local SQLite file (e.g. `stats-data/cruisekube.db`).
 
 ---
 
@@ -148,7 +182,7 @@ go run cmd/cruisekube/main.go --config-file-path config.local.yaml
 ```
 
 - The process will use the Kubernetes context from your kubeconfig (or `--kubeconfig-path`).
-- It will connect to Prometheus using the URL in your config.
+- It will connect to the active Prometheus-compatible metrics provider using the URL in your config/env vars.
 - The HTTP server (e.g. on 8080) serves stats and APIs used by the webhook and frontend.
 
 ---
@@ -224,7 +258,7 @@ For Go code quality checks, the repo also exposes:
 
 The CI workflow runs `deadcode` as a separate informational job, so contributors can see current unreachable-function reports without making the pipeline fail.
 
-For testing and contribution process (PRs, changelog, etc.), see [CONTRIBUTING.md](../../CONTRIBUTING.md) and [DEVELOPMENT.md](../../DEVELOPMENT.md).
+For testing and contribution process (PRs, changelog, etc.), see the repository-root `CONTRIBUTING.md` and `DEVELOPMENT.md` files.
 
 ---
 

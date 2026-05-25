@@ -269,5 +269,6 @@ nav:
       - Reference: 
         - Helm Chart: documentation/reference/reference-helm-chart.md
         - Configuration: documentation/reference/config.md
+        - Prometheus-Compatible Metrics: documentation/reference/prometheus-metrics.md
   - Blog:
       - CruiseKube Announcement: blog/posts/cruisekube_announcement.md

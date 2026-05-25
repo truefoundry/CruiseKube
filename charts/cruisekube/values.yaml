@@ -72,6 +72,19 @@ cruisekubeController:
   controller:
     ## @param cruisekubeController.controller.mode Controller mode (inCluster or external)
     mode: "in-cluster"
+  metricsProvider:
+    ## @param cruisekubeController.metricsProvider.type Metrics provider type. Leave empty to use legacy Prometheus settings from cruisekubeController.env. Set to `prometheus` or `kloudfuse` to render structured provider environment variables.
+    type: ""
+    ## @param cruisekubeController.metricsProvider.url Metrics provider query URL used when type is set.
+    url: ""
+    ## @param cruisekubeController.metricsProvider.insecureSkipTLSVerify Skip TLS certificate verification for the metrics provider when type is set.
+    insecureSkipTLSVerify: false
+    ## @param cruisekubeController.metricsProvider.bearerToken Metrics provider bearer token for local/dev use only. Prefer bearerTokenExistingSecret for production.
+    bearerToken: ""
+    ## @param cruisekubeController.metricsProvider.bearerTokenExistingSecret Existing Secret name containing the metrics provider bearer token. Takes precedence over bearerToken when both are set.
+    bearerTokenExistingSecret: ""
+    ## @param cruisekubeController.metricsProvider.bearerTokenExistingSecretKey Key in bearerTokenExistingSecret containing the metrics provider bearer token.
+    bearerTokenExistingSecretKey: ""
   serviceAccount:
     ## @param cruisekubeController.serviceAccount.create Specifies whether a ServiceAccount should be created
     create: true

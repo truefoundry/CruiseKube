@@ -49,15 +49,31 @@ type Dependencies struct {
 	InCluster InClusterDeps `yaml:"inCluster" mapstructure:"inCluster"`
 }
 
+type MetricsProviderType string
+
+const (
+	MetricsProviderTypePrometheus MetricsProviderType = "prometheus"
+	MetricsProviderTypeKloudfuse  MetricsProviderType = "kloudfuse"
+)
+
+type MetricsProviderConfig struct {
+	Type                  MetricsProviderType `yaml:"type" mapstructure:"type"`
+	URL                   string              `yaml:"url" mapstructure:"url"`
+	BearerToken           string              `yaml:"bearerToken" mapstructure:"bearerToken"`
+	InsecureSkipTLSVerify bool                `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
+}
+
 type LocalDeps struct {
-	KubeconfigPath        string `yaml:"kubeconfigPath" mapstructure:"kubeconfigPath"`
-	PrometheusURL         string `yaml:"prometheusURL" mapstructure:"prometheusURL"`
-	InsecureSkipTLSVerify bool   `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
+	KubeconfigPath        string                `yaml:"kubeconfigPath" mapstructure:"kubeconfigPath"`
+	PrometheusURL         string                `yaml:"prometheusURL" mapstructure:"prometheusURL"`
+	InsecureSkipTLSVerify bool                  `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
+	MetricsProvider       MetricsProviderConfig `yaml:"metricsProvider" mapstructure:"metricsProvider"`
 }
 
 type InClusterDeps struct {
-	PrometheusURL         string `yaml:"prometheusURL" mapstructure:"prometheusURL"`
-	InsecureSkipTLSVerify bool   `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
+	PrometheusURL         string                `yaml:"prometheusURL" mapstructure:"prometheusURL"`
+	InsecureSkipTLSVerify bool                  `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
+	MetricsProvider       MetricsProviderConfig `yaml:"metricsProvider" mapstructure:"metricsProvider"`
 }
 
 type ControllerConfig struct {

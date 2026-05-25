@@ -11,13 +11,16 @@ import (
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/redaction"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type PrometheusClientConfig struct {
 	// For Client
 	PrometheusURL       string
+	ProviderName        string
 	BearerToken         string
 	QueryTimeout        time.Duration
 	MaxConnsPerHost     int
@@ -45,6 +48,10 @@ type PrometheusProvider struct {
 }
 
 func NewPrometheusProvider(ctx context.Context, config *PrometheusClientConfig) (*PrometheusProvider, error) {
+	if config.ProviderName == "" {
+		config.ProviderName = "prometheus"
+	}
+
 	// Create optimized HTTP transport
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
@@ -89,12 +96,15 @@ func NewPrometheusProvider(ctx context.Context, config *PrometheusClientConfig) 
 		Client:  httpClient,
 	})
 	if err != nil {
-		logging.Error(ctx, "Failed to create Prometheus client", err)
-		return nil, fmt.Errorf("failed to create prometheus client: %w", err)
+		logging.Error(ctx, fmt.Sprintf("Failed to create %s metrics provider client", config.ProviderName), err)
+		return nil, fmt.Errorf("failed to create %s metrics provider client: %w", config.ProviderName, err)
 	}
-	client := v1.NewAPI(apiClient)
+	client := v1.API(v1.NewAPI(apiClient))
+	if config.BearerToken != "" {
+		client = redactingAPI{API: client, bearerToken: config.BearerToken}
+	}
 
-	logging.Infof(ctx, "Prometheus client initialized with URL: %s", config.PrometheusURL)
+	logging.Infof(ctx, "%s metrics provider client initialized with URL: %s", config.ProviderName, config.PrometheusURL)
 	logging.Infof(ctx, "  - Query timeout: %v", config.QueryTimeout)
 	logging.Infof(ctx, "  - Max connections per host: %d", config.MaxConnsPerHost)
 	logging.Infof(ctx, "  - Max idle connections: %d", config.MaxIdleConns)
@@ -109,4 +119,42 @@ func NewPrometheusProvider(ctx context.Context, config *PrometheusClientConfig) 
 
 func (p *PrometheusProvider) GetClient() v1.API {
 	return p.client
+}
+
+func (p *PrometheusProvider) ProviderName() string {
+	if p == nil || p.config == nil || p.config.ProviderName == "" {
+		return "prometheus"
+	}
+	return p.config.ProviderName
+}
+
+func (p *PrometheusProvider) redactError(err error) error {
+	if p == nil || p.config == nil {
+		return err
+	}
+	return redactErrorWithToken(err, p.config.BearerToken)
+}
+
+func redactErrorWithToken(err error, bearerToken string) error {
+	return redaction.Error(err, bearerToken)
+}
+
+type redactingAPI struct {
+	v1.API
+	bearerToken string
+}
+
+func (api redactingAPI) Query(ctx context.Context, query string, ts time.Time, opts ...v1.Option) (model.Value, v1.Warnings, error) {
+	value, warnings, err := api.API.Query(ctx, query, ts, opts...)
+	return value, warnings, redactErrorWithToken(err, api.bearerToken)
+}
+
+func (api redactingAPI) QueryRange(ctx context.Context, query string, r v1.Range, opts ...v1.Option) (model.Value, v1.Warnings, error) {
+	value, warnings, err := api.API.QueryRange(ctx, query, r, opts...)
+	return value, warnings, redactErrorWithToken(err, api.bearerToken)
+}
+
+func (api redactingAPI) Buildinfo(ctx context.Context) (v1.BuildinfoResult, error) {
+	buildInfo, err := api.API.Buildinfo(ctx)
+	return buildInfo, redactErrorWithToken(err, api.bearerToken)
 }

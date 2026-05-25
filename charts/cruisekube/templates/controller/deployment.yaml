@@ -52,6 +52,13 @@ spec:
           resources:
             {{- toYaml .Values.cruisekubeController.resources | nindent 12 }}
           env:
+            {{- $controllerEnv := .Values.cruisekubeController.env | default dict }}
+            {{- $metricsProvider := .Values.cruisekubeController.metricsProvider | default dict }}
+            {{- $metricsProviderType := "" }}
+            {{- if hasKey $metricsProvider "type" }}
+            {{- $metricsProviderType = ($metricsProvider.type | toString | trim) }}
+            {{- end }}
+            {{- include "cruisekubeController.validateMetricsProviderEnv" (dict "controllerEnv" $controllerEnv "metricsProviderType" $metricsProviderType) }}
             {{- if .Values.global.postgresql.auth }}
             {{- if .Values.global.postgresql.auth.host }}
             - name: CRUISEKUBE_DB_HOST
@@ -74,10 +81,11 @@ spec:
               value: {{ .Values.global.postgresql.auth.database | quote }}
             {{- end }}
             {{- end }}
-            {{- range $key, $value := .Values.cruisekubeController.env }}
+            {{- range $key, $value := $controllerEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- include "cruisekubeController.metricsProviderEnv" (dict "metricsProvider" $metricsProvider "metricsProviderType" $metricsProviderType) | nindent 12 }}
             {{- $adminEnabled := eq (include "cruisekubeController.adminEnabled" . | trim) "true" }}
             - name: CRUISEKUBE_SERVER_AUTH_ENABLED
               value: {{ $adminEnabled | quote }}

@@ -130,3 +130,49 @@ ServiceMonitor labels - merges common labels with servicemonitor-specific labels
 {{- $serviceMonitorLabels := mergeOverwrite $commonLabels $prometheusLabel .Values.cruisekubeController.serviceMonitor.additionalLabels }}
 {{- toYaml $serviceMonitorLabels }}
 {{- end }}
+
+{{/*
+Validate that structured metrics provider values are not mixed with equivalent raw env vars.
+*/}}
+{{- define "cruisekubeController.validateMetricsProviderEnv" -}}
+{{- $controllerEnv := .controllerEnv | default dict -}}
+{{- $metricsProviderType := .metricsProviderType | default "" -}}
+{{- if $metricsProviderType -}}
+{{- $structuredMetricsProviderEnvNames := list "CRUISEKUBE_METRICS_PROVIDER" "CRUISEKUBE_METRICS_PROVIDER_URL" "CRUISEKUBE_METRICS_PROVIDER_INSECURE_SKIP_TLS_VERIFY" "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_TYPE" "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_URL" "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_INSECURESKIPTLSVERIFY" "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN" "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_TYPE" "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_URL" "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY" "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN" -}}
+{{- range $envName := $structuredMetricsProviderEnvNames -}}
+{{- if hasKey $controllerEnv $envName -}}
+{{- fail (printf "cruisekubeController.metricsProvider.type is set, so cruisekubeController.env must not include structured metrics provider env var %s; configure metrics provider only via cruisekubeController.metricsProvider" $envName) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Render structured metrics provider env vars for the in-cluster controller runtime.
+*/}}
+{{- define "cruisekubeController.metricsProviderEnv" -}}
+{{- $metricsProvider := .metricsProvider | default dict -}}
+{{- $metricsProviderType := .metricsProviderType | default "" -}}
+{{- if $metricsProviderType }}
+- name: CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_TYPE
+  value: {{ $metricsProviderType | quote }}
+- name: CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_URL
+  value: {{ $metricsProvider.url | default "" | quote }}
+- name: CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY
+  {{- if hasKey $metricsProvider "insecureSkipTLSVerify" }}
+  value: {{ $metricsProvider.insecureSkipTLSVerify | quote }}
+  {{- else }}
+  value: "false"
+  {{- end }}
+{{- if $metricsProvider.bearerTokenExistingSecret }}
+- name: CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN
+  valueFrom:
+    secretKeyRef:
+      name: {{ $metricsProvider.bearerTokenExistingSecret | quote }}
+      key: {{ $metricsProvider.bearerTokenExistingSecretKey | required "cruisekubeController.metricsProvider.bearerTokenExistingSecretKey is required when bearerTokenExistingSecret is set" | quote }}
+{{- else if $metricsProvider.bearerToken }}
+- name: CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN
+  value: {{ $metricsProvider.bearerToken | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

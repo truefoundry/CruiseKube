@@ -1,11 +1,11 @@
 ---
 icon: lucide/list-checks
 title: "Pre-requisites"
-description: "Kubernetes version, Prometheus, PostgreSQL, and tooling required before installing CruiseKube with Helm."
+description: "Kubernetes version, Prometheus-compatible metrics, PostgreSQL, and tooling required before installing CruiseKube with Helm."
 keywords:
   - CruiseKube prerequisites
   - Kubernetes 1.33
-  - Prometheus
+  - Prometheus-compatible metrics
 ---
 
 # Pre-requisites
@@ -17,18 +17,18 @@ Install these **before** [Installation](gs-installation.md). Missing any item us
 
 | Requirement | Notes |
 |-------------|--------|
-| **Kubernetes 1.33+** | In-place pod resource updates are part of the design; older versions are unsupported. PSI-aware optimization requires 1.34+; see Prometheus section below. |
- |
+| **Kubernetes 1.33+** | In-place pod resource updates are part of the design; older versions are unsupported. PSI-aware optimization requires 1.34+; see metrics backend section below. |
 | **kubectl** | Configured for the target cluster context. |
 | **Helm 3** | For installing the official chart (OCI registry). |
 
 
-## Prometheus
+## Prometheus-compatible metrics backend
 
-CruiseKube reads **container and node metrics** (usage, throttling, PSI where exposed, etc.) from **Prometheus**.
+CruiseKube reads **container, node, and Kubernetes metadata metrics** from exactly one Prometheus-compatible query endpoint: either Prometheus itself or Kloudfuse with Prometheus-compatible Kubernetes metrics ingestion enabled. See [Prometheus metric requirements](../documentation/reference/prometheus-metrics.md) for the full metric, label, and `job` inventory, including Kloudfuse ingestion notes.
 
-- You may use an **existing** Prometheus or install one via Helm (given below).
-- Set `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` (or equivalent) to a URL reachable **from the controller pods** (in-cluster Service URL, not `localhost`).
+- You may use an **existing** Prometheus, **Kloudfuse** configured to ingest Kubernetes metrics with Prometheus-compatible metric names/labels, or install Prometheus via Helm (given below).
+- Set either legacy `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` for Prometheus or structured metrics-provider env/Helm values for `prometheus`/`kloudfuse` to a URL reachable **from the controller pods** (in-cluster Service URL or remote HTTPS URL, not `localhost`).
+- Ensure kubelet/cAdvisor, kube-state-metrics, and node-exporter series preserve the expected `job`, `namespace`, `pod`, `container`, `node`, and workload owner labels. For Kloudfuse, validate this in the same tenant/project and backend view that CruiseKube will query.
 
 ??? note "Optional: install Prometheus via Helm"
     If you do not already have Prometheus, you can add **kube-prometheus-stack**. A second install can fail if Prometheus already exists in the namespace—reuse the existing instance instead.
@@ -59,7 +59,7 @@ CruiseKube persists **workload statistics**, **recommendations**, and **per-work
 
 ## Network and RBAC
 
-- Controller and webhook must reach **kube-apiserver**, **Prometheus**, and **PostgreSQL**.  
+- Controller and webhook must reach **kube-apiserver**, the configured **Prometheus-compatible metrics provider** (Prometheus or Kloudfuse), and **PostgreSQL**.  
 - The chart installs **RBAC** and **MutatingWebhookConfiguration** resources; ensure your GitOps / policy engines allow them.
 
 
@@ -67,6 +67,6 @@ CruiseKube persists **workload statistics**, **recommendations**, and **per-work
 ## What you do *not* need (for a minimal install)
 
 - Grafana (optional for you; not required by CruiseKube).  
-- A separate metrics long-term store (CruiseKube queries Prometheus directly).
+- A separate metrics long-term store, unless you intentionally use a remote Prometheus-compatible backend such as Kloudfuse.
 
 

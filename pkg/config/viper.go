@@ -23,8 +23,16 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("dependencies.local.kubeconfigPath", "")
 	v.SetDefault("dependencies.local.prometheusURL", "")
 	v.SetDefault("dependencies.local.insecureSkipTLSVerify", false)
+	v.SetDefault("dependencies.local.metricsProvider.type", "")
+	v.SetDefault("dependencies.local.metricsProvider.url", "")
+	v.SetDefault("dependencies.local.metricsProvider.bearerToken", "")
+	v.SetDefault("dependencies.local.metricsProvider.insecureSkipTLSVerify", false)
 	v.SetDefault("dependencies.inCluster.prometheusURL", "")
 	v.SetDefault("dependencies.inCluster.insecureSkipTLSVerify", false)
+	v.SetDefault("dependencies.inCluster.metricsProvider.type", "")
+	v.SetDefault("dependencies.inCluster.metricsProvider.url", "")
+	v.SetDefault("dependencies.inCluster.metricsProvider.bearerToken", "")
+	v.SetDefault("dependencies.inCluster.metricsProvider.insecureSkipTLSVerify", false)
 	v.SetDefault("controller.tasks.applyRecommendation.enabled", true)
 	v.SetDefault("controller.tasks.applyRecommendation.schedule", "5m")
 	v.SetDefault("controller.tasks.applyRecommendation.nodeStatsURL.host", "localhost:8080")
@@ -162,18 +170,8 @@ func (c *Config) ValidateWebhookExecutionMode(ctx context.Context) error {
 }
 
 func (c *Config) ValidateControllerExecutionMode(ctx context.Context) error {
-	controllerMode := strings.TrimSpace(string(c.ControllerMode))
-	switch controllerMode {
-	case string(ClusterModeLocal):
-		if strings.TrimSpace(c.Dependencies.Local.PrometheusURL) == "" {
-			return fmt.Errorf("dependencies.local.prometheusURL is required in local mode")
-		}
-	case string(ClusterModeInCluster):
-		if strings.TrimSpace(c.Dependencies.InCluster.PrometheusURL) == "" {
-			return fmt.Errorf("dependencies.inCluster.prometheusURL is required in inCluster mode")
-		}
-	default:
-		return fmt.Errorf("invalid controller-mode: %s (expected local|in-cluster)", controllerMode)
+	if _, err := c.ActiveMetricsProviderConfig(); err != nil {
+		return err
 	}
 
 	var missingTaskConfigs []string
@@ -187,6 +185,63 @@ func (c *Config) ValidateControllerExecutionMode(ctx context.Context) error {
 	}
 
 	return c.validateUsageTelemetryForController(ctx)
+}
+
+// ActiveMetricsProviderConfig returns the metrics provider configuration for the
+// active dependency block selected by controllerMode. An empty provider type is
+// treated as prometheus for backward compatibility.
+func (c *Config) ActiveMetricsProviderConfig() (MetricsProviderConfig, error) {
+	controllerMode := strings.TrimSpace(string(c.ControllerMode))
+	switch controllerMode {
+	case string(ClusterModeLocal):
+		return resolveActiveMetricsProviderConfig(
+			"dependencies.local",
+			c.Dependencies.Local.MetricsProvider,
+			c.Dependencies.Local.PrometheusURL,
+			c.Dependencies.Local.InsecureSkipTLSVerify,
+		)
+	case string(ClusterModeInCluster):
+		return resolveActiveMetricsProviderConfig(
+			"dependencies.inCluster",
+			c.Dependencies.InCluster.MetricsProvider,
+			c.Dependencies.InCluster.PrometheusURL,
+			c.Dependencies.InCluster.InsecureSkipTLSVerify,
+		)
+	default:
+		return MetricsProviderConfig{}, fmt.Errorf("invalid controller-mode: %s (expected local|in-cluster)", controllerMode)
+	}
+}
+
+func resolveActiveMetricsProviderConfig(configPath string, provider MetricsProviderConfig, legacyPrometheusURL string, legacyInsecureSkipTLSVerify bool) (MetricsProviderConfig, error) {
+	providerType := MetricsProviderType(strings.TrimSpace(string(provider.Type)))
+	if providerType == "" {
+		providerType = MetricsProviderTypePrometheus
+	}
+	provider.Type = providerType
+	provider.URL = strings.TrimSpace(provider.URL)
+	provider.BearerToken = strings.TrimSpace(provider.BearerToken)
+
+	switch providerType {
+	case MetricsProviderTypePrometheus:
+		if provider.URL == "" {
+			provider.URL = strings.TrimSpace(legacyPrometheusURL)
+			provider.InsecureSkipTLSVerify = provider.InsecureSkipTLSVerify || legacyInsecureSkipTLSVerify
+		}
+		if provider.URL == "" {
+			return MetricsProviderConfig{}, fmt.Errorf("%s.metricsProvider.url or %s.prometheusURL is required for prometheus metrics provider", configPath, configPath)
+		}
+		return provider, nil
+	case MetricsProviderTypeKloudfuse:
+		if provider.URL == "" {
+			return MetricsProviderConfig{}, fmt.Errorf("%s.metricsProvider.url is required for kloudfuse metrics provider", configPath)
+		}
+		if provider.BearerToken == "" {
+			return MetricsProviderConfig{}, fmt.Errorf("%s.metricsProvider.bearerToken is required for kloudfuse metrics provider", configPath)
+		}
+		return provider, nil
+	default:
+		return MetricsProviderConfig{}, fmt.Errorf("invalid metrics provider type %q at %s.metricsProvider.type (valid values: %s, %s)", providerType, configPath, MetricsProviderTypePrometheus, MetricsProviderTypeKloudfuse)
+	}
 }
 
 func (c *Config) validateUsageTelemetryForController(ctx context.Context) error {

@@ -10,6 +10,7 @@ import (
 	"github.com/cenkalti/backoff/v5"
 	"github.com/truefoundry/cruisekube/pkg/adapters/database"
 	"github.com/truefoundry/cruisekube/pkg/adapters/kube"
+	"github.com/truefoundry/cruisekube/pkg/adapters/metricsprovider"
 	"github.com/truefoundry/cruisekube/pkg/adapters/metricsprovider/prometheus"
 	usageadapter "github.com/truefoundry/cruisekube/pkg/adapters/usagetelemetry"
 	"github.com/truefoundry/cruisekube/pkg/audit"
@@ -205,19 +206,13 @@ func buildLocalClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.
 		return nil, nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	promClient, err := prometheus.NewPrometheusProvider(
-		clusterCtx,
-		prometheus.GetPrometheusClientConfig(
-			cfg.Dependencies.Local.PrometheusURL,
-			cfg.Dependencies.Local.InsecureSkipTLSVerify,
-		),
-	)
+	metricsProvider, err := buildMetricsProvider(clusterCtx, cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create prometheus client: %w", err)
+		return nil, nil, err
 	}
 
-	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, promClient.GetClient())
-	return clusterManager, promClient, nil
+	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, metricsProvider.GetClient())
+	return clusterManager, metricsProvider, nil
 }
 
 func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Manager, *prometheus.PrometheusProvider, error) {
@@ -234,19 +229,26 @@ func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Man
 		return nil, nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
-	promClient, err := prometheus.NewPrometheusProvider(
-		clusterCtx,
-		prometheus.GetPrometheusClientConfig(
-			cfg.Dependencies.InCluster.PrometheusURL,
-			cfg.Dependencies.InCluster.InsecureSkipTLSVerify,
-		),
-	)
+	metricsProvider, err := buildMetricsProvider(clusterCtx, cfg)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create prometheus client: %w", err)
+		return nil, nil, err
 	}
 
-	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, promClient.GetClient())
-	return clusterManager, promClient, nil
+	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, metricsProvider.GetClient())
+	return clusterManager, metricsProvider, nil
+}
+
+func buildMetricsProvider(ctx context.Context, cfg *config.Config) (*prometheus.PrometheusProvider, error) {
+	metricsProviderConfig, err := cfg.ActiveMetricsProviderConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve active metrics provider config: %w", err)
+	}
+
+	metricsProvider, err := metricsprovider.NewProvider(ctx, metricsProviderConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create metrics provider: %w", err)
+	}
+	return metricsProvider, nil
 }
 
 func startControllerHTTPServer(runtimeManager *runtimeManager, cfg *config.Config, handlerDeps handlers.HandlerDependencies) {

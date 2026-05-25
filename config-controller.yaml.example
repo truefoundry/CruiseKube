@@ -3,12 +3,25 @@ dependencies:
   local:
     kubeconfigPath: ""
     prometheusURL: "http://localhost:9090"
+    # Optional structured metrics provider. Leave commented to use prometheusURL above.
+    # For Kloudfuse, keep bearerToken out of this file and set an env var instead.
+    # metricsProvider:
+    #   type: kloudfuse
+    #   url: "https://kloudfuse.example.com"
+    #   bearerToken: ""
+    #   insecureSkipTLSVerify: false
   inCluster:
     prometheusURL: ""
+    # Optional structured metrics provider for in-cluster runs.
+    # metricsProvider:
+    #   type: prometheus
+    #   url: ""
+    #   bearerToken: ""
+    #   insecureSkipTLSVerify: false
 executionMode: both
 controller:
   targetNamespace: "prometheus"
-  targetClusterID: "dev
+  targetClusterID: "dev"
   tasks:
     createStats:
       enabled: true

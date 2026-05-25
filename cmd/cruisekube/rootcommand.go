@@ -25,9 +25,12 @@ func newRootCommand(ctx context.Context) *cobra.Command {
 func addPersistentFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringVar(&configFilePath, "config-file-path", "config.yaml", "Path to configuration file")
 	rootCmd.PersistentFlags().String("execution-mode", "", "Execution mode: controller|webhook|both")
-	rootCmd.PersistentFlags().String("controller-mode", "", "Controller mode: local|inCluster")
+	rootCmd.PersistentFlags().String("controller-mode", "", "Controller mode: local|in-cluster")
 	rootCmd.PersistentFlags().String("kubeconfig-path", "", "Path to kubeconfig file (local mode)")
 	rootCmd.PersistentFlags().String("prometheus-url", "", "Prometheus URL")
+	rootCmd.PersistentFlags().String("metrics-provider", "", "Metrics provider: prometheus|kloudfuse")
+	rootCmd.PersistentFlags().String("metrics-provider-url", "", "Metrics provider URL")
+	rootCmd.PersistentFlags().Bool("metrics-provider-insecure-skip-tls-verify", false, "Skip TLS certificate verification for metrics provider")
 	rootCmd.PersistentFlags().String("server-port", "", "Server port")
 	rootCmd.PersistentFlags().Bool("enable-dev-apis", false, "Enable development APIs")
 	rootCmd.PersistentFlags().String("webhook-port", "", "Webhook port")
@@ -42,6 +45,9 @@ func bindPersistentFlags(ctx context.Context, rootCmd *cobra.Command) {
 	bindPFlagOrFatal(ctx, "dependencies.local.kubeconfigPath", rootCmd.PersistentFlags().Lookup("kubeconfig-path"))
 	bindPFlagOrFatal(ctx, "dependencies.local.prometheusURL", rootCmd.PersistentFlags().Lookup("prometheus-url"))
 	bindPFlagOrFatal(ctx, "dependencies.inCluster.prometheusURL", rootCmd.PersistentFlags().Lookup("prometheus-url"))
+	bindMetricsProviderOverride(ctx, rootCmd, "type", "metrics-provider", "CRUISEKUBE_METRICS_PROVIDER")
+	bindMetricsProviderOverride(ctx, rootCmd, "url", "metrics-provider-url", "CRUISEKUBE_METRICS_PROVIDER_URL")
+	bindMetricsProviderOverride(ctx, rootCmd, "insecureSkipTLSVerify", "metrics-provider-insecure-skip-tls-verify", "CRUISEKUBE_METRICS_PROVIDER_INSECURE_SKIP_TLS_VERIFY")
 	bindPFlagOrFatal(ctx, "server.port", rootCmd.PersistentFlags().Lookup("server-port"))
 	bindPFlagOrFatal(ctx, "server.enableDevAPIs", rootCmd.PersistentFlags().Lookup("enable-dev-apis"))
 	bindPFlagOrFatal(ctx, "webhook.port", rootCmd.PersistentFlags().Lookup("webhook-port"))
@@ -50,8 +56,22 @@ func bindPersistentFlags(ctx context.Context, rootCmd *cobra.Command) {
 	bindPFlagOrFatal(ctx, "db.filePath", rootCmd.PersistentFlags().Lookup("db-file-path"))
 }
 
+func bindMetricsProviderOverride(ctx context.Context, rootCmd *cobra.Command, keySuffix, flagName, envName string) {
+	for _, dependencyBlock := range []string{"local", "inCluster"} {
+		key := "dependencies." + dependencyBlock + ".metricsProvider." + keySuffix
+		bindPFlagOrFatal(ctx, key, rootCmd.PersistentFlags().Lookup(flagName))
+		bindEnvOrFatal(ctx, key, envName)
+	}
+}
+
 func bindPFlagOrFatal(ctx context.Context, key string, flag *pflag.Flag) {
 	if err := v.BindPFlag(key, flag); err != nil {
 		logging.Fatalf(ctx, "Failed to bind flag: %v", err)
+	}
+}
+
+func bindEnvOrFatal(ctx context.Context, key string, env string) {
+	if err := v.BindEnv(key, env); err != nil {
+		logging.Fatalf(ctx, "Failed to bind env: %v", err)
 	}
 }
