@@ -99,7 +99,7 @@ func NewPrometheusProvider(ctx context.Context, config *PrometheusClientConfig) 
 		logging.Error(ctx, fmt.Sprintf("Failed to create %s metrics provider client", config.ProviderName), err)
 		return nil, fmt.Errorf("failed to create %s metrics provider client: %w", config.ProviderName, err)
 	}
-	client := v1.API(v1.NewAPI(apiClient))
+	client := v1.NewAPI(apiClient)
 	if config.BearerToken != "" {
 		client = redactingAPI{API: client, bearerToken: config.BearerToken}
 	}
@@ -136,7 +136,14 @@ func (p *PrometheusProvider) redactError(err error) error {
 }
 
 func redactErrorWithToken(err error, bearerToken string) error {
-	return redaction.Error(err, bearerToken)
+	if err == nil {
+		return nil
+	}
+	redacted := redaction.String(err.Error(), bearerToken)
+	if redacted == err.Error() {
+		return err
+	}
+	return fmt.Errorf("%s", redacted)
 }
 
 type redactingAPI struct {
