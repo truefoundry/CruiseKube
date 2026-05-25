@@ -123,6 +123,51 @@ func TestActiveMetricsProviderConfigPrometheusUsesMetricsProviderURL(t *testing.
 	}
 }
 
+func TestActiveMetricsProviderConfigStructuredURLInheritsDependencyInsecureSkipTLSVerify(t *testing.T) {
+	tests := []struct {
+		name           string
+		providerConfig MetricsProviderConfig
+		wantURL        string
+	}{
+		{
+			name: "prometheus structured URL",
+			providerConfig: MetricsProviderConfig{
+				Type: MetricsProviderTypePrometheus,
+				URL:  "https://configured-prometheus.example",
+			},
+			wantURL: "https://configured-prometheus.example",
+		},
+		{
+			name: "kloudfuse",
+			providerConfig: MetricsProviderConfig{
+				Type:        MetricsProviderTypeKloudfuse,
+				URL:         "https://kloudfuse.example.com",
+				BearerToken: "token",
+			},
+			wantURL: "https://kloudfuse.example.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := validControllerConfig()
+			cfg.Dependencies.InCluster.InsecureSkipTLSVerify = true
+			cfg.Dependencies.InCluster.MetricsProvider = tt.providerConfig
+
+			provider, err := cfg.ActiveMetricsProviderConfig()
+			if err != nil {
+				t.Fatalf("expected active provider config, got %v", err)
+			}
+			if provider.URL != tt.wantURL {
+				t.Fatalf("expected metricsProvider URL %q, got %q", tt.wantURL, provider.URL)
+			}
+			if !provider.InsecureSkipTLSVerify {
+				t.Fatal("expected dependency insecureSkipTLSVerify to be applied with structured metricsProvider URL")
+			}
+		})
+	}
+}
+
 func TestActiveMetricsProviderConfigPrometheusLegacyURLPreservesStructuredInsecureSkipTLSVerify(t *testing.T) {
 	cfg := validControllerConfig()
 	cfg.Dependencies.InCluster.PrometheusURL = " https://legacy-prometheus.example "

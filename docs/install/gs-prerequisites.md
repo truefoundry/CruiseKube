@@ -59,7 +59,7 @@ CruiseKube persists **workload statistics**, **recommendations**, and **per-work
 
 ## Network and RBAC
 
-- Controller and webhook must reach **kube-apiserver**, the configured **Prometheus-compatible metrics provider** (Prometheus or Kloudfuse), and **PostgreSQL**.  
+- Controller and webhook must reach **kube-apiserver**, the configured **Prometheus-compatible metrics provider** (Prometheus or Kloudfuse), and **PostgreSQL**.
 - The chart installs **RBAC** and **MutatingWebhookConfiguration** resources; ensure your GitOps / policy engines allow them.
 
 

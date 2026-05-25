@@ -128,13 +128,6 @@ func (p *PrometheusProvider) ProviderName() string {
 	return p.config.ProviderName
 }
 
-func (p *PrometheusProvider) redactError(err error) error {
-	if p == nil || p.config == nil {
-		return err
-	}
-	return redactErrorWithToken(err, p.config.BearerToken)
-}
-
 func redactErrorWithToken(err error, bearerToken string) error {
 	if err == nil {
 		return nil

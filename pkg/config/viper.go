@@ -212,7 +212,7 @@ func (c *Config) ActiveMetricsProviderConfig() (MetricsProviderConfig, error) {
 	}
 }
 
-func resolveActiveMetricsProviderConfig(configPath string, provider MetricsProviderConfig, legacyPrometheusURL string, legacyInsecureSkipTLSVerify bool) (MetricsProviderConfig, error) {
+func resolveActiveMetricsProviderConfig(configPath string, provider MetricsProviderConfig, legacyPrometheusURL string, dependencyInsecureSkipTLSVerify bool) (MetricsProviderConfig, error) {
 	providerType := MetricsProviderType(strings.TrimSpace(string(provider.Type)))
 	if providerType == "" {
 		providerType = MetricsProviderTypePrometheus
@@ -220,12 +220,14 @@ func resolveActiveMetricsProviderConfig(configPath string, provider MetricsProvi
 	provider.Type = providerType
 	provider.URL = strings.TrimSpace(provider.URL)
 	provider.BearerToken = strings.TrimSpace(provider.BearerToken)
+	// Preserve compatibility with dependencies.*.insecureSkipTLSVerify for both
+	// structured and legacy metrics provider configuration.
+	provider.InsecureSkipTLSVerify = provider.InsecureSkipTLSVerify || dependencyInsecureSkipTLSVerify
 
 	switch providerType {
 	case MetricsProviderTypePrometheus:
 		if provider.URL == "" {
 			provider.URL = strings.TrimSpace(legacyPrometheusURL)
-			provider.InsecureSkipTLSVerify = provider.InsecureSkipTLSVerify || legacyInsecureSkipTLSVerify
 		}
 		if provider.URL == "" {
 			return MetricsProviderConfig{}, fmt.Errorf("%s.metricsProvider.url or %s.prometheusURL is required for prometheus metrics provider", configPath, configPath)

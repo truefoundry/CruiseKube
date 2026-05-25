@@ -111,7 +111,6 @@ func (p *PrometheusProvider) ExecuteQueryWithRetry(ctx context.Context, clusterI
 		logging.Infof(ctx, "Query for %s: %v", queryID, CompressQueryForLogging(query))
 		attemptStart := time.Now()
 		result, warnings, lastErr = p.client.Query(ctx, query, time.Now())
-		lastErr = p.redactError(lastErr)
 		attemptDuration := time.Since(attemptStart)
 
 		p.releaseQuerySlot(ctx, clusterId)
