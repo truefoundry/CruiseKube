@@ -8,8 +8,8 @@ import (
 )
 
 type ErrorReporter interface {
-	CaptureErrors(errs []error, msg string, tags map[string]string)
-	CaptureMessage(msg string, tags map[string]string)
+	CaptureErrors(errs []error, msg string, fingerprint []string, tags map[string]string)
+	CaptureMessage(msg string, fingerprint []string, tags map[string]string)
 	Flush(timeout time.Duration)
 }
 
@@ -25,23 +25,20 @@ func FlushReporter(timeout time.Duration) {
 	}
 }
 
-func CaptureToReporter(ctx context.Context, msg string, args ...any) {
+func CaptureToReporter(ctx context.Context, fingerprint []string, msg string, args ...any) {
 	if errorReporter == nil {
 		return
 	}
-
 	tags := contextutils.GetAttributes(ctx)
-
 	var errs []error
 	for _, arg := range args {
 		if err, ok := arg.(error); ok {
 			errs = append(errs, err)
 		}
 	}
-
 	if len(errs) > 0 {
-		errorReporter.CaptureErrors(errs, msg, tags)
+		errorReporter.CaptureErrors(errs, msg, fingerprint, tags)
 	} else {
-		errorReporter.CaptureMessage(msg, tags)
+		errorReporter.CaptureMessage(msg, fingerprint, tags)
 	}
 }
