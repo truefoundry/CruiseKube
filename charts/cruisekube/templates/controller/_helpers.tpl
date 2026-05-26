@@ -138,8 +138,27 @@ Validate that structured metrics provider values are not mixed with equivalent r
 {{- $controllerEnv := .controllerEnv | default dict -}}
 {{- $metricsProviderType := .metricsProviderType | default "" -}}
 {{- if $metricsProviderType -}}
-{{- $structuredMetricsProviderEnvNames := list "CRUISEKUBE_METRICS_PROVIDER" "CRUISEKUBE_METRICS_PROVIDER_URL" "CRUISEKUBE_METRICS_PROVIDER_INSECURE_SKIP_TLS_VERIFY" "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_TYPE" "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_URL" "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_INSECURESKIPTLSVERIFY" "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN" "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_TYPE" "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_URL" "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY" "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN" -}}
-{{- range $envName := $structuredMetricsProviderEnvNames -}}
+{{- /* Structured metrics provider env vars. */ -}}
+{{- $structuredProviderEnvNames := list
+  "CRUISEKUBE_METRICS_PROVIDER"
+  "CRUISEKUBE_METRICS_PROVIDER_URL"
+  "CRUISEKUBE_METRICS_PROVIDER_INSECURE_SKIP_TLS_VERIFY"
+  "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_TYPE"
+  "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_URL"
+  "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_INSECURESKIPTLSVERIFY"
+  "CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN"
+  "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_TYPE"
+  "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_URL"
+  "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY"
+  "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN"
+-}}
+{{- /* Legacy dependency-level TLS env vars. */ -}}
+{{- $legacyDependencyTLSEnvNames := list
+  "CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY"
+  "CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY"
+-}}
+{{- $conflictingMetricsProviderEnvNames := concat $structuredProviderEnvNames $legacyDependencyTLSEnvNames -}}
+{{- range $envName := $conflictingMetricsProviderEnvNames -}}
 {{- if hasKey $controllerEnv $envName -}}
 {{- fail (printf "cruisekubeController.metricsProvider.type is set, so cruisekubeController.env must not include structured metrics provider env var %s; configure metrics provider only via cruisekubeController.metricsProvider" $envName) -}}
 {{- end -}}
@@ -159,11 +178,7 @@ Render structured metrics provider env vars for the in-cluster controller runtim
 - name: CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_URL
   value: {{ $metricsProvider.url | default "" | quote }}
 - name: CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY
-  {{- if hasKey $metricsProvider "insecureSkipTLSVerify" }}
-  value: {{ $metricsProvider.insecureSkipTLSVerify | quote }}
-  {{- else }}
-  value: "false"
-  {{- end }}
+  value: {{ $metricsProvider.insecureSkipTLSVerify | default false | quote }}
 {{- if $metricsProvider.bearerTokenExistingSecret }}
 - name: CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN
   valueFrom:
