@@ -158,8 +158,8 @@ You can override any config value with flags, for example:
 | Section | Purpose |
 |--------|---------|
 | **controllerMode** | `local` = run on your machine using kubeconfig; `inCluster` = run inside the cluster. Use `local` for dev. |
-| **dependencies.local** | `kubeconfigPath`: path to kubeconfig (empty = current context). `prometheusURL`: legacy Prometheus URL (e.g. `http://localhost:9090`) — **must match your port-forward or Kind port**. `metricsProvider`: optional structured provider (`type`, `url`, `bearerToken`, `insecureSkipTLSVerify`) for Prometheus or Kloudfuse. Put local bearer tokens in `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN`, not in YAML. |
-| **dependencies.inCluster** | Used when `controllerMode` is `inCluster`; set legacy `prometheusURL` to the in-cluster Prometheus service URL, or use `metricsProvider` for structured Prometheus/Kloudfuse configuration. In production Helm installs, source bearer tokens from existing Kubernetes Secrets. |
+| **dependencies.local** | `kubeconfigPath`: path to kubeconfig (empty = current context). `prometheusURL`: legacy Prometheus URL (e.g. `http://localhost:9090`) — **must match your port-forward or Kind port**. `metricsProvider`: optional structured provider (`type`, `url`, `bearerToken`, `insecureSkipTLSVerify`) for Prometheus or Kloudfuse. Put local bearer tokens in `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN`, not in YAML. `insecureSkipTLSVerify` on the legacy `prometheusURL` path disables TLS verification for that connection (insecure; trusted dev only). |
+| **dependencies.inCluster** | Used when `controllerMode` is `inCluster`; set legacy `prometheusURL` to the in-cluster Prometheus service URL, or use `metricsProvider` for structured Prometheus/Kloudfuse configuration. In production Helm installs, source bearer tokens from existing Kubernetes Secrets. `insecureSkipTLSVerify` on the legacy path disables TLS verification for the in-cluster Prometheus connection (insecure; trusted dev only). |
 | **executionMode** | `controller`, `webhook`, or `both`. For local dev you typically use `controller`. |
 | **controller.tasks** | Enable/disable and schedule tasks: `createStats`, `fetchMetrics`, `applyRecommendation`, etc. For dev, `createStats` and `fetchMetrics` are usually enabled. |
 | **server** | HTTP API port (e.g. 8080), optional `basicAuth` for the stats/API. |
@@ -258,7 +258,7 @@ For Go code quality checks, the repo also exposes:
 
 The CI workflow runs `deadcode` as a separate informational job, so contributors can see current unreachable-function reports without making the pipeline fail.
 
-For testing and contribution process (PRs, changelog, etc.), see the repository-root `CONTRIBUTING.md` and `DEVELOPMENT.md` files.
+For testing and contribution process (PRs, changelog, etc.), see [CONTRIBUTING.md](https://github.com/truefoundry/CruiseKube/blob/main/CONTRIBUTING.md).
 
 ---
 

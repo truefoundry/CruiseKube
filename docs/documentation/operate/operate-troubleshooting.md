@@ -155,6 +155,3 @@ Collect and attach:
 - Whether the Prometheus-compatible endpoint can run the [metric validation queries](../reference/prometheus-metrics.md#quick-validation-queries), especially `container_cpu_usage_seconds_total`, `kube_pod_info`, and `node_load1`
 
 Then open a [GitHub Issue](https://github.com/truefoundry/CruiseKube/issues) or ask on [Discord](https://discord.gg/Dqek4xJa3N).
-
-!!! tip "Suggested media"
-    **Annotated screenshot** of a healthy dashboard + one of `kubectl get pods -n cruisekube-system` for the docs “all green” reference panel.
