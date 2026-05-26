@@ -28,13 +28,13 @@ func TestStartTimedOperationRecordsOperationDurationWithStatus(t *testing.T) {
 	}
 }
 
-func TestStartTimedOperationDefaultsEmptyStatusToComplete(t *testing.T) {
+func TestStartTimedOperationDefaultsEmptyStatusToSuccess(t *testing.T) {
 	clusterID := metricstest.UniqueLabel(t, "cluster")
 	operation := metricstest.UniqueLabel(t, "operation")
 	labels := map[string]string{
 		"cluster":   clusterID,
 		"operation": operation,
-		"status":    metrics.StatusComplete,
+		"status":    metrics.StatusSuccess,
 	}
 	before := metricstest.SampleValue(t, "cruisekube_operation_duration_seconds_count", labels)
 

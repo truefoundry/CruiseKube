@@ -14,7 +14,7 @@ func StartTimedOperation(ctx context.Context, name string) func(status string) {
 	logging.Infof(ctx, "Task %s started", name)
 	return func(status string) {
 		if status == "" {
-			status = metrics.StatusComplete
+			status = metrics.StatusSuccess
 		}
 		duration := time.Since(startTime)
 		logging.Infof(ctx, "Task %s completed in %v", name, duration)

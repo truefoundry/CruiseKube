@@ -41,13 +41,22 @@ func (deps HandlerDependencies) HandleTaskTrigger(c *gin.Context) {
 		})
 		return
 	}
+	taskClusterID := task.GetClusterID()
+	if taskClusterID != clusterID {
+		logging.Errorf(ctx, "Task '%s' belongs to cluster '%s', not requested cluster '%s'", taskName, taskClusterID, clusterID)
+		c.JSON(http.StatusNotFound, TaskTriggerResponse{
+			Status: metrics.StatusError,
+			Error:  fmt.Sprintf("Task '%s' not found in cluster '%s'", taskName, clusterID),
+		})
+		return
+	}
 
 	logging.Infof(ctx, "Manual trigger - executing task '%s'", taskName)
 
 	startedAt := time.Now()
 	defer func() {
 		if r := recover(); r != nil {
-			metrics.RecordTaskRun(clusterID, taskName, metrics.StatusPanic, metrics.TaskSourceManual, time.Since(startedAt))
+			metrics.RecordTaskRun(taskClusterID, taskName, metrics.StatusPanic, metrics.TaskSourceManual, time.Since(startedAt))
 			panic(r)
 		}
 	}()
@@ -56,7 +65,7 @@ func (deps HandlerDependencies) HandleTaskTrigger(c *gin.Context) {
 	if err := task.Run(ctx); err != nil {
 		duration := time.Since(startedAt)
 		logging.Errorf(ctx, "Task '%s' failed after %v: %v", taskName, duration, err)
-		metrics.RecordTaskRun(clusterID, taskName, metrics.StatusError, metrics.TaskSourceManual, duration)
+		metrics.RecordTaskRun(taskClusterID, taskName, metrics.StatusError, metrics.TaskSourceManual, duration)
 		c.JSON(http.StatusInternalServerError, TaskTriggerResponse{
 			Status:   metrics.StatusError,
 			Error:    err.Error(),
@@ -67,7 +76,7 @@ func (deps HandlerDependencies) HandleTaskTrigger(c *gin.Context) {
 
 	duration := time.Since(startedAt)
 	logging.Infof(ctx, "Task '%s' completed successfully in %v", taskName, duration)
-	metrics.RecordTaskRun(clusterID, taskName, metrics.StatusSuccess, metrics.TaskSourceManual, duration)
+	metrics.RecordTaskRun(taskClusterID, taskName, metrics.StatusSuccess, metrics.TaskSourceManual, duration)
 	c.JSON(http.StatusOK, TaskTriggerResponse{
 		Status:   metrics.StatusSuccess,
 		Message:  fmt.Sprintf("Task '%s' completed successfully", taskName),

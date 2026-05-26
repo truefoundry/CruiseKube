@@ -60,6 +60,56 @@ func TestHandleTaskTriggerRecordsManualPanicMetric(t *testing.T) {
 	}
 }
 
+func TestHandleTaskTriggerRejectsClusterMismatch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	requestedClusterID := "default"
+	taskClusterID := "other-cluster"
+	taskName := "manual_task_" + uniqueTaskTriggerMetricLabel(t)
+	deps := HandlerDependencies{
+		ClusterManager: &fakeTaskTriggerClusterManager{
+			task: fakeTaskTriggerTask{
+				name:      taskName,
+				clusterID: taskClusterID,
+			},
+		},
+	}
+	requestedClusterLabels := map[string]string{
+		"cluster":   requestedClusterID,
+		"task_name": taskName,
+		"status":    metrics.StatusSuccess,
+		"source":    metrics.TaskSourceManual,
+	}
+	taskClusterLabels := map[string]string{
+		"cluster":   taskClusterID,
+		"task_name": taskName,
+		"status":    metrics.StatusSuccess,
+		"source":    metrics.TaskSourceManual,
+	}
+	beforeRequestedCluster := metricstest.SampleValue(t, "cruisekube_task_duration_seconds_count", requestedClusterLabels)
+	beforeTaskCluster := metricstest.SampleValue(t, "cruisekube_task_duration_seconds_count", taskClusterLabels)
+
+	router := gin.New()
+	router.POST("/dev/clusters/:clusterID/tasks/:taskName/trigger", deps.HandleTaskTrigger)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/dev/clusters/"+requestedClusterID+"/tasks/"+taskName+"/trigger", nil)
+	router.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected status %d, got %d", http.StatusNotFound, recorder.Code)
+	}
+	if deps.ClusterManager.(*fakeTaskTriggerClusterManager).taskRunCount != 0 {
+		t.Fatalf("expected mismatched cluster task not to run")
+	}
+	if got := metricstest.SampleValue(t, "cruisekube_task_duration_seconds_count", requestedClusterLabels); got != beforeRequestedCluster {
+		t.Fatalf("expected no requested-cluster metric change, before=%v after=%v", beforeRequestedCluster, got)
+	}
+	if got := metricstest.SampleValue(t, "cruisekube_task_duration_seconds_count", taskClusterLabels); got != beforeTaskCluster {
+		t.Fatalf("expected no task-cluster metric change, before=%v after=%v", beforeTaskCluster, got)
+	}
+}
+
 func testHandleTaskTriggerRecordsManualMetric(t *testing.T, runErr error, expectedStatus int, metricStatus string) {
 	t.Helper()
 	gin.SetMode(gin.TestMode)
@@ -124,8 +174,19 @@ func (f fakeTaskTriggerTask) Run(ctx context.Context) error {
 	return f.runErr
 }
 
+type taskTriggerRunCounter struct {
+	task.Task
+	onRun func()
+}
+
+func (t taskTriggerRunCounter) Run(ctx context.Context) error {
+	t.onRun()
+	return t.Task.Run(ctx)
+}
+
 type fakeTaskTriggerClusterManager struct {
-	task task.Task
+	task         task.Task
+	taskRunCount int
 }
 
 func (f *fakeTaskTriggerClusterManager) RefreshClusters(ctx context.Context) error { return nil }
@@ -147,7 +208,7 @@ func (f *fakeTaskTriggerClusterManager) GetTask(taskName string) (task.Task, err
 	if f.task == nil || f.task.GetName() != taskName {
 		return nil, fmt.Errorf("task %s not found", taskName)
 	}
-	return f.task, nil
+	return taskTriggerRunCounter{Task: f.task, onRun: func() { f.taskRunCount++ }}, nil
 }
 func (f *fakeTaskTriggerClusterManager) ScheduleAllTasks(ctx context.Context) error { return nil }
 func (f *fakeTaskTriggerClusterManager) StopScheduler(ctx context.Context)          {}
