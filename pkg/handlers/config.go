@@ -53,13 +53,13 @@ func (deps HandlerDependencies) GetConfigHandler(c *gin.Context) {
 		} else {
 			connected = true
 			logging.Infof(ctx, "Metrics provider connection test successful for cluster %s", clusterID)
-		}
 
-		if providerConfig.Type == config.MetricsProviderTypePrometheus {
-			if buildInfo, err := clients.PrometheusClient.Buildinfo(ctx); err != nil {
-				logging.Warnf(ctx, "Prometheus build info unavailable for cluster %s: %v", clusterID, err)
-			} else {
-				providerVersion = buildInfo.Version
+			if providerConfig.Type == config.MetricsProviderTypePrometheus {
+				if buildInfo, err := clients.PrometheusClient.Buildinfo(ctx); err != nil {
+					logging.Warnf(ctx, "Prometheus build info unavailable for cluster %s: %v", clusterID, err)
+				} else {
+					providerVersion = buildInfo.Version
+				}
 			}
 		}
 	} else {

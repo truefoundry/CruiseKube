@@ -121,20 +121,7 @@ func TestGetConfigHandlerPrometheusKeepsControllerVersionAndReturnsProviderVersi
 	}))
 	defer server.Close()
 
-	deps := HandlerDependencies{
-		ClusterManager: testClusterManager{clients: &cluster.ClusterClients{PrometheusClient: newTestPrometheusClient(t, server.URL, "")}},
-		Config: &config.Config{
-			ControllerMode: config.ClusterModeLocal,
-			Dependencies: config.Dependencies{
-				Local: config.LocalDeps{
-					MetricsProvider: config.MetricsProviderConfig{
-						Type: config.MetricsProviderTypePrometheus,
-						URL:  server.URL,
-					},
-				},
-			},
-		},
-	}
+	deps := newPrometheusConfigHandlerDeps(t, server.URL)
 
 	w := executeConfigRequest(deps)
 	if w.Code != http.StatusOK {
@@ -146,6 +133,45 @@ func TestGetConfigHandlerPrometheusKeepsControllerVersionAndReturnsProviderVersi
 	}
 	if body.ProviderVersion != "2.51.0" {
 		t.Fatalf("expected providerVersion=2.51.0, got %q", body.ProviderVersion)
+	}
+}
+
+func TestGetConfigHandlerPrometheusOmitsProviderVersionWhenHealthQueryFails(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	var buildInfoHits int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/query":
+			http.Error(w, "query unavailable", http.StatusServiceUnavailable)
+		case "/api/v1/status/buildinfo":
+			buildInfoHits++
+			http.NotFound(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	deps := newPrometheusConfigHandlerDeps(t, server.URL)
+
+	w := executeConfigRequest(deps)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+	body := decodeConfigResponse(t, w)
+	if body.Connected {
+		t.Fatal("expected connected=false")
+	}
+	if body.ProviderVersion != "" {
+		t.Fatalf("expected providerVersion to be empty when health query fails, got %q", body.ProviderVersion)
+	}
+	if body.Error == "" {
+		t.Fatal("expected connection error")
+	}
+	if buildInfoHits != 0 {
+		t.Fatalf("expected buildinfo not to be called after failed health query, got %d calls", buildInfoHits)
 	}
 }
 
@@ -301,6 +327,24 @@ func decodeConfigResponse(t *testing.T, w *httptest.ResponseRecorder) configResp
 		t.Fatalf("failed to decode response: %v", err)
 	}
 	return body
+}
+
+func newPrometheusConfigHandlerDeps(t *testing.T, serverURL string) HandlerDependencies {
+	t.Helper()
+	return HandlerDependencies{
+		ClusterManager: testClusterManager{clients: &cluster.ClusterClients{PrometheusClient: newTestPrometheusClient(t, serverURL, "")}},
+		Config: &config.Config{
+			ControllerMode: config.ClusterModeLocal,
+			Dependencies: config.Dependencies{
+				Local: config.LocalDeps{
+					MetricsProvider: config.MetricsProviderConfig{
+						Type: config.MetricsProviderTypePrometheus,
+						URL:  serverURL,
+					},
+				},
+			},
+		},
+	}
 }
 
 func newTestPrometheusClient(t *testing.T, url, bearerToken string) promv1.API {
