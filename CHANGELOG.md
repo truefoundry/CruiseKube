@@ -9,6 +9,62 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+### Breaking changes
+
+* Removed legacy Prometheus URL configuration (`dependencies.*.prometheusURL`, `dependencies.*.insecureSkipTLSVerify`, `CRUISEKUBE_DEPENDENCIES_*_PROMETHEUSURL`, `CRUISEKUBE_DEPENDENCIES_*_INSECURESKIPTLSVERIFY`, and the `--prometheus-url` CLI flag). Configure metrics only through `dependencies.*.metricsProvider` or `CRUISEKUBE_DEPENDENCIES_*_METRICSPROVIDER_*` env vars (Helm: `cruisekubeController.metricsProvider`).
+
+#### Migration from legacy Prometheus settings
+
+**YAML / local config** — replace:
+
+```yaml
+dependencies:
+  local:
+    prometheusURL: "http://localhost:9090"
+    insecureSkipTLSVerify: false
+```
+
+with:
+
+```yaml
+dependencies:
+  local:
+    metricsProvider:
+      type: prometheus
+      url: "http://localhost:9090"
+      insecureSkipTLSVerify: false
+```
+
+Use the same shape under `dependencies.inCluster` for in-cluster runs.
+
+**Environment variables** — replace:
+
+| Removed | Use instead |
+|---------|-------------|
+| `CRUISEKUBE_DEPENDENCIES_LOCAL_PROMETHEUSURL` | `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_URL` |
+| `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` | `CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_URL` |
+| `CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY` | `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_INSECURESKIPTLSVERIFY` |
+| `CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY` | `CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY` |
+
+For local dev, shorthand env vars still work: `CRUISEKUBE_METRICS_PROVIDER`, `CRUISEKUBE_METRICS_PROVIDER_URL`, and `CRUISEKUBE_METRICS_PROVIDER_INSECURE_SKIP_TLS_VERIFY` (they apply to both dependency blocks).
+
+**Helm** — replace:
+
+```bash
+--set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus.example.svc:9090"
+```
+
+with:
+
+```bash
+--set cruisekubeController.metricsProvider.type=prometheus \
+--set cruisekubeController.metricsProvider.url="http://prometheus.example.svc:9090"
+```
+
+Remove any `cruisekubeController.env` entries for the legacy `PROMETHEUSURL` / `INSECURESKIPTLSVERIFY` keys; the chart fails the install if they are still present.
+
+**CLI** — use `--metrics-provider-url` instead of `--prometheus-url`.
+
 ## v0.3.1 (18-05-2026)
 
 * feat: make basic authentication optional via admin.enabled flag by @vorflux[bot] in https://github.com/truefoundry/CruiseKube/pull/246

@@ -73,10 +73,10 @@ cruisekubeController:
     ## @param cruisekubeController.controller.mode Controller mode (inCluster or external)
     mode: "in-cluster"
   metricsProvider:
-    ## @param cruisekubeController.metricsProvider.type Metrics provider type. Leave empty to use legacy Prometheus settings from cruisekubeController.env. Set to `prometheus` or `kloudfuse` to render structured provider environment variables.
-    type: ""
-    ## @param cruisekubeController.metricsProvider.url Metrics provider query URL used when type is set.
-    url: ""
+    ## @param cruisekubeController.metricsProvider.type Metrics provider type (`prometheus` or `kloudfuse`).
+    type: prometheus
+    ## @param cruisekubeController.metricsProvider.url Prometheus-compatible query base URL for the active provider.
+    url: "http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
     ## @param cruisekubeController.metricsProvider.insecureSkipTLSVerify Skip TLS certificate verification for the metrics provider when type is set.
     insecureSkipTLSVerify: false
     ## @param cruisekubeController.metricsProvider.bearerToken Metrics provider bearer token for local/dev use only. Prefer bearerTokenExistingSecret for production.
@@ -137,8 +137,6 @@ cruisekubeController:
   ## @param cruisekubeController.env [object] Environment variables to configure CruiseKube Controller. It is used to update the default values in the config file.
   env:
     CRUISEKUBE_DEPENDENCIES_LOCAL_KUBECONFIGPATH: ""
-    CRUISEKUBE_DEPENDENCIES_LOCAL_PROMETHEUSURL: "http://localhost:9090"
-    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
     CRUISEKUBE_EXECUTIONMODE: "controller"
     CRUISEKUBE_CONTROLLER_TARGETNAMESPACE: ""
     CRUISEKUBE_CONTROLLER_TARGETCLUSTERID: ""

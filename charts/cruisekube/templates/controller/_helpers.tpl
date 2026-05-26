@@ -132,14 +132,26 @@ ServiceMonitor labels - merges common labels with servicemonitor-specific labels
 {{- end }}
 
 {{/*
-Validate that structured metrics provider values are not mixed with equivalent raw env vars.
+Validate metrics provider Helm/env configuration.
 */}}
 {{- define "cruisekubeController.validateMetricsProviderEnv" -}}
 {{- $controllerEnv := .controllerEnv | default dict -}}
 {{- $metricsProviderType := .metricsProviderType | default "" -}}
-{{- if $metricsProviderType -}}
-{{- /* Structured metrics provider env vars. */ -}}
-{{- $structuredProviderEnvNames := list
+{{- $legacyMetricsProviderEnvNames := list
+  "CRUISEKUBE_DEPENDENCIES_LOCAL_PROMETHEUSURL"
+  "CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL"
+  "CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY"
+  "CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY"
+-}}
+{{- range $envName := $legacyMetricsProviderEnvNames -}}
+{{- if hasKey $controllerEnv $envName -}}
+{{- fail (printf "cruisekubeController.env must not include removed legacy metrics provider env var %s; configure metrics provider via cruisekubeController.metricsProvider or CRUISEKUBE_DEPENDENCIES_*_METRICSPROVIDER_* env vars" $envName) -}}
+{{- end -}}
+{{- end -}}
+{{- if not $metricsProviderType -}}
+{{- fail "cruisekubeController.metricsProvider.type is required (prometheus or kloudfuse)" -}}
+{{- end -}}
+{{- $structuredMetricsProviderEnvNames := list
   "CRUISEKUBE_METRICS_PROVIDER"
   "CRUISEKUBE_METRICS_PROVIDER_URL"
   "CRUISEKUBE_METRICS_PROVIDER_INSECURE_SKIP_TLS_VERIFY"
@@ -152,16 +164,9 @@ Validate that structured metrics provider values are not mixed with equivalent r
   "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY"
   "CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN"
 -}}
-{{- /* Legacy dependency-level TLS env vars. */ -}}
-{{- $legacyDependencyTLSEnvNames := list
-  "CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY"
-  "CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY"
--}}
-{{- $conflictingMetricsProviderEnvNames := concat $structuredProviderEnvNames $legacyDependencyTLSEnvNames -}}
-{{- range $envName := $conflictingMetricsProviderEnvNames -}}
+{{- range $envName := $structuredMetricsProviderEnvNames -}}
 {{- if hasKey $controllerEnv $envName -}}
-{{- fail (printf "cruisekubeController.metricsProvider.type is set, so cruisekubeController.env must not include structured metrics provider env var %s; configure metrics provider only via cruisekubeController.metricsProvider" $envName) -}}
-{{- end -}}
+{{- fail (printf "cruisekubeController.metricsProvider is configured, so cruisekubeController.env must not include metrics provider env var %s; configure metrics provider only via cruisekubeController.metricsProvider" $envName) -}}
 {{- end -}}
 {{- end -}}
 {{- end }}

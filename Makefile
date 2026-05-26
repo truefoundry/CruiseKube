@@ -70,7 +70,8 @@ install-ck: ## Update helm chart
         --set cruisekubeController.image.repository=cruisekube \
         --set cruisekubeController.image.tag=latest \
         --set cruisekubeController.image.pullPolicy=IfNotPresent \
-		--set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090" \
+		--set cruisekubeController.metricsProvider.type=prometheus \
+		--set cruisekubeController.metricsProvider.url="http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090" \
         --set cruisekubeController.env.CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED=true \
         --set cruisekubeWebhook.image.repository=cruisekube \
         --set cruisekubeWebhook.image.tag=latest \

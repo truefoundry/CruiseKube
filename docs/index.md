@@ -274,8 +274,8 @@ hide:
   oci://tfy.jfrog.io/tfy-helm/cruisekube \
   <span class="ck-tok-flag">--namespace</span> cruisekube-system \
   <span class="ck-tok-flag">--create-namespace</span> \
-  <span class="ck-tok-flag">--set</span> cruisekubeController.env.\
-CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL=\
+  <span class="ck-tok-flag">--set</span> cruisekubeController.metricsProvider.type=prometheus \
+  <span class="ck-tok-flag">--set</span> cruisekubeController.metricsProvider.url=\
 <span class="ck-tok-str">"http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"</span>
 
 <span class="ck-tok-ok">✓ Release "cruisekube" installed successfully</span></code></pre>

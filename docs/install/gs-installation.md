@@ -20,7 +20,8 @@ Install from the **OCI** registry. For a plain Prometheus endpoint, replace the 
 helm install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube \
   --namespace cruisekube-system  \
   --create-namespace \
-  --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" 
+  --set cruisekubeController.metricsProvider.type=prometheus \
+  --set cruisekubeController.metricsProvider.url="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
 ```
 
 

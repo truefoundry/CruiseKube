@@ -64,16 +64,12 @@ type MetricsProviderConfig struct {
 }
 
 type LocalDeps struct {
-	KubeconfigPath        string                `yaml:"kubeconfigPath" mapstructure:"kubeconfigPath"`
-	PrometheusURL         string                `yaml:"prometheusURL" mapstructure:"prometheusURL"`
-	InsecureSkipTLSVerify bool                  `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
-	MetricsProvider       MetricsProviderConfig `yaml:"metricsProvider" mapstructure:"metricsProvider"`
+	KubeconfigPath  string                `yaml:"kubeconfigPath" mapstructure:"kubeconfigPath"`
+	MetricsProvider MetricsProviderConfig `yaml:"metricsProvider" mapstructure:"metricsProvider"`
 }
 
 type InClusterDeps struct {
-	PrometheusURL         string                `yaml:"prometheusURL" mapstructure:"prometheusURL"`
-	InsecureSkipTLSVerify bool                  `yaml:"insecureSkipTLSVerify" mapstructure:"insecureSkipTLSVerify"`
-	MetricsProvider       MetricsProviderConfig `yaml:"metricsProvider" mapstructure:"metricsProvider"`
+	MetricsProvider MetricsProviderConfig `yaml:"metricsProvider" mapstructure:"metricsProvider"`
 }
 
 type ControllerConfig struct {

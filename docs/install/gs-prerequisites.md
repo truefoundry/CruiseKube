@@ -27,7 +27,7 @@ Install these **before** [Installation](gs-installation.md). Missing any item us
 CruiseKube reads **container, node, and Kubernetes metadata metrics** from exactly one Prometheus-compatible query endpoint: either Prometheus itself or Kloudfuse with Prometheus-compatible Kubernetes metrics ingestion enabled. See [Prometheus metric requirements](../documentation/reference/prometheus-metrics.md) for the full metric, label, and `job` inventory, including Kloudfuse ingestion notes.
 
 - You may use an **existing** Prometheus, **Kloudfuse** configured to ingest Kubernetes metrics with Prometheus-compatible metric names/labels, or install Prometheus via Helm (given below).
-- Set either legacy `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` for Prometheus or structured metrics-provider env/Helm values for `prometheus`/`kloudfuse` to a URL reachable **from the controller pods** (in-cluster Service URL or remote HTTPS URL, not `localhost`).
+- Set `cruisekubeController.metricsProvider` (or `CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_*` env vars) for `prometheus` or `kloudfuse` to a URL reachable **from the controller pods** (in-cluster Service URL or remote HTTPS URL, not `localhost`).
 - Ensure kubelet/cAdvisor, kube-state-metrics, and node-exporter series preserve the expected `job`, `namespace`, `pod`, `container`, `node`, and workload owner labels. For Kloudfuse, validate this in the same tenant/project and backend view that CruiseKube will query.
 
 ??? note "Optional: install Prometheus via Helm"

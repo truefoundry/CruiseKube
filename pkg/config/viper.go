@@ -21,14 +21,10 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("controllerMode", string(ClusterModeInCluster))
 	v.SetDefault("executionMode", string(ExecutionModeBoth))
 	v.SetDefault("dependencies.local.kubeconfigPath", "")
-	v.SetDefault("dependencies.local.prometheusURL", "")
-	v.SetDefault("dependencies.local.insecureSkipTLSVerify", false)
 	v.SetDefault("dependencies.local.metricsProvider.type", "")
 	v.SetDefault("dependencies.local.metricsProvider.url", "")
 	v.SetDefault("dependencies.local.metricsProvider.bearerToken", "")
 	v.SetDefault("dependencies.local.metricsProvider.insecureSkipTLSVerify", false)
-	v.SetDefault("dependencies.inCluster.prometheusURL", "")
-	v.SetDefault("dependencies.inCluster.insecureSkipTLSVerify", false)
 	v.SetDefault("dependencies.inCluster.metricsProvider.type", "")
 	v.SetDefault("dependencies.inCluster.metricsProvider.url", "")
 	v.SetDefault("dependencies.inCluster.metricsProvider.bearerToken", "")
@@ -189,7 +185,7 @@ func (c *Config) ValidateControllerExecutionMode(ctx context.Context) error {
 
 // ActiveMetricsProviderConfig returns the metrics provider configuration for the
 // active dependency block selected by controllerMode. An empty provider type is
-// treated as prometheus for backward compatibility.
+// treated as prometheus.
 func (c *Config) ActiveMetricsProviderConfig() (MetricsProviderConfig, error) {
 	controllerMode := strings.TrimSpace(string(c.ControllerMode))
 	switch controllerMode {
@@ -197,22 +193,18 @@ func (c *Config) ActiveMetricsProviderConfig() (MetricsProviderConfig, error) {
 		return resolveActiveMetricsProviderConfig(
 			"dependencies.local",
 			c.Dependencies.Local.MetricsProvider,
-			c.Dependencies.Local.PrometheusURL,
-			c.Dependencies.Local.InsecureSkipTLSVerify,
 		)
 	case string(ClusterModeInCluster):
 		return resolveActiveMetricsProviderConfig(
 			"dependencies.inCluster",
 			c.Dependencies.InCluster.MetricsProvider,
-			c.Dependencies.InCluster.PrometheusURL,
-			c.Dependencies.InCluster.InsecureSkipTLSVerify,
 		)
 	default:
 		return MetricsProviderConfig{}, fmt.Errorf("invalid controller-mode: %s (expected local|in-cluster)", controllerMode)
 	}
 }
 
-func resolveActiveMetricsProviderConfig(configPath string, provider MetricsProviderConfig, legacyPrometheusURL string, dependencyInsecureSkipTLSVerify bool) (MetricsProviderConfig, error) {
+func resolveActiveMetricsProviderConfig(configPath string, provider MetricsProviderConfig) (MetricsProviderConfig, error) {
 	providerType := MetricsProviderType(strings.TrimSpace(string(provider.Type)))
 	if providerType == "" {
 		providerType = MetricsProviderTypePrometheus
@@ -220,17 +212,11 @@ func resolveActiveMetricsProviderConfig(configPath string, provider MetricsProvi
 	provider.Type = providerType
 	provider.URL = strings.TrimSpace(provider.URL)
 	provider.BearerToken = strings.TrimSpace(provider.BearerToken)
-	// Preserve compatibility with dependencies.*.insecureSkipTLSVerify for both
-	// structured and legacy metrics provider configuration.
-	provider.InsecureSkipTLSVerify = provider.InsecureSkipTLSVerify || dependencyInsecureSkipTLSVerify
 
 	switch providerType {
 	case MetricsProviderTypePrometheus:
 		if provider.URL == "" {
-			provider.URL = strings.TrimSpace(legacyPrometheusURL)
-		}
-		if provider.URL == "" {
-			return MetricsProviderConfig{}, fmt.Errorf("%s.metricsProvider.url or %s.prometheusURL is required for prometheus metrics provider", configPath, configPath)
+			return MetricsProviderConfig{}, fmt.Errorf("%s.metricsProvider.url is required for prometheus metrics provider", configPath)
 		}
 		return provider, nil
 	case MetricsProviderTypeKloudfuse:

@@ -46,7 +46,8 @@ CruiseKube doesn't apply recommendations unless cruise mode is enabled. In Cruis
 
 ```bash
 helm upgrade --install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube --namespace cruisekube-system --create-namespace \
---set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
+--set cruisekubeController.metricsProvider.type=prometheus \
+--set cruisekubeController.metricsProvider.url="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" \
 --set cruisekubeController.env.CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION=true
 ```
 

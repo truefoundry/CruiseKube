@@ -2,22 +2,17 @@ controllerMode: local
 dependencies:
   local:
     kubeconfigPath: ""
-    prometheusURL: "http://localhost:9090"
-    # Optional structured metrics provider. Leave commented to use prometheusURL above.
-    # For local Kloudfuse, set CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN in your shell.
-    # metricsProvider:
-    #   type: kloudfuse
-    #   url: "https://kloudfuse.example.com"
-    #   bearerToken: ""
-    #   insecureSkipTLSVerify: false
+    metricsProvider:
+      type: prometheus
+      url: "http://localhost:9090"
+      bearerToken: ""
+      insecureSkipTLSVerify: false
   inCluster:
-    prometheusURL: ""
-    # Optional structured metrics provider for in-cluster testing.
-    # metricsProvider:
-    #   type: prometheus
-    #   url: ""
-    #   bearerToken: ""
-    #   insecureSkipTLSVerify: false
+    metricsProvider:
+      type: prometheus
+      url: ""
+      bearerToken: ""
+      insecureSkipTLSVerify: false
 executionMode: controller
 controller:
   targetNamespace: ""

@@ -47,7 +47,7 @@ Exact names must match your chart version—verify in `values.yaml` on the tag y
 
 | Concern | Representative env vars |
 |---------|-------------------------|
-| **Metrics provider** | Legacy Prometheus URL env vars (`CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL`, `CRUISEKUBE_DEPENDENCIES_LOCAL_PROMETHEUSURL`) or structured provider env vars (`CRUISEKUBE_DEPENDENCIES_*_METRICSPROVIDER_*`). See [Prometheus metric requirements](prometheus-metrics.md) for required metric names, labels, and `job` values. |
+| **Metrics provider** | `CRUISEKUBE_DEPENDENCIES_*_METRICSPROVIDER_*` env vars or Helm `cruisekubeController.metricsProvider`. See [Prometheus metric requirements](prometheus-metrics.md) for required metric names, labels, and `job` values. |
 | **Apply loop** | `CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_*` (enable, schedule, skip memory, metadata URLs) |
 | **Stats** | `CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_*` |
 | **Metrics export** | `CRUISEKUBE_CONTROLLER_TASKS_FETCHMETRICS_*` |
@@ -69,8 +69,6 @@ CruiseKube has exactly **one active metrics backend** at runtime. The active dep
 | `local` | `dependencies.local` | Developer machine using local kubeconfig and a port-forwarded Prometheus-compatible endpoint. |
 | `in-cluster` | `dependencies.inCluster` | Helm/controller pod running inside Kubernetes. |
 
-The legacy `prometheusURL` fields remain supported for backward compatibility. New installs can use the structured `metricsProvider` block when they need provider type, bearer-token, or provider-specific TLS settings.
-
 ### YAML fields and defaults
 
 The same fields are available under both `dependencies.local.metricsProvider` and `dependencies.inCluster.metricsProvider`:
@@ -78,24 +76,15 @@ The same fields are available under both `dependencies.local.metricsProvider` an
 | YAML field | Default | Valid values / validation | Environment variable names |
 |------------|---------|---------------------------|----------------------------|
 | `type` | `""` (treated as `prometheus`) | `prometheus` or `kloudfuse`. Any other value fails config validation. | `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_TYPE`, `CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_TYPE`. Local CLI/dev shorthand also supports `CRUISEKUBE_METRICS_PROVIDER`. |
-| `url` | `""` | Required for structured providers. For `prometheus`, CruiseKube falls back to the legacy `prometheusURL` in the active block when `metricsProvider.url` is empty. For `kloudfuse`, set the Prometheus-compatible query base URL for the tenant/project CruiseKube should read. | `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_URL`, `CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_URL`. Local CLI/dev shorthand also supports `CRUISEKUBE_METRICS_PROVIDER_URL`. |
+| `url` | `""` | Required. For `prometheus`, set the Prometheus-compatible query base URL. For `kloudfuse`, set the Prometheus-compatible query base URL for the tenant/project CruiseKube should read. | `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_URL`, `CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_URL`. Local CLI/dev shorthand also supports `CRUISEKUBE_METRICS_PROVIDER_URL`. |
 | `bearerToken` | `""` | Required for `kloudfuse`; optional for `prometheus` endpoints that require bearer auth. Never commit real tokens to config files. | `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN`, `CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN`. In Helm, prefer `cruisekubeController.metricsProvider.bearerTokenExistingSecret` so the pod env var is populated from an existing Secret. |
 | `insecureSkipTLSVerify` | `false` | Set to `true` only for trusted/dev endpoints with self-signed certificates. Prefer correct CA trust in production. | `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_INSECURESKIPTLSVERIFY`, `CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY`. Local CLI/dev shorthand also supports `CRUISEKUBE_METRICS_PROVIDER_INSECURE_SKIP_TLS_VERIFY`. |
-
-Legacy Prometheus fields are still accepted:
-
-| YAML field | Default | Environment variable names |
-|------------|---------|----------------------------|
-| `dependencies.local.prometheusURL` | `""` | `CRUISEKUBE_DEPENDENCIES_LOCAL_PROMETHEUSURL` |
-| `dependencies.inCluster.prometheusURL` | `""` | `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` |
-| `dependencies.local.insecureSkipTLSVerify` | `false` | `CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY` |
-| `dependencies.inCluster.insecureSkipTLSVerify` | `false` | `CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY` |
 
 ### Validation rules
 
 - Only the dependency block selected by `controllerMode` is validated for controller runs.
-- Empty `metricsProvider.type` is interpreted as `prometheus` for backward compatibility.
-- `prometheus` requires either `metricsProvider.url` or the legacy active `prometheusURL`.
+- Empty `metricsProvider.type` is interpreted as `prometheus`.
+- `prometheus` requires `metricsProvider.url`.
 - `kloudfuse` requires both `metricsProvider.url` and `metricsProvider.bearerToken`.
 - CruiseKube sends PromQL to the configured endpoint and expects Kubernetes metrics to remain Prometheus-compatible; it does not rewrite metric names, label names, or `job` labels per provider.
 

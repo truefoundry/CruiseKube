@@ -25,10 +25,10 @@ cruisekubeController:
     repository: cruisekube
     tag: latest
     imagePullPolicy: Never
+  metricsProvider:
+    type: prometheus
+    url: "http://localhost:9090"
   env:
-    CRUISEKUBE_DEPENDENCIES_LOCAL_INSECURESKIPTLSVERIFY: "false"
-    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://localhost:9090"
-    CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY: "false"
     CRUISEKUBE_CONTROLLER_TARGETCLUSTERID: "default"
 
     CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED: "false"

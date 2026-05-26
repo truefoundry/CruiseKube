@@ -52,59 +52,35 @@ func TestValidateRejectsMissingTaskConfigs(t *testing.T) {
 	}
 }
 
-func TestValidateRejectsMissingInClusterPrometheusURL(t *testing.T) {
+func TestValidateRejectsMissingInClusterMetricsProviderURL(t *testing.T) {
 	cfg := validControllerConfig()
-	cfg.Dependencies.InCluster.PrometheusURL = ""
+	cfg.Dependencies.InCluster.MetricsProvider.URL = ""
 
 	err := cfg.Validate(context.Background())
 	if err == nil {
-		t.Fatal("expected validation error for missing prometheus URL")
+		t.Fatal("expected validation error for missing metrics provider URL")
 	}
-	if !strings.Contains(err.Error(), "dependencies.inCluster.metricsProvider.url or dependencies.inCluster.prometheusURL is required") {
+	if !strings.Contains(err.Error(), "dependencies.inCluster.metricsProvider.url is required for prometheus") {
 		t.Fatalf("expected missing dependencies.inCluster metrics provider URL error, got %v", err)
 	}
 }
 
-func TestValidateRejectsMissingLocalPrometheusURL(t *testing.T) {
+func TestValidateRejectsMissingLocalMetricsProviderURL(t *testing.T) {
 	cfg := validControllerConfig()
 	cfg.ControllerMode = ClusterModeLocal
-	cfg.Dependencies.Local.PrometheusURL = ""
+	cfg.Dependencies.Local.MetricsProvider.URL = ""
 
 	err := cfg.Validate(context.Background())
 	if err == nil {
-		t.Fatal("expected validation error for missing local prometheus URL")
+		t.Fatal("expected validation error for missing local metrics provider URL")
 	}
-	if !strings.Contains(err.Error(), "dependencies.local.metricsProvider.url or dependencies.local.prometheusURL is required") {
+	if !strings.Contains(err.Error(), "dependencies.local.metricsProvider.url is required for prometheus") {
 		t.Fatalf("expected missing dependencies.local metrics provider URL error, got %v", err)
-	}
-}
-
-func TestActiveMetricsProviderConfigLegacyPrometheusCompatibility(t *testing.T) {
-	cfg := validControllerConfig()
-	cfg.Dependencies.InCluster.PrometheusURL = " http://legacy-prometheus:9090 "
-	cfg.Dependencies.InCluster.InsecureSkipTLSVerify = true
-
-	provider, err := cfg.ActiveMetricsProviderConfig()
-	if err != nil {
-		t.Fatalf("expected active provider config, got %v", err)
-	}
-	if provider.Type != MetricsProviderTypePrometheus {
-		t.Fatalf("expected prometheus provider type, got %q", provider.Type)
-	}
-	if provider.URL != "http://legacy-prometheus:9090" {
-		t.Fatalf("expected legacy prometheus URL, got %q", provider.URL)
-	}
-	if provider.BearerToken != "" {
-		t.Fatalf("expected empty prometheus bearer token, got %q", provider.BearerToken)
-	}
-	if !provider.InsecureSkipTLSVerify {
-		t.Fatal("expected legacy insecureSkipTLSVerify to be preserved")
 	}
 }
 
 func TestActiveMetricsProviderConfigPrometheusUsesMetricsProviderURL(t *testing.T) {
 	cfg := validControllerConfig()
-	cfg.Dependencies.InCluster.PrometheusURL = "http://legacy-prometheus:9090"
 	cfg.Dependencies.InCluster.MetricsProvider = MetricsProviderConfig{
 		Type:        MetricsProviderTypePrometheus,
 		URL:         " http://configured-prometheus:9090 ",
@@ -116,33 +92,35 @@ func TestActiveMetricsProviderConfigPrometheusUsesMetricsProviderURL(t *testing.
 		t.Fatalf("expected active provider config, got %v", err)
 	}
 	if provider.URL != "http://configured-prometheus:9090" {
-		t.Fatalf("expected metricsProvider URL to win, got %q", provider.URL)
+		t.Fatalf("expected metricsProvider URL, got %q", provider.URL)
 	}
 	if provider.BearerToken != "prometheus-token" {
 		t.Fatalf("expected prometheus bearer token to be preserved when configured, got %q", provider.BearerToken)
 	}
 }
 
-func TestActiveMetricsProviderConfigStructuredURLInheritsDependencyInsecureSkipTLSVerify(t *testing.T) {
+func TestActiveMetricsProviderConfigPreservesInsecureSkipTLSVerify(t *testing.T) {
 	tests := []struct {
 		name           string
 		providerConfig MetricsProviderConfig
 		wantURL        string
 	}{
 		{
-			name: "prometheus structured URL",
+			name: "prometheus",
 			providerConfig: MetricsProviderConfig{
-				Type: MetricsProviderTypePrometheus,
-				URL:  "https://configured-prometheus.example",
+				Type:                  MetricsProviderTypePrometheus,
+				URL:                   "https://configured-prometheus.example",
+				InsecureSkipTLSVerify: true,
 			},
 			wantURL: "https://configured-prometheus.example",
 		},
 		{
 			name: "kloudfuse",
 			providerConfig: MetricsProviderConfig{
-				Type:        MetricsProviderTypeKloudfuse,
-				URL:         "https://kloudfuse.example.com",
-				BearerToken: "token",
+				Type:                  MetricsProviderTypeKloudfuse,
+				URL:                   "https://kloudfuse.example.com",
+				BearerToken:           "token",
+				InsecureSkipTLSVerify: true,
 			},
 			wantURL: "https://kloudfuse.example.com",
 		},
@@ -151,7 +129,6 @@ func TestActiveMetricsProviderConfigStructuredURLInheritsDependencyInsecureSkipT
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := validControllerConfig()
-			cfg.Dependencies.InCluster.InsecureSkipTLSVerify = true
 			cfg.Dependencies.InCluster.MetricsProvider = tt.providerConfig
 
 			provider, err := cfg.ActiveMetricsProviderConfig()
@@ -162,30 +139,9 @@ func TestActiveMetricsProviderConfigStructuredURLInheritsDependencyInsecureSkipT
 				t.Fatalf("expected metricsProvider URL %q, got %q", tt.wantURL, provider.URL)
 			}
 			if !provider.InsecureSkipTLSVerify {
-				t.Fatal("expected dependency insecureSkipTLSVerify to be applied with structured metricsProvider URL")
+				t.Fatal("expected metricsProvider.insecureSkipTLSVerify to be preserved")
 			}
 		})
-	}
-}
-
-func TestActiveMetricsProviderConfigPrometheusLegacyURLPreservesStructuredInsecureSkipTLSVerify(t *testing.T) {
-	cfg := validControllerConfig()
-	cfg.Dependencies.InCluster.PrometheusURL = " https://legacy-prometheus.example "
-	cfg.Dependencies.InCluster.InsecureSkipTLSVerify = false
-	cfg.Dependencies.InCluster.MetricsProvider = MetricsProviderConfig{
-		Type:                  MetricsProviderTypePrometheus,
-		InsecureSkipTLSVerify: true,
-	}
-
-	provider, err := cfg.ActiveMetricsProviderConfig()
-	if err != nil {
-		t.Fatalf("expected active provider config, got %v", err)
-	}
-	if provider.URL != "https://legacy-prometheus.example" {
-		t.Fatalf("expected legacy prometheus URL, got %q", provider.URL)
-	}
-	if !provider.InsecureSkipTLSVerify {
-		t.Fatal("expected structured insecureSkipTLSVerify to be preserved when URL falls back to legacy prometheusURL")
 	}
 }
 
@@ -367,12 +323,16 @@ func validControllerConfig() *Config {
 		ExecutionMode:  ExecutionModeController,
 		Dependencies: Dependencies{
 			Local: LocalDeps{
-				PrometheusURL:         "http://localhost:9090",
-				InsecureSkipTLSVerify: false,
+				MetricsProvider: MetricsProviderConfig{
+					Type: MetricsProviderTypePrometheus,
+					URL:  "http://localhost:9090",
+				},
 			},
 			InCluster: InClusterDeps{
-				PrometheusURL:         "http://prometheus:9090",
-				InsecureSkipTLSVerify: false,
+				MetricsProvider: MetricsProviderConfig{
+					Type: MetricsProviderTypePrometheus,
+					URL:  "http://prometheus:9090",
+				},
 			},
 		},
 		Controller: ControllerConfig{

@@ -2,24 +2,17 @@ controllerMode: in-cluster
 dependencies:
   local:
     kubeconfigPath: ""
-    prometheusURL: "http://localhost:9090"
-    # Optional structured metrics provider. Leave commented to use prometheusURL above.
-    # metricsProvider:
-    #   type: prometheus # valid: prometheus, kloudfuse
-    #   url: "" # falls back to prometheusURL for prometheus when empty
-    #   bearerToken: "" # prefer CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_BEARERTOKEN
-    #   insecureSkipTLSVerify: false
-    insecureSkipTLSVerify: false
+    metricsProvider:
+      type: prometheus
+      url: "http://localhost:9090"
+      bearerToken: ""
+      insecureSkipTLSVerify: false
   inCluster:
-    prometheusURL: ""
-    # Optional structured metrics provider for in-cluster runs.
-    # For Kloudfuse, set bearerToken from an existing Kubernetes Secret in Helm.
-    # metricsProvider:
-    #   type: kloudfuse
-    #   url: "https://kloudfuse.example.com"
-    #   bearerToken: "" # prefer CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN / Secret
-    #   insecureSkipTLSVerify: false
-    insecureSkipTLSVerify: false
+    metricsProvider:
+      type: prometheus
+      url: ""
+      bearerToken: ""
+      insecureSkipTLSVerify: false
 executionMode: controller
 controller:
   targetNamespace: ""

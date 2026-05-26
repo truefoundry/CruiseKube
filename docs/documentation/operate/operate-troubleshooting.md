@@ -38,7 +38,7 @@ For Kloudfuse specifically, run the validation queries from [Prometheus metric r
 
 | Symptom | Checks |
 |---------|--------|
-| `connection refused`, `no such host`, or timeouts | Exec into the controller pod and verify DNS/network access to the configured `metricsProvider.url` or legacy `prometheusURL`. For in-cluster Prometheus, do not use `localhost`; use the Service DNS name. |
+| `connection refused`, `no such host`, or timeouts | Exec into the controller pod and verify DNS/network access to the configured `metricsProvider.url`. For in-cluster Prometheus, do not use `localhost`; use the Service DNS name. |
 | `401 Unauthorized` / `403 Forbidden` from Kloudfuse | Confirm the bearer token is present in the controller pod env (`CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_BEARERTOKEN`) and has permission to query the target tenant/project. Do not print token values in logs or support tickets. |
 | Helm install renders a token inline | Use `cruisekubeController.metricsProvider.bearerTokenExistingSecret` and `bearerTokenExistingSecretKey` instead of `bearerToken`. Inline tokens in config files, CLI args, and Helm values can leak. |
 
@@ -53,7 +53,7 @@ For authenticated Kloudfuse endpoints, use a temporary local shell variable or K
 
 ## Metrics provider TLS / HTTPS
 
-If Prometheus or Kloudfuse uses a **private CA** or self-signed cert, TLS verification can fail with `x509: certificate signed by unknown authority` or hostname mismatch errors. Prefer installing the proper CA trust in production. For trusted development/test endpoints only, set the active provider TLS skip flag (`CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY=true`, `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_INSECURESKIPTLSVERIFY=true`, or the legacy `*_INSECURESKIPTLSVERIFY` field used with `prometheusURL`).
+If Prometheus or Kloudfuse uses a **private CA** or self-signed cert, TLS verification can fail with `x509: certificate signed by unknown authority` or hostname mismatch errors. Prefer installing the proper CA trust in production. For trusted development/test endpoints only, set the active provider TLS skip flag (`CRUISEKUBE_DEPENDENCIES_INCLUSTER_METRICSPROVIDER_INSECURESKIPTLSVERIFY=true` or `CRUISEKUBE_DEPENDENCIES_LOCAL_METRICSPROVIDER_INSECURESKIPTLSVERIFY=true`).
 
 ---
 

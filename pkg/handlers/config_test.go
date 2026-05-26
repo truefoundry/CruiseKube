@@ -60,7 +60,6 @@ func TestGetConfigHandlerKloudfuseUsesQueryHealthAndDoesNotExposeBearerToken(t *
 			ControllerMode: config.ClusterModeLocal,
 			Dependencies: config.Dependencies{
 				Local: config.LocalDeps{
-					PrometheusURL: "http://legacy-prometheus.example",
 					MetricsProvider: config.MetricsProviderConfig{
 						Type:        config.MetricsProviderTypeKloudfuse,
 						URL:         server.URL,
@@ -189,7 +188,6 @@ func TestKloudfusePrometheusCompatibleIntegration(t *testing.T) {
 			ControllerMode: config.ClusterModeLocal,
 			Dependencies: config.Dependencies{
 				Local: config.LocalDeps{
-					PrometheusURL: "http://legacy-prometheus.example",
 					MetricsProvider: config.MetricsProviderConfig{
 						Type:        config.MetricsProviderTypeKloudfuse,
 						URL:         fixture.URL,
