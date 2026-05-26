@@ -224,7 +224,7 @@ For Go code quality checks, the repo also exposes:
 
 The CI workflow runs `deadcode` as a separate informational job, so contributors can see current unreachable-function reports without making the pipeline fail.
 
-For testing and contribution process (PRs, changelog, etc.), see [CONTRIBUTING.md](../../CONTRIBUTING.md) and [DEVELOPMENT.md](../../DEVELOPMENT.md).
+For testing and contribution process (PRs, changelog, etc.), see [CONTRIBUTING.md](https://github.com/truefoundry/CruiseKube/blob/main/CONTRIBUTING.md).
 
 ---
 

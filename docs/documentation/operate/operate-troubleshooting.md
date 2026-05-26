@@ -31,6 +31,102 @@ Look for Prometheus query errors, auth failures, or TLS issues.
 
 ---
 
+## Metrics provider (Prometheus / PromQL)
+
+CruiseKube’s metrics provider talks to a **Prometheus-compatible HTTP API** and runs **PromQL** queries on a schedule. If the dashboard stays empty or controller logs show query failures, validate the backend and metric names below.
+
+### PromQL support
+
+Your endpoint must accept **instant and range queries** the same way Prometheus does (`/api/v1/query`, `/api/v1/query_range`). This works with:
+
+- Prometheus
+- Grafana Mimir / Cortex / Thanos **query frontends** (when they expose the Prometheus query API)
+- Other vendors **only if** they implement compatible PromQL and return the expected metric labels
+
+Managed metrics stacks that expose a **custom query language** or a limited metric catalog (without the kube-state-metrics / node-exporter style names below) are not supported unless you **remote-write** those series into Prometheus with matching names.
+
+Confirm PromQL from a controller pod (replace URL and namespace):
+
+```bash
+kubectl exec -n cruisekube-system deploy/cruisekube-controller-manager -- \
+  wget -qO- 'http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090/api/v1/query?query=up' | head -c 400
+```
+
+A JSON body with `"status":"success"` means the API is reachable; fix DNS, network policy, TLS, or `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` if not.
+
+### Metric names CruiseKube depends on
+
+CruiseKube’s Prometheus provider runs **PromQL** against the URL you configure. Metric **names** must match what the controller queries; `job`, `namespace`, and other labels are often filtered in code (examples below use `job="kubelet"`, `job="kube-state-metrics"`, and `job="node-exporter"` from **kube-prometheus-stack**—adjust if your scrape config uses different `job` values).
+
+#### Kubelet / cAdvisor (per-container usage and PSI)
+
+| Metric | Used for |
+|--------|----------|
+| `container_cpu_usage_seconds_total` | Workload CPU usage, cluster CPU utilization export |
+| `container_memory_working_set_bytes` | Workload memory usage, cluster memory utilization export |
+| `container_pressure_cpu_waiting_seconds_total` | PSI-aware CPU signals; stats task checks whether PSI data exists |
+| `container_pressure_memory_waiting_seconds_total` | Container memory pressure (exported controller metrics) |
+
+#### kube-state-metrics (Kubernetes object state)
+
+| Metric | Used for |
+|--------|----------|
+| `kube_pod_info` | Map pods to owning workloads (with `created_by_kind` / `created_by_name`) |
+| `kube_pod_status_phase` | Running / Pending pods; workload discovery and cluster summaries |
+| `kube_pod_container_resource_requests` | CPU and memory **requests** (`resource="cpu"` and `resource="memory"`); GPU request series used to exclude GPU workloads where applicable |
+| `kube_node_status_allocatable` | Node allocatable CPU, memory, and GPU capacity |
+| `kube_node_status_capacity` | Node CPU capacity (e.g. load ratio in node load monitoring) |
+| `kube_pod_container_status_last_terminated_reason` | OOM detection (`reason="OOMKilled"`) |
+| `kube_pod_container_status_restarts_total` | OOM / restart correlation |
+| `kube_node_spec_taint` | Exclude GPU nodes from certain cluster rollups (`key="nvidia.com/gpu"`) |
+| `kube_node_labels` | Exclude NVIDIA accelerator nodes from certain cluster rollups |
+
+#### node-exporter (node-level signals)
+
+| Metric | Used for |
+|--------|----------|
+| `node_cpu_seconds_total` | Cluster CPU utilization rollups (`mode=~"user|system"`) |
+| `node_load1` | Node load monitoring and load-based metrics |
+| `node_pressure_cpu_waiting_seconds_total` | Node CPU pressure (PSI) |
+| `node_pressure_memory_waiting_seconds_total` | Node memory pressure (PSI) |
+| `node_memory_MemTotal_bytes` | Cluster memory utilization expression |
+| `node_memory_MemFree_bytes` | Same (with `Buffers` and `Cached`) |
+| `node_memory_Buffers_bytes` | Same |
+| `node_memory_Cached_bytes` | Same |
+
+#### Optional (environment-specific)
+
+| Metric | Used for |
+|--------|----------|
+| `karpenter_nodeclaims_disrupted_total` | Karpenter consolidation/eviction counter export (only if you run Karpenter and scrape its metrics) |
+
+Spot-check that the core families exist (Prometheus UI or `/api/v1/query`):
+
+```promql
+container_cpu_usage_seconds_total{job="kubelet"}
+container_memory_working_set_bytes{job="kubelet"}
+kube_pod_container_resource_requests{resource="cpu"}
+kube_pod_container_resource_requests{resource="memory"}
+kube_node_status_allocatable{resource="cpu"}
+kube_node_status_allocatable{resource="memory"}
+kube_pod_status_phase{phase="Running"}
+kube_pod_info
+node_cpu_seconds_total{job="node-exporter"}
+```
+
+If queries are empty:
+
+1. **Scrape targets** — Ensure kubelet/cAdvisor, kube-state-metrics, and node-exporter (or equivalents) are scraped into **this** Prometheus.
+2. **Retention** — Series must cover lookback windows used by stats and recommendation tasks (see chart `values.yaml` task schedules).
+3. **RBAC / collectors** — A broken kube-state-metrics install often drops all `kube_*` series while node/container metrics still appear.
+4. **Wrong Prometheus** — Point `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` at the store that actually holds these names, not a short-retention or incomplete federated view.
+
+If **even one** core metric family above is missing or mislabeled, recommendations, dashboard rollups, or exported cluster metrics are often incomplete or unreliable. Optional metrics only affect the features listed in their row (for example Karpenter counters without `karpenter_nodeclaims_disrupted_total`).
+
+See [Prerequisites — Prometheus](../../install/gs-prerequisites.md) for install pointers.
+
+---
+
 ## Prometheus TLS / HTTPS
 
 If Prometheus uses a **private CA** or self-signed cert, you may need `CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY` (or local equivalent) set to `"true"` **only** in trusted environments. Prefer proper CA trust in production. See chart `values.yaml` env keys.
@@ -107,6 +203,3 @@ Collect and attach:
 - Whether **Prometheus** can run a sample query for `container_cpu_usage_seconds_total`
 
 Then open a [GitHub Issue](https://github.com/truefoundry/CruiseKube/issues) or ask on [Discord](https://discord.gg/Dqek4xJa3N).
-
-!!! tip "Suggested media"
-    **Annotated screenshot** of a healthy dashboard + one of `kubectl get pods -n cruisekube-system` for the docs “all green” reference panel.

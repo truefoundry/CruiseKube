@@ -35,6 +35,7 @@
   --ck-text-display: clamp(1.75rem, 3.5vw, 2.125rem);
   --ck-radius: 12px;
   --ck-btn-radius: 8px;
+  --ck-footer-gap: clamp(4.5rem, 9vw, 7rem);
   --ck-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --ck-shadow-hover: 0 4px 14px rgba(0, 0, 0, 0.06);
   --ck-transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -81,6 +82,11 @@
 .md-content__inner {
   padding: 0;
   margin: 0;
+}
+
+/* Space between article body and footer (prev/next + site footer) */
+.md-content__inner > .md-typeset {
+  padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
 }
 
 
@@ -1477,7 +1483,7 @@
 /* -------------------------------------------------------------------------- */
 
 .md-footer {
-  margin-top: 0;
+  margin-top: var(--ck-footer-gap);
   padding: 0;
   background: transparent;
 }
