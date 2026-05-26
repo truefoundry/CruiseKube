@@ -855,12 +855,24 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 
 // GenerateNodeStatsForCluster builds the node -> pods/resources map using cluster state and stored stats.
 func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Context) (map[string]utils.NodeResourceInfo, error) {
-	defer utils.TimeIt(ctx, "Generating node stats for cluster")
+	status := metrics.StatusSuccess
+	finishTiming := utils.StartTimedOperation(ctx, "Generating node stats for cluster")
+	defer func() {
+		if r := recover(); r != nil {
+			finishTiming(metrics.StatusPanic)
+			panic(r)
+		}
+		finishTiming(status)
+	}()
+	markError := func() {
+		status = metrics.StatusError
+	}
 
 	targetNamespace := ""
 
 	podToWorkloadMap, allPods, err := utils.BuildPodToWorkloadMapping(ctx, a.kubeClient, targetNamespace)
 	if err != nil {
+		markError()
 		return nil, fmt.Errorf("failed to build pod-to-workload mapping: %w", err)
 	}
 
@@ -875,12 +887,14 @@ func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Contex
 		var err error
 		statsFile, err = recommenderClient.GetClusterStats(ctx, a.config.ClusterID)
 		if err != nil {
+			markError()
 			return nil, fmt.Errorf("failed to load stats from client: %w", err)
 		}
 	} else {
 		var err error
 		statsFile, err = utils.LoadStatsFromClusterStorage(a.config.ClusterID)
 		if err != nil {
+			markError()
 			return nil, fmt.Errorf("failed to load stats from storage: %w", err)
 		}
 	}
@@ -895,6 +909,7 @@ func (a *ApplyRecommendationTask) GenerateNodeStatsForCluster(ctx context.Contex
 
 	nodeMap, err := utils.CreateNodeStatsMapping(ctx, a.kubeClient, podStats, podToWorkloadMap, allPods)
 	if err != nil {
+		markError()
 		return nil, fmt.Errorf("failed to create node stats mapping: %w", err)
 	}
 

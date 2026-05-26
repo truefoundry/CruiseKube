@@ -9,13 +9,16 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/metrics"
 )
 
-func TimeIt(ctx context.Context, name string) func() {
+func StartTimedOperation(ctx context.Context, name string) func(status string) {
 	startTime := time.Now()
 	logging.Infof(ctx, "Task %s started", name)
-	return func() {
+	return func(status string) {
+		if status == "" {
+			status = metrics.StatusComplete
+		}
 		duration := time.Since(startTime)
 		logging.Infof(ctx, "Task %s completed in %v", name, duration)
 		clusterID, _ := contextutils.GetCluster(ctx)
-		metrics.ObserveOperationDuration(clusterID, name, metrics.StatusComplete, duration)
+		metrics.ObserveOperationDuration(clusterID, name, status, duration)
 	}
 }
