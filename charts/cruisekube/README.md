@@ -129,6 +129,34 @@ CruiseKube is an intelligent Kubernetes resource optimization controller that au
 | `postgresql.primary.resources.requests.cpu`    | The requested resources (CPU) for the PostgreSQL Primary containers    | `100m`  |
 | `postgresql.primary.resources.requests.memory` | The requested resources (memory) for the PostgreSQL Primary containers | `128Mi` |
 
+### kube-prometheus-stack parameters
+
+Optional bundled Prometheus stack (disabled by default). Enable when the cluster has no existing Prometheus Operator. All components are installed into `.Release.Namespace` — no separate `monitoring` namespace is created.
+
+**ServiceMonitor label:** The bundled Prometheus is configured with `serviceMonitorSelector: {matchLabels: {release: prometheus}}`, which matches the `release: prometheus` label this chart hard-codes on its ServiceMonitors. If you change `serviceMonitorSelector`, update `cruisekubeController.serviceMonitor.additionalLabels` / `cruisekubeWebhook.serviceMonitor.additionalLabels` accordingly.
+
+**Conflict detection:** A pre-install Job runs automatically when `kube-prometheus-stack.enabled=true` and checks for existing Prometheus Operator CRDs, Deployments, and CRs that could conflict. Set `kube-prometheus-stack.crds.skipPreflightCheck=true` only after reviewing any warnings.
+
+| Name                                                                           | Description                                                                                                                   | Value                            |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `kube-prometheus-stack.enabled`                                                | Deploy the bundled kube-prometheus-stack (Prometheus Operator + Prometheus + kube-state-metrics + node-exporter).             | `false`                          |
+| `kube-prometheus-stack.crds.enabled`                                           | Install/upgrade Prometheus Operator CRDs. Set to `false` if compatible CRDs are already present.                             | `true`                           |
+| `kube-prometheus-stack.crds.skipPreflightCheck`                                | Skip the pre-install conflict-detection Job. Set to `true` only after reviewing conflict warnings.                            | `false`                          |
+| `kube-prometheus-stack.preflightJob.image.repository`                          | Image for the preflight check Job (needs kubectl).                                                                            | `public.ecr.aws/bitnami/kubectl` |
+| `kube-prometheus-stack.preflightJob.image.tag`                                 | Image tag for the preflight check Job.                                                                                        | `1.36.0`                         |
+| `kube-prometheus-stack.preflightJob.image.imagePullPolicy`                     | Image pull policy for the preflight check Job.                                                                                | `IfNotPresent`                   |
+| `kube-prometheus-stack.preflightJob.resources.limits.cpu`                      | CPU limit for the preflight check Job.                                                                                        | `200m`                           |
+| `kube-prometheus-stack.preflightJob.resources.limits.memory`                   | Memory limit for the preflight check Job.                                                                                     | `128Mi`                          |
+| `kube-prometheus-stack.preflightJob.resources.requests.cpu`                    | CPU request for the preflight check Job.                                                                                      | `50m`                            |
+| `kube-prometheus-stack.preflightJob.resources.requests.memory`                 | Memory request for the preflight check Job.                                                                                   | `64Mi`                           |
+| `kube-prometheus-stack.alertmanager.enabled`                                   | Disable Alertmanager (not used by CruiseKube).                                                                                | `false`                          |
+| `kube-prometheus-stack.grafana.enabled`                                        | Disable Grafana (not used by CruiseKube).                                                                                     | `false`                          |
+| `kube-prometheus-stack.prometheus-windows-exporter.enabled`                    | Disable Windows node exporter.                                                                                                | `false`                          |
+| `kube-prometheus-stack.defaultRules.create`                                    | Disable default alert rules (no Alertmanager to receive them).                                                                | `false`                          |
+| `kube-prometheus-stack.prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues` | Disable helm-value-based selector so the explicit selector below is always honoured.                              | `false`                          |
+| `kube-prometheus-stack.prometheus.prometheusSpec.serviceMonitorSelector`       | ServiceMonitor selector for the bundled Prometheus. Must match the `release: prometheus` label on this chart's ServiceMonitors. | `{matchLabels: {release: prometheus}}` |
+| `kube-prometheus-stack.prometheus.prometheusSpec.serviceMonitorNamespaceSelector` | Namespace selector for ServiceMonitors — empty means all namespaces.                                                       | `{}`                             |
+
 ### CruiseKube Frontend parameters
 
 | Name                                           | Description                                                             | Value                                         |

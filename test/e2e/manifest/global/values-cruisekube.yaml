@@ -13,8 +13,10 @@ cruisekubeController:
     # This is used when we don't have to use and existing secret.
     credentialGen:
       image:
-        repository: bitnami/kubectl
-        tag: "latest"
+        # alpine/k8s (not alpine/kubectl): multi-arch and includes /bin/bash required by hook Jobs.
+        repository: alpine/k8s
+        tag: "1.36.0"
+        imagePullPolicy: IfNotPresent
   usageTelemetry:
     enabled: false
     interval: 30m
@@ -78,3 +80,11 @@ cruisekubeWebhook:
       repository: registry.k8s.io/ingress-nginx/kube-webhook-certgen
       tag: v1.5.2
       imagePullPolicy: IfNotPresent
+
+kube-prometheus-stack:
+  enabled: true
+  # e2e Makefile install-prom may already run node-exporter in monitoring — do not deploy a second.
+  nodeExporter:
+    enabled: false
+  kubeStateMetrics:
+    enabled: true

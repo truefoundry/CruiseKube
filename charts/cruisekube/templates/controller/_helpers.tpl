@@ -122,6 +122,20 @@ Whether the bootstrap hook Job should run (admin and/or runtime-data Secret life
 {{- if and .Values.cruisekubeController.enabled (or $manageAdmin ($ut.enabled | default false)) -}}true{{- end -}}
 {{- end }}
 {{/*
+Compute the in-cluster URL for the bundled kube-prometheus-stack Prometheus Service.
+kube-prometheus-stack truncates its "fullname" to 26 chars (see its _helpers.tpl).
+  fullname = trunc(26, trimSuffix("-", "<release>-kube-prometheus-stack"))
+  service  = fullname + "-prometheus"
+Example: release "cruisekube"
+  fullname = trunc("cruisekube-kube-prometheus-stack", 26) = "cruisekube-kube-prometheus"
+  service  = "cruisekube-kube-prometheus-prometheus"
+*/}}
+{{- define "cruisekube.bundledPrometheusUrl" -}}
+{{- $fullname := printf "%s-kube-prometheus-stack" .Release.Name | trunc 26 | trimSuffix "-" -}}
+{{- printf "http://%s-prometheus.%s.svc:9090" $fullname .Release.Namespace -}}
+{{- end }}
+
+{{/*
 ServiceMonitor labels - merges common labels with servicemonitor-specific labels
 */}}
 {{- define "cruisekubeController.serviceMonitorLabels" -}}
