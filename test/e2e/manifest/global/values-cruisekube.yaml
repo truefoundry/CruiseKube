@@ -85,6 +85,6 @@ kube-prometheus-stack:
   enabled: true
   # e2e Makefile install-prom may already run node-exporter in monitoring — do not deploy a second.
   nodeExporter:
-    enabled: false
+    enabled: true
   kubeStateMetrics:
     enabled: true

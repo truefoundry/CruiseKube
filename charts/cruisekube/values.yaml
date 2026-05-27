@@ -378,19 +378,16 @@ cruisekubeFrontend:
 ##
 ## IMPORTANT — node-exporter / kube-state-metrics (one per cluster):
 ##   node-exporter uses hostNetwork and binds port 9100 on each node. A second DaemonSet cannot
-##   schedule ("didn't have free ports"). When Prometheus already exists (e.g. namespace monitoring),
-##   leave nodeExporter.enabled and kubeStateMetrics.enabled false (default below).
-##   The bundled Prometheus scrapes the existing exporters via their ServiceMonitors.
-##   For a greenfield cluster with no other monitoring stack, set both to true.
+##   schedule ("didn't have free ports"). When another stack already runs exporters (e.g. monitoring),
+##   set nodeExporter.enabled and kubeStateMetrics.enabled to false so the bundled Prometheus
+##   scrapes the existing ServiceMonitors instead. See docs/install/gs-prerequisites.md.
 ##
 ## IMPORTANT — ServiceMonitor discovery:
 ##   The bundled Prometheus uses an empty serviceMonitorSelector so it discovers ServiceMonitors
 ##   cluster-wide (this chart's monitors, plus existing node-exporter/kube-state-metrics elsewhere).
 ##   CruiseKube ServiceMonitors still carry release: prometheus for compatibility with external Prometheus.
 
-# NOTE: keys under kube-prometheus-stack are passed through to the subchart.
-# Keys that are not recognized by the subchart (preflightJob, crds.skipPreflightCheck) are
-# safely ignored by the subchart since it has no values schema to enforce.
+# NOTE: keys under kube-prometheus-stack are passed through to the kube-prometheus-stack subchart.
 
 kube-prometheus-stack:
   ## @param kube-prometheus-stack.enabled Deploy the bundled kube-prometheus-stack (Prometheus Operator + Prometheus + kube-state-metrics + node-exporter). Off by default.
@@ -399,31 +396,6 @@ kube-prometheus-stack:
   crds:
     ## @param kube-prometheus-stack.crds.enabled Install/upgrade Prometheus Operator CRDs as part of this chart. Set to false if compatible CRDs are already present.
     enabled: true
-    ## @param kube-prometheus-stack.crds.skipPreflightCheck Skip the pre-install conflict-detection Job. Set to true only after reviewing any conflict warnings emitted by that Job.
-    skipPreflightCheck: false
-
-  ## Configuration for the pre-install preflight conflict-detection Job.
-  ## The image and resource settings below are consumed by the chart's own Job template —
-  ## they are not kube-prometheus-stack subchart values.
-  preflightJob:
-    image:
-      ## @param kube-prometheus-stack.preflightJob.image.repository Image for the preflight check Job (needs kubectl).
-      repository: dtzar/helm-kubectl
-      ## @param kube-prometheus-stack.preflightJob.image.tag Image tag for the preflight check Job.
-      tag: "4.2"
-      ## @param kube-prometheus-stack.preflightJob.image.imagePullPolicy Image pull policy for the preflight check Job.
-      imagePullPolicy: IfNotPresent
-    resources:
-      limits:
-        ## @param kube-prometheus-stack.preflightJob.resources.limits.cpu CPU limit for the preflight check Job.
-        cpu: 200m
-        ## @param kube-prometheus-stack.preflightJob.resources.limits.memory Memory limit for the preflight check Job.
-        memory: 128Mi
-      requests:
-        ## @param kube-prometheus-stack.preflightJob.resources.requests.cpu CPU request for the preflight check Job.
-        cpu: 50m
-        ## @param kube-prometheus-stack.preflightJob.resources.requests.memory Memory request for the preflight check Job.
-        memory: 64Mi
 
   ## Disable unneeded components — CruiseKube only needs Prometheus + its scrapers.
   ## @param kube-prometheus-stack.alertmanager.enabled Disable Alertmanager (not used by CruiseKube).
@@ -439,13 +411,13 @@ kube-prometheus-stack:
   defaultRules:
     create: false
 
-  ## @param kube-prometheus-stack.nodeExporter.enabled Deploy node-exporter DaemonSet. Keep false when another stack already runs node-exporter (host port 9100 is per-node).
+  ## @param kube-prometheus-stack.nodeExporter.enabled Deploy node-exporter DaemonSet. Set false when another stack already runs node-exporter (host port 9100 is per-node).
   nodeExporter:
-    enabled: false
+    enabled: true
 
-  ## @param kube-prometheus-stack.kubeStateMetrics.enabled Deploy kube-state-metrics. Keep false when another stack already provides it.
+  ## @param kube-prometheus-stack.kubeStateMetrics.enabled Deploy kube-state-metrics. Set false when another stack already provides it.
   kubeStateMetrics:
-    enabled: false
+    enabled: true
 
   ## Prometheus instance configuration.
   prometheus:
