@@ -64,7 +64,9 @@ anywhere in the cluster, enable it:
 
 ServiceMonitors emitted by this chart:
   {{ include "cruisekubeController.fullname" . }}-service-monitor
+{{- if .Values.cruisekubeWebhook.enabled }}
   {{ include "cruisekubeWebhook.fullname" . }}-service-monitor
+{{- end }}
 
 ---
 {{- else }}
