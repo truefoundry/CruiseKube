@@ -81,12 +81,10 @@ cruisekubeWebhook:
       tag: v1.5.2
       imagePullPolicy: IfNotPresent
 
-## @section Global parameters
-global:
-  postgresql:
-    auth:
-      ## @param global.postgresql.auth.host PostgreSQL hostname
-      host: "cruisekube-temp-postgresql"
+# global:
+#   postgresql:
+#     auth:
+#       host: "cruisekube-temp-postgresql"
 
 kube-prometheus-stack:
   enabled: true
