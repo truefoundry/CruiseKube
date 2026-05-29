@@ -376,11 +376,24 @@ cruisekubeFrontend:
 ##   When enabled, update CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL if you are overriding
 ##   it manually; otherwise the chart computes the correct in-cluster URL automatically.
 ##
-## IMPORTANT — node-exporter / kube-state-metrics (one per cluster):
+## IMPORTANT — Prometheus Operator (one cluster-wide reconciler):
+##   The Prometheus Operator watches Prometheus/ServiceMonitor CRs cluster-wide by default. If another
+##   operator already exists (e.g. in a "monitoring" namespace), running a second one makes both fight
+##   over the same StatefulSets — the Prometheus pod is deleted/recreated in a loop and the existing
+##   Prometheus can also flap. Set prometheusOperator.enabled=false so the existing operator reconciles
+##   this chart's Prometheus CR ("one operator, multiple Prometheus CRs"). See docs/install/gs-prerequisites.md.
+##
+## IMPORTANT — node-exporter (one per node) vs kube-state-metrics (safe to duplicate):
 ##   node-exporter uses hostNetwork and binds port 9100 on each node. A second DaemonSet cannot
-##   schedule ("didn't have free ports"). When another stack already runs exporters (e.g. monitoring),
-##   set nodeExporter.enabled and kubeStateMetrics.enabled to false so the bundled Prometheus
-##   scrapes the existing ServiceMonitors instead. See docs/install/gs-prerequisites.md.
+##   schedule ("didn't have free ports"). When another stack already runs it (e.g. monitoring), set
+##   nodeExporter.enabled=false so the bundled Prometheus scrapes the existing one.
+##   kube-state-metrics is a plain Deployment (no hostNetwork/hostPort), so a second copy coexists
+##   fine — disabling it is OPTIONAL (only avoids a duplicate). See docs/install/gs-prerequisites.md.
+##
+## IMPORTANT — Prometheus storage:
+##   This chart sets a persistent storageSpec + retention by default (see prometheus.prometheusSpec below)
+##   because CruiseKube needs metric history. It uses the cluster's default StorageClass; set
+##   storageClassName explicitly if there is no default, or set storageSpec: null to run ephemeral.
 ##
 ## IMPORTANT — ServiceMonitor discovery:
 ##   The bundled Prometheus uses an empty serviceMonitorSelector so it discovers ServiceMonitors
@@ -395,6 +408,10 @@ kube-prometheus-stack:
 
   crds:
     ## @param kube-prometheus-stack.crds.enabled Install/upgrade Prometheus Operator CRDs as part of this chart. Set to false if compatible CRDs are already present.
+    enabled: true
+
+  ## @param kube-prometheus-stack.prometheusOperator.enabled Deploy the Prometheus Operator. Set false when a cluster-wide operator already exists, so the existing operator reconciles this chart's Prometheus CR (avoids two operators fighting over the same StatefulSets).
+  prometheusOperator:
     enabled: true
 
   ## Disable unneeded components — CruiseKube only needs Prometheus + its scrapers.
@@ -415,7 +432,7 @@ kube-prometheus-stack:
   nodeExporter:
     enabled: true
 
-  ## @param kube-prometheus-stack.kubeStateMetrics.enabled Deploy kube-state-metrics. Set false when another stack already provides it.
+  ## @param kube-prometheus-stack.kubeStateMetrics.enabled Deploy kube-state-metrics. Safe to leave enabled even when another stack runs it (plain Deployment, no host ports); set false only to avoid a duplicate.
   kubeStateMetrics:
     enabled: true
 
@@ -428,3 +445,20 @@ kube-prometheus-stack:
       serviceMonitorSelector: {}
       ## @param kube-prometheus-stack.prometheus.prometheusSpec.serviceMonitorNamespaceSelector Match ServiceMonitors in all namespaces.
       serviceMonitorNamespaceSelector: {}
+
+      ## Persistent TSDB by default — CruiseKube needs metric history to produce good recommendations.
+      ## Without storage the bundled Prometheus uses an EmptyDir and loses all data on pod restart.
+      ## @param kube-prometheus-stack.prometheus.prometheusSpec.retention How long the bundled Prometheus keeps metrics.
+      retention: 15d
+      ## storageSpec provisions a PVC via the StatefulSet volumeClaimTemplate.
+      ## storageClassName is intentionally unset so the cluster's default StorageClass is used; set it
+      ## explicitly if there is no default. To run ephemeral (e.g. throwaway tests), set storageSpec: null.
+      ## @param kube-prometheus-stack.prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.accessModes [array] Access modes for the Prometheus PVC.
+      ## @param kube-prometheus-stack.prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage Size of the Prometheus PVC.
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 20Gi
