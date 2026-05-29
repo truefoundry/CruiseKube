@@ -376,12 +376,20 @@ cruisekubeFrontend:
 ##   When enabled, update CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL if you are overriding
 ##   it manually; otherwise the chart computes the correct in-cluster URL automatically.
 ##
-## IMPORTANT — Prometheus Operator (one cluster-wide reconciler):
-##   The Prometheus Operator watches Prometheus/ServiceMonitor CRs cluster-wide by default. If another
-##   operator already exists (e.g. in a "monitoring" namespace), running a second one makes both fight
-##   over the same StatefulSets — the Prometheus pod is deleted/recreated in a loop and the existing
-##   Prometheus can also flap. Set prometheusOperator.enabled=false so the existing operator reconciles
-##   this chart's Prometheus CR ("one operator, multiple Prometheus CRs"). See docs/install/gs-prerequisites.md.
+## IMPORTANT — running a SECOND operator on purpose (separate config control):
+##   You CAN keep prometheusOperator.enabled=true and run a dedicated operator for CruiseKube — but only
+##   if the two operators OWN disjoint namespaces. "Ownership" here means managing Prometheus/Alertmanager
+##   instances (StatefulSets), not reading ServiceMonitors (which is safe to share). To do this:
+##     1. Scope THIS operator to only own instances in its own namespace via
+##        prometheusOperator.prometheusInstanceNamespaces (see below). Leave ServiceMonitor discovery broad
+##        so it still scrapes exporters elsewhere.
+##     2. Scope the EXISTING (production) operator to STOP owning this namespace — add this release's
+##        namespace to its prometheusOperator.denyNamespaces (or set its prometheusInstanceNamespaces to an
+##        explicit list that excludes it). This edit to the existing release is unavoidable while it is
+##        cluster-wide. See docs/install/gs-prerequisites.md ("Option B2").
+##   Because CRDs and admission webhooks are cluster-scoped, also keep crds.enabled=false (reuse the shared
+##   CRDs) and set prometheusOperator.admissionWebhooks.enabled=false / kubeletService.enabled=false on this
+##   operator so it does not fight the existing one over cluster-scoped objects.
 ##
 ## IMPORTANT — node-exporter (one per node) vs kube-state-metrics (safe to duplicate):
 ##   node-exporter uses hostNetwork and binds port 9100 on each node. A second DaemonSet cannot
@@ -413,6 +421,23 @@ kube-prometheus-stack:
   ## @param kube-prometheus-stack.prometheusOperator.enabled Deploy the Prometheus Operator. Set false when a cluster-wide operator already exists, so the existing operator reconciles this chart's Prometheus CR (avoids two operators fighting over the same StatefulSets).
   prometheusOperator:
     enabled: true
+
+    ## Scoping for running a DEDICATED second operator (see the "running a SECOND operator" note above).
+    ## These are commented out by default (the operator watches/owns cluster-wide). Uncomment when you want
+    ## this operator to own ONLY its own Prometheus instance while the existing operator keeps the rest.
+    ##
+    ## @param kube-prometheus-stack.prometheusOperator.prometheusInstanceNamespaces [array] Namespaces this operator looks in for Prometheus CRs to own. Empty = cluster-wide. Set to the release namespace to avoid fighting an existing operator over instances. ServiceMonitor discovery stays broad.
+    # prometheusInstanceNamespaces:
+    #   - cruisekube-system
+    ## @param kube-prometheus-stack.prometheusOperator.alertmanagerInstanceNamespaces [array] Namespaces this operator owns Alertmanager CRs in. Scope alongside prometheusInstanceNamespaces when running a dedicated operator.
+    # alertmanagerInstanceNamespaces:
+    #   - cruisekube-system
+    ## @param kube-prometheus-stack.prometheusOperator.admissionWebhooks.enabled Install the cluster-scoped PrometheusRule admission webhook. Set false when a second operator already provides it (the webhook is cluster-wide; two are redundant/conflicting).
+    admissionWebhooks:
+      enabled: true
+    ## @param kube-prometheus-stack.prometheusOperator.kubeletService.enabled Have this operator create/maintain the cluster-wide kubelet Service in kube-system. Set false when another operator already manages it, to avoid two operators reconciling the same Service.
+    kubeletService:
+      enabled: true
 
   ## Disable unneeded components — CruiseKube only needs Prometheus + its scrapers.
   ## @param kube-prometheus-stack.alertmanager.enabled Disable Alertmanager (not used by CruiseKube).
