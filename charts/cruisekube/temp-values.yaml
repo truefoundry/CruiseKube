@@ -1,0 +1,58 @@
+postgresql:
+  global:
+    security:
+      allowInsecureImages: true
+  enabled: true
+cruisekubeWebhook:
+  env:
+    CRUISEKUBE_WEBHOOK_DRYRUN: false
+    CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: false
+  enabled: true
+  webhook:
+    statsURL:
+      host: http://cruisekube-temp-controller.cruisekube-temp.svc.cluster.local:8080
+cruisekubeFrontend:
+  env:
+    VITE_SENTRY_DSN: >-
+      https://93593fd0d527d1fce1f1eb8f2f479289@o1118194.ingest.us.sentry.io/4510990326628352
+    VITE_SENTRY_ENV: frontend-devtest
+    VITE_SENTRY_ENABLED: true
+cruisekubeController:
+  env:
+    CRUISEKUBE_SENTRY_DSN: >-
+      https://0ea4b1081d596f7799c6e7e367adf196@o1118194.ingest.us.sentry.io/4510990333575168
+    CRUISEKUBE_SENTRY_ENABLED: true
+    CRUISEKUBE_WEBHOOK_DRYRUN: false
+    CRUISEKUBE_SENTRY_ENVIRONMENT: devtest
+    CRUISEKUBE_DISRUPTIONSETTINGS_WINDOWENDCRON: 0 3 * * *
+    CRUISEKUBE_DISRUPTIONSETTINGS_WINDOWSTARTCRON: 0 16 * * *
+    CRUISEKUBE_CONTROLLER_TASKS_CREATESTATS_ENABLED: true
+    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: http://prometheus-operated.cruisekube-temp.svc.cluster.local:9090
+    CRUISEKUBE_CONTROLLER_TASKS_DISRUPTIONFORCE_ENABLED: true
+    CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_ENABLED: true
+    CRUISEKUBE_RECOMMENDATIONSETTINGS_DISABLEMEMORYAPPLICATION: false
+    CRUISEKUBE_CONTROLLER_TASKS_APPLYRECOMMENDATION_METADATA_DRYRUN: false
+
+## @section Global parameters
+global:
+  postgresql:
+    auth:
+      ## @param global.postgresql.auth.host PostgreSQL hostname
+      host: "cruisekube-temp-postgresql"
+
+# kube-prometheus-stack:
+#   enabled: true
+#   crds:
+#     enabled: false
+#   nodeExporter:
+#     enabled: false
+#   kubeStateMetrics:
+#     enabled: false
+#   alertmanager:
+#     enabled: false
+#   grafana:
+#     enabled: false
+#   prometheusOperator:
+#     enabled: true
+#     prometheusInstanceNamespaces:
+#       - cruisekube-temp
