@@ -29,9 +29,9 @@ cruisekubeController:
     credentialGen:
       image:
         ## @param cruisekubeController.admin.credentialGen.image.repository Image for the hook Job that creates the admin Secret when existingSecret is not set.
-        repository: public.ecr.aws/bitnami/kubectl
+        repository: tfy.jfrog.io/tfy-images/bitnami/kubectl
         ## @param cruisekubeController.admin.credentialGen.image.tag Image tag for the credential generator Job.
-        tag: "1.36.0"
+        tag: "1.28.5"
         ## @param cruisekubeController.admin.credentialGen.image.imagePullPolicy Image pull policy for the credential generator Job.
         imagePullPolicy: IfNotPresent
       resources:
