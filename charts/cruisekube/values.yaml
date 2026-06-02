@@ -29,9 +29,9 @@ cruisekubeController:
     credentialGen:
       image:
         ## @param cruisekubeController.admin.credentialGen.image.repository Image for the hook Job that creates the admin Secret when existingSecret is not set.
-        repository: public.ecr.aws/bitnami/kubectl
+        repository: tfy.jfrog.io/tfy-images/bitnami/kubectl
         ## @param cruisekubeController.admin.credentialGen.image.tag Image tag for the credential generator Job.
-        tag: "1.36.0"
+        tag: "1.28.5"
         ## @param cruisekubeController.admin.credentialGen.image.imagePullPolicy Image pull policy for the credential generator Job.
         imagePullPolicy: IfNotPresent
       resources:
@@ -376,20 +376,27 @@ cruisekubeFrontend:
 ##   When enabled, update CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL if you are overriding
 ##   it manually; otherwise the chart computes the correct in-cluster URL automatically.
 ##
-## IMPORTANT — running a SECOND operator on purpose (separate config control):
-##   You CAN keep prometheusOperator.enabled=true and run a dedicated operator for CruiseKube — but only
-##   if the two operators OWN disjoint namespaces. "Ownership" here means managing Prometheus/Alertmanager
-##   instances (StatefulSets), not reading ServiceMonitors (which is safe to share). To do this:
-##     1. Scope THIS operator to only own instances in its own namespace via
-##        prometheusOperator.prometheusInstanceNamespaces (see below). Leave ServiceMonitor discovery broad
-##        so it still scrapes exporters elsewhere.
-##     2. Scope the EXISTING (production) operator to STOP owning this namespace — add this release's
-##        namespace to its prometheusOperator.denyNamespaces (or set its prometheusInstanceNamespaces to an
-##        explicit list that excludes it). This edit to the existing release is unavoidable while it is
-##        cluster-wide. See docs/install/gs-prerequisites.md ("Option B2").
-##   Because CRDs and admission webhooks are cluster-scoped, also keep crds.enabled=false (reuse the shared
-##   CRDs) and set prometheusOperator.admissionWebhooks.enabled=false / kubeletService.enabled=false on this
-##   operator so it does not fight the existing one over cluster-scoped objects.
+## IMPORTANT — bundled operator is SCOPED by default (separate config control, no operator war):
+##   When prometheusOperator.enabled=true the bundled operator OWNS Prometheus/Alertmanager instances only
+##   if they (a) live in the install namespace (prometheusInstanceNamespaces, default "cruisekube-system")
+##   AND (b) carry the unique label cruisekube.com/prometheus=bundled (prometheusInstanceSelector). The chart
+##   stamps that label on its own CR (prometheus.additionalLabels), so the bundled operator manages exactly
+##   one instance — its own — and can never adopt an existing cluster-wide instance. Ownership scoping does
+##   NOT limit ServiceMonitor discovery, so the bundled Prometheus still scrapes kubelet/cAdvisor and
+##   exporters cluster-wide.
+##   Two things to know:
+##     1. If you install CruiseKube in a namespace other than "cruisekube-system", update
+##        prometheusInstanceNamespaces / alertmanagerInstanceNamespaces to match (or set [] to rely on the
+##        unique label selector alone, which is namespace-independent).
+##     2. The unique label scopes only the BUNDLED operator. An existing CLUSTER-WIDE operator still matches
+##        the bundled instance (its selector is empty = matches all), so it must be told to ignore it. Either
+##        give it a selector that excludes the label — prometheusInstanceSelector: "cruisekube.com/prometheus!=bundled"
+##        (matches every instance that lacks/differs on the label, i.e. all its own) — or exclude this
+##        namespace via prometheusOperator.denyNamespaces. This edit to the existing release is unavoidable
+##        while it is cluster-wide. See docs/install/gs-prerequisites.md ("Option C").
+##   Because CRDs and admission webhooks are cluster-scoped, when coexisting with another operator also set
+##   crds.enabled=false (reuse the shared CRDs) and prometheusOperator.admissionWebhooks.enabled=false /
+##   kubeletService.enabled=false so the two do not fight over cluster-scoped objects.
 ##
 ## IMPORTANT — node-exporter (one per node) vs kube-state-metrics (safe to duplicate):
 ##   node-exporter uses hostNetwork and binds port 9100 on each node. A second DaemonSet cannot
@@ -422,16 +429,38 @@ kube-prometheus-stack:
   prometheusOperator:
     enabled: true
 
-    ## Scoping for running a DEDICATED second operator (see the "running a SECOND operator" note above).
-    ## These are commented out by default (the operator watches/owns cluster-wide). Uncomment when you want
-    ## this operator to own ONLY its own Prometheus instance while the existing operator keeps the rest.
+    ## Scoped by DEFAULT — this operator only OWNS Prometheus/Alertmanager instances in the namespaces
+    ## listed below, so a bundled operator never fights an existing cluster-wide operator over StatefulSets.
+    ## This scopes instance OWNERSHIP only; ServiceMonitor/endpoint discovery stays cluster-wide, so the
+    ## bundled Prometheus still scrapes kubelet/cAdvisor and exporters in every namespace.
     ##
-    ## @param kube-prometheus-stack.prometheusOperator.prometheusInstanceNamespaces [array] Namespaces this operator looks in for Prometheus CRs to own. Empty = cluster-wide. Set to the release namespace to avoid fighting an existing operator over instances. ServiceMonitor discovery stays broad.
-    # prometheusInstanceNamespaces:
-    #   - cruisekube-system
-    ## @param kube-prometheus-stack.prometheusOperator.alertmanagerInstanceNamespaces [array] Namespaces this operator owns Alertmanager CRs in. Scope alongside prometheusInstanceNamespaces when running a dedicated operator.
-    # alertmanagerInstanceNamespaces:
-    #   - cruisekube-system
+    ## IMPORTANT — these must list the namespace where CruiseKube (and thus its Prometheus CR) is installed.
+    ## They default to "cruisekube-system" (the documented install namespace). If you install CruiseKube in a
+    ## DIFFERENT namespace and enable this operator, change these to that namespace — otherwise the operator
+    ## will not adopt the Prometheus CR and no Prometheus pod is created. Set to [] to run cluster-wide.
+    ##
+    ## @param kube-prometheus-stack.prometheusOperator.prometheusInstanceNamespaces [array] Namespaces this operator looks in for Prometheus CRs to own. Defaults to the install namespace so a bundled operator does not fight an existing cluster-wide operator. ServiceMonitor discovery stays broad. Set to [] for cluster-wide ownership.
+    prometheusInstanceNamespaces:
+      - cruisekube-system
+    ## @param kube-prometheus-stack.prometheusOperator.alertmanagerInstanceNamespaces [array] Namespaces this operator owns Alertmanager CRs in. Scoped alongside prometheusInstanceNamespaces. Set to [] for cluster-wide ownership.
+    alertmanagerInstanceNamespaces:
+      - cruisekube-system
+
+    ## UNIQUE INSTANCE SELECTORS — second layer of ownership scoping, by label rather than namespace.
+    ## The bundled operator only OWNS Prometheus/Alertmanager CRs that carry the label below, which the
+    ## chart stamps onto its own CR (see prometheus.additionalLabels / alertmanager.additionalLabels).
+    ## No other instance in the cluster carries this label, so the bundled operator can never adopt an
+    ## existing instance — and, crucially, it gives the EXISTING cluster-wide operator a way to ignore the
+    ## bundled instance without listing namespaces: set the existing operator's prometheusInstanceSelector to
+    ## "cruisekube.com/prometheus!=bundled" (matches everything that lacks/differs on the label). See
+    ## docs/install/gs-prerequisites.md ("Option C").
+    ## NOTE: namespace scoping (above) and this label selector are ANDed — a CR must satisfy BOTH to be
+    ## owned. The bundled CR is in the install namespace AND carries the label, so it qualifies. Set the
+    ## namespaces to [] if you prefer to scope by label only (namespace-independent).
+    ## @param kube-prometheus-stack.prometheusOperator.prometheusInstanceSelector Label selector for Prometheus CRs this operator owns. Defaults to the unique label the chart stamps on its own CR so the bundled operator only ever manages the bundled Prometheus.
+    prometheusInstanceSelector: "cruisekube.com/prometheus=bundled"
+    ## @param kube-prometheus-stack.prometheusOperator.alertmanagerInstanceSelector Label selector for Alertmanager CRs this operator owns. Mirrors prometheusInstanceSelector (moot while alertmanager.enabled=false).
+    alertmanagerInstanceSelector: "cruisekube.com/prometheus=bundled"
     ## @param kube-prometheus-stack.prometheusOperator.admissionWebhooks.enabled Install the cluster-scoped PrometheusRule admission webhook. Set false when a second operator already provides it (the webhook is cluster-wide; two are redundant/conflicting).
     admissionWebhooks:
       enabled: true
@@ -443,6 +472,9 @@ kube-prometheus-stack:
   ## @param kube-prometheus-stack.alertmanager.enabled Disable Alertmanager (not used by CruiseKube).
   alertmanager:
     enabled: false
+    ## @param kube-prometheus-stack.alertmanager.additionalLabels Labels added to the Alertmanager CR so the bundled operator's alertmanagerInstanceSelector matches it. Moot while alertmanager.enabled=false, kept for consistency if you enable it.
+    additionalLabels:
+      cruisekube.com/prometheus: bundled
   ## @param kube-prometheus-stack.grafana.enabled Disable Grafana (not used by CruiseKube).
   grafana:
     enabled: false
@@ -463,6 +495,9 @@ kube-prometheus-stack:
 
   ## Prometheus instance configuration.
   prometheus:
+    ## @param kube-prometheus-stack.prometheus.additionalLabels Labels added to the Prometheus CR. The unique label here is what prometheusOperator.prometheusInstanceSelector matches, so the bundled operator (and only it) owns this instance. Keep in sync with that selector.
+    additionalLabels:
+      cruisekube.com/prometheus: bundled
     prometheusSpec:
       ## @param kube-prometheus-stack.prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues Set to false so the explicit selector below is honored.
       serviceMonitorSelectorNilUsesHelmValues: false

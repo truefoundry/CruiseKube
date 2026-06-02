@@ -93,6 +93,12 @@ kube-prometheus-stack:
   nodeExporter:
     enabled: false
   kubeStateMetrics:
-    enabled: true
+    enabled: false
+  alertmanager:
+    enabled: false
+  grafana:
+    enabled: false
   prometheusOperator:
-    enabled: false   
+    enabled: true
+    prometheusInstanceNamespaces:
+      - cruisekube-system

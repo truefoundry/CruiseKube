@@ -40,19 +40,19 @@ global:
       ## @param global.postgresql.auth.host PostgreSQL hostname
       host: "cruisekube-temp-postgresql"
 
-# kube-prometheus-stack:
-#   enabled: true
-#   crds:
-#     enabled: false
-#   nodeExporter:
-#     enabled: false
-#   kubeStateMetrics:
-#     enabled: false
-#   alertmanager:
-#     enabled: false
-#   grafana:
-#     enabled: false
-#   prometheusOperator:
-#     enabled: true
-#     prometheusInstanceNamespaces:
-#       - cruisekube-temp
+kube-prometheus-stack:
+  enabled: true
+  crds:
+    enabled: false
+  nodeExporter:
+    enabled: false
+  kubeStateMetrics:
+    enabled: false
+  alertmanager:
+    enabled: false
+  grafana:
+    enabled: false
+  prometheusOperator:
+    enabled: true
+    prometheusInstanceNamespaces:
+      - cruisekube-temp
