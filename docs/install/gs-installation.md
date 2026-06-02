@@ -12,6 +12,8 @@ hide:
 
 # Installation
 
+Complete [Pre-requisites](gs-prerequisites.md) first (Kubernetes version, Prometheus, PostgreSQL, and tooling). The Helm command below assumes you already have a compatible Prometheus URL — see [Prometheus scenarios](gs-prerequisites.md#prometheus) if you are unsure which setup to use.
+
 ## With Helm
 
 Install from the **OCI** registry (replace the Prometheus URL with yours):

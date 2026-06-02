@@ -29,9 +29,9 @@ CruiseKube reads **container and node metrics** (usage, throttling, PSI where ex
 - Set `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` (or equivalent) to a URL reachable **from the controller pods** (in-cluster Service URL, not `localhost`).
 - CruiseKube expects standard metric names with `job="kube-state-metrics"`, `job="node-exporter"`, and kubelet/cAdvisor series. See [Troubleshooting — Prometheus metrics](../documentation/operate/operate-troubleshooting.md).
 
-An existing Prometheus installation does **not** automatically mean it is compatible with CruiseKube. Before install, confirm your Prometheus retains the full set of raw Kubernetes metrics CruiseKube queries (see [Using a Dedicated Prometheus for CruiseKube](#using-a-dedicated-prometheus-for-cruisekube) if not).
+An existing Prometheus installation does **not** automatically mean it is compatible with CruiseKube. Pick the scenario below that matches your cluster.
 
-### Option A — Use an existing compatible Prometheus (recommended when monitoring is already suitable)
+### Scenario 1 — Use an existing compatible Prometheus
 
 If **kube-prometheus-stack** (or another Prometheus install) already runs in `monitoring` or elsewhere **and** exposes the required metrics without aggressive filtering:
 
@@ -41,9 +41,15 @@ If **kube-prometheus-stack** (or another Prometheus install) already runs in `mo
 
 You do **not** need a second Prometheus or a second node-exporter when the existing stack already stores the metrics CruiseKube needs.
 
-### Option B — Greenfield (no monitoring stack yet)
+```yaml
+cruisekubeController:
+  env:
+    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090"
+```
 
-If nothing monitors the cluster yet, install **kube-prometheus-stack** once as a standalone release (the CruiseKube chart does not bundle Prometheus):
+### Scenario 2 — Greenfield (no monitoring stack yet)
+
+If nothing monitors the cluster yet, install **kube-prometheus-stack** once (the CruiseKube chart does not bundle Prometheus):
 
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -56,14 +62,14 @@ helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
   --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false
 ```
 
-Then set `cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` to that Prometheus in-cluster Service URL when you install CruiseKube.
+Then set `cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` to that Prometheus in-cluster Service URL when you install CruiseKube (for example `http://kube-prometheus-stack-prometheus.monitoring.svc:9090` — confirm the Service name with `kubectl get svc -n monitoring`).
 
 !!! tip "Retention and storage"
     CruiseKube needs enough **retention** and **history** to produce good recommendations. For production, configure persistent storage and a retention window that matches your recommendation lookback (for example 15–30 days) on the Prometheus you point CruiseKube at.
 
-## Using a Dedicated Prometheus for CruiseKube
+### Scenario 3 — Dedicated standalone Prometheus
 
-Some organizations already run Prometheus, but that instance may **not** be suitable for CruiseKube even though it is healthy for alerting and dashboards. Common reasons:
+Use this when you **already run** Prometheus for alerting and dashboards, but that instance is **not** suitable for CruiseKube — for example because of metric relabeling, recording rules, remote-write filtering, partial retention, disabled scrape jobs, or short retention. CruiseKube may then show **no recommendations**, **incomplete recommendations**, or failing health checks even though production monitoring looks healthy. See [Troubleshooting — Prometheus metrics](../documentation/operate/operate-troubleshooting.md).
 
 | Issue | Why CruiseKube suffers |
 |-------|-------------------------|
@@ -74,79 +80,33 @@ Some organizations already run Prometheus, but that instance may **not** be suit
 | **Disabled scrape jobs** | kubelet, kube-state-metrics, or node-exporter targets are not scraped. |
 | **Short retention** | Data ages out before CruiseKube's lookback windows can use it. |
 
-In these cases CruiseKube may produce **no recommendations**, **incomplete recommendations**, or fail health checks that depend on specific PromQL series. Symptoms often look like a broken install when the real problem is missing metrics — see [Troubleshooting — Prometheus metrics](../documentation/operate/operate-troubleshooting.md).
+**You do not need to replace your existing monitoring stack.** Deploy a **second Prometheus** in its own namespace, used only by CruiseKube. Prefer the official [Prometheus Helm chart](https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus) with a static scrape config over a second full kube-prometheus-stack — fewer resources, no second Prometheus Operator, and simpler troubleshooting.
 
-**You do not need to replace your existing monitoring stack.** Deploy a **second Prometheus** used only by CruiseKube. It can run alongside an existing kube-prometheus-stack (or any other monitoring system) in a separate namespace without interfering with production alerting.
+The dedicated instance should **scrape** kube-state-metrics, node-exporter, and kubelet (cAdvisor) with standard job names; **store raw metrics** without aggressive drops; **retain** at least ~15 days of history (unless you tune CruiseKube schedules); and **expose** `/api/v1/query` and `/api/v1/query_range` to controller pods on an in-cluster URL.
 
-### What the dedicated Prometheus should do
+1. Save the example values file ([standalone-prometheus-values.yaml](examples/standalone-prometheus-values.yaml)). It disables bundled node-exporter and kube-state-metrics (so you do not conflict with existing DaemonSets) and discovers existing cluster targets via `kubernetes_sd_configs`.
 
-Configure the dedicated instance to:
+2. Install Prometheus:
 
-- **Scrape** kube-state-metrics, node-exporter, and kubelet (cAdvisor) with standard job names.
-- **Store raw metrics** without aggressive metric relabel drops, recording-rule substitution of required series, or cost-driven sampling of Kubernetes object metrics.
-- **Retain history** long enough for CruiseKube's recommendation windows (plan for at least ~15 days unless you tune CruiseKube's schedules accordingly).
-- **Expose** an in-cluster HTTP API (`/api/v1/query`, `/api/v1/query_range`) reachable from CruiseKube controller pods.
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm install cruisekube-prometheus prometheus-community/prometheus \
+  --namespace cruisekube-metrics \
+  --create-namespace \
+  -f standalone-prometheus-values.yaml
+```
 
-Point CruiseKube at this instance:
+3. Point CruiseKube at the new Service (adjust name/namespace after `kubectl get svc -n cruisekube-metrics`):
 
 ```yaml
 cruisekubeController:
   env:
-    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://cruisekube-prometheus.cruisekube-system.svc:9090"
+    CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL: "http://cruisekube-prometheus-server.cruisekube-metrics.svc:9090"
 ```
-
-(Replace the Service name and namespace with your deployment.)
-
-### Deployment recommendation
-
-Prefer a **lightweight standalone Prometheus** (single Deployment or StatefulSet with a static `prometheus.yml`, or the official Prometheus Helm chart) over a **second full kube-prometheus-stack** unless you specifically need the Prometheus Operator, CRDs, and ServiceMonitor-based discovery.
-
-A standalone Prometheus is usually simpler because it:
-
-- Avoids ServiceMonitor and PodMonitor selector complexity.
-- Avoids running a second Prometheus Operator (and operator namespace scoping conflicts).
-- Uses fewer cluster resources.
-- Is easier to operate and troubleshoot when validating missing metrics.
-
-Install kube-prometheus-stack as a **standalone** release only when you want Operator-managed scrape config and already run that pattern elsewhere — still use a **separate** release/namespace from production monitoring, and point CruiseKube only at the dedicated instance URL.
-
-### Example architecture
-
-Your production monitoring stack and CruiseKube's metrics path stay independent:
-
-```mermaid
-flowchart LR
-  subgraph org [Organization monitoring]
-    PromProd[Existing Prometheus]
-    Grafana[Grafana / alerting]
-    PromProd --> Grafana
-  end
-
-  subgraph ck [CruiseKube metrics path]
-    CK[CruiseKube controller]
-    PromCK[Dedicated Prometheus]
-    KSM[kube-state-metrics]
-    NE[node-exporter]
-    KL[kubelet / cAdvisor]
-    CK -->|PromQL| PromCK
-    PromCK --> KSM
-    PromCK --> NE
-    PromCK --> KL
-  end
-```
-
-In words: **CruiseKube → dedicated Prometheus → (kube-state-metrics, node-exporter, kubelet)** while the organization's existing Prometheus continues to serve dashboards and alerts unchanged.
 
 !!! note "Reusing exporters"
-    You often **reuse** the cluster's existing node-exporter DaemonSet (only one can bind host port 9100 per node) and point the dedicated Prometheus at those targets. kube-state-metrics can be scraped from an existing Deployment or deployed alongside the dedicated Prometheus if your org policy requires isolation.
-
-### Conflicts to avoid
-
-| Situation | Symptom | What to do |
-|-----------|---------|------------|
-| Second **node-exporter** DaemonSet | Pod pending / *free ports* on host 9100 | Reuse the existing DaemonSet; scrape it from the dedicated Prometheus. |
-| Controller cannot reach Prometheus | Empty stats / health check failures | Use an in-cluster `http://…svc:9090` URL, not `localhost`. |
-| Production Prometheus missing series | Empty or partial recommendations | Use a [dedicated Prometheus](#using-a-dedicated-prometheus-for-cruisekube); do not assume `up==1` means CruiseKube metrics exist. |
+    Reuse the cluster's existing **node-exporter** DaemonSet (only one process can bind host port 9100 per node) and scrape it from the dedicated Prometheus. The example values file matches the common `prometheus-node-exporter` Service name from kube-prometheus-stack; adjust the relabel regex if your install uses a different Service name. kube-state-metrics can be scraped from an existing Deployment or installed alongside the dedicated Prometheus if policy requires isolation.
 
 **PSI (Pressure Stall Indicator):** CruiseKube's algorithm is built around **PSI-aware CPU** reasoning on clusters that expose the right metrics (Kubernetes 1.34+ PSI story). If PSI is absent, behavior degrades toward usage-only signals—still useful, but not identical to a full PSI deployment. See [Algorithm](../documentation/concepts/arch-algorithm.md).
 
