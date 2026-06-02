@@ -119,11 +119,11 @@ If queries are empty:
 1. **Scrape targets** — Ensure kubelet/cAdvisor, kube-state-metrics, and node-exporter (or equivalents) are scraped into **this** Prometheus.
 2. **Retention** — Series must cover lookback windows used by stats and recommendation tasks (see chart `values.yaml` task schedules).
 3. **RBAC / collectors** — A broken kube-state-metrics install often drops all `kube_*` series while node/container metrics still appear.
-4. **Wrong Prometheus** — Point `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` at the store that actually holds these names, not a short-retention or incomplete federated view.
+4. **Wrong or incompatible Prometheus** — Point `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` at the store that actually holds these names, not a short-retention, federated, or heavily filtered view. Production Prometheus often drops series via relabeling, recording rules, or remote-write cost controls — see [Using a Dedicated Prometheus for CruiseKube](../../install/gs-prerequisites.md#using-a-dedicated-prometheus-for-cruisekube).
 
 If **even one** core metric family above is missing or mislabeled, recommendations, dashboard rollups, or exported cluster metrics are often incomplete or unreliable. Optional metrics only affect the features listed in their row (for example Karpenter counters without `karpenter_nodeclaims_disrupted_total`).
 
-See [Prerequisites — Prometheus](../../install/gs-prerequisites.md) for install pointers.
+See [Prerequisites — Prometheus](../../install/gs-prerequisites.md) for install and dedicated-instance guidance.
 
 ---
 

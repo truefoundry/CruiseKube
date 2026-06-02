@@ -80,25 +80,3 @@ cruisekubeWebhook:
       repository: registry.k8s.io/ingress-nginx/kube-webhook-certgen
       tag: v1.5.2
       imagePullPolicy: IfNotPresent
-
-# global:
-#   postgresql:
-#     auth:
-#       host: "cruisekube-temp-postgresql"
-
-kube-prometheus-stack:
-  enabled: true
-  crds:
-    enabled: false
-  nodeExporter:
-    enabled: false
-  kubeStateMetrics:
-    enabled: false
-  alertmanager:
-    enabled: false
-  grafana:
-    enabled: false
-  prometheusOperator:
-    enabled: true
-    prometheusInstanceNamespaces:
-      - cruisekube-system

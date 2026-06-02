@@ -2,8 +2,5 @@ dependencies:
 - name: postgresql
   repository: oci://tfy.jfrog.io/tfy-mirror/bitnamicharts
   version: 18.1.14
-- name: kube-prometheus-stack
-  repository: https://prometheus-community.github.io/helm-charts
-  version: 85.3.3
-digest: sha256:3baf8678b18c8b530e1a81f1ab43759d79940be94e52af57c86b17159fdd8f7c
-generated: "2026-05-27T18:16:26.466846+05:30"
+digest: sha256:40702c5282a6a98e8f28d5ffc5736b1bdc0a88a48368a6adee4ae0aef69e3746
+generated: "2026-06-02T18:28:02.692097+05:30"

@@ -122,33 +122,6 @@ Whether the bootstrap hook Job should run (admin and/or runtime-data Secret life
 {{- if and .Values.cruisekubeController.enabled (or $manageAdmin ($ut.enabled | default false)) -}}true{{- end -}}
 {{- end }}
 {{/*
-Bundled kube-prometheus-stack fullname — must match kube-prometheus-stack.fullname in the subchart
-(see charts/kube-prometheus-stack/templates/_helpers.tpl). Subchart values live under the
-"kube-prometheus-stack" key; Chart.Name for the dependency is kube-prometheus-stack.
-*/}}
-{{- define "cruisekube.bundledPrometheusFullname" -}}
-{{- $kps := index .Values "kube-prometheus-stack" | default dict -}}
-{{- if index $kps "fullnameOverride" -}}
-{{- index $kps "fullnameOverride" | trunc 26 | trimSuffix "-" -}}
-{{- else -}}
-{{- $chartName := "kube-prometheus-stack" -}}
-{{- $name := default $chartName (index $kps "nameOverride") -}}
-{{- if contains $name .Release.Name -}}
-{{- .Release.Name | trunc 26 | trimSuffix "-" -}}
-{{- else -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 26 | trimSuffix "-" -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
-{{/*
-In-cluster URL for the bundled Prometheus Service (kube-prometheus-stack.fullname + "-prometheus").
-*/}}
-{{- define "cruisekube.bundledPrometheusUrl" -}}
-{{- $fullname := include "cruisekube.bundledPrometheusFullname" . -}}
-{{- printf "http://%s-prometheus.%s.svc:9090" $fullname .Release.Namespace -}}
-{{- end }}
-
-{{/*
 ServiceMonitor labels - merges common labels with servicemonitor-specific labels
 */}}
 {{- define "cruisekubeController.serviceMonitorLabels" -}}

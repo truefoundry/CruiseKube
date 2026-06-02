@@ -43,34 +43,6 @@ Usage telemetry is enabled: the controller sends anonymous periodic heartbeats t
 ---
 {{- end }}
 
-{{- if index .Values "kube-prometheus-stack" "enabled" }}
-
-Bundled kube-prometheus-stack is ENABLED.
-
-Prometheus is installed in namespace {{ .Release.Namespace }} and reachable at:
-
-  {{ include "cruisekube.bundledPrometheusUrl" . }}
-
-The bundled Prometheus uses an empty serviceMonitorSelector — it scrapes ALL ServiceMonitors in
-all namespaces, including this chart's ServiceMonitors and any existing node-exporter or
-kube-state-metrics in other namespaces (e.g. "monitoring").
-
-{{- if not (index .Values "kube-prometheus-stack" "nodeExporter" "enabled") }}
-Node-exporter is DISABLED in the bundled stack. The bundled Prometheus will discover and
-scrape the existing node-exporter via its ServiceMonitor. If no node-exporter is running
-anywhere in the cluster, enable it:
-  --set kube-prometheus-stack.nodeExporter.enabled=true
-{{- end }}
-
-ServiceMonitors emitted by this chart:
-  {{ include "cruisekubeController.fullname" . }}-service-monitor
-{{- if .Values.cruisekubeWebhook.enabled }}
-  {{ include "cruisekubeWebhook.fullname" . }}-service-monitor
-{{- end }}
-
----
-{{- else }}
-
 Prometheus integration:
 
 The controller expects a Prometheus reachable at:
@@ -80,12 +52,10 @@ The controller expects a Prometheus reachable at:
 To point at a different Prometheus, set this env var in your values:
   cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL=<url>
 
-Or enable the bundled stack:
-  --set kube-prometheus-stack.enabled=true
+See docs/install/gs-prerequisites.md for installing Prometheus and when a dedicated instance is needed.
 
 The ServiceMonitors emitted by this chart carry the label release: prometheus. Ensure your
 Prometheus serviceMonitorSelector includes that label (or use additionalLabels on the
 ServiceMonitors to match your Prometheus's selector).
 
 ---
-{{- end }}

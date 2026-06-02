@@ -75,16 +75,8 @@ spec:
             {{- end }}
             {{- end }}
             {{- range $key, $value := .Values.cruisekubeController.env }}
-            {{- if and (eq $key "CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL") (index $.Values "kube-prometheus-stack" "enabled") }}
-            {{- /* Skipped: overridden below by the bundled Prometheus URL */ -}}
-            {{- else }}
             - name: {{ $key }}
               value: {{ $value | quote }}
-            {{- end }}
-            {{- end }}
-            {{- if index .Values "kube-prometheus-stack" "enabled" }}
-            - name: CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL
-              value: {{ include "cruisekube.bundledPrometheusUrl" . | quote }}
             {{- end }}
             {{- $adminEnabled := eq (include "cruisekubeController.adminEnabled" . | trim) "true" }}
             - name: CRUISEKUBE_SERVER_AUTH_ENABLED
