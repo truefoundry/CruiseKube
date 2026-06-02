@@ -3,4 +3,4 @@ dependencies:
   repository: oci://tfy.jfrog.io/tfy-mirror/bitnamicharts
   version: 18.1.14
 digest: sha256:40702c5282a6a98e8f28d5ffc5736b1bdc0a88a48368a6adee4ae0aef69e3746
-generated: "2026-06-02T18:28:02.692097+05:30"
+generated: "2026-01-07T14:07:04.990442+05:30"

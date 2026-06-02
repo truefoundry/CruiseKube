@@ -42,20 +42,3 @@ Usage telemetry is enabled: the controller sends anonymous periodic heartbeats t
 
 ---
 {{- end }}
-
-Prometheus integration:
-
-The controller expects a Prometheus reachable at:
-
-  CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL={{ index .Values.cruisekubeController.env "CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL" | default "" }}
-
-To point at a different Prometheus, set this env var in your values:
-  cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL=<url>
-
-See docs/install/gs-prerequisites.md for installing Prometheus and when a dedicated instance is needed.
-
-The ServiceMonitors emitted by this chart carry the label release: prometheus. Ensure your
-Prometheus serviceMonitorSelector includes that label (or use additionalLabels on the
-ServiceMonitors to match your Prometheus's selector).
-
----

@@ -9,8 +9,7 @@ global:
 cruisekubeController:
   enabled: true
   admin:
-    # existingSecret: "cruisekube-controller-admin-e2e-user-created"
-    # This is used when we don't have to use and existing secret.
+    existingSecret: "cruisekube-controller-admin-e2e-user-created"
     credentialGen:
       image:
         # alpine/k8s (not alpine/kubectl): multi-arch and includes /bin/bash required by hook Jobs.
