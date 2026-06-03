@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/logging"
 	"github.com/truefoundry/cruisekube/pkg/metrics"
 	"github.com/truefoundry/cruisekube/pkg/repository/storage"
+	"github.com/truefoundry/cruisekube/pkg/task/utils"
 )
 
 type FetchMetricsTaskConfig struct {
@@ -79,12 +81,12 @@ func (f *FetchMetricsTask) Run(ctx context.Context) error {
 }
 
 func (f *FetchMetricsTask) fetchClusterCPUUtilization(ctx context.Context) {
-	query := `sum(
+	query := fmt.Sprintf(`sum(
 		sum by (node) (
-			rate(container_cpu_usage_seconds_total{job="kubelet",container!~"POD|"}[1m])
+			rate(container_cpu_usage_seconds_total{%s,container!~"POD|"}[1m])
 		)
 		unless sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)
-	)`
+	)`, utils.ContainerMetricsJobMatcher)
 
 	result, _, err := f.promClient.ExecuteQueryWithRetry(ctx, f.config.ClusterID, query, "cluster_cpu_utilization")
 	if err != nil {
@@ -179,8 +181,8 @@ func (f *FetchMetricsTask) fetchNodeCPULoad(ctx context.Context) {
 }
 
 func (f *FetchMetricsTask) fetchContainerCPUWaiting(ctx context.Context) {
-	baseQuery := `rate(container_pressure_cpu_waiting_seconds_total{job="kubelet",container!=""}[1m])
-	unless on (node) sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)`
+	baseQuery := fmt.Sprintf(`rate(container_pressure_cpu_waiting_seconds_total{%s,container!=""}[1m])
+	unless on (node) sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)`, utils.ContainerMetricsJobMatcher)
 
 	f.fetchMaxAndP50Metrics(
 		ctx,
@@ -194,12 +196,12 @@ func (f *FetchMetricsTask) fetchContainerCPUWaiting(ctx context.Context) {
 }
 
 func (f *FetchMetricsTask) fetchClusterMemoryUtilization(ctx context.Context) {
-	query := `sum(
+	query := fmt.Sprintf(`sum(
 		sum by (node) (
-			container_memory_working_set_bytes{job="kubelet",container!~"POD|"}
+			container_memory_working_set_bytes{%s,container!~"POD|"}
 		)
 		unless sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)
-	)`
+	)`, utils.ContainerMetricsJobMatcher)
 
 	result, _, err := f.promClient.ExecuteQueryWithRetry(ctx, f.config.ClusterID, query, "cluster_memory_utilization")
 	if err != nil {
@@ -272,8 +274,8 @@ func (f *FetchMetricsTask) fetchNodeMemoryWaiting(ctx context.Context) {
 }
 
 func (f *FetchMetricsTask) fetchContainerMemoryWaiting(ctx context.Context) {
-	baseQuery := `rate(container_pressure_memory_waiting_seconds_total{job="kubelet",container!=""}[1m])
-	unless on (node) sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)`
+	baseQuery := fmt.Sprintf(`rate(container_pressure_memory_waiting_seconds_total{%s,container!=""}[1m])
+	unless on (node) sum by (node) (kube_node_status_allocatable{job="kube-state-metrics",resource="nvidia_com_gpu"} > 0)`, utils.ContainerMetricsJobMatcher)
 
 	f.fetchMaxAndP50Metrics(
 		ctx,

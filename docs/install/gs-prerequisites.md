@@ -27,7 +27,7 @@ Install these **before** [Installation](gs-installation.md). Missing any item us
 CruiseKube reads **container and node metrics** (usage, throttling, PSI where exposed, etc.) from **Prometheus**.
 
 - Set `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` (or equivalent) to a URL reachable **from the controller pods** (in-cluster Service URL, not `localhost`).
-- CruiseKube expects standard metric names with `job="kube-state-metrics"`, `job="node-exporter"`, and kubelet/cAdvisor series. See [Troubleshooting — Prometheus metrics](../documentation/operate/operate-troubleshooting.md).
+- CruiseKube expects standard metric names with `job="kube-state-metrics"`, `job="node-exporter"`, and container/kubelet series with `job=~"kubelet|kubernetes-nodes-cadvisor"` (kube-prometheus-stack often labels cAdvisor scrapes `kubernetes-nodes-cadvisor`). See [Troubleshooting — Prometheus metrics](../documentation/operate/operate-troubleshooting.md).
 
 An existing Prometheus installation does **not** automatically mean it is compatible with CruiseKube. Pick the scenario below that matches your cluster.
 
@@ -106,7 +106,7 @@ cruisekubeController:
 ```
 
 !!! note "Reusing exporters"
-    Reuse the cluster's existing **node-exporter** DaemonSet (only one process can bind host port 9100 per node) and scrape it from the dedicated Prometheus. The example values file matches the common `prometheus-node-exporter` Service name from kube-prometheus-stack; adjust the relabel regex if your install uses a different Service name. kube-state-metrics can be scraped from an existing Deployment or installed alongside the dedicated Prometheus if policy requires isolation.
+    Reuse the cluster's existing **node-exporter** DaemonSet (only one process can bind host port 9100 per node) and scrape it from the dedicated Prometheus. The example values file matches common kube-prometheus-stack Service names (`prometheus-kube-state-metrics`, `prometheus-prometheus-node-exporter`); adjust the relabel regex if your install uses different names. kube-state-metrics can be scraped from an existing Deployment or installed alongside the dedicated Prometheus if policy requires isolation.
 
 **PSI (Pressure Stall Indicator):** CruiseKube's algorithm is built around **PSI-aware CPU** reasoning on clusters that expose the right metrics (Kubernetes 1.34+ PSI story). If PSI is absent, behavior degrades toward usage-only signals—still useful, but not identical to a full PSI deployment. See [Algorithm](../documentation/concepts/arch-algorithm.md).
 
