@@ -9,6 +9,14 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.3.2 (02-06-2026)
+
+* feat: add source-aware Sentry fingerprinting for better error grouping by @vorflux[bot] in https://github.com/truefoundry/CruiseKube/pull/255
+* update landing page by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/256
+* fix: troubleshoot, screenshot, gaps by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/258
+* feat: update kubectl chart by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/261
+* fix: replace base kubectl docker image by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/263
+
 ## v0.3.1 (18-05-2026)
 
 * feat: make basic authentication optional via admin.enabled flag by @vorflux[bot] in https://github.com/truefoundry/CruiseKube/pull/246
