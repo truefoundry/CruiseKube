@@ -84,7 +84,50 @@ Use this when you **already run** Prometheus for alerting and dashboards, but th
 
 The dedicated instance should **scrape** kube-state-metrics, node-exporter, and kubelet (cAdvisor) with standard job names; **store raw metrics** without aggressive drops; **retain** at least ~15 days of history (unless you tune CruiseKube schedules); and **expose** `/api/v1/query` and `/api/v1/query_range` to controller pods on an in-cluster URL.
 
-1. Save the example values file ([standalone-prometheus-values.yaml](examples/standalone-prometheus-values.yaml)). It disables bundled node-exporter and kube-state-metrics (so you do not conflict with existing DaemonSets) and discovers existing cluster targets via `kubernetes_sd_configs`.
+1. Save the following as `standalone-prometheus-values.yaml`. It disables bundled node-exporter and kube-state-metrics (so you do not conflict with existing DaemonSets) and discovers existing cluster targets via `kubernetes_sd_configs`.
+
+```yaml
+serverFiles:
+  prometheus.yml:
+    scrape_configs:
+      - job_name: kube-state-metrics
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels:
+              - __meta_kubernetes_service_name
+            regex: prometheus-kube-state-metrics
+            action: keep
+
+      - job_name: node-exporter
+        kubernetes_sd_configs:
+          - role: endpoints
+        relabel_configs:
+          - source_labels:
+              - __meta_kubernetes_service_name
+            regex: prometheus-prometheus-node-exporter
+            action: keep
+
+      - job_name: kubelet
+        scheme: https
+        kubernetes_sd_configs:
+          - role: node
+        tls_config:
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+prometheus-node-exporter:
+  enabled: false
+
+kube-state-metrics:
+  enabled: false
+
+prometheus-pushgateway:
+  enabled: false
+
+alertmanager:
+  enabled: false
+```
 
 2. Install Prometheus:
 
@@ -106,7 +149,7 @@ cruisekubeController:
 ```
 
 !!! note "Reusing exporters"
-    Reuse the cluster's existing **node-exporter** DaemonSet (only one process can bind host port 9100 per node) and scrape it from the dedicated Prometheus. The example values file matches common kube-prometheus-stack Service names (`prometheus-kube-state-metrics`, `prometheus-prometheus-node-exporter`); adjust the relabel regex if your install uses different names. kube-state-metrics can be scraped from an existing Deployment or installed alongside the dedicated Prometheus if policy requires isolation.
+    Reuse the cluster's existing **node-exporter** DaemonSet (only one process can bind host port 9100 per node) and scrape it from the dedicated Prometheus. The scrape config above matches common kube-prometheus-stack Service names (`prometheus-kube-state-metrics`, `prometheus-prometheus-node-exporter`); adjust the relabel regex if your install uses different names. kube-state-metrics can be scraped from an existing Deployment or installed alongside the dedicated Prometheus if policy requires isolation.
 
 **PSI (Pressure Stall Indicator):** CruiseKube's algorithm is built around **PSI-aware CPU** reasoning on clusters that expose the right metrics (Kubernetes 1.34+ PSI story). If PSI is absent, behavior degrades toward usage-only signals—still useful, but not identical to a full PSI deployment. See [Algorithm](../documentation/concepts/arch-algorithm.md).
 
