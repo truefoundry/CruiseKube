@@ -509,13 +509,13 @@ func (p *PrometheusProvider) buildBatchCPUUsageExpression(namespace string, psiA
 	if psiAdjusted {
 		psiAdjustedExpression := `
 		* on (namespace, pod, container, node) (1 + max by (namespace, pod, container, node) (
-			rate(container_pressure_cpu_waiting_seconds_total{container!~"",job="kubelet",namespace="%s"}[%dm])
+			rate(container_pressure_cpu_waiting_seconds_total{container!~"",` + utils.ContainerMetricsJobMatcher + `,namespace="%s"}[%dm])
 		))
 		`
 		psiAdjustedQuery = fmt.Sprintf(psiAdjustedExpression, namespace, RateIntervalMinutes)
 	}
 	template := `max by (namespace, pod, container, node) (
-		rate(container_cpu_usage_seconds_total{container!~"",job="kubelet",namespace="%s"}[%dm])
+		rate(container_cpu_usage_seconds_total{container!~"",` + utils.ContainerMetricsJobMatcher + `,namespace="%s"}[%dm])
 	)
 	%s
 	`
@@ -630,7 +630,7 @@ func (p *PrometheusProvider) BuildBatchMemoryUsageExpression(namespace string) s
 
 	template := `max by (created_by_kind, created_by_name, namespace, container) (
       container_memory_working_set_bytes{
-        job="kubelet",
+        ` + utils.ContainerMetricsJobMatcher + `,
         namespace="%s",
         container!~""
       }

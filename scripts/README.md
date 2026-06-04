@@ -1,5 +1,28 @@
 # Scripts
 
+## `check_prometheus_metrics.py`
+
+Validate that a **port-forwarded** Prometheus has the metric families CruiseKube needs, and summarize whether kube-state-metrics, node-exporter, and kubelet scrape sources exist in the current cluster.
+
+```bash
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
+python3 scripts/check_prometheus_metrics.py --port 9090
+python3 scripts/check_prometheus_metrics.py --port 9090 --context my-cluster
+python3 scripts/check_prometheus_metrics.py --port 9090 --include-optional
+```
+
+| Flag | Description |
+| --- | --- |
+| `--port`, `-p` | **Required.** Local port where Prometheus is forwarded (e.g. `9090`). |
+| `--host` | Host for the forward (default: `127.0.0.1`). |
+| `--context` | kubectl context (default: current context). |
+| `--include-optional` | Also check optional metrics (e.g. Karpenter). |
+| `--quiet`, `-q` | Suppress progress logs (stderr). |
+
+Progress logs print to **stderr**; the report prints to **stdout**. The script loads scrape pools and targets from the Prometheus API (same data as `http://localhost:<port>/service-discovery` and `/targets` in the UI).
+
+Exit code `0` when all required metrics are present (any `job` label); `1` when any are missing. Metrics with non-standard `job` labels still pass but are listed as warnings (CruiseKube’s PromQL uses specific job names).
+
 ## `clusterrequests.py`
 
 ```bash

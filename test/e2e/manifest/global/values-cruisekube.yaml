@@ -10,11 +10,12 @@ cruisekubeController:
   enabled: true
   admin:
     existingSecret: "cruisekube-controller-admin-e2e-user-created"
-    # This is used when we don't have to use and existing secret.
     credentialGen:
       image:
-        repository: bitnami/kubectl
-        tag: "latest"
+        # alpine/k8s (not alpine/kubectl): multi-arch and includes /bin/bash required by hook Jobs.
+        repository: alpine/k8s
+        tag: "1.36.0"
+        imagePullPolicy: IfNotPresent
   usageTelemetry:
     enabled: false
     interval: 30m

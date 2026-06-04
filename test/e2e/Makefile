@@ -124,12 +124,13 @@ install-prom: ## Install prometheus
         --create-namespace \
         --set prometheus.service.type=NodePort \
         --set prometheus.service.nodePort=30090 \
-        --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
-        --set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false \
-        --set prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false \
-        --set grafana.enabled=false \
+        --set grafana.enabled=true \
         --set alertmanager.enabled=false \
         --set kubeStateMetrics.enabled=true \
         --set nodeExporter.enabled=true \
         --set prometheusOperator.enabled=true \
+		--set prometheusOperator.prometheusInstanceNamespaces=[monitoring] \
         --wait --timeout=150s
+        # --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+        # --set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false \
+        # --set prometheus.prometheusSpec.ruleSelectorNilUsesHelmValues=false \
