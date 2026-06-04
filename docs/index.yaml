@@ -12,6 +12,43 @@ entries:
           url: https://discord.gg/Dqek4xJa3N
       artifacthub.io/operator: "true"
     apiVersion: v2
+    appVersion: 0.3.3
+    created: "2026-06-04T11:20:43.268792546Z"
+    dependencies:
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: oci://tfy.jfrog.io/tfy-mirror/bitnamicharts
+      version: 18.1.14
+    description: CruiseKube is an intelligent Kubernetes resource optimization controller
+      that automatically monitors, analyzes, and applies resource recommendations
+      to improve cluster efficiency and reduce costs.
+    digest: 208a440811ef48c2921af17f5b21854199eb99d26a1a9beab5360597ad63eeb8
+    home: https://cruisekube.com
+    icon: https://raw.githubusercontent.com/truefoundry/CruiseKube/refs/heads/main/docs/assets/images/logo/cruisekube-icon-helm.png
+    keywords:
+    - Kubernetes
+    - operator
+    - resource optimization
+    - cost optimization
+    - Kubernetes scaling
+    name: cruisekube
+    sources:
+    - https://github.com/truefoundry/CruiseKube
+    type: application
+    urls:
+    - https://github.com/truefoundry/CruiseKube/releases/download/v0.3.3/cruisekube-0.3.3.tgz
+    version: 0.3.3
+  - annotations:
+      artifacthub.io/license: BUSL-1.1
+      artifacthub.io/links: |
+        - name: Homepage
+          url: https://cruisekube.com
+        - name: Source
+          url: https://github.com/truefoundry/CruiseKube
+        - name: Discord
+          url: https://discord.gg/Dqek4xJa3N
+      artifacthub.io/operator: "true"
+    apiVersion: v2
     appVersion: 0.3.2
     created: "2026-06-02T14:10:51.652918672Z"
     dependencies:
@@ -593,4 +630,4 @@ entries:
     urls:
     - https://github.com/truefoundry/CruiseKube/releases/download/v0.1.9/cruisekube-0.1.9.tgz
     version: 0.1.9
-generated: "2026-06-02T14:10:51.645318529Z"
+generated: "2026-06-04T11:20:43.261376428Z"
