@@ -9,6 +9,11 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+## v0.3.3 (04-06-2026)
+
+* feat: bundle prometheus with cruisekube by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/260
+* feat: add book a call to hero section by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/265
+
 ## v0.3.2 (02-06-2026)
 
 * feat: add source-aware Sentry fingerprinting for better error grouping by @vorflux[bot] in https://github.com/truefoundry/CruiseKube/pull/255
