@@ -2198,7 +2198,30 @@
 </span></code></pre></div>
 <p>A JSON body with <code>"status":"success"</code> means the API is reachable; fix DNS, network policy, TLS, or <code>CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL</code> if not.</p>
 <h3 id="metric-names-cruisekube-depends-on">Metric names CruiseKube depends on<a class="headerlink" href="#metric-names-cruisekube-depends-on" title="Permanent link">&para;</a></h3>
-<p>CruiseKube’s Prometheus provider runs <strong>PromQL</strong> against the URL you configure. Metric <strong>names</strong> must match what the controller queries; <code>job</code>, <code>namespace</code>, and other labels are often filtered in code (examples below use <code>job="kubelet"</code>, <code>job="kube-state-metrics"</code>, and <code>job="node-exporter"</code> from <strong>kube-prometheus-stack</strong>—adjust if your scrape config uses different <code>job</code> values).</p>
+<p>CruiseKube’s Prometheus provider runs <strong>PromQL</strong> against the URL you configure. Metric <strong>names</strong> must match what the controller queries; <code>job</code>, <code>namespace</code>, and other labels are often filtered in code. Typical <strong>kube-prometheus-stack</strong> job labels:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Expected <code>job</code> label(s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>kube-state-metrics</td>
+<td><code>kube-state-metrics</code></td>
+</tr>
+<tr>
+<td>node-exporter</td>
+<td><code>node-exporter</code></td>
+</tr>
+<tr>
+<td>kubelet / cAdvisor (<code>container_*</code> metrics)</td>
+<td><code>kubelet</code> <strong>or</strong> <code>kubernetes-nodes-cadvisor</code></td>
+</tr>
+</tbody>
+</table>
+<p>CruiseKube queries container metrics with <code>job=~"kubelet|kubernetes-nodes-cadvisor"</code> so either scrape pool works. Adjust if your install uses different <code>job</code> values.</p>
 <h4 id="kubelet-cadvisor-per-container-usage-and-psi">Kubelet / cAdvisor (per-container usage and PSI)<a class="headerlink" href="#kubelet-cadvisor-per-container-usage-and-psi" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -2331,26 +2354,31 @@
 </tr>
 </tbody>
 </table>
+<p>Automate the checks (port-forward Prometheus locally, then pass the local port):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>monitoring<span class="w"> </span>svc/prometheus-kube-prometheus-prometheus<span class="w"> </span><span class="m">9090</span>:9090
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>python3<span class="w"> </span>scripts/check_prometheus_metrics.py<span class="w"> </span>--port<span class="w"> </span><span class="m">9090</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Progress on stderr; open http://localhost:9090/service-discovery while it runs if needed</span>
+</span></code></pre></div>
 <p>Spot-check that the core families exist (Prometheus UI or <code>/api/v1/query</code>):</p>
-<div class="language-promql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">container_cpu_usage_seconds_total</span><span class="p">{</span><span class="nl">job</span><span class="o">=</span><span class="p">&quot;</span><span class="s">kubelet</span><span class="p">&quot;}</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">container_memory_working_set_bytes</span><span class="p">{</span><span class="nl">job</span><span class="o">=</span><span class="p">&quot;</span><span class="s">kubelet</span><span class="p">&quot;}</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nv">kube_pod_container_resource_requests</span><span class="p">{</span><span class="nl">resource</span><span class="o">=</span><span class="p">&quot;</span><span class="s">cpu</span><span class="p">&quot;}</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nv">kube_pod_container_resource_requests</span><span class="p">{</span><span class="nl">resource</span><span class="o">=</span><span class="p">&quot;</span><span class="s">memory</span><span class="p">&quot;}</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nv">kube_node_status_allocatable</span><span class="p">{</span><span class="nl">resource</span><span class="o">=</span><span class="p">&quot;</span><span class="s">cpu</span><span class="p">&quot;}</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="nv">kube_node_status_allocatable</span><span class="p">{</span><span class="nl">resource</span><span class="o">=</span><span class="p">&quot;</span><span class="s">memory</span><span class="p">&quot;}</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nv">kube_pod_status_phase</span><span class="p">{</span><span class="nl">phase</span><span class="o">=</span><span class="p">&quot;</span><span class="s">Running</span><span class="p">&quot;}</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nv">kube_pod_info</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nv">node_cpu_seconds_total</span><span class="p">{</span><span class="nl">job</span><span class="o">=</span><span class="p">&quot;</span><span class="s">node-exporter</span><span class="p">&quot;}</span>
+<div class="language-promql highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nv">container_cpu_usage_seconds_total</span><span class="p">{</span><span class="nl">job</span><span class="o">=~</span><span class="p">&quot;</span><span class="s">kubelet|kubernetes-nodes-cadvisor</span><span class="p">&quot;}</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nv">container_memory_working_set_bytes</span><span class="p">{</span><span class="nl">job</span><span class="o">=~</span><span class="p">&quot;</span><span class="s">kubelet|kubernetes-nodes-cadvisor</span><span class="p">&quot;}</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nv">kube_pod_container_resource_requests</span><span class="p">{</span><span class="nl">resource</span><span class="o">=</span><span class="p">&quot;</span><span class="s">cpu</span><span class="p">&quot;}</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nv">kube_pod_container_resource_requests</span><span class="p">{</span><span class="nl">resource</span><span class="o">=</span><span class="p">&quot;</span><span class="s">memory</span><span class="p">&quot;}</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nv">kube_node_status_allocatable</span><span class="p">{</span><span class="nl">resource</span><span class="o">=</span><span class="p">&quot;</span><span class="s">cpu</span><span class="p">&quot;}</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nv">kube_node_status_allocatable</span><span class="p">{</span><span class="nl">resource</span><span class="o">=</span><span class="p">&quot;</span><span class="s">memory</span><span class="p">&quot;}</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nv">kube_pod_status_phase</span><span class="p">{</span><span class="nl">phase</span><span class="o">=</span><span class="p">&quot;</span><span class="s">Running</span><span class="p">&quot;}</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nv">kube_pod_info</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nv">node_cpu_seconds_total</span><span class="p">{</span><span class="nl">job</span><span class="o">=</span><span class="p">&quot;</span><span class="s">node-exporter</span><span class="p">&quot;}</span>
 </span></code></pre></div>
 <p>If queries are empty:</p>
 <ol>
 <li><strong>Scrape targets</strong> — Ensure kubelet/cAdvisor, kube-state-metrics, and node-exporter (or equivalents) are scraped into <strong>this</strong> Prometheus.</li>
 <li><strong>Retention</strong> — Series must cover lookback windows used by stats and recommendation tasks (see chart <code>values.yaml</code> task schedules).</li>
 <li><strong>RBAC / collectors</strong> — A broken kube-state-metrics install often drops all <code>kube_*</code> series while node/container metrics still appear.</li>
-<li><strong>Wrong Prometheus</strong> — Point <code>CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL</code> at the store that actually holds these names, not a short-retention or incomplete federated view.</li>
+<li><strong>Wrong or incompatible Prometheus</strong> — Point <code>CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL</code> at the store that actually holds these names, not a short-retention, federated, or heavily filtered view. Production Prometheus often drops series via relabeling, recording rules, or remote-write cost controls — see <a href="../../../install/gs-prerequisites/#scenario-3-dedicated-standalone-prometheus">Scenario 3 — Dedicated standalone Prometheus</a>.</li>
 </ol>
 <p>If <strong>even one</strong> core metric family above is missing or mislabeled, recommendations, dashboard rollups, or exported cluster metrics are often incomplete or unreliable. Optional metrics only affect the features listed in their row (for example Karpenter counters without <code>karpenter_nodeclaims_disrupted_total</code>).</p>
-<p>See <a href="../../../install/gs-prerequisites/">Prerequisites — Prometheus</a> for install pointers.</p>
+<p>See <a href="../../../install/gs-prerequisites/#prometheus">Prerequisites — Prometheus</a> for the three install scenarios.</p>
 <hr />
 <h2 id="prometheus-tls-https">Prometheus TLS / HTTPS<a class="headerlink" href="#prometheus-tls-https" title="Permanent link">&para;</a></h2>
 <p>If Prometheus uses a <strong>private CA</strong> or self-signed cert, you may need <code>CRUISEKUBE_DEPENDENCIES_INCLUSTER_INSECURESKIPTLSVERIFY</code> (or local equivalent) set to <code>"true"</code> <strong>only</strong> in trusted environments. Prefer proper CA trust in production. See chart <code>values.yaml</code> env keys.</p>
@@ -2382,7 +2410,7 @@
 </tr>
 </tbody>
 </table>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>cruisekube-system<span class="w"> </span>deploy/cruisekube-webhook-server<span class="w"> </span>--tail<span class="o">=</span><span class="m">200</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>cruisekube-system<span class="w"> </span>deploy/cruisekube-webhook-server<span class="w"> </span>--tail<span class="o">=</span><span class="m">200</span>
 </span></code></pre></div>
 <hr />
 <h2 id="nothing-changes-but-i-enabled-cruise-mode">“Nothing changes” but I enabled Cruise mode<a class="headerlink" href="#nothing-changes-but-i-enabled-cruise-mode" title="Permanent link">&para;</a></h2>
@@ -2435,7 +2463,7 @@
 <li>Verify Postgres <strong>host/port/secret</strong> matches <code>global.postgresql.auth.*</code> when using external DB.  </li>
 <li>For bundled Postgres, check PVC binding and pod readiness:</li>
 </ul>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>cruisekube-system<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>postgresql
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>cruisekube-system<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>postgresql
 </span></code></pre></div>
 <hr />
 <h2 id="still-stuck">Still stuck?<a class="headerlink" href="#still-stuck" title="Permanent link">&para;</a></h2>
