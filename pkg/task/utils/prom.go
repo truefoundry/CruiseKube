@@ -11,6 +11,11 @@ import (
 	"github.com/truefoundry/cruisekube/pkg/logging"
 )
 
+// ContainerMetricsJobMatcher is the PromQL job label matcher for kubelet/cAdvisor
+// container_* series. kube-prometheus-stack often labels cAdvisor scrapes
+// kubernetes-nodes-cadvisor instead of kubelet.
+const ContainerMetricsJobMatcher = `job=~"kubelet|kubernetes-nodes-cadvisor"`
+
 func CompressQueryForLogging(query string) string {
 	compressed := strings.Fields(query)
 	return strings.Join(compressed, " ")
@@ -55,13 +60,13 @@ func buildBatchCPUUsageExpression(namespace string, psiAdjusted bool) string {
 	if psiAdjusted {
 		psiAdjustedExpression := `
 		* on (namespace, pod, container, node) (1 + max by (namespace, pod, container, node) (
-			rate(container_pressure_cpu_waiting_seconds_total{container!~"",job="kubelet",namespace="%s"}[%dm])
+			rate(container_pressure_cpu_waiting_seconds_total{container!~"",` + ContainerMetricsJobMatcher + `,namespace="%s"}[%dm])
 		))
 		`
 		psiAdjustedQuery = fmt.Sprintf(psiAdjustedExpression, namespace, RateIntervalMinutes)
 	}
 	template := `max by (namespace, pod, container, node) (
-		rate(container_cpu_usage_seconds_total{container!~"",job="kubelet",namespace="%s"}[%dm])
+		rate(container_cpu_usage_seconds_total{container!~"",` + ContainerMetricsJobMatcher + `,namespace="%s"}[%dm])
 	)
 	%s
 	`
@@ -96,7 +101,7 @@ func BuildBatchMemoryUsageExpression(namespace string) string {
 
 	template := `max by (created_by_kind, created_by_name, namespace, container) (
       container_memory_working_set_bytes{
-        job="kubelet",
+        ` + ContainerMetricsJobMatcher + `,
         namespace="%s",
         container!~""
       }

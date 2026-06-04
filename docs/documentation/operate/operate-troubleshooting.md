@@ -56,7 +56,15 @@ A JSON body with `"status":"success"` means the API is reachable; fix DNS, netwo
 
 ### Metric names CruiseKube depends on
 
-CruiseKube’s Prometheus provider runs **PromQL** against the URL you configure. Metric **names** must match what the controller queries; `job`, `namespace`, and other labels are often filtered in code (examples below use `job="kubelet"`, `job="kube-state-metrics"`, and `job="node-exporter"` from **kube-prometheus-stack**—adjust if your scrape config uses different `job` values).
+CruiseKube’s Prometheus provider runs **PromQL** against the URL you configure. Metric **names** must match what the controller queries; `job`, `namespace`, and other labels are often filtered in code. Typical **kube-prometheus-stack** job labels:
+
+| Source | Expected `job` label(s) |
+|--------|-------------------------|
+| kube-state-metrics | `kube-state-metrics` |
+| node-exporter | `node-exporter` |
+| kubelet / cAdvisor (`container_*` metrics) | `kubelet` **or** `kubernetes-nodes-cadvisor` |
+
+CruiseKube queries container metrics with `job=~"kubelet|kubernetes-nodes-cadvisor"` so either scrape pool works. Adjust if your install uses different `job` values.
 
 #### Kubelet / cAdvisor (per-container usage and PSI)
 
@@ -100,11 +108,19 @@ CruiseKube’s Prometheus provider runs **PromQL** against the URL you configure
 |--------|----------|
 | `karpenter_nodeclaims_disrupted_total` | Karpenter consolidation/eviction counter export (only if you run Karpenter and scrape its metrics) |
 
+Automate the checks (port-forward Prometheus locally, then pass the local port):
+
+```bash
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
+python3 scripts/check_prometheus_metrics.py --port 9090
+# Progress on stderr; open http://localhost:9090/service-discovery while it runs if needed
+```
+
 Spot-check that the core families exist (Prometheus UI or `/api/v1/query`):
 
 ```promql
-container_cpu_usage_seconds_total{job="kubelet"}
-container_memory_working_set_bytes{job="kubelet"}
+container_cpu_usage_seconds_total{job=~"kubelet|kubernetes-nodes-cadvisor"}
+container_memory_working_set_bytes{job=~"kubelet|kubernetes-nodes-cadvisor"}
 kube_pod_container_resource_requests{resource="cpu"}
 kube_pod_container_resource_requests{resource="memory"}
 kube_node_status_allocatable{resource="cpu"}
@@ -119,11 +135,11 @@ If queries are empty:
 1. **Scrape targets** — Ensure kubelet/cAdvisor, kube-state-metrics, and node-exporter (or equivalents) are scraped into **this** Prometheus.
 2. **Retention** — Series must cover lookback windows used by stats and recommendation tasks (see chart `values.yaml` task schedules).
 3. **RBAC / collectors** — A broken kube-state-metrics install often drops all `kube_*` series while node/container metrics still appear.
-4. **Wrong Prometheus** — Point `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` at the store that actually holds these names, not a short-retention or incomplete federated view.
+4. **Wrong or incompatible Prometheus** — Point `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` at the store that actually holds these names, not a short-retention, federated, or heavily filtered view. Production Prometheus often drops series via relabeling, recording rules, or remote-write cost controls — see [Scenario 3 — Dedicated standalone Prometheus](../../install/gs-prerequisites.md#scenario-3-dedicated-standalone-prometheus).
 
 If **even one** core metric family above is missing or mislabeled, recommendations, dashboard rollups, or exported cluster metrics are often incomplete or unreliable. Optional metrics only affect the features listed in their row (for example Karpenter counters without `karpenter_nodeclaims_disrupted_total`).
 
-See [Prerequisites — Prometheus](../../install/gs-prerequisites.md) for install pointers.
+See [Prerequisites — Prometheus](../../install/gs-prerequisites.md#prometheus) for the three install scenarios.
 
 ---
 
