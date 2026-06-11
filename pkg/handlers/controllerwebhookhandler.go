@@ -358,7 +358,7 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 			continue
 		}
 
-		recommendedCPU := max(containerStat.SimplePredictionsCPU.MaxValue, containerStat.CPUStats.P75)
+		recommendedCPU := admissionCPURequest(containerStat.CPUStats.P75, containerStat.SimplePredictionsCPU.MaxValue, cfg.RecommendationSettings.AdmissionCPUHeadroomFactor)
 		if recommendedCPU > utils.CPUClampValue {
 			recommendedCPU = utils.CPUClampValue
 		}
@@ -461,6 +461,17 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 	}
 
 	return patches
+}
+
+func admissionCPURequest(base, peak, factor float64) float64 {
+	headroom := peak - base
+	if headroom < 0 {
+		headroom = 0
+	}
+	if factor < 0 {
+		factor = 0
+	}
+	return base + factor*headroom
 }
 
 func memoryBytesToMB(memoryBytes int64) string {

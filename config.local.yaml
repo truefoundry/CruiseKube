@@ -70,6 +70,7 @@ recommendationSettings:
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true
+  admissionCPUHeadroomFactor: 1.0
 telemetry:
   enabled: false
   exporterOTLPEndpoint: ""

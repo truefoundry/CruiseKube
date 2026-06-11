@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -126,6 +127,60 @@ func TestAdjustResourcesSkipsMemoryPatchesWhenDisabled(t *testing.T) {
 	assertNoPatchAtPath(t, patches, "/spec/containers/0/resources/limits/memory")
 }
 
+func TestAdjustResourcesRespectsAdmissionCPUHeadroomFactor(t *testing.T) {
+	// testWorkloadStat: CPU P75 (base) = 0.25, SimplePredictionsCPU.MaxValue (peak) = 0.30.
+	// request = base + factor*(peak-base): 1.0 -> 0.300, 0.5 -> 0.275, 0.0 -> 0.250.
+	cases := []struct {
+		name    string
+		factor  float64
+		wantCPU string
+	}{
+		{"full peak (default)", 1.0, "300m"},
+		{"half headroom", 0.5, "275m"},
+		{"steady-state base only", 0.0, "250m"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := testHandlerConfig(false)
+			cfg.RecommendationSettings.AdmissionCPUHeadroomFactor = tc.factor
+			deps := HandlerDependencies{
+				Storage: testStorage{
+					statFn: func(clusterID, workloadID string) (*types.WorkloadStat, error) {
+						return testWorkloadStat(), nil
+					},
+				},
+				Config: cfg,
+			}
+
+			patches := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, nil)
+			assertHasPatch(t, patches, "replace", "/spec/containers/0/resources/requests/cpu", tc.wantCPU)
+		})
+	}
+}
+
+func TestAdmissionCPURequest(t *testing.T) {
+	cases := []struct {
+		name   string
+		base   float64
+		peak   float64
+		factor float64
+		want   float64
+	}{
+		{"full peak", 0.2, 1.5, 1.0, 1.5},
+		{"base only", 0.2, 1.5, 0.0, 0.2},
+		{"peak below base falls back to base", 0.5, 0.3, 1.0, 0.5},
+		{"negative factor is clamped to zero", 0.2, 1.0, -1.0, 0.2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := admissionCPURequest(tc.base, tc.peak, tc.factor); math.Abs(got-tc.want) > 1e-9 {
+				t.Fatalf("admissionCPURequest(%v, %v, %v) = %v, want %v", tc.base, tc.peak, tc.factor, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestBuildDisruptionAnnotationPatchesRemovesAnnotationsAndMarksModified(t *testing.T) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -152,7 +207,8 @@ func TestBuildDisruptionAnnotationPatchesRemovesAnnotationsAndMarksModified(t *t
 func testHandlerConfig(disableMemory bool) *config.Config {
 	return &config.Config{
 		RecommendationSettings: config.RecommendationSettings{
-			DisableMemoryApplication: disableMemory,
+			DisableMemoryApplication:   disableMemory,
+			AdmissionCPUHeadroomFactor: 1.0,
 		},
 		Controller: config.ControllerConfig{
 			Tasks: map[string]*config.TaskConfig{
