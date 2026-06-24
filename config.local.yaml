@@ -70,6 +70,7 @@ recommendationSettings:
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true
+  hpaResourceAwareOptimization: false
 telemetry:
   enabled: false
   exporterOTLPEndpoint: ""

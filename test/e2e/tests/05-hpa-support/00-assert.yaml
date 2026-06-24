@@ -1,0 +1,36 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 60
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cruisekube-controller
+  namespace: cruisekube-system
+status:
+  readyReplicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cruisekube-webhook
+  namespace: cruisekube-system
+status:
+  readyReplicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-cpu-deployment
+  namespace: test-hpa
+status:
+  readyReplicas: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-mem-deployment
+  namespace: test-hpa
+status:
+  readyReplicas: 1

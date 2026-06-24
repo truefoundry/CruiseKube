@@ -126,6 +126,52 @@ func TestAdjustResourcesSkipsMemoryPatchesWhenDisabled(t *testing.T) {
 	assertNoPatchAtPath(t, patches, "/spec/containers/0/resources/limits/memory")
 }
 
+func TestAdjustResourcesSkipsCPUWhenHPAOnCPU(t *testing.T) {
+	deps := HandlerDependencies{
+		Config: testHandlerConfigHPAAware(),
+	}
+
+	stat := testWorkloadStat()
+	stat.IsHorizontallyAutoscaledOnCPU = true
+
+	// HPA scales on CPU -> CPU request must be left alone, memory still optimized.
+	patches := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, stat)
+	assertNoPatchAtPath(t, patches, "/spec/containers/0/resources/requests/cpu")
+	assertHasPatch(t, patches, "replace", "/spec/containers/0/resources/requests/memory", "200M")
+	assertHasPatch(t, patches, "replace", "/spec/containers/0/resources/limits/memory", "512M")
+}
+
+func TestAdjustResourcesSkipsMemoryWhenHPAOnMemory(t *testing.T) {
+	deps := HandlerDependencies{
+		Config: testHandlerConfigHPAAware(),
+	}
+
+	stat := testWorkloadStat()
+	stat.IsHorizontallyAutoscaledOnMem = true
+
+	// HPA scales on memory -> memory must be left alone, CPU still optimized.
+	patches := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, stat)
+	assertHasPatch(t, patches, "replace", "/spec/containers/0/resources/requests/cpu", "300m")
+	assertNoPatchAtPath(t, patches, "/spec/containers/0/resources/requests/memory")
+	assertNoPatchAtPath(t, patches, "/spec/containers/0/resources/limits/memory")
+}
+
+func TestAdjustResourcesHPAFlagOffPatchesBothResources(t *testing.T) {
+	// With the feature flag off, the HPA flags on the stat do not change patch
+	// behavior (the workload is filtered earlier by shouldApplyMutatingPatch).
+	deps := HandlerDependencies{
+		Config: testHandlerConfig(false),
+	}
+
+	stat := testWorkloadStat()
+	stat.IsHorizontallyAutoscaledOnCPU = true
+	stat.IsHorizontallyAutoscaledOnMem = true
+
+	patches := deps.adjustResources(context.Background(), testPod(), "cluster-a", nil, stat)
+	assertHasPatch(t, patches, "replace", "/spec/containers/0/resources/requests/cpu", "300m")
+	assertHasPatch(t, patches, "replace", "/spec/containers/0/resources/requests/memory", "200M")
+}
+
 func TestBuildDisruptionAnnotationPatchesRemovesAnnotationsAndMarksModified(t *testing.T) {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -163,6 +209,12 @@ func testHandlerConfig(disableMemory bool) *config.Config {
 			},
 		},
 	}
+}
+
+func testHandlerConfigHPAAware() *config.Config {
+	cfg := testHandlerConfig(false)
+	cfg.RecommendationSettings.HPAResourceAwareOptimization = true
+	return cfg
 }
 
 func testPod() *corev1.Pod {

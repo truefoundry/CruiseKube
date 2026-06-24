@@ -23,7 +23,7 @@ hide:
 
 ### What happens if I use CPU- or memory-based HPA?
 
-Workloads using **CPU or memory metrics in HPA** are **skipped** by CruiseKube so the two controllers do not fight. Other HPA modes may still interact indirectly; treat combined behavior as something to validate in staging. More detail in [Tradeoffs](../documentation/concepts/arch-tradeoffs.md).
+By default, workloads using **CPU or memory metrics in HPA** are **skipped** by CruiseKube so the two controllers do not fight. You can opt into **HPA-resource-aware optimization** (`recommendationSettings.hpaResourceAwareOptimization: true`) to instead right-size only the resource the HPA does *not* scale on—e.g. an HPA on CPU still lets CruiseKube optimize memory (and vice versa); a workload scaled on both is still skipped. Other HPA modes may still interact indirectly; treat combined behavior as something to validate in staging. More detail in [Tradeoffs](../documentation/concepts/arch-tradeoffs.md).
 
 
 

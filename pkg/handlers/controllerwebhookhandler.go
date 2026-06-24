@@ -166,13 +166,14 @@ func (deps HandlerDependencies) shouldApplyMutatingPatch(ctx context.Context, cl
 	overrideInfo := buildWorkloadOverrideInfo(resolved.workloadKey, resolved.stat, resolved.overrides)
 	podInfo := utils.BuildPodInfoFromPod(resolved.pod, resolved.workloadInfo, resolved.stat)
 	input := utils.ApplyCheckInput{
-		K8sVersionGE133:           utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 33),
-		K8sMemoryGE134:            utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 34),
-		OptimizeGuaranteedPods:    cfg.RecommendationSettings.OptimizeGuaranteedPods,
-		DisableMemoryApplication:  cfg.RecommendationSettings.DisableMemoryApplication,
-		NewWorkloadThresholdHours: cfg.RecommendationSettings.NewWorkloadThresholdHours,
-		SkipMemory:                false,
-		PodExcludedByAnnotation:   utils.PodExcludedByAnnotation(resolved.pod),
+		K8sVersionGE133:              utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 33),
+		K8sMemoryGE134:               utils.CheckIfClusterVersionAbove(ctx, clusterID, resolved.clients.KubeClient, 1, 34),
+		OptimizeGuaranteedPods:       cfg.RecommendationSettings.OptimizeGuaranteedPods,
+		DisableMemoryApplication:     cfg.RecommendationSettings.DisableMemoryApplication,
+		NewWorkloadThresholdHours:    cfg.RecommendationSettings.NewWorkloadThresholdHours,
+		SkipMemory:                   false,
+		PodExcludedByAnnotation:      utils.PodExcludedByAnnotation(resolved.pod),
+		HPAResourceAwareOptimization: cfg.RecommendationSettings.HPAResourceAwareOptimization,
 	}
 
 	apply, reason := utils.ShouldApplyRecommendationToPod(ctx, &podInfo, overrideInfo, input)
@@ -311,6 +312,13 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 		}
 	}
 
+	// When HPA-resource-aware optimization is enabled, do not patch the
+	// resource(s) the workload is horizontally autoscaled on, otherwise the
+	// webhook would skew the very utilization signal the HPA scales on.
+	hpaAware := cfg.RecommendationSettings.HPAResourceAwareOptimization
+	skipCPU := hpaAware && workloadStat.IsHorizontallyAutoscaledOnCPU
+	skipMemory := hpaAware && workloadStat.IsHorizontallyAutoscaledOnMem
+
 	containers := make([]corev1.Container, 0, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
 	containers = append(containers, pod.Spec.Containers...)
 	containers = append(containers, pod.Spec.InitContainers...)
@@ -395,7 +403,9 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 		currentCPUMillicores := currentCPURequest.MilliValue()
 		recommendedCPUMillicores := math.Max(float64(recommendedCPU*1000), 1)
 
-		if currentCPUMillicores > 0 {
+		if skipCPU {
+			logging.Infof(ctx, "Skipping CPU patch for container %s: workload is horizontally autoscaled on CPU", container.Name)
+		} else if currentCPUMillicores > 0 {
 			if workloadInfo.Kind != utils.DaemonSetKind {
 				patches = append(patches, map[string]any{
 					"op":    "replace",
@@ -411,7 +421,10 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 		recommendedMemoryBytes := int64(recommendedMemory * utils.BytesToMBDivisor)
 		thresholdBytes := float64(16 * utils.BytesToMBDivisor)
 
-		if !cfg.RecommendationSettings.DisableMemoryApplication && currentMemoryBytes > 0 && math.Abs(float64(recommendedMemoryBytes-currentMemoryBytes)) > thresholdBytes {
+		switch {
+		case skipMemory:
+			logging.Infof(ctx, "Skipping memory patch for container %s: workload is horizontally autoscaled on memory", container.Name)
+		case !cfg.RecommendationSettings.DisableMemoryApplication && currentMemoryBytes > 0 && math.Abs(float64(recommendedMemoryBytes-currentMemoryBytes)) > thresholdBytes:
 			if workloadInfo.Kind == utils.DaemonSetKind {
 				if currentMemoryLimit.Value() > 0 {
 					currentMemoryLimitBytes := currentMemoryLimit.Value()
@@ -455,7 +468,7 @@ func (deps HandlerDependencies) adjustResources(ctx context.Context, pod *corev1
 
 				logging.Infof(ctx, "Adjusted Memory for container %s from %dMB to %dMB", container.Name, currentMemoryRequest.Value()/utils.BytesToMBDivisor, recommendedMemoryBytes/utils.BytesToMBDivisor)
 			}
-		} else if cfg.RecommendationSettings.DisableMemoryApplication {
+		case cfg.RecommendationSettings.DisableMemoryApplication:
 			logging.Infof(ctx, "Skipping memory recommendation application for container %s since memory recommendation application is disabled", container.Name)
 		}
 	}

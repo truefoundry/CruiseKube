@@ -33,12 +33,32 @@ CruiseKube operates its own control loop, and when combined with other controlle
 
 Key limitations:
 
-* Workloads using CPU or memory based HPA are completely skipped by CruiseKube
+* By default, workloads using CPU or memory based HPA are completely skipped by CruiseKube
 * For other HPA modes, CruiseKube and HPA may influence the same workloads indirectly
 * Competing control loops can lead to oscillations or delayed convergence
 * Resource changes and replica scaling may interact in unexpected ways
 
-CruiseKube does not attempt to coordinate with HPA beyond exclusion rules, and users should be cautious when running multiple autonomous controllers against the same workloads.
+#### HPA-resource-aware optimization (opt-in)
+
+Setting `recommendationSettings.hpaResourceAwareOptimization: true` relaxes the
+all-or-nothing exclusion to a per-resource one. CruiseKube then right-sizes only
+the resource the HPA does **not** scale on, since changing the HPA-managed
+resource's request would distort the utilization signal the HPA acts on:
+
+| HPA scales on | CruiseKube right-sizes |
+| --- | --- |
+| CPU only | Memory (CPU request left untouched) |
+| Memory only | CPU (memory request/limit left untouched) |
+| CPU **and** memory | Nothing (workload still skipped) |
+
+This requires the HPA to target the resource utilization that is computed
+against the container **request** (the standard `Resource` metric source). The
+feature is disabled by default; enable it only after validating behavior in
+staging.
+
+CruiseKube does not otherwise attempt to coordinate with HPA beyond these
+exclusion rules, and users should be cautious when running multiple autonomous
+controllers against the same workloads.
 
 ---
 

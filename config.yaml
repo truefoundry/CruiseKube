@@ -72,6 +72,10 @@ recommendationSettings:
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true
+  # When true, workloads managed by an HPA are still right-sized on the
+  # resource the HPA does NOT scale on (e.g. HPA on CPU -> optimize memory).
+  # Workloads scaled on both CPU and memory remain skipped. Default: false.
+  hpaResourceAwareOptimization: false
 telemetry:
   enabled: false
   exporterOTLPEndpoint: ""

@@ -370,9 +370,17 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				}
 			}
 
-			applied, err := a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, nodeInfo.AllocatableCPU)
-			if err != nil {
-				logging.Errorf(ctx, "Error applying CPU recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
+			applyInput := utils.ApplyCheckInput{HPAResourceAwareOptimization: a.config.RecommendationSettings.HPAResourceAwareOptimization}
+
+			applied := false
+			if utils.ShouldApplyCPU(&rec.PodInfo, applyInput) {
+				var err error
+				applied, err = a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, nodeInfo.AllocatableCPU)
+				if err != nil {
+					logging.Errorf(ctx, "Error applying CPU recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
+				}
+			} else {
+				logging.Infof(ctx, "Skipping CPU recommendation for pod %s/%s: workload is horizontally autoscaled on CPU", rec.PodInfo.Namespace, rec.PodInfo.Name)
 			}
 			if applied {
 				appliedRecommendations[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = rec
@@ -405,7 +413,10 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				}
 			}
 
-			if !a.config.RecommendationSettings.DisableMemoryApplication && !a.config.Metadata.SkipMemory {
+			switch {
+			case !utils.ShouldApplyMemory(&rec.PodInfo, applyInput):
+				logging.Infof(ctx, "Skipping memory recommendation for pod %s/%s: workload is horizontally autoscaled on memory", rec.PodInfo.Namespace, rec.PodInfo.Name)
+			case !a.config.RecommendationSettings.DisableMemoryApplication && !a.config.Metadata.SkipMemory:
 				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, supportsMemoryReduction)
 				if skipped {
 					logging.Infof(ctx, "Skipping memory recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
@@ -444,7 +455,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						})
 					}
 				}
-			} else {
+			default:
 				logging.Infof(ctx, "Skipping memory recommendation application for pod since memory recommendation application is disabled: %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 			}
 		}
@@ -812,13 +823,14 @@ func (a *ApplyRecommendationTask) segregateOptimizableNonOptimizablePods(ctx con
 	nonOptimizablePods := make([]utils.PodInfo, 0)
 
 	input := utils.ApplyCheckInput{
-		K8sVersionGE133:           true,
-		K8sMemoryGE134:            true, // caller uses supportsMemoryReduction separately
-		OptimizeGuaranteedPods:    a.config.RecommendationSettings.OptimizeGuaranteedPods,
-		DisableMemoryApplication:  a.config.RecommendationSettings.DisableMemoryApplication,
-		NewWorkloadThresholdHours: a.config.RecommendationSettings.NewWorkloadThresholdHours,
-		SkipMemory:                a.config.Metadata.SkipMemory,
-		PodExcludedByAnnotation:   utils.PodExcludedByAnnotation(nil), // when podForExclusion is nil, value is taken from podInfo.Stats.Constraints
+		K8sVersionGE133:              true,
+		K8sMemoryGE134:               true, // caller uses supportsMemoryReduction separately
+		OptimizeGuaranteedPods:       a.config.RecommendationSettings.OptimizeGuaranteedPods,
+		DisableMemoryApplication:     a.config.RecommendationSettings.DisableMemoryApplication,
+		NewWorkloadThresholdHours:    a.config.RecommendationSettings.NewWorkloadThresholdHours,
+		SkipMemory:                   a.config.Metadata.SkipMemory,
+		PodExcludedByAnnotation:      utils.PodExcludedByAnnotation(nil), // when podForExclusion is nil, value is taken from podInfo.Stats.Constraints
+		HPAResourceAwareOptimization: a.config.RecommendationSettings.HPAResourceAwareOptimization,
 	}
 
 	for _, podInfo := range allPodInfos {

@@ -1,0 +1,58 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 60
+---
+# hpa-cpu-deployment is horizontally autoscaled on CPU.
+#
+# Expected behavior (HPAResourceAwareOptimization=true):
+#   - CPU request is LEFT UNCHANGED at its original 300m. The CPU stats would
+#     otherwise recommend 500m (max_value 0.5), so seeing 300m proves CPU was
+#     deliberately skipped — not merely coincidentally equal.
+#   - Memory IS right-sized: max(max_value=200, p75=150) = 200M request;
+#     limit = max(2*memory_7day.max=440, 512 floor) = 512M.
+#
+# Memory changing (64M -> 200M) also proves the workload was NOT skipped
+# wholesale (the legacy behavior), only its HPA-managed CPU axis was frozen.
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-hpa
+  labels:
+    app: hpa-cpu
+spec:
+  containers:
+  - name: app
+    resources:
+      requests:
+        cpu: "300m"
+        memory: "200M"
+      limits:
+        memory: "512M"
+status:
+  phase: Running
+---
+# hpa-mem-deployment is horizontally autoscaled on memory.
+#
+# Expected behavior (HPAResourceAwareOptimization=true):
+#   - Memory request/limit are LEFT UNCHANGED at their original 256M/400M.
+#     Memory stats would otherwise recommend 200M / 512M, so the original
+#     values prove memory was deliberately skipped.
+#   - CPU IS right-sized: max(max_value=0.5, p75=0.3) = 500m.
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-hpa
+  labels:
+    app: hpa-mem
+spec:
+  containers:
+  - name: app
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "256M"
+      limits:
+        memory: "400M"
+status:
+  phase: Running

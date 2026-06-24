@@ -22,6 +22,10 @@ type ApplyCheckInput struct {
 	NewWorkloadThresholdHours int
 	SkipMemory                bool // task metadata skip memory (e.g. when cluster < 1.34)
 	PodExcludedByAnnotation   bool // when true, treat as excluded (from pod.Annotations or workload constraints)
+	// HPAResourceAwareOptimization, when true, allows a workload that is
+	// horizontally autoscaled on a single resource (CPU or memory) to still be
+	// optimized on the other resource, instead of being skipped entirely.
+	HPAResourceAwareOptimization bool
 }
 
 // ShouldGenerateRecommendation returns true if recommendations should be applied to this pod.
@@ -46,11 +50,42 @@ func ShouldGenerateRecommendation(
 		return false, "workload is newer than NewWorkloadThresholdHours"
 	}
 
-	if podInfo.Stats.IsHorizontallyAutoscaledOnCPU || podInfo.Stats.IsHorizontallyAutoscaledOnMem {
-		return false, "workload is horizontally autoscaled on CPU or memory"
+	hpaOnCPU := podInfo.Stats.IsHorizontallyAutoscaledOnCPU
+	hpaOnMem := podInfo.Stats.IsHorizontallyAutoscaledOnMem
+	if hpaOnCPU || hpaOnMem {
+		// When HPA-resource-aware optimization is enabled, only skip the
+		// workload if BOTH CPU and memory are HPA-managed (nothing left to
+		// safely right-size). If only one resource is HPA-managed, we still
+		// optimize the other resource; the per-resource gates
+		// (ShouldApplyCPU/ShouldApplyMemory) ensure we never touch the
+		// HPA-managed resource.
+		if !input.HPAResourceAwareOptimization || (hpaOnCPU && hpaOnMem) {
+			return false, "workload is horizontally autoscaled on CPU or memory"
+		}
 	}
 
 	return true, ""
+}
+
+// ShouldApplyCPU returns false when the CPU request must not be modified for
+// this pod because its workload is horizontally autoscaled on CPU (and
+// HPA-resource-aware optimization is enabled). Changing the CPU request of an
+// HPA-on-CPU workload would skew the utilization signal the HPA scales on.
+func ShouldApplyCPU(podInfo *PodInfo, input ApplyCheckInput) bool {
+	if podInfo.Stats == nil {
+		return true
+	}
+	return !input.HPAResourceAwareOptimization || !podInfo.Stats.IsHorizontallyAutoscaledOnCPU
+}
+
+// ShouldApplyMemory returns false when the memory request must not be modified
+// for this pod because its workload is horizontally autoscaled on memory (and
+// HPA-resource-aware optimization is enabled).
+func ShouldApplyMemory(podInfo *PodInfo, input ApplyCheckInput) bool {
+	if podInfo.Stats == nil {
+		return true
+	}
+	return !input.HPAResourceAwareOptimization || !podInfo.Stats.IsHorizontallyAutoscaledOnMem
 }
 
 func ShouldApplyRecommendationToPod(

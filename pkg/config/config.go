@@ -105,6 +105,13 @@ type RecommendationSettings struct {
 	MaxConcurrentQueries      int  `yaml:"maxConcurrentQueries" mapstructure:"maxConcurrentQueries"`
 	OOMCooldownMinutes        int  `yaml:"oomCooldownMinutes" mapstructure:"oomCooldownMinutes"`
 	OptimizeGuaranteedPods    bool `yaml:"optimizeGuaranteedPods" mapstructure:"optimizeGuaranteedPods"`
+	// HPAResourceAwareOptimization, when true, lets CruiseKube right-size the
+	// resource(s) an HPA does NOT scale on instead of skipping the workload
+	// entirely. A workload scaled by an HPA on CPU is still optimized on
+	// memory (and vice versa); a workload scaled on both CPU and memory is
+	// still skipped. When false (default), any HPA-managed resource causes the
+	// whole workload to be skipped (legacy behavior).
+	HPAResourceAwareOptimization bool `yaml:"hpaResourceAwareOptimization" mapstructure:"hpaResourceAwareOptimization"`
 }
 
 type TelemetryConfig struct {
