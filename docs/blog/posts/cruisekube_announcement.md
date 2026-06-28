@@ -18,7 +18,7 @@ author:
 
 <img src="/assets/images/logo/variants/cruisekube-stacked-color.svg" alt="CruiseKube Logo" width="200">
 
-Today, we’re excited to announce the release of **CruiseKube** - a runtime resource optimization engine for Kubernetes that continuously right-sizes pods *without restarts*, unlocking significant cost efficiency gains while preserving reliability.
+Today we’re releasing **CruiseKube**, a runtime resource optimization engine for Kubernetes. It continuously right-sizes pods *without restarts*, so you cut cost without trading away reliability.
 
 <!-- more -->
 
@@ -66,6 +66,6 @@ Getting started with CruiseKube is as simple as installing the `cruisekube` helm
 
 ## What's next?
 
-By open-sourcing CruiseKube, we are pushing the boundaries of what is possible with Kubernetes resource optimization. Do get involved in the community by joining our [Discord](https://discord.gg/Dqek4xJa3N) server and sharing your feedback and ideas.
+We open-sourced CruiseKube because resource optimization is a problem the whole Kubernetes community shares. Come help shape it—join our [Discord](https://discord.gg/Dqek4xJa3N) server and tell us what's working and what isn't.
 
 Please provide your feedback and ideas on the [GitHub Discussions](https://github.com/truefoundry/CruiseKube/discussions) page or by opening an issue on the [GitHub Issues](https://github.com/truefoundry/CruiseKube/issues) page.

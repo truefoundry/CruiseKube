@@ -67,7 +67,7 @@ For components, background tasks, and control flows in detail, see **[Architectu
 
 Kubernetes gives you bin-packing (cluster autoscaler, Karpenter, etc.), but **waste often lives at the pod**: identical templates, peak-sized requests, and limits that throttle or kill at the wrong time. CruiseKube closes the loop **per pod, on the node where it actually runs**.
 
-If you have ever bumped requests "just to be safe" run fat nodes because of a few noisy neighbors, or asked a team to manually tune YAML every quarter, CruiseKube is aimed at you.
+If you have ever bumped requests "just to be safe", run fat nodes because of a few noisy neighbors, or asked a team to hand-tune YAML every quarter, CruiseKube is aimed at you.
 
 <div class="grid cards" markdown>
 

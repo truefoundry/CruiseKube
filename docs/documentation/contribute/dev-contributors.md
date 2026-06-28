@@ -11,7 +11,7 @@ keywords:
   - community support
 ---
 
-This page recognizes all the dedicated and incredible people who have contributed to the CruiseKube project. We appreciate all contributions, from code to documentation, testing, and community support.
+Thanks to everyone who has contributed to CruiseKube. Code, docs, bug reports, and help in the community all count.
 
 <br>
 

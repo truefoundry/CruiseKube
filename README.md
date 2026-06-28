@@ -17,7 +17,7 @@
 <h1>CruiseKube - Autopilot for Kubernetes</h1>
 </div>
 
-CruiseKube is an intelligent Kubernetes resource optimization controller that automatically monitors, analyzes, and applies resource recommendations to improve cluster efficiency and reduce costs.
+CruiseKube is a Kubernetes resource optimization controller. It watches how your workloads actually use CPU and memory, recommends right-sized requests, and—once you trust it—applies them, so your cluster runs leaner without anyone hand-tuning YAML.
 
 > **Adopters**
 >

@@ -1,14 +1,14 @@
 # CruiseKube Contribution Guidelines
 
-Welcome to the CruiseKube community! We're thrilled that you're interested in contributing to the CruiseKube project. CruiseKube is a collaborative open-source project, and we believe that everyone has something unique to contribute. Below you'll find our guidelines which aim to make contributing to CruiseKube a respectful and pleasant experience for everyone.
+Thanks for considering a contribution to CruiseKube. This page covers how to report issues, propose changes, and get your pull requests merged.
 
 ## 🌟 Community and Open Source
 
-Open source is at the heart of CruiseKube. We appreciate feedback, ideas, and enhancements from the community. Whether you're looking to fix a bug, add a new feature, or simply improve the documentation, your contribution is important to us.
+Bug fixes, new features, and documentation improvements are all welcome—and so is feedback that never turns into a PR.
 
 ## 📚 Before You Begin
 
-Before contributing, please take a moment to read through the [README](./README.md) as it provides a comprehensive understanding of the project and are essential reading to ensure that we're all on the same page.
+Read the [README](./README.md) first for an overview of what CruiseKube does and how it's put together.
 
 ## 💻 Development
 
@@ -54,8 +54,6 @@ Every change should be added to our changelog under `Unreleased` which is locate
 
 ## 🗨️ Stay Connected
 
-We encourage you to participate in discussions. Stay connected, share ideas, and get to know fellow contributors.
+Jump into the discussions on [Discord](https://discord.gg/Dqek4xJa3N) to share ideas or get to know other contributors.
 
-Your contributions not only help improve the project but also the wider community of users and developers.
-
-Happy contributing!
+Every contribution helps the project and the people running it in production. Thanks for pitching in.

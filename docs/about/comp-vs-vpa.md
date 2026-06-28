@@ -16,7 +16,7 @@ hide:
 
 Both CruiseKube and the Kubernetes Vertical Pod Autoscaler aim to reduce waste caused by poorly sized pod resources. The similarity largely ends there. CruiseKube builds on the same motivation as VPA, but focuses on a few specific capabilities that VPA does not have.
 
-### The Core Difference
+### The core difference
 
 - VPA is a recommendation system that [periodically adjusts the resource requests and limits of its target](https://kubernetes.io/docs/concepts/workloads/autoscaling/vertical-pod-autoscale/#:~:text=The%20vertical%20pod%20autoscaling%20controller%2C%20running%20within%20the%20Kubernetes%20data%20plane%2C%20periodically%20adjusts%20the%20resource%20requests%20and%20limits%20of%20its%20target).
 - CruiseKube is a runtime optimization system that actively optimizes resources, closer to real time.
@@ -56,7 +56,7 @@ flowchart TB
 
 
 
-### How They Differ
+### How they differ
 
 | Dimension           | CruiseKube                                     | Kubernetes Vertical Pod Autoscaler          |
 | ------------------- | ---------------------------------------------- | ------------------------------------------- |
@@ -67,7 +67,7 @@ flowchart TB
 
 
 
-### What CruiseKube unlocks conceptually
+### What CruiseKube unlocks
 
 * **Resource sharing instead of duplication**
   Instead of every pod reserving its own peak capacity, CruiseKube allows pods on the same node to share headroom, based on the assumption that spikes are not perfectly correlated.

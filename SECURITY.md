@@ -1,6 +1,6 @@
 # Security Policy
 
-CruiseKube values the contributions of individuals who help improve its security by reporting vulnerabilities. Each submission is promptly assessed by a trusted group of community maintainers committed to safeguarding the project.
+If you find a security issue in CruiseKube, we want to hear about it. Maintainers triage every report and work with you to get a fix out.
 
 ---
 
@@ -59,4 +59,4 @@ We currently do **not** offer a monetary bug bounty, but we are happy to provide
 
 ## 🙏 Thank You
 
-Your efforts make the CruiseKube ecosystem safer for everyone. **Thank you for helping us protect our users!**
+A careful report makes CruiseKube safer for everyone running it. Thanks for taking the time.
