@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/truefoundry/cruisekube/pkg/logging"
+	"github.com/truefoundry/cruisekube/pkg/types"
 
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -429,18 +430,13 @@ func ExtractUniqueNamespaces(workloads map[string]WorkloadObject) []string {
 	return namespaces
 }
 
-// CheckHPAOnCPU checks if workloads are horizontally autoscaled based on CPU metrics
-func CheckHPAOnCPU(ctx context.Context, dynamicClient dynamic.Interface, targetNamespace string, workloadHpaCpuMap map[string]bool) error {
-	return checkHPAForResource(ctx, dynamicClient, targetNamespace, corev1.ResourceCPU, workloadHpaCpuMap)
-}
-
-// CheckHPAOnMemory checks if workloads are horizontally autoscaled based on memory metrics
-func CheckHPAOnMemory(ctx context.Context, dynamicClient dynamic.Interface, targetNamespace string, workloadHpaMemoryMap map[string]bool) error {
-	return checkHPAForResource(ctx, dynamicClient, targetNamespace, corev1.ResourceMemory, workloadHpaMemoryMap)
-}
-
-// checkHPAForResource lists HPAs and marks workloads that scale on the given resource (e.g. CPU or Memory).
-func checkHPAForResource(ctx context.Context, dynamicClient dynamic.Interface, targetNamespace string, resourceName corev1.ResourceName, workloadHpaMap map[string]bool) error {
+// CollectHPAInfo lists HorizontalPodAutoscalers (once) and returns, keyed by
+// workload key, the HPA that scales each workload together with its per-resource
+// metric targets. Workloads without a scaling HPA are simply absent from the map.
+//
+// The returned info is used both to mark workloads as horizontally autoscaled
+// and to coordinate vertical right-sizing with the HPA's target utilization.
+func CollectHPAInfo(ctx context.Context, dynamicClient dynamic.Interface, targetNamespace string) (map[string]*types.HPAInfo, error) {
 	hpaGVR := schema.GroupVersionResource{
 		Group:    "autoscaling",
 		Version:  "v2",
@@ -456,9 +452,10 @@ func checkHPAForResource(ctx context.Context, dynamicClient dynamic.Interface, t
 	}
 	if err != nil {
 		logging.Errorf(ctx, "Could not list HPAs: %v", err)
-		return fmt.Errorf("failed to list HPAs: %w", err)
+		return nil, fmt.Errorf("failed to list HPAs: %w", err)
 	}
 
+	result := make(map[string]*types.HPAInfo)
 	for _, hpaUnstructured := range hpaList.Items {
 		var hpa autoscalingv2.HorizontalPodAutoscaler
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(hpaUnstructured.Object, &hpa); err != nil {
@@ -467,44 +464,125 @@ func checkHPAForResource(ctx context.Context, dynamicClient dynamic.Interface, t
 			continue
 		}
 
-		hasResourceMetric := false
-		for _, metric := range hpa.Spec.Metrics {
-			if metric.Type == autoscalingv2.ResourceMetricSourceType &&
-				metric.Resource != nil &&
-				metric.Resource.Name == resourceName {
-				hasResourceMetric = true
-				break
-			}
-		}
-		if !hasResourceMetric {
+		targetKey := hpaTargetWorkloadKey(hpa)
+		if targetKey == "" {
 			continue
 		}
 
-		markWorkloadHPA(ctx, hpa, workloadHpaMap)
+		info := &types.HPAInfo{
+			Name:        hpa.Name,
+			Namespace:   hpa.Namespace,
+			MaxReplicas: hpa.Spec.MaxReplicas,
+		}
+		if hpa.Spec.MinReplicas != nil {
+			info.MinReplicas = *hpa.Spec.MinReplicas
+		}
+
+		for _, metric := range hpa.Spec.Metrics {
+			if metric.Type != autoscalingv2.ResourceMetricSourceType || metric.Resource == nil {
+				continue
+			}
+			target := hpaResourceTarget(metric.Resource.Target)
+			// Only CPU/memory resource metrics couple with vertical right-sizing.
+			switch metric.Resource.Name { //nolint:exhaustive // only CPU and memory are relevant here
+			case corev1.ResourceCPU:
+				info.CPU = target
+			case corev1.ResourceMemory:
+				info.Memory = target
+			}
+		}
+
+		if info.CPU == nil && info.Memory == nil {
+			// HPA scales only on custom/external metrics; no coexistence conflict.
+			continue
+		}
+		result[targetKey] = info
 	}
 
-	return nil
+	return result, nil
 }
 
-func markWorkloadHPA(ctx context.Context, hpa autoscalingv2.HorizontalPodAutoscaler, workloadHpaMap map[string]bool) {
-	hpaNamespace := hpa.Namespace
+// UpdateHPATargetUtilizations sets the target averageUtilization of the named
+// HPA's Resource metrics to the desired values (one per resource). Only metrics
+// whose target type is Utilization are touched. It returns whether the HPA was
+// actually changed. A no-op (already at the desired values) returns (false, nil).
+func UpdateHPATargetUtilizations(ctx context.Context, dynamicClient dynamic.Interface, namespace, name string, desired map[corev1.ResourceName]int32) (bool, error) {
+	hpaGVR := schema.GroupVersionResource{
+		Group:    "autoscaling",
+		Version:  "v2",
+		Resource: "horizontalpodautoscalers",
+	}
+
+	obj, err := dynamicClient.Resource(hpaGVR).Namespace(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get HPA %s/%s: %w", namespace, name, err)
+	}
+
+	var hpa autoscalingv2.HorizontalPodAutoscaler
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &hpa); err != nil {
+		return false, fmt.Errorf("failed to convert HPA %s/%s: %w", namespace, name, err)
+	}
+
+	changed := false
+	for i := range hpa.Spec.Metrics {
+		metric := &hpa.Spec.Metrics[i]
+		if metric.Type != autoscalingv2.ResourceMetricSourceType || metric.Resource == nil {
+			continue
+		}
+		want, ok := desired[metric.Resource.Name]
+		if !ok || metric.Resource.Target.Type != autoscalingv2.UtilizationMetricType {
+			continue
+		}
+		if metric.Resource.Target.AverageUtilization == nil || *metric.Resource.Target.AverageUtilization != want {
+			value := want
+			metric.Resource.Target.AverageUtilization = &value
+			changed = true
+		}
+	}
+
+	if !changed {
+		return false, nil
+	}
+
+	updated, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&hpa)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal HPA %s/%s: %w", namespace, name, err)
+	}
+	obj.Object = updated
+
+	if _, err := dynamicClient.Resource(hpaGVR).Namespace(namespace).Update(ctx, obj, metav1.UpdateOptions{}); err != nil {
+		return false, fmt.Errorf("failed to update HPA %s/%s: %w", namespace, name, err)
+	}
+	return true, nil
+}
+
+func hpaResourceTarget(target autoscalingv2.MetricTarget) *types.HPAResourceTarget {
+	rt := &types.HPAResourceTarget{MetricType: string(target.Type)}
+	if target.AverageUtilization != nil {
+		rt.AverageUtilization = *target.AverageUtilization
+	}
+	if target.AverageValue != nil {
+		rt.AverageValue = target.AverageValue.String()
+	}
+	return rt
+}
+
+// hpaTargetWorkloadKey returns the workload key the HPA scales, or "" if it
+// cannot be resolved. Argo Rollouts are treated as Deployments for workload
+// management purposes since they extend Kubernetes Deployment functionality.
+func hpaTargetWorkloadKey(hpa autoscalingv2.HorizontalPodAutoscaler) string {
 	hpaTargetName := hpa.Spec.ScaleTargetRef.Name
 	hpaTargetKind := hpa.Spec.ScaleTargetRef.Kind
 	hpaTargetAPIVersion := hpa.Spec.ScaleTargetRef.APIVersion
 
-	// Argo Rollouts are treated as Deployments for workload management purposes since they extend Kubernetes Deployment functionality.
 	if hpaTargetKind == RolloutKind && hpaTargetAPIVersion == "argoproj.io/v1alpha1" {
 		hpaTargetKind = DeploymentKind
 	}
 
-	if hpaTargetName != "" && hpaTargetKind != "" {
-		targetKey := GetWorkloadKey(hpaTargetKind, hpaNamespace, hpaTargetName)
-		if _, exists := workloadHpaMap[targetKey]; exists {
-			workloadHpaMap[targetKey] = true
-		} else {
-			logging.Errorf(ctx, "HPA target %s not found in workload map", targetKey)
-		}
+	if hpaTargetName == "" || hpaTargetKind == "" {
+		return ""
 	}
+	return GetWorkloadKey(hpaTargetKind, hpa.Namespace, hpaTargetName)
 }
 
 func DetectWorkloadConstraints(ctx context.Context, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, workloadObj WorkloadObject, pdbCache map[string][]policyv1.PodDisruptionBudget) (*WorkloadConstraints, error) {

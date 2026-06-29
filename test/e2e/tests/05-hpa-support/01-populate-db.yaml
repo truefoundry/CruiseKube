@@ -6,21 +6,37 @@ metadata:
   namespace: cruisekube-system
 data:
   populate.sql: |
-    -- hpa-cpu-deployment: horizontally autoscaled on CPU.
-    -- CPU stats would recommend 500m, but CruiseKube must NOT touch CPU.
-    -- Memory should still be right-sized to 200M (limit 512M).
+    -- hpa-coord-deployment is horizontally autoscaled on CPU (target 70%).
+    --
+    -- Vertical: original request 300m; with cpu p75=0.05 and prediction max=0.25
+    --   the canonical per-pod request is 250m, and the node-distributed request
+    --   applied across the 2 identical replicas is p75 + (max-p75)/2 = 150m.
+    -- Horizontal: the coordinated target keeps the absolute scale-out point
+    --   constant: round(70 * 300m / 250m) = 84% (stored here as the stats task
+    --   would compute it; the apply task writes it to the live HPA).
     INSERT INTO workloads (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
     VALUES (
         'default',
-        'Deployment:test-hpa:hpa-cpu-deployment',
+        'Deployment:test-hpa:hpa-coord-deployment',
         '{
-          "workload": "Deployment:test-hpa:hpa-cpu-deployment",
+          "workload": "Deployment:test-hpa:hpa-coord-deployment",
           "kind": "Deployment",
           "namespace": "test-hpa",
-          "name": "hpa-cpu-deployment",
+          "name": "hpa-coord-deployment",
           "creation_time": "2024-01-01T00:00:00Z",
           "is_horizontally_autoscaled_on_cpu": true,
           "is_horizontally_autoscaled_on_memory": false,
+          "hpa": {
+            "name": "hpa-coord",
+            "namespace": "test-hpa",
+            "min_replicas": 2,
+            "max_replicas": 5,
+            "cpu": {
+              "metric_type": "Utilization",
+              "average_utilization": 70,
+              "recommended_utilization": 84
+            }
+          },
           "eviction_ranking": 2,
           "replicas": 2,
           "container_stats": [
@@ -28,36 +44,36 @@ data:
               "container_name": "app",
               "container_type": 3,
               "cpu_stats": {
-                "max": 0.6,
-                "p50": 0.2,
-                "p75": 0.3
+                "max": 0.25,
+                "p50": 0.04,
+                "p75": 0.05
               },
               "memory_stats": {
-                "max": 200.0,
-                "p75": 150.0,
+                "max": 100.0,
+                "p75": 80.0,
                 "oom_memory": 0.0
               },
               "memory_7day": {
-                "max": 220.0
+                "max": 110.0
               },
               "cpu_7day": {
-                "max": 0.6,
-                "p50": 0.2,
-                "p75": 0.3,
-                "p90": 0.45,
-                "p99": 0.55
+                "max": 0.25,
+                "p50": 0.04,
+                "p75": 0.05,
+                "p90": 0.15,
+                "p99": 0.24
               },
               "simple_predictions_cpu": {
-                "weekly_prediction": 0.4,
-                "hourly_prediction": 0.35,
-                "current_prediction": 0.3,
-                "max_value": 0.5
+                "weekly_prediction": 0.2,
+                "hourly_prediction": 0.15,
+                "current_prediction": 0.1,
+                "max_value": 0.25
               },
               "simple_predictions_memory": {
-                "weekly_prediction": 180.0,
-                "hourly_prediction": 170.0,
-                "current_prediction": 160.0,
-                "max_value": 200.0
+                "weekly_prediction": 90.0,
+                "hourly_prediction": 85.0,
+                "current_prediction": 80.0,
+                "max_value": 100.0
               }
             }
           ],
@@ -69,78 +85,6 @@ data:
               "cpu_limit": 0.6,
               "memory_request": 64.0,
               "memory_limit": 128.0
-            }
-          ]
-        }',
-        NOW() - INTERVAL '1 hour',
-        NOW(),
-        NOW(),
-        '{"enabled": true}'
-    );
-
-    -- hpa-mem-deployment: horizontally autoscaled on memory.
-    -- Memory stats would recommend 200M, but CruiseKube must NOT touch memory.
-    -- CPU should still be right-sized to 500m.
-    INSERT INTO workloads (cluster_id, workload_id, stats, generated_at, created_at, updated_at, overrides)
-    VALUES (
-        'default',
-        'Deployment:test-hpa:hpa-mem-deployment',
-        '{
-          "workload": "Deployment:test-hpa:hpa-mem-deployment",
-          "kind": "Deployment",
-          "namespace": "test-hpa",
-          "name": "hpa-mem-deployment",
-          "creation_time": "2024-01-01T00:00:00Z",
-          "is_horizontally_autoscaled_on_cpu": false,
-          "is_horizontally_autoscaled_on_memory": true,
-          "eviction_ranking": 2,
-          "replicas": 1,
-          "container_stats": [
-            {
-              "container_name": "app",
-              "container_type": 3,
-              "cpu_stats": {
-                "max": 0.6,
-                "p50": 0.2,
-                "p75": 0.3
-              },
-              "memory_stats": {
-                "max": 200.0,
-                "p75": 150.0,
-                "oom_memory": 0.0
-              },
-              "memory_7day": {
-                "max": 220.0
-              },
-              "cpu_7day": {
-                "max": 0.6,
-                "p50": 0.2,
-                "p75": 0.3,
-                "p90": 0.45,
-                "p99": 0.55
-              },
-              "simple_predictions_cpu": {
-                "weekly_prediction": 0.4,
-                "hourly_prediction": 0.35,
-                "current_prediction": 0.3,
-                "max_value": 0.5
-              },
-              "simple_predictions_memory": {
-                "weekly_prediction": 180.0,
-                "hourly_prediction": 170.0,
-                "current_prediction": 160.0,
-                "max_value": 200.0
-              }
-            }
-          ],
-          "original_container_resources": [
-            {
-              "name": "app",
-              "type": 3,
-              "cpu_request": 0.1,
-              "cpu_limit": 0.2,
-              "memory_request": 256.0,
-              "memory_limit": 400.0
             }
           ]
         }',

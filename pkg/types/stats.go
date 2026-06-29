@@ -44,6 +44,35 @@ const (
 	EvictionRankingHigh     EvictionRanking = 4
 )
 
+// HPAResourceTarget describes how a HorizontalPodAutoscaler scales on a single
+// resource (CPU or memory). It captures both the metric type and the configured
+// target, plus the coordinated target CruiseKube recommends after right-sizing
+// the request.
+type HPAResourceTarget struct {
+	// MetricType is the autoscaling/v2 target type: "Utilization" or "AverageValue".
+	MetricType string `json:"metric_type"`
+	// AverageUtilization is the configured target when MetricType == "Utilization" (percent).
+	AverageUtilization int32 `json:"average_utilization,omitempty"`
+	// AverageValue is the configured target quantity when MetricType == "AverageValue".
+	AverageValue string `json:"average_value,omitempty"`
+	// RecommendedUtilization is the coordinated target utilization CruiseKube
+	// recommends so the absolute per-pod scale-out point is preserved after the
+	// request is right-sized. Only meaningful when MetricType == "Utilization".
+	RecommendedUtilization int32 `json:"recommended_utilization,omitempty"`
+}
+
+// HPAInfo captures the HorizontalPodAutoscaler that scales a workload. It is used
+// to coordinate vertical right-sizing (request) with horizontal scaling (replica
+// count) so the two control loops do not fight.
+type HPAInfo struct {
+	Name        string             `json:"name"`
+	Namespace   string             `json:"namespace"`
+	MinReplicas int32              `json:"min_replicas,omitempty"`
+	MaxReplicas int32              `json:"max_replicas,omitempty"`
+	CPU         *HPAResourceTarget `json:"cpu,omitempty"`
+	Memory      *HPAResourceTarget `json:"memory,omitempty"`
+}
+
 // DisruptionWindow defines a time window (bounded by UTC cron expressions) during which
 // workload disruptions (e.g. pod evictions) are permitted. Operations outside this window
 // will not be scheduled.
@@ -141,6 +170,7 @@ type WorkloadStat struct {
 	UpdatedAt                     time.Time             `json:"updated_at"`
 	IsHorizontallyAutoscaledOnCPU bool                  `json:"is_horizontally_autoscaled_on_cpu"`
 	IsHorizontallyAutoscaledOnMem bool                  `json:"is_horizontally_autoscaled_on_memory"`
+	HPA                           *HPAInfo              `json:"hpa,omitempty"`
 	Constraints                   *WorkloadConstraints  `json:"constraints,omitempty"`
 	EvictionRanking               EvictionRanking       `json:"eviction_ranking"`
 	Replicas                      int32                 `json:"replicas"`

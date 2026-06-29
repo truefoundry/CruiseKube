@@ -14,23 +14,20 @@ status:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cruisekube-webhook
-  namespace: cruisekube-system
-status:
-  readyReplicas: 1
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: hpa-cpu-deployment
+  name: hpa-coord-deployment
   namespace: test-hpa
 status:
   readyReplicas: 2
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
 metadata:
-  name: hpa-mem-deployment
+  name: hpa-coord
   namespace: test-hpa
-status:
-  readyReplicas: 1
+spec:
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        averageUtilization: 70

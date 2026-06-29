@@ -1,0 +1,37 @@
+---
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 60
+---
+# Horizontal: the controller adjusted the HPA's target utilization from 70 to the
+# coordinated value (84), preserving the absolute per-pod scale-out point after
+# the request was right-sized.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-coord
+  namespace: test-hpa
+spec:
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        averageUtilization: 84
+---
+# Vertical: the controller also right-sized the pod CPU request in-place from the
+# original 300m to the node-distributed recommendation of 150m.
+apiVersion: v1
+kind: Pod
+metadata:
+  namespace: test-hpa
+  labels:
+    app: hpa-coord
+spec:
+  containers:
+  - name: app
+    resources:
+      requests:
+        cpu: "150m"
+status:
+  phase: Running

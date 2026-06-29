@@ -136,6 +136,10 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 		}
 	}
 
+	// Coordinate horizontal scaling first: adjust HPA target utilizations so the
+	// absolute per-pod scale-out point is preserved before pod requests change.
+	a.reconcileHPATargets(ctx, workloads, overridesMap)
+
 	supportsMemoryLimitReduction := utils.CheckIfClusterVersionAbove(ctx, a.config.ClusterID, a.kubeClient, 1, 34)
 
 	_, recommendationResultsToSave, err := a.ApplyRecommendationsWithStrategy(
@@ -157,6 +161,52 @@ func (a *ApplyRecommendationTask) Run(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// reconcileHPATargets coordinates horizontal scaling with vertical
+// recommendations. For each Cruise-enabled workload scaled by an HPA, it patches
+// the HPA's target utilization to the coordinated value computed during stats
+// generation, so the HPA's absolute per-pod scale-out point is preserved once
+// the request is right-sized. Recommend-only workloads keep the surfaced
+// recommendation but are not mutated.
+func (a *ApplyRecommendationTask) reconcileHPATargets(ctx context.Context, workloads []*types.WorkloadInCluster, overridesMap map[string]*types.WorkloadOverrideInfo) {
+	if !a.config.RecommendationSettings.HPAResourceAwareOptimization || a.dynamicClient == nil {
+		return
+	}
+	for _, workload := range workloads {
+		stat := workload.GetStat()
+		if stat == nil || stat.HPA == nil {
+			continue
+		}
+		override := overridesMap[workload.WorkloadID]
+		if override == nil || !override.EffectiveEnabled() {
+			continue
+		}
+		a.reconcileHPAForWorkload(ctx, stat)
+	}
+}
+
+func (a *ApplyRecommendationTask) reconcileHPAForWorkload(ctx context.Context, stat *types.WorkloadStat) {
+	hpa := stat.HPA
+	desired := map[corev1.ResourceName]int32{}
+	if hpa.CPU != nil && hpa.CPU.MetricType == utils.HPAMetricTypeUtilization && hpa.CPU.RecommendedUtilization > 0 {
+		desired[corev1.ResourceCPU] = hpa.CPU.RecommendedUtilization
+	}
+	if hpa.Memory != nil && hpa.Memory.MetricType == utils.HPAMetricTypeUtilization && hpa.Memory.RecommendedUtilization > 0 {
+		desired[corev1.ResourceMemory] = hpa.Memory.RecommendedUtilization
+	}
+	if len(desired) == 0 {
+		return
+	}
+
+	changed, err := utils.UpdateHPATargetUtilizations(ctx, a.dynamicClient, hpa.Namespace, hpa.Name, desired)
+	if err != nil {
+		logging.Errorf(ctx, "Failed to reconcile HPA %s/%s target utilization: %v", hpa.Namespace, hpa.Name, err)
+		return
+	}
+	if changed {
+		logging.Infof(ctx, "Reconciled HPA %s/%s target utilization to coordinate with vertical right-sizing: %v", hpa.Namespace, hpa.Name, desired)
+	}
 }
 
 func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
@@ -370,17 +420,9 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				}
 			}
 
-			applyInput := utils.ApplyCheckInput{HPAResourceAwareOptimization: a.config.RecommendationSettings.HPAResourceAwareOptimization}
-
-			applied := false
-			if utils.ShouldApplyCPU(&rec.PodInfo, applyInput) {
-				var err error
-				applied, err = a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, nodeInfo.AllocatableCPU)
-				if err != nil {
-					logging.Errorf(ctx, "Error applying CPU recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
-				}
-			} else {
-				logging.Infof(ctx, "Skipping CPU recommendation for pod %s/%s: workload is horizontally autoscaled on CPU", rec.PodInfo.Namespace, rec.PodInfo.Name)
+			applied, err := a.applyCPURecommendation(ctx, freshPod, currentContainerResources, rec, nodeInfo.AllocatableCPU)
+			if err != nil {
+				logging.Errorf(ctx, "Error applying CPU recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
 			}
 			if applied {
 				appliedRecommendations[fmt.Sprintf("%s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)] = rec
@@ -413,10 +455,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 				}
 			}
 
-			switch {
-			case !utils.ShouldApplyMemory(&rec.PodInfo, applyInput):
-				logging.Infof(ctx, "Skipping memory recommendation for pod %s/%s: workload is horizontally autoscaled on memory", rec.PodInfo.Namespace, rec.PodInfo.Name)
-			case !a.config.RecommendationSettings.DisableMemoryApplication && !a.config.Metadata.SkipMemory:
+			if !a.config.RecommendationSettings.DisableMemoryApplication && !a.config.Metadata.SkipMemory {
 				applied, skipped, err := a.applyMemoryRecommendation(ctx, freshPod, currentContainerResources, rec, supportsMemoryReduction)
 				if skipped {
 					logging.Infof(ctx, "Skipping memory recommendation for pod %s/%s: %v", rec.PodInfo.Namespace, rec.PodInfo.Name, err)
@@ -455,7 +494,7 @@ func (a *ApplyRecommendationTask) ApplyRecommendationsWithStrategy(
 						})
 					}
 				}
-			default:
+			} else {
 				logging.Infof(ctx, "Skipping memory recommendation application for pod since memory recommendation application is disabled: %s/%s", rec.PodInfo.Namespace, rec.PodInfo.Name)
 			}
 		}

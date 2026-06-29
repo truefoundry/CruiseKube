@@ -40,25 +40,51 @@ Key limitations:
 
 #### HPA-resource-aware optimization (opt-in)
 
-Setting `recommendationSettings.hpaResourceAwareOptimization: true` relaxes the
-all-or-nothing exclusion to a per-resource one. CruiseKube then right-sizes only
-the resource the HPA does **not** scale on, since changing the HPA-managed
-resource's request would distort the utilization signal the HPA acts on:
+Setting `recommendationSettings.hpaResourceAwareOptimization: true` replaces the
+all-or-nothing exclusion with **coordinated vertical + horizontal scaling**.
 
-| HPA scales on | CruiseKube right-sizes |
-| --- | --- |
-| CPU only | Memory (CPU request left untouched) |
-| Memory only | CPU (memory request/limit left untouched) |
-| CPU **and** memory | Nothing (workload still skipped) |
+The conflict between a VPA-style controller and an HPA on the same resource is
+that the request is the *denominator* of the HPA's signal: an HPA on CPU holds
+`usage / request ≈ target`, i.e. it drives each pod toward `target × request`
+cores. Naively shrinking the request makes utilization rise, so the HPA adds
+replicas — the two oscillate.
 
-This requires the HPA to target the resource utilization that is computed
-against the container **request** (the standard `Resource` metric source). The
-feature is disabled by default; enable it only after validating behavior in
-staging.
+CruiseKube resolves this by re-deriving the HPA's target so the **absolute
+per-pod scale-out point is preserved** when the request is right-sized:
 
-CruiseKube does not otherwise attempt to coordinate with HPA beyond these
-exclusion rules, and users should be cautious when running multiple autonomous
-controllers against the same workloads.
+```
+setpoint   = targetOld × requestOld         # cores at which the HPA holds steady
+requestNew = right-sized request from usage
+targetNew  = clamp(round(setpoint / requestNew), 1%, 90%)
+```
+
+Because `targetNew × requestNew ≈ targetOld × requestOld`, the HPA keeps making
+the same replica decisions in absolute terms while the request now reflects real
+usage — delivering recommendations for **both** dimensions.
+
+How it is applied:
+
+| Mode | Vertical (request) | Horizontal (HPA target) |
+| --- | --- | --- |
+| Recommend | surfaced only | surfaced only |
+| Cruise | right-sized in-place by the controller | HPA object patched by the controller |
+
+Notes and limitations:
+
+* Only HPA `Resource` metrics of type **Utilization** (a percentage of the
+  request) are coordinated. `AverageValue` targets are independent of the
+  request, so the request is right-sized without touching them. Custom/external
+  metrics never conflicted and are optimized normally.
+* The admission webhook does not mutate HPA objects (it has no transaction
+  across both), so it leaves an HPA-managed resource's request unchanged at pod
+  creation; the controller delivers the coordinated change shortly after.
+* Workloads scaled on **both** CPU and memory are still skipped.
+* When a workload was grossly over-requested, `targetNew` is clamped to 90% and
+  the per-pod setpoint legitimately drops (the pod runs hotter and the HPA
+  scales on real load).
+* The feature is disabled by default; enable it only after validating behavior
+  in staging, and be cautious running multiple autonomous controllers against
+  the same workloads.
 
 ---
 

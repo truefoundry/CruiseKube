@@ -53,39 +53,18 @@ func ShouldGenerateRecommendation(
 	hpaOnCPU := podInfo.Stats.IsHorizontallyAutoscaledOnCPU
 	hpaOnMem := podInfo.Stats.IsHorizontallyAutoscaledOnMem
 	if hpaOnCPU || hpaOnMem {
-		// When HPA-resource-aware optimization is enabled, only skip the
-		// workload if BOTH CPU and memory are HPA-managed (nothing left to
-		// safely right-size). If only one resource is HPA-managed, we still
-		// optimize the other resource; the per-resource gates
-		// (ShouldApplyCPU/ShouldApplyMemory) ensure we never touch the
-		// HPA-managed resource.
+		// With HPA-resource-aware optimization enabled, single-resource HPA
+		// workloads are optimized via coordinated vertical + horizontal scaling
+		// (the request is right-sized and the HPA target re-derived), so they
+		// are NOT skipped here. Workloads scaled on both CPU and memory are
+		// still skipped. When the feature is disabled, any HPA-managed resource
+		// skips the whole workload (legacy behavior).
 		if !input.HPAResourceAwareOptimization || (hpaOnCPU && hpaOnMem) {
 			return false, "workload is horizontally autoscaled on CPU or memory"
 		}
 	}
 
 	return true, ""
-}
-
-// ShouldApplyCPU returns false when the CPU request must not be modified for
-// this pod because its workload is horizontally autoscaled on CPU (and
-// HPA-resource-aware optimization is enabled). Changing the CPU request of an
-// HPA-on-CPU workload would skew the utilization signal the HPA scales on.
-func ShouldApplyCPU(podInfo *PodInfo, input ApplyCheckInput) bool {
-	if podInfo.Stats == nil {
-		return true
-	}
-	return !input.HPAResourceAwareOptimization || !podInfo.Stats.IsHorizontallyAutoscaledOnCPU
-}
-
-// ShouldApplyMemory returns false when the memory request must not be modified
-// for this pod because its workload is horizontally autoscaled on memory (and
-// HPA-resource-aware optimization is enabled).
-func ShouldApplyMemory(podInfo *PodInfo, input ApplyCheckInput) bool {
-	if podInfo.Stats == nil {
-		return true
-	}
-	return !input.HPAResourceAwareOptimization || !podInfo.Stats.IsHorizontallyAutoscaledOnMem
 }
 
 func ShouldApplyRecommendationToPod(

@@ -4,25 +4,25 @@ kind: Namespace
 metadata:
   name: test-hpa
 ---
-# Workload horizontally autoscaled on CPU. CruiseKube must leave the CPU
-# request untouched (changing it would skew the HPA's CPU-utilization signal)
-# while still right-sizing memory.
+# Workload horizontally autoscaled on CPU. CruiseKube should right-size the CPU
+# request (vertical) AND adjust the HPA's target utilization (horizontal) so the
+# absolute per-pod scale-out point is preserved.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hpa-cpu-deployment
+  name: hpa-coord-deployment
   namespace: test-hpa
   labels:
-    app: hpa-cpu
+    app: hpa-coord
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: hpa-cpu
+      app: hpa-coord
   template:
     metadata:
       labels:
-        app: hpa-cpu
+        app: hpa-coord
     spec:
       containers:
       - name: app
@@ -40,13 +40,13 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: hpa-cpu
+  name: hpa-coord
   namespace: test-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: hpa-cpu-deployment
+    name: hpa-coord-deployment
   minReplicas: 2
   maxReplicas: 5
   metrics:
@@ -56,55 +56,3 @@ spec:
       target:
         type: Utilization
         averageUtilization: 70
----
-# Workload horizontally autoscaled on memory. CruiseKube must leave the memory
-# request/limit untouched while still right-sizing CPU.
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: hpa-mem-deployment
-  namespace: test-hpa
-  labels:
-    app: hpa-mem
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: hpa-mem
-  template:
-    metadata:
-      labels:
-        app: hpa-mem
-    spec:
-      containers:
-      - name: app
-        image: nginx:alpine
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            memory: "256M"
-            cpu: "100m"
-          limits:
-            memory: "400M"
-            cpu: "200m"
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: hpa-mem
-  namespace: test-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: hpa-mem-deployment
-  minReplicas: 1
-  maxReplicas: 5
-  metrics:
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80

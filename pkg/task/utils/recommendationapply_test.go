@@ -96,38 +96,6 @@ func TestShouldGenerateRecommendationHPAGating(t *testing.T) {
 	}
 }
 
-func TestShouldApplyCPUAndMemoryHPAGating(t *testing.T) {
-	tests := []struct {
-		name     string
-		hpaCPU   bool
-		hpaMem   bool
-		hpaAware bool
-		wantCPU  bool
-		wantMem  bool
-	}{
-		{name: "no hpa", hpaCPU: false, hpaMem: false, hpaAware: true, wantCPU: true, wantMem: true},
-		{name: "cpu hpa, flag on", hpaCPU: true, hpaMem: false, hpaAware: true, wantCPU: false, wantMem: true},
-		{name: "mem hpa, flag on", hpaCPU: false, hpaMem: true, hpaAware: true, wantCPU: true, wantMem: false},
-		{name: "both hpa, flag on", hpaCPU: true, hpaMem: true, hpaAware: true, wantCPU: false, wantMem: false},
-		// Flag off: the per-resource gates do not restrict anything (the whole
-		// workload is skipped earlier by ShouldGenerateRecommendation instead).
-		{name: "cpu hpa, flag off", hpaCPU: true, hpaMem: false, hpaAware: false, wantCPU: true, wantMem: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			podInfo := hpaPodInfo(tt.hpaCPU, tt.hpaMem)
-			input := ApplyCheckInput{HPAResourceAwareOptimization: tt.hpaAware}
-			if got := ShouldApplyCPU(podInfo, input); got != tt.wantCPU {
-				t.Fatalf("ShouldApplyCPU = %v, want %v", got, tt.wantCPU)
-			}
-			if got := ShouldApplyMemory(podInfo, input); got != tt.wantMem {
-				t.Fatalf("ShouldApplyMemory = %v, want %v", got, tt.wantMem)
-			}
-		})
-	}
-}
-
 func TestComputeRecommendedResourceValuesKeepsMemoryLimitAtLeastRequest(t *testing.T) {
 	rec := PodContainerRecommendation{
 		ContainerName: "main",

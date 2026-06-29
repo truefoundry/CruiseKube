@@ -23,7 +23,7 @@ hide:
 
 ### What happens if I use CPU- or memory-based HPA?
 
-By default, workloads using **CPU or memory metrics in HPA** are **skipped** by CruiseKube so the two controllers do not fight. You can opt into **HPA-resource-aware optimization** (`recommendationSettings.hpaResourceAwareOptimization: true`) to instead right-size only the resource the HPA does *not* scale on—e.g. an HPA on CPU still lets CruiseKube optimize memory (and vice versa); a workload scaled on both is still skipped. Other HPA modes may still interact indirectly; treat combined behavior as something to validate in staging. More detail in [Tradeoffs](../documentation/concepts/arch-tradeoffs.md).
+By default, workloads using **CPU or memory metrics in HPA** are **skipped** by CruiseKube so the two controllers do not fight. You can opt into **HPA-resource-aware optimization** (`recommendationSettings.hpaResourceAwareOptimization: true`) to get **coordinated vertical + horizontal scaling** instead: CruiseKube right-sizes the per-pod request *and* re-derives the HPA's target utilization so the absolute per-pod scale-out point stays constant (`targetNew = targetOld × requestOld / requestNew`). Because that product is preserved, the HPA keeps making the same replica decisions while the request reflects real usage. The HPA object is only modified for workloads in **Cruise** mode; in Recommend mode both numbers are surfaced but nothing is changed. Other HPA modes (custom/external metrics) are unaffected and can be optimized normally. More detail in [Tradeoffs](../documentation/concepts/arch-tradeoffs.md).
 
 
 

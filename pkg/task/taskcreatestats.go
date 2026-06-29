@@ -123,21 +123,12 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 		}
 	}
 
-	workloadHpaCpuMap := make(map[string]bool)
-	workloadHpaMemoryMap := make(map[string]bool)
-	for key := range uniqueWorkloads {
-		workloadHpaCpuMap[key] = false
-		workloadHpaMemoryMap[key] = false
-	}
-
+	hpaInfoMap := map[string]*types.HPAInfo{}
 	if c.dynamicClient != nil {
-		if err = utils.CheckHPAOnCPU(ctx, c.dynamicClient, targetNamespace, workloadHpaCpuMap); err != nil {
-			logging.Errorf(ctx, "Error checking HPA on CPU: %v", err)
-			return fmt.Errorf("failed to check HPA on CPU: %w", err)
-		}
-		if err = utils.CheckHPAOnMemory(ctx, c.dynamicClient, targetNamespace, workloadHpaMemoryMap); err != nil {
-			logging.Errorf(ctx, "Error checking HPA on memory: %v", err)
-			return fmt.Errorf("failed to check HPA on memory: %w", err)
+		hpaInfoMap, err = utils.CollectHPAInfo(ctx, c.dynamicClient, targetNamespace)
+		if err != nil {
+			logging.Errorf(ctx, "Error collecting HPA info: %v", err)
+			return fmt.Errorf("failed to collect HPA info: %w", err)
 		}
 	}
 
@@ -166,8 +157,7 @@ func (c *CreateStatsTask) Run(ctx context.Context) error {
 			namespaceVsWorkloadMetrics,
 			namespaceVsSimpleCPUPredictions[workloadObject.GetNamespace()],
 			namespaceVsSimpleMemoryPredictions[workloadObject.GetNamespace()],
-			workloadHpaCpuMap,
-			workloadHpaMemoryMap,
+			hpaInfoMap,
 			c.dynamicClient,
 			pdbCache,
 			podCache,
@@ -233,8 +223,7 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 	nsVsWorkloadMetrics utils.NamespaceVsWorkloadMetrics,
 	workloadContainerKeyVsSimpleCPUPrediction map[string]utils.SimplePrediction,
 	workloadContainerKeyVsSimpleMemoryPrediction map[string]utils.SimplePrediction,
-	workloadHpaCpuMap map[string]bool,
-	workloadHpaMemoryMap map[string]bool,
+	hpaInfoMap map[string]*types.HPAInfo,
 	dynamicClient dynamic.Interface,
 	pdbCache map[string][]policyv1.PodDisruptionBudget,
 	podCache map[string][]corev1.Pod,
@@ -266,13 +255,18 @@ func (c *CreateStatsTask) prepareStatsFromMetrics(
 		}
 	}
 
-	// Check if this workload is horizontally autoscaled on CPU and/or memory
-	hpaOnCPU := workloadHpaCpuMap != nil && workloadHpaCpuMap[workloadKey]
-	hpaOnMemory := workloadHpaMemoryMap != nil && workloadHpaMemoryMap[workloadKey]
+	// Determine HPA coexistence. Capture the scaling HPA (if any), mark which
+	// resources it scales on, and compute the coordinated target utilization so
+	// the workload can be optimized vertically without fighting the HPA.
+	hpaInfo := hpaInfoMap[workloadKey]
+	hpaOnCPU := hpaInfo != nil && hpaInfo.CPU != nil
+	hpaOnMemory := hpaInfo != nil && hpaInfo.Memory != nil
 	workloadStat.IsHorizontallyAutoscaledOnCPU = hpaOnCPU
 	workloadStat.IsHorizontallyAutoscaledOnMem = hpaOnMemory
 	excludedCodes := []types.ExcludedCode{}
-	if hpaOnCPU || hpaOnMemory {
+	if hpaInfo != nil {
+		c.annotateHPARecommendation(workloadStat, hpaInfo)
+		workloadStat.HPA = hpaInfo
 		switch {
 		case hpaOnCPU && hpaOnMemory:
 			excludedCodes = append(excludedCodes, types.ExcludedCodeCPUHPA, types.ExcludedCodeMemoryHPA)
@@ -396,6 +390,52 @@ func (c *CreateStatsTask) markWorkloadStatIncomplete(workloadStat *utils.Workloa
 	workloadStat.Metadata.Incomplete = true
 	workloadStat.Metadata.Excluded = true
 	workloadStat.Metadata.ExcludedCodes = appendExcludedCode(workloadStat.Metadata.ExcludedCodes, types.ExcludedCodeIncomplete)
+}
+
+// annotateHPARecommendation fills in the coordinated target utilization on the
+// workload's HPA info: the target that keeps the HPA's absolute per-pod
+// scale-out point constant after CruiseKube right-sizes the request. Only
+// Utilization-type targets are coordinated; AverageValue targets are independent
+// of the request so the request can be right-sized without touching them.
+func (c *CreateStatsTask) annotateHPARecommendation(stat *utils.WorkloadStat, hpaInfo *types.HPAInfo) {
+	if hpaInfo.CPU != nil && hpaInfo.CPU.MetricType == utils.HPAMetricTypeUtilization {
+		reqOld := stat.CalculateTotalCPURequest()
+		reqNew := sumCanonicalRequest(stat, true)
+		if target, ok := utils.ComputeCoordinatedHPATarget(hpaInfo.CPU.AverageUtilization, reqOld, reqNew); ok {
+			hpaInfo.CPU.RecommendedUtilization = target
+		}
+	}
+	if hpaInfo.Memory != nil && hpaInfo.Memory.MetricType == utils.HPAMetricTypeUtilization {
+		reqOld := stat.CalculateTotalMemoryRequest()
+		reqNew := sumCanonicalRequest(stat, false)
+		if target, ok := utils.ComputeCoordinatedHPATarget(hpaInfo.Memory.AverageUtilization, reqOld, reqNew); ok {
+			hpaInfo.Memory.RecommendedUtilization = target
+		}
+	}
+}
+
+// sumCanonicalRequest sums the node-independent (canonical) per-container
+// recommendation for the workload, mirroring how Kubernetes aggregates resource
+// requests for HPA utilization: app+sidecar containers are summed, init
+// containers contribute their max.
+func sumCanonicalRequest(stat *utils.WorkloadStat, cpu bool) float64 {
+	sumAppSidecar, maxInit := 0.0, 0.0
+	for i := range stat.ContainerStats {
+		cs := &stat.ContainerStats[i]
+		var v float64
+		if cpu {
+			v = utils.CanonicalCPURequest(cs)
+		} else {
+			v = utils.CanonicalMemoryRequest(cs)
+		}
+		switch cs.ContainerType {
+		case types.AppContainer, types.SidecarContainer:
+			sumAppSidecar += v
+		case types.InitContainer:
+			maxInit = max(maxInit, v)
+		}
+	}
+	return max(sumAppSidecar, maxInit)
 }
 
 func appendExcludedCode(codes []types.ExcludedCode, code types.ExcludedCode) []types.ExcludedCode {

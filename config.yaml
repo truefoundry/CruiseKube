@@ -72,9 +72,11 @@ recommendationSettings:
   maxConcurrentQueries: 30
   oomCooldownMinutes: 5
   optimizeGuaranteedPods: true
-  # When true, workloads managed by an HPA are still right-sized on the
-  # resource the HPA does NOT scale on (e.g. HPA on CPU -> optimize memory).
-  # Workloads scaled on both CPU and memory remain skipped. Default: false.
+  # When true, workloads managed by an HPA get coordinated vertical + horizontal
+  # scaling instead of being skipped: CruiseKube right-sizes the request and (in
+  # Cruise mode) adjusts the HPA target utilization so the absolute per-pod
+  # scale-out point is preserved and the two control loops do not fight.
+  # Default: false.
   hpaResourceAwareOptimization: false
 telemetry:
   enabled: false
