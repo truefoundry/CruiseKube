@@ -155,14 +155,13 @@ func (s *GormDB) HasRecentStat(clusterID, workloadID string, withinMinutes int) 
 
 func (s *GormDB) HasCluster(clusterID string) (bool, error) {
 	count, err := s.GetStatCountForCluster(clusterID)
-	return err == nil && count > 0, nil
+	return count > 0, err
 }
 
 func (s *GormDB) HasWorkloadForCluster(clusterID, workloadID string) (bool, error) {
 	count, err := s.getWorkloadCountForCluster(clusterID, workloadID)
-	return err == nil && count > 0, nil
+	return count > 0, err
 }
-
 func (s *GormDB) GetStatsForCluster(clusterID string) ([]types.WorkloadStat, error) {
 	var rows []Workload
 	err := s.db.Where(&Workload{ClusterID: clusterID}).
