@@ -87,6 +87,14 @@ The dedicated instance should **scrape** kube-state-metrics, node-exporter, and 
 1. Save the following as `standalone-prometheus-values.yaml`. It disables bundled node-exporter and kube-state-metrics (so you do not conflict with existing DaemonSets) and discovers existing cluster targets via `kubernetes_sd_configs`.
 
 ```yaml
+server:
+  global:
+    scrape_interval: 15s
+
+scrapeConfigs:
+  kubernetes-nodes-cadvisor:
+    enabled: false
+
 serverFiles:
   prometheus.yml:
     scrape_configs:
@@ -110,11 +118,15 @@ serverFiles:
 
       - job_name: kubelet
         scheme: https
+        metrics_path: /metrics/cadvisor
         kubernetes_sd_configs:
           - role: node
         tls_config:
           insecure_skip_verify: true
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
 
 prometheus-node-exporter:
   enabled: false
