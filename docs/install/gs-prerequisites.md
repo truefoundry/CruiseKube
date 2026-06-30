@@ -118,11 +118,15 @@ serverFiles:
 
       - job_name: kubelet
         scheme: https
+        metrics_path: /metrics/cadvisor
         kubernetes_sd_configs:
           - role: node
         tls_config:
           insecure_skip_verify: true
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
 
 prometheus-node-exporter:
   enabled: false
