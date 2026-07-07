@@ -26,6 +26,8 @@ func HandleRoot(authEnabled bool) gin.HandlerFunc {
 			"/clusters":                                          "Lists all available clusters",
 			"/clusters/{clusterId}/stats":                        "Serves stats file for specific cluster",
 			"/clusters/{clusterId}/killswitch":                   "Deletes MutatingWebhookConfiguration objects and kills pods with resource differences (POST only)",
+			"/clusters/{clusterId}/preflight":                    "Dashboard readiness check: Prometheus connectivity, node/Prometheus versions, and required-metric existence (thresholds are backend-defined; no parameters)",
+			"/clusters/{clusterId}/debug/versions":               "Reports node kubelet versions and the Prometheus version, verifying each is at or above a minimum (query: minKubeVersion, minPrometheusVersion)",
 			"/clusters/{clusterId}/webhook/mutate":               "Mutating admission webhook for pod resource adjustment",
 			"/dev/clusters/{clusterId}/tasks/{taskName}/trigger": "Manually triggers a specific task (POST)",
 			"/health": "Health check endpoint",
