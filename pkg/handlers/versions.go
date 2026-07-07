@@ -3,15 +3,12 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sort"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/prometheus/common/model"
+	"github.com/truefoundry/cruisekube/pkg/buildmetadata"
 	"github.com/truefoundry/cruisekube/pkg/logging"
-	"go.opentelemetry.io/otel/attribute"
-	oteltrace "go.opentelemetry.io/otel/trace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/kubernetes"
@@ -30,13 +27,13 @@ const (
 	// defaultMinKubernetesVersion is the minimum Kubernetes server (control-plane)
 	// version.
 	defaultMinKubernetesVersion = "v1.34.0"
-	// defaultMinPrometheusVersion is the minimum Prometheus version considered
-	// acceptable when no threshold is supplied by the caller.
+	// defaultMinPrometheusVersion is the minimum Prometheus version CruiseKube
+	// requires.
 	defaultMinPrometheusVersion = "2.30.0"
 )
 
 // NodeVersionInfo describes the version of a single node in the cluster and
-// whether it satisfies the requested minimum kubelet version.
+// whether it satisfies the required minimum kubelet version.
 type NodeVersionInfo struct {
 	Name             string `json:"name"`
 	KubeletVersion   string `json:"kubelet_version"`
@@ -50,7 +47,7 @@ type NodeVersionInfo struct {
 }
 
 // PrometheusVersionInfo describes the detected Prometheus version and whether it
-// satisfies the requested minimum Prometheus version.
+// satisfies the required minimum Prometheus version.
 type PrometheusVersionInfo struct {
 	Version      string `json:"version"`
 	MeetsMinimum bool   `json:"meets_minimum"`
@@ -65,12 +62,12 @@ type KubernetesVersionInfo struct {
 	Error        string `json:"error,omitempty"`
 }
 
-// VersionReport is the shared version-check payload used by both the debug
-// versions endpoint and the preflight endpoint. The Prometheus field is filled
-// in by the caller (from Prometheus buildinfo for preflight, or from the
-// prometheus_build_info metric for the standalone debug endpoint).
+// VersionReport is the version-check payload embedded in the preflight response.
+// The Prometheus field is filled in by the caller (from Prometheus buildinfo, or
+// from the prometheus_build_info metric as a fallback).
 type VersionReport struct {
 	Passed               bool                  `json:"passed"`
+	CruisekubeVersion    string                `json:"cruisekube_version"`
 	MinKubeVersion       string                `json:"min_kube_version"`
 	MinKubernetesVersion string                `json:"min_kubernetes_version"`
 	MinPrometheusVersion string                `json:"min_prometheus_version"`
@@ -89,12 +86,6 @@ func (r *VersionReport) finalize() {
 		r.NodesBelowMinimum == 0 &&
 		r.Kubernetes.MeetsMinimum &&
 		r.Prometheus.MeetsMinimum
-}
-
-// DebugVersionsResponse is the payload returned by HandleDebugVersions.
-type DebugVersionsResponse struct {
-	ClusterID string `json:"cluster_id"`
-	VersionReport
 }
 
 // collectNodeVersions lists the cluster's nodes and evaluates each node's
@@ -163,6 +154,7 @@ func detectKubernetesServerVersion(kubeClient kubernetes.Interface, minVer *vers
 // and then calling finalize().
 func buildVersionReport(ctx context.Context, kubeClient kubernetes.Interface, minKubeVer, minK8sVer, minPromVer *version.Version) VersionReport {
 	report := VersionReport{
+		CruisekubeVersion:    buildmetadata.Version,
 		MinKubeVersion:       minKubeVer.String(),
 		MinKubernetesVersion: minK8sVer.String(),
 		MinPrometheusVersion: minPromVer.String(),
@@ -181,7 +173,7 @@ func buildVersionReport(ctx context.Context, kubeClient kubernetes.Interface, mi
 }
 
 // evaluatePrometheusVersion compares a known Prometheus version string against
-// the requested minimum.
+// the required minimum.
 func evaluatePrometheusVersion(versionStr string, minVer *version.Version) PrometheusVersionInfo {
 	info := PrometheusVersionInfo{Version: versionStr}
 	if versionStr == "" {
@@ -221,51 +213,4 @@ func detectPrometheusVersion(ctx context.Context, client promAPI, minVer *versio
 		return PrometheusVersionInfo{Error: "prometheus_build_info sample did not contain a version label"}
 	}
 	return evaluatePrometheusVersion(versionStr, minVer)
-}
-
-// HandleDebugVersions inspects the Kubernetes node versions and the running
-// Prometheus version for a cluster and verifies that each is at or above the
-// requested minimum. Minimums can be overridden via the `minKubeVersion` and
-// `minPrometheusVersion` query parameters; otherwise sensible defaults are used.
-func (deps HandlerDependencies) HandleDebugVersions(c *gin.Context) {
-	ctx := c.Request.Context()
-	clusterID := c.Param("clusterID")
-
-	span := oteltrace.SpanFromContext(ctx)
-	span.SetAttributes(attribute.String("cluster.id", clusterID))
-
-	minKube := c.DefaultQuery("minKubeVersion", defaultMinKubeVersion)
-	minProm := c.DefaultQuery("minPrometheusVersion", defaultMinPrometheusVersion)
-
-	logging.Infof(ctx, "Serving debug versions for cluster %s (minKube=%s minProm=%s) to %s", clusterID, minKube, minProm, c.ClientIP())
-
-	minKubeVer, err := version.ParseGeneric(minKube)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid minKubeVersion %q: %v", minKube, err)})
-		return
-	}
-	minPromVer, err := version.ParseGeneric(minProm)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid minPrometheusVersion %q: %v", minProm, err)})
-		return
-	}
-
-	clients, err := deps.ClusterManager.GetClusterClients(clusterID)
-	if err != nil || clients == nil {
-		logging.Errorf(ctx, "Failed to get cluster clients for %s: %v", clusterID, err)
-		c.JSON(http.StatusNotFound, gin.H{"error": fmt.Sprintf("cluster %q not found", clusterID)})
-		return
-	}
-
-	minK8sVer, err := version.ParseGeneric(defaultMinKubernetesVersion)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("invalid configured minimum kubernetes version: %v", err)})
-		return
-	}
-
-	report := buildVersionReport(ctx, clients.KubeClient, minKubeVer, minK8sVer, minPromVer)
-	report.Prometheus = detectPrometheusVersion(ctx, clients.PrometheusClient, minPromVer)
-	report.finalize()
-
-	c.JSON(http.StatusOK, DebugVersionsResponse{ClusterID: clusterID, VersionReport: report})
 }

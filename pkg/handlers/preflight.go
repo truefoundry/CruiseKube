@@ -100,9 +100,10 @@ var preflightMetricProbes = []metricProbe{
 type PrometheusConnectivity struct {
 	Connected bool   `json:"connected"`
 	Healthy   bool   `json:"healthy"`
-	URL       string `json:"url,omitempty"`
-	Host      string `json:"host,omitempty"`
-	Port      string `json:"port,omitempty"`
+	Target    string `json:"target"` // the Prometheus endpoint we attempted to reach (== url when known)
+	URL       string `json:"url"`
+	Host      string `json:"host"`
+	Port      string `json:"port"`
 	Probe     string `json:"probe,omitempty"`
 	Version   string `json:"version,omitempty"`
 	Revision  string `json:"revision,omitempty"`
@@ -117,7 +118,7 @@ type MetricCheck struct {
 	Required bool     `json:"required"`
 	Present  bool     `json:"present"`
 	Series   int      `json:"series"`
-	Labels   []string `json:"labels,omitempty"`
+	Labels   []string `json:"labels"`
 	Error    string   `json:"error,omitempty"`
 }
 
@@ -255,8 +256,9 @@ func resolvePrometheusVersion(ctx context.Context, client promAPI, minVer *versi
 // the error is prefixed with the target so the user can diagnose it.
 func checkPrometheusConnectivity(ctx context.Context, client promAPI, connInfo *cluster.PrometheusConnectionInfo) PrometheusConnectivity {
 	conn := PrometheusConnectivity{}
-	target := "the configured Prometheus"
+	target := "the configured Prometheus" // human-friendly fallback for the error message
 	if connInfo != nil && connInfo.URL != "" {
+		conn.Target = connInfo.URL
 		conn.URL = connInfo.URL
 		conn.Host, conn.Port = splitPrometheusTarget(connInfo.URL)
 		target = connInfo.URL
@@ -323,7 +325,7 @@ func probeMetrics(ctx context.Context, client promAPI, lookback, connErr string)
 			connErr = "prometheus client is not configured for this cluster"
 		}
 		for i, p := range preflightMetricProbes {
-			checks[i] = MetricCheck{Metric: p.Metric, Required: p.Required, Error: connErr}
+			checks[i] = MetricCheck{Metric: p.Metric, Required: p.Required, Labels: []string{}, Error: connErr}
 		}
 	} else {
 		var wg sync.WaitGroup
@@ -352,7 +354,7 @@ func probeMetrics(ctx context.Context, client promAPI, lookback, connErr string)
 // probeOneMetric runs a presence query for a single metric and, when present,
 // fetches the distinct label names on its series.
 func probeOneMetric(ctx context.Context, client promAPI, p metricProbe, lookback string) MetricCheck {
-	check := MetricCheck{Metric: p.Metric, Required: p.Required}
+	check := MetricCheck{Metric: p.Metric, Required: p.Required, Labels: []string{}}
 
 	selector := p.Metric
 	if p.JobMatcher != "" {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -99,6 +100,14 @@ func TestCollectNodeVersionsNilClient(t *testing.T) {
 	}
 }
 
+func TestBuildVersionReportSetsCruisekubeVersion(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	rep := buildVersionReport(context.Background(), client, mustVer(t, "v1.34.0"), mustVer(t, "v1.34.0"), mustVer(t, "2.30.0"))
+	if rep.CruisekubeVersion == "" {
+		t.Fatal("cruisekube_version should be populated (buildmetadata.Version)")
+	}
+}
+
 func TestDetectKubernetesServerVersion(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	fd := client.Discovery().(*fakediscovery.FakeDiscovery)
@@ -155,6 +164,9 @@ func TestCheckPrometheusConnectivityBuildinfo(t *testing.T) {
 	}
 	if conn.Probe != "buildinfo" || conn.Version != "2.45.0" {
 		t.Fatalf("expected buildinfo probe with version: %+v", conn)
+	}
+	if conn.Target != "http://prom:9090" || conn.URL != "http://prom:9090" {
+		t.Fatalf("expected target/url set: %+v", conn)
 	}
 	if conn.Host != "prom" || conn.Port != "9090" {
 		t.Fatalf("expected host/port parsed: %+v", conn)
@@ -213,6 +225,62 @@ func TestProbeMetricsAllPresent(t *testing.T) {
 	}
 }
 
+// TestPreflightResponseSendsAllMetricsWithLabels proves that every probed metric
+// appears in the serialized JSON and that each present metric carries its
+// distinct label names on the wire.
+func TestPreflightResponseSendsAllMetricsWithLabels(t *testing.T) {
+	client := &stubPromAPI{
+		queryFunc:      func(string) (model.Value, error) { return countVector(5), nil },
+		labelNamesFunc: func([]string) ([]string, error) { return []string{"__name__", "job", "namespace", "pod"}, nil },
+	}
+	report := probeMetrics(context.Background(), client, "15m", "")
+
+	// Every probe must be represented in the report.
+	got := 0
+	for _, g := range report.Groups {
+		got += len(g.Checks)
+	}
+	if got != len(preflightMetricProbes) {
+		t.Fatalf("expected %d metric checks in report, got %d", len(preflightMetricProbes), got)
+	}
+
+	// Serialize as the API would and confirm labels reach the wire for present metrics.
+	blob, err := json.Marshal(PreflightResponse{Metrics: report})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var decoded struct {
+		Metrics struct {
+			Groups []struct {
+				Checks []struct {
+					Metric  string   `json:"metric"`
+					Present bool     `json:"present"`
+					Labels  []string `json:"labels"`
+				} `json:"checks"`
+			} `json:"groups"`
+		} `json:"metrics"`
+	}
+	if err := json.Unmarshal(blob, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	seen := 0
+	for _, g := range decoded.Metrics.Groups {
+		for _, ck := range g.Checks {
+			seen++
+			if !ck.Present {
+				t.Fatalf("metric %s should be present", ck.Metric)
+			}
+			want := []string{"job", "namespace", "pod"} // __name__ stripped
+			if len(ck.Labels) != len(want) {
+				t.Fatalf("metric %s: expected labels %v on the wire, got %v", ck.Metric, want, ck.Labels)
+			}
+		}
+	}
+	if seen != len(preflightMetricProbes) {
+		t.Fatalf("expected %d metrics serialized, got %d", len(preflightMetricProbes), seen)
+	}
+}
+
 func TestMetricLabelNamesStripsName(t *testing.T) {
 	client := &stubPromAPI{labelNamesFunc: func([]string) ([]string, error) {
 		return []string{"__name__", "instance", "node"}, nil
@@ -251,6 +319,61 @@ func TestProbeMetricsMissingOne(t *testing.T) {
 	}
 }
 
+// TestProbeMetricsIncludesAbsentMetrics proves that ALL probed metrics are in the
+// report whether found or not, each with full info (present/series/labels/error),
+// and that labels serialize as [] (never null) even for absent metrics.
+func TestProbeMetricsIncludesAbsentMetrics(t *testing.T) {
+	client := &stubPromAPI{
+		queryFunc: func(q string) (model.Value, error) {
+			if strings.Contains(q, "node_load1") {
+				return model.Vector{}, nil // absent
+			}
+			return countVector(2), nil
+		},
+		labelNamesFunc: func([]string) ([]string, error) { return []string{"__name__", "job", "instance"}, nil },
+	}
+	report := probeMetrics(context.Background(), client, "15m", "")
+
+	// Flatten and index by metric name.
+	byMetric := map[string]MetricCheck{}
+	for _, g := range report.Groups {
+		for _, ck := range g.Checks {
+			byMetric[ck.Metric] = ck
+		}
+	}
+
+	// Every probed metric must be present in the report, found or not.
+	for _, p := range preflightMetricProbes {
+		ck, ok := byMetric[p.Metric]
+		if !ok {
+			t.Fatalf("metric %s missing from report", p.Metric)
+		}
+		if ck.Labels == nil {
+			t.Fatalf("metric %s: labels must be non-nil (serialize as []), got nil", p.Metric)
+		}
+	}
+
+	// The absent metric is still reported, with full info and an error.
+	absent := byMetric["node_load1"]
+	if absent.Present || len(absent.Labels) != 0 || absent.Error == "" {
+		t.Fatalf("absent node_load1 should be present=false, labels=[], error!='' : %+v", absent)
+	}
+	// A found metric carries its labels.
+	found := byMetric["kube_pod_info"]
+	if !found.Present || len(found.Labels) != 2 { // __name__ stripped
+		t.Fatalf("found kube_pod_info should be present with 2 labels: %+v", found)
+	}
+
+	// On the wire: no null labels anywhere.
+	blob, err := json.Marshal(report)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if strings.Contains(string(blob), `"labels":null`) {
+		t.Fatalf("labels serialized as null; expected []: %s", blob)
+	}
+}
+
 func TestProbeMetricsConnErr(t *testing.T) {
 	report := probeMetrics(context.Background(), nil, "15m", "boom")
 	if report.Passed {
@@ -261,7 +384,19 @@ func TestProbeMetricsConnErr(t *testing.T) {
 			if ck.Present || ck.Error != "boom" {
 				t.Fatalf("check %s should carry conn error: %+v", ck.Metric, ck)
 			}
+			if ck.Labels == nil {
+				t.Fatalf("check %s labels must be a non-nil slice (serializes as []), got nil", ck.Metric)
+			}
 		}
+	}
+
+	// Verify on the wire: labels must be [] for absent metrics, never null.
+	blob, err := json.Marshal(report)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if strings.Contains(string(blob), `"labels":null`) {
+		t.Fatalf("labels serialized as null; expected []: %s", blob)
 	}
 }
 
