@@ -257,6 +257,7 @@ nav:
         - TradeOffs: documentation/concepts/arch-tradeoffs.md
       - Operate:
         - Dashboard: documentation/operate/config-dashboard.md
+        - Preflight / Health Check: documentation/operate/preflight.md
         - Login & authentication: documentation/operate/authentication.md
         - Policies & Modes: documentation/operate/operate-policies.md
         - Resource Pricing: documentation/operate/operate-resource-pricing.md

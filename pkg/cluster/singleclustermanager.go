@@ -17,9 +17,10 @@ type SingleClusterManager struct {
 	mu              sync.RWMutex
 	scheduler       *Scheduler
 	registeredTasks map[string]task.Task
+	prometheusURL   string
 }
 
-func NewSingleClusterManager(ctx context.Context, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, promClient v1.API) *SingleClusterManager {
+func NewSingleClusterManager(ctx context.Context, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, promClient v1.API, prometheusURL string) *SingleClusterManager {
 	defaultClients := &ClusterClients{
 		KubeClient:       kubeClient,
 		DynamicClient:    dynamicClient,
@@ -36,6 +37,7 @@ func NewSingleClusterManager(ctx context.Context, kubeClient *kubernetes.Clients
 		clusterClients:  clusterClients,
 		scheduler:       NewScheduler(),
 		registeredTasks: make(map[string]task.Task),
+		prometheusURL:   prometheusURL,
 	}
 }
 
@@ -119,7 +121,7 @@ func (m *SingleClusterManager) GetClusterClients(clusterID string) (*ClusterClie
 
 func (m *SingleClusterManager) GetPrometheusConnectionInfo(clusterID string) (*PrometheusConnectionInfo, error) {
 	return &PrometheusConnectionInfo{
-		URL:         "",
+		URL:         m.prometheusURL,
 		BearerToken: "",
 	}, nil
 }
