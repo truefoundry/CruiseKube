@@ -9,10 +9,14 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
-* feat: add cluster preflight/health-check endpoint (`GET /api/v1/clusters/{clusterID}/preflight`) that gates the dashboard — verifies Prometheus connectivity (reporting the target URL/host/port), Kubernetes server and per-node kubelet versions (min 1.34 for in-place resize + PSI) and Prometheus version (min 2.30), and the existence of every required metric along with its distinct labels; frontend uses it to gate the Overview and generate a downloadable report. Adds an Operate → Preflight docs page. by @ramantehlan
-* feat: add a "Setup Checks" tab in Settings (now the default tab) to re-run preflight checks and download the JSON report on demand by @ramantehlan
-* feat: add a setup status page shown when checks fail — grouped failures plus detail boxes for Versions, Prometheus connectivity, and Metrics (per-metric series, labels, and optional/non-blocking handling), with the CruiseKube version surfaced and a scrollable node list by @ramantehlan
-* refactor: remove the Prometheus Config settings tab, superseded by the Setup Checks preflight view by @ramantehlan
+## v0.3.4 (08-07-2026)
+
+* feat: add a preflight checks to verify if the installation is done correctly by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/273
+* feat: update frontend and add diagnostics script by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/274
+* feat: update config for standalone prometheus by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/270
+* docs: update standalone prom values by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/271
+* fix: properly return database errors in HasCluster and HasWorkloadForCluster by @SuvigyaSrivastava in https://github.com/truefoundry/CruiseKube/pull/268
+* build(deps): bump golang.org/x/net from 0.52.0 to 0.55.0 by @dependabot in https://github.com/truefoundry/CruiseKube/pull/272
 
 ## v0.3.3 (04-06-2026)
 
