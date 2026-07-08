@@ -5,6 +5,7 @@ dependencies:
     prometheusURL: "http://localhost:9090"
   inCluster:
     prometheusURL: ""
+    insecureSkipTLSVerify: false
 executionMode: controller
 controller:
   targetNamespace: ""
@@ -44,26 +45,26 @@ metrics:
 server:
   port: "8080"
   auth:
-    enabled: false
-    username: ""
-    password: ""
+    enabled: true
+    username: "admin"
+    password: "admin"
 webhook:
   port: "8443"
   certsDir: "/tmp/webhook-certs"
   statsURL:
     host: "http://localhost:8080"
     tfyClusterToken: "<cluster-token>"
-db:
-  type: sqlite
-  database: "stats-data/cruisekube.db"
 # db:
-#   type: postgres
-#   host: localhost
-#   port: 5432
-#   database: cruisekube
-#   username: cruisekube
-#   password: cruisekube
-#   sslmode: disable
+#   type: sqlite
+#   database: "stats-data/cruisekube.db"
+db:
+  type: postgres
+  host: localhost
+  port: 5432
+  database: cruisekube
+  username: cruisekube
+  password: cruisekube
+  sslmode: disable
 recommendationSettings:
   newWorkloadThresholdHours: 1
   disableMemoryApplication: false
@@ -76,14 +77,6 @@ telemetry:
   exporterOTLPHeaders: ""
   serviceName: ""
   traceRatio: 0.1
-usageTelemetry:
-  enabled: false
-  interval: "30m"
-  installID: "local"
-  providerApiKey: ""
-  providerConfig:
-    host: "https://us.i.posthog.com"
-  helmChartVersion: "dev"
 sentry:
   enabled: false
   dsn: ""
