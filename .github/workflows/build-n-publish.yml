@@ -26,11 +26,15 @@ jobs:
       dockerfile_path: Dockerfile
       platforms: linux/amd64
       enable_provenance: true
+      enable_jfrog: true
+      enable_public_ecr: true
+      ecr_repository_url: public.ecr.aws/truefoundrycloud
       image_build_args: |
         VERSION=${{ github.sha }}
     secrets:
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+      ecr_role_arn: ${{ secrets.PUBLIC_ECR_IAM_ROLE_ARN }}
       image_build_secrets: |
         USAGETELEMETRY_PROVIDER_API_KEY=${{ secrets.POSTHOG_API_KEY }}
 
@@ -50,11 +54,15 @@ jobs:
       image_context: cruiseKube-frontend
       dockerfile_path: cruiseKube-frontend/Dockerfile
       platforms: linux/amd64
+      enable_jfrog: true
+      enable_public_ecr: true
+      ecr_repository_url: public.ecr.aws/truefoundrycloud
       checkout_submodules: recursive
       checkout_fetch_depth: 0
     secrets:
       artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
       artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+      ecr_role_arn: ${{ secrets.PUBLIC_ECR_IAM_ROLE_ARN }}
       checkout_token: ${{ secrets.CRUISE_KUBE_CI_SECRET }}
 
   # We are updating the sha in the helm chart values.yaml file on the helm-main branch
