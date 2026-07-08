@@ -1,5 +1,40 @@
 # Scripts
 
+## `cruisekube_diagnostics.py`
+
+A shareable diagnostics bundle that mirrors the controller **preflight** check and packages the result. It runs with a step-by-step terminal UI (showing exactly what it does and which step it is on) and writes a **masked** report to a log file.
+
+It checks, in order:
+
+1. **Prometheus connectivity & version** (build info) against the minimum (2.30.0).
+2. **Kubernetes server + per-node kubelet versions** and the Prometheus version, against the minimums (1.34.0 / 1.34.0 / 2.30.0).
+3. **Every metric CruiseKube relies on** — present or not — plus each metric's **distinct label names**.
+4. Controller logs — **2 hours by default** (1h minimum enforced).
+5. **Redact & write**: key identifiers (namespace, node, workload names, IPs) are pseudonymized consistently (e.g. `ns-1`, `node-1`, `workload-1`) and secrets/tokens/JWTs/emails are redacted.
+
+Prometheus is read over a local port-forward (same model as `check_prometheus_metrics.py`):
+
+```bash
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
+python3 scripts/cruisekube_diagnostics.py --port 9090
+python3 scripts/cruisekube_diagnostics.py --port 9090 --context my-cluster --since 2h
+```
+
+| Flag | Description |
+| --- | --- |
+| `--port`, `-p` | Local port where Prometheus is forwarded (default: `9090`). |
+| `--host` | Prometheus host (default: `127.0.0.1`). |
+| `--namespace` | Controller namespace (default: `cruisekube-system`). |
+| `--selector` | Controller pod selector (default: `app.kubernetes.io/name=controller`). |
+| `--since` | Log window; minimum `1h` enforced (default: `2h`). |
+| `--context` | kubectl context (default: current context). |
+| `--output` | Report file (default: `cruisekube-diagnostics-<ts>.log`). |
+| `--no-mask-ips` | Do not mask IP addresses. |
+| `--no-pseudonymize` | Do not pseudonymize namespace/node/workload names. |
+| `--no-color` | Disable colored output. |
+
+The step UI prints to **stderr**; the masked report is written to the `--output` file. Version thresholds and the metric list mirror the Go preflight (`pkg/handlers`); keep them in sync.
+
 ## `check_prometheus_metrics.py`
 
 Validate that a **port-forwarded** Prometheus has the metric families CruiseKube needs, and summarize whether kube-state-metrics, node-exporter, and kubelet scrape sources exist in the current cluster.
