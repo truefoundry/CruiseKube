@@ -101,11 +101,11 @@ The dedicated instance should **scrape** kube-state-metrics, node-exporter, and 
 server:
   global:
     scrape_interval: 15s
-  retention: "30d"
+  retention: "7d"
   retentionSize: "50GB"
   persistentVolume:
     enabled: true
-    size: 50Gi
+    size: 100Gi
     # storageClass: ""  # omit to use the cluster default StorageClass
 
 scrapeConfigs:
