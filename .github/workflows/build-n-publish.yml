@@ -25,6 +25,7 @@ jobs:
       image_context: .
       dockerfile_path: Dockerfile
       platforms: linux/amd64
+      enable_provenance: true
       image_build_args: |
         VERSION=${{ github.sha }}
     secrets:
