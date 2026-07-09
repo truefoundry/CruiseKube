@@ -25,7 +25,7 @@
       
       
       <link rel="icon" href="../../../assets/images/logo/favicon/favicon.ico">
-      <meta name="generator" content="zensical-0.0.47">
+      <meta name="generator" content="zensical-0.0.48">
     
     
       
@@ -36,7 +36,7 @@
       
         
       
-      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.5e19f6ca.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.62c9b9cc.min.css">
       
         
           
@@ -2116,13 +2116,13 @@
 <tbody>
 <tr>
 <td>Kubernetes <strong>server</strong> (control plane)</td>
-<td><strong>v1.34.0</strong></td>
-<td>Required for pod in-place resource updates and PSI metrics</td>
+<td><strong>v1.33.0</strong></td>
+<td>Required for pod in-place resource updates (beta / on by default from 1.33)</td>
 </tr>
 <tr>
 <td><strong>Node</strong> kubelet (checked per node)</td>
-<td><strong>v1.34.0</strong></td>
-<td>Same features run on the nodes; kubelets must also be 1.34+</td>
+<td><strong>v1.33.0</strong></td>
+<td>Same feature runs on the nodes; kubelets must also be 1.33+</td>
 </tr>
 <tr>
 <td>Prometheus</td>
@@ -2133,7 +2133,7 @@
 </table>
 <div class="admonition info">
 <p class="admonition-title">Why both Kubernetes and node versions?</p>
-<p>The <strong>Kubernetes version</strong> is the control-plane / API-server version (one per cluster). The <strong>node version</strong> is the kubelet version on each individual node. CruiseKube's core features — <strong>pod in-place resource updates</strong> (in-place vertical scaling) and <strong>PSI (pressure stall information) metrics</strong> — are executed by the kubelet on each node. Kubernetes' version-skew policy lets kubelets lag the API server by up to three minor versions, so a cluster can have a 1.34 control plane but older nodes. Checking only the server version would let such a cluster pass while the features silently do not work on the older nodes — so preflight requires <strong>both</strong> the server and every node's kubelet to be ≥ 1.34.</p>
+<p>The <strong>Kubernetes version</strong> is the control-plane / API-server version (one per cluster). The <strong>node version</strong> is the kubelet version on each individual node. CruiseKube's core feature — <strong>pod in-place resource updates</strong> (in-place vertical scaling) — is executed by the kubelet on each node. Kubernetes' version-skew policy lets kubelets lag the API server by up to three minor versions, so a cluster can have a 1.33 control plane but older nodes. Checking only the server version would let such a cluster pass while the feature silently does not work on the older nodes — so preflight requires <strong>both</strong> the server and every node's kubelet to be ≥ 1.33. (<strong>PSI (pressure stall information) metrics</strong> are supported but optional — their absence does not block the dashboard.)</p>
 </div>
 <p>The versions step also reports the running <strong>CruiseKube version</strong> (informational — it does not affect the verdict) so it appears in the report.</p>
 <h3 id="3-metrics">3. Metrics<a class="headerlink" href="#3-metrics" title="Permanent link">&para;</a></h3>
@@ -2163,7 +2163,7 @@
 <td><code>node_load1</code>, <code>node_cpu_seconds_total</code></td>
 </tr>
 <tr>
-<td><code>psi</code></td>
+<td><code>psi</code> (optional)</td>
 <td>(kubelet / node-exporter)</td>
 <td><code>container_pressure_cpu_waiting_seconds_total</code>, <code>node_pressure_cpu_waiting_seconds_total</code>, …</td>
 </tr>
@@ -2174,8 +2174,9 @@
 </tr>
 </tbody>
 </table>
-<p>A few metrics are <strong>probed but not required</strong> because they are legitimately empty on a healthy cluster and must not block the dashboard:</p>
+<p>Some metrics are <strong>probed but not required</strong> because they are legitimately absent on a healthy cluster and must not block the dashboard:</p>
 <ul>
+<li>The whole <strong><code>psi</code></strong> group — PSI (pressure stall information) is kernel/PSI-gated and not enabled on every cluster. PSI metrics are reported (present or not, with labels) but never block the dashboard.</li>
 <li><code>kube_node_spec_taint</code> — no series when no nodes are tainted.</li>
 <li><code>kube_pod_container_status_last_terminated_reason</code> — no series until a container has terminated (e.g. OOM).</li>
 <li><code>karpenter_nodeclaims_disrupted_total</code> — Karpenter-only; empty until a disruption occurs.</li>
@@ -2209,7 +2210,7 @@
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    { &quot;step&quot;: &quot;prometheus_connectivity&quot;, &quot;item&quot;: &quot;prometheus&quot;,
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>      &quot;message&quot;: &quot;failed to reach Prometheus at http://prometheus:9090: dial tcp: i/o timeout&quot; },
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    { &quot;step&quot;: &quot;versions&quot;, &quot;item&quot;: &quot;kubernetes&quot;,
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>      &quot;message&quot;: &quot;kubernetes server version v1.30.0 is below minimum 1.34.0&quot; }
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>      &quot;message&quot;: &quot;kubernetes server version v1.30.0 is below minimum 1.33.0&quot; }
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  ],
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  &quot;prometheus_connectivity&quot;: {
 </span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    &quot;connected&quot;: true, &quot;healthy&quot;: true,
@@ -2220,8 +2221,8 @@
 </span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>  &quot;versions&quot;: {
 </span><span id="__span-2-19"><a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>    &quot;passed&quot;: true,
 </span><span id="__span-2-20"><a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>    &quot;cruisekube_version&quot;: &quot;0.3.3&quot;,
-</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    &quot;min_kube_version&quot;: &quot;1.34.0&quot;,
-</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>    &quot;min_kubernetes_version&quot;: &quot;1.34.0&quot;,
+</span><span id="__span-2-21"><a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    &quot;min_kube_version&quot;: &quot;1.33.0&quot;,
+</span><span id="__span-2-22"><a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>    &quot;min_kubernetes_version&quot;: &quot;1.33.0&quot;,
 </span><span id="__span-2-23"><a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>    &quot;min_prometheus_version&quot;: &quot;2.30.0&quot;,
 </span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>    &quot;kubernetes&quot;: { &quot;version&quot;: &quot;v1.34.2&quot;, &quot;meets_minimum&quot;: true },
 </span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>    &quot;nodes&quot;: [ { &quot;name&quot;: &quot;node-a&quot;, &quot;kubelet_version&quot;: &quot;v1.34.2&quot;, &quot;meets_minimum&quot;: true } ],
@@ -2264,7 +2265,7 @@
 <ul>
 <li><strong>Prometheus not reachable</strong> — check the reported <code>target</code> URL/host/port and that the configured <code>dependencies.*.prometheusURL</code> points at a reachable Prometheus.</li>
 <li><strong>Metrics missing</strong> — confirm kube-state-metrics, cAdvisor/kubelet, and node-exporter are being scraped by the Prometheus CruiseKube is pointed at.</li>
-<li><strong>Version below minimum</strong> — upgrade the affected node(s) or control plane to Kubernetes 1.34+.</li>
+<li><strong>Version below minimum</strong> — upgrade the affected node(s) or control plane to Kubernetes 1.33+.</li>
 </ul>
 
 
@@ -2489,7 +2490,7 @@
       <script id="__config" type="application/json">{"annotate":{"json":[".s2"]},"base":"../../..","features":["announce.dismiss","content.code.annotate","content.code.copy","content.code.select","content.footnote.tooltips","content.tabs.link","content.tooltips","navigation.footer","navigation.indexes","navigation.path","navigation.instant","navigation.instant.prefetch","navigation.instant.progress","navigation.prune","navigation.sections","navigation.tabs","navigation.top","navigation.tracking","search.highlight","search.share","search.suggest","toc.follow"],"search":"../../../assets/javascripts/workers/search.b6b7e04f.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.0df4f2d0.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.3809e150.min.js"></script>
       
     
   </body>
