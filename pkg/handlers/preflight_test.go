@@ -319,6 +319,39 @@ func TestProbeMetricsMissingOne(t *testing.T) {
 	}
 }
 
+// TestProbeMetricsPSIOptional proves PSI metrics are optional: when only the PSI
+// metrics are absent, the report still passes and the psi group is non-required.
+func TestProbeMetricsPSIOptional(t *testing.T) {
+	client := &stubPromAPI{
+		queryFunc: func(q string) (model.Value, error) {
+			if strings.Contains(q, "_pressure_") { // PSI metrics absent
+				return model.Vector{}, nil
+			}
+			return countVector(1), nil
+		},
+		labelNamesFunc: func([]string) ([]string, error) { return []string{"job"}, nil },
+	}
+	report := probeMetrics(context.Background(), client, "15m", "")
+	if !report.Passed {
+		t.Fatal("report should pass when only optional PSI metrics are absent")
+	}
+	for _, g := range report.Groups {
+		if g.Name == "psi" {
+			if g.Required {
+				t.Fatal("psi group must be non-required")
+			}
+			if !g.Present {
+				t.Fatal("a group with no required checks stays present")
+			}
+			for _, ck := range g.Checks {
+				if ck.Required {
+					t.Fatalf("psi check %s must be optional", ck.Metric)
+				}
+			}
+		}
+	}
+}
+
 // TestProbeMetricsIncludesAbsentMetrics proves that ALL probed metrics are in the
 // report whether found or not, each with full info (present/series/labels/error),
 // and that labels serialize as [] (never null) even for absent metrics.

@@ -84,11 +84,12 @@ var preflightMetricProbes = []metricProbe{
 	// node-exporter
 	{"node_load1", `job="node-exporter"`, "node-exporter", true},
 	{"node_cpu_seconds_total", `job="node-exporter"`, "node-exporter", true},
-	// PSI pressure metrics (Kubernetes 1.34+ requirement — see version checks).
-	{"container_pressure_cpu_waiting_seconds_total", `job=~"kubelet|kubernetes-nodes-cadvisor"`, "psi", true},
-	{"container_pressure_memory_waiting_seconds_total", `job=~"kubelet|kubernetes-nodes-cadvisor"`, "psi", true},
-	{"node_pressure_cpu_waiting_seconds_total", `job="node-exporter"`, "psi", true},
-	{"node_pressure_memory_waiting_seconds_total", `job="node-exporter"`, "psi", true},
+	// PSI pressure metrics — supported but OPTIONAL (kernel/PSI-gated and not
+	// enabled on every cluster), so probed and reported but non-blocking.
+	{"container_pressure_cpu_waiting_seconds_total", `job=~"kubelet|kubernetes-nodes-cadvisor"`, "psi", false},
+	{"container_pressure_memory_waiting_seconds_total", `job=~"kubelet|kubernetes-nodes-cadvisor"`, "psi", false},
+	{"node_pressure_cpu_waiting_seconds_total", `job="node-exporter"`, "psi", false},
+	{"node_pressure_memory_waiting_seconds_total", `job="node-exporter"`, "psi", false},
 	// Karpenter — only present on Karpenter clusters and legitimately zero-series
 	// when no disruptions have occurred, so probed but NOT required.
 	{"karpenter_nodeclaims_disrupted_total", "", "karpenter", false},
