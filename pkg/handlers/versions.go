@@ -15,18 +15,19 @@ import (
 )
 
 const (
-	// CruiseKube requires Kubernetes 1.34+ so the features it depends on are
-	// available: pod in-place resource updates (in-place vertical scaling) and PSI
-	// (pressure stall information) metrics. Both are kubelet/node-level features,
-	// so the per-node kubelet version and the server (control-plane) version share
-	// the same 1.34 floor — a 1.34 control plane with older kubelets would not
-	// actually support in-place resize or expose PSI on those nodes.
+	// CruiseKube requires Kubernetes 1.33+ so that pod in-place resource updates
+	// (in-place vertical scaling) are available — that feature is beta / enabled
+	// by default from 1.33. It is a kubelet/node-level feature, so both the
+	// per-node kubelet version and the server (control-plane) version must meet
+	// the 1.33 floor. PSI (pressure stall information) metrics are supported but
+	// optional: their absence does not block CruiseKube (see the "psi" metric
+	// group in preflight.go).
 
 	// defaultMinKubeVersion is the minimum per-node kubelet version.
-	defaultMinKubeVersion = "v1.34.0"
+	defaultMinKubeVersion = "v1.33.0"
 	// defaultMinKubernetesVersion is the minimum Kubernetes server (control-plane)
 	// version.
-	defaultMinKubernetesVersion = "v1.34.0"
+	defaultMinKubernetesVersion = "v1.33.0"
 	// defaultMinPrometheusVersion is the minimum Prometheus version CruiseKube
 	// requires.
 	defaultMinPrometheusVersion = "2.30.0"

@@ -55,12 +55,12 @@ If Prometheus cannot be reached, the response reports the exact **target** it tr
 
 | Component | Minimum | Why |
 |-----------|---------|-----|
-| Kubernetes **server** (control plane) | **v1.34.0** | Required for pod in-place resource updates and PSI metrics |
-| **Node** kubelet (checked per node) | **v1.34.0** | Same features run on the nodes; kubelets must also be 1.34+ |
+| Kubernetes **server** (control plane) | **v1.33.0** | Required for pod in-place resource updates (beta / on by default from 1.33) |
+| **Node** kubelet (checked per node) | **v1.33.0** | Same feature runs on the nodes; kubelets must also be 1.33+ |
 | Prometheus | **2.30.0** | Query features CruiseKube relies on |
 
 !!! info "Why both Kubernetes and node versions?"
-    The **Kubernetes version** is the control-plane / API-server version (one per cluster). The **node version** is the kubelet version on each individual node. CruiseKube's core features — **pod in-place resource updates** (in-place vertical scaling) and **PSI (pressure stall information) metrics** — are executed by the kubelet on each node. Kubernetes' version-skew policy lets kubelets lag the API server by up to three minor versions, so a cluster can have a 1.34 control plane but older nodes. Checking only the server version would let such a cluster pass while the features silently do not work on the older nodes — so preflight requires **both** the server and every node's kubelet to be ≥ 1.34.
+    The **Kubernetes version** is the control-plane / API-server version (one per cluster). The **node version** is the kubelet version on each individual node. CruiseKube's core feature — **pod in-place resource updates** (in-place vertical scaling) — is executed by the kubelet on each node. Kubernetes' version-skew policy lets kubelets lag the API server by up to three minor versions, so a cluster can have a 1.33 control plane but older nodes. Checking only the server version would let such a cluster pass while the feature silently does not work on the older nodes — so preflight requires **both** the server and every node's kubelet to be ≥ 1.33. (**PSI (pressure stall information) metrics** are supported but optional — their absence does not block the dashboard.)
 
 The versions step also reports the running **CruiseKube version** (informational — it does not affect the verdict) so it appears in the report.
 
@@ -73,11 +73,12 @@ CruiseKube verifies that the Prometheus metrics it relies on actually exist, gro
 | `kube-state-metrics` | `job="kube-state-metrics"` | `kube_pod_info`, `kube_pod_status_phase`, `kube_node_status_allocatable`, `kube_pod_container_status_restarts_total`, `kube_node_labels` |
 | `cadvisor-kubelet` | `job=~"kubelet\|kubernetes-nodes-cadvisor"` | `container_cpu_usage_seconds_total`, `container_memory_working_set_bytes` |
 | `node-exporter` | `job="node-exporter"` | `node_load1`, `node_cpu_seconds_total` |
-| `psi` | (kubelet / node-exporter) | `container_pressure_cpu_waiting_seconds_total`, `node_pressure_cpu_waiting_seconds_total`, … |
+| `psi` (optional) | (kubelet / node-exporter) | `container_pressure_cpu_waiting_seconds_total`, `node_pressure_cpu_waiting_seconds_total`, … |
 | `karpenter` | — | `karpenter_nodeclaims_disrupted_total` |
 
-A few metrics are **probed but not required** because they are legitimately empty on a healthy cluster and must not block the dashboard:
+Some metrics are **probed but not required** because they are legitimately absent on a healthy cluster and must not block the dashboard:
 
+- The whole **`psi`** group — PSI (pressure stall information) is kernel/PSI-gated and not enabled on every cluster. PSI metrics are reported (present or not, with labels) but never block the dashboard.
 - `kube_node_spec_taint` — no series when no nodes are tainted.
 - `kube_pod_container_status_last_terminated_reason` — no series until a container has terminated (e.g. OOM).
 - `karpenter_nodeclaims_disrupted_total` — Karpenter-only; empty until a disruption occurs.
@@ -116,7 +117,7 @@ Failed **optional** checks are reported but do not affect `healthy`.
     { "step": "prometheus_connectivity", "item": "prometheus",
       "message": "failed to reach Prometheus at http://prometheus:9090: dial tcp: i/o timeout" },
     { "step": "versions", "item": "kubernetes",
-      "message": "kubernetes server version v1.30.0 is below minimum 1.34.0" }
+      "message": "kubernetes server version v1.30.0 is below minimum 1.33.0" }
   ],
   "prometheus_connectivity": {
     "connected": true, "healthy": true,
@@ -127,8 +128,8 @@ Failed **optional** checks are reported but do not affect `healthy`.
   "versions": {
     "passed": true,
     "cruisekube_version": "0.3.3",
-    "min_kube_version": "1.34.0",
-    "min_kubernetes_version": "1.34.0",
+    "min_kube_version": "1.33.0",
+    "min_kubernetes_version": "1.33.0",
     "min_prometheus_version": "2.30.0",
     "kubernetes": { "version": "v1.34.2", "meets_minimum": true },
     "nodes": [ { "name": "node-a", "kubelet_version": "v1.34.2", "meets_minimum": true } ],
@@ -176,4 +177,4 @@ If the preflight reports problems, see [Troubleshooting](operate-troubleshooting
 
 - **Prometheus not reachable** — check the reported `target` URL/host/port and that the configured `dependencies.*.prometheusURL` points at a reachable Prometheus.
 - **Metrics missing** — confirm kube-state-metrics, cAdvisor/kubelet, and node-exporter are being scraped by the Prometheus CruiseKube is pointed at.
-- **Version below minimum** — upgrade the affected node(s) or control plane to Kubernetes 1.34+.
+- **Version below minimum** — upgrade the affected node(s) or control plane to Kubernetes 1.33+.

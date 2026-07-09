@@ -46,8 +46,8 @@ from typing import Callable, Dict, List, Optional, Tuple
 # ---------------------------------------------------------------------------
 # Policy — mirrors pkg/handlers (preflight). Keep in sync with the Go code.
 # ---------------------------------------------------------------------------
-MIN_KUBE_VERSION = "1.34.0"          # per-node kubelet
-MIN_KUBERNETES_VERSION = "1.34.0"    # control plane
+MIN_KUBE_VERSION = "1.33.0"          # per-node kubelet
+MIN_KUBERNETES_VERSION = "1.33.0"    # control plane
 MIN_PROMETHEUS_VERSION = "2.30.0"
 METRIC_LOOKBACK = "15m"
 MIN_SINCE_SECONDS = 3600             # "at least one hour" of logs
@@ -79,11 +79,11 @@ METRIC_PROBES: Tuple[MetricProbe, ...] = (
     # node-exporter
     MetricProbe("node_load1", 'job="node-exporter"', "node-exporter", True),
     MetricProbe("node_cpu_seconds_total", 'job="node-exporter"', "node-exporter", True),
-    # PSI pressure metrics (Kubernetes 1.34+)
-    MetricProbe("container_pressure_cpu_waiting_seconds_total", 'job=~"kubelet|kubernetes-nodes-cadvisor"', "psi", True),
-    MetricProbe("container_pressure_memory_waiting_seconds_total", 'job=~"kubelet|kubernetes-nodes-cadvisor"', "psi", True),
-    MetricProbe("node_pressure_cpu_waiting_seconds_total", 'job="node-exporter"', "psi", True),
-    MetricProbe("node_pressure_memory_waiting_seconds_total", 'job="node-exporter"', "psi", True),
+    # PSI pressure metrics — supported but OPTIONAL (non-blocking)
+    MetricProbe("container_pressure_cpu_waiting_seconds_total", 'job=~"kubelet|kubernetes-nodes-cadvisor"', "psi", False),
+    MetricProbe("container_pressure_memory_waiting_seconds_total", 'job=~"kubelet|kubernetes-nodes-cadvisor"', "psi", False),
+    MetricProbe("node_pressure_cpu_waiting_seconds_total", 'job="node-exporter"', "psi", False),
+    MetricProbe("node_pressure_memory_waiting_seconds_total", 'job="node-exporter"', "psi", False),
     # Karpenter (optional; empty until a disruption)
     MetricProbe("karpenter_nodeclaims_disrupted_total", "", "karpenter", False),
 )
