@@ -9,6 +9,8 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
+* feat: make admission webhook CPU over-provisioning configurable via `recommendationSettings.admissionCPUHeadroomFactor` (default `1.0` = full peak, lower = less startup over-provisioning)
+
 ## v0.3.4 (08-07-2026)
 
 * feat: add a preflight checks to verify if the installation is done correctly by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/273
