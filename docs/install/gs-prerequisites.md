@@ -86,7 +86,32 @@ The dedicated instance should **scrape** kube-state-metrics, node-exporter, and 
 
 1. Save the following as `standalone-prometheus-values.yaml`. It disables bundled node-exporter and kube-state-metrics (so you do not conflict with existing DaemonSets) and discovers existing cluster targets via `kubernetes_sd_configs`.
 
+!!! warning "Customize the relabel regex before you install"
+    The `kube-state-metrics` and `node-exporter` jobs filter discovered endpoints with a regex on the Kubernetes **Service name** (`__meta_kubernetes_service_name` only — not namespace). The examples below use common kube-prometheus-stack names: `prometheus-kube-state-metrics` and `prometheus-prometheus-node-exporter`.
+
+    **Before applying**, list your exporters and set each `regex` to the **Service name** in your cluster:
+
+    ```bash
+    kubectl get svc -A | grep -E 'kube-state-metrics|node-exporter'
+    ```
+
+    Use the **NAME** column value as the `regex`. If it does not match, Prometheus will scrape nothing and CruiseKube will have no metrics.
+
 ```yaml
+server:
+  global:
+    scrape_interval: 15s
+  retention: "7d"
+  retentionSize: "50GB"
+  persistentVolume:
+    enabled: true
+    size: 100Gi
+    # storageClass: ""  # omit to use the cluster default StorageClass
+
+scrapeConfigs:
+  kubernetes-nodes-cadvisor:
+    enabled: false
+
 serverFiles:
   prometheus.yml:
     scrape_configs:
@@ -110,11 +135,15 @@ serverFiles:
 
       - job_name: kubelet
         scheme: https
+        metrics_path: /metrics/cadvisor
         kubernetes_sd_configs:
           - role: node
         tls_config:
           insecure_skip_verify: true
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
 
 prometheus-node-exporter:
   enabled: false

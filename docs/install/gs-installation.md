@@ -25,6 +25,15 @@ helm install cruisekube oci://tfy.jfrog.io/tfy-helm/cruisekube \
   --set cruisekubeController.env.CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL="http://prometheus-kube-prometheus-prometheus.monitoring.svc:9090" 
 ```
 
+!!! note "Set and verify the Prometheus URL"
+    Replace the example `CRUISEKUBE_DEPENDENCIES_INCLUSTER_PROMETHEUSURL` with the **in-cluster Service URL** of the Prometheus instance CruiseKube should query (not `localhost`). Confirm the Service exists and is reachable from the controller namespace before you install:
+
+    ```bash
+    kubectl get svc -A | grep -i prometheus
+    ```
+
+    This URL directly affects whether CruiseKube can fetch metrics — wrong or unreachable endpoints lead to empty or incomplete recommendations. See [Prometheus prerequisites](gs-prerequisites.md#prometheus) to pick the right instance, and [Troubleshooting — Prometheus metrics](../documentation/operate/operate-troubleshooting.md) if metrics look missing after install.
+
 > Customize any installation with a [`values.yaml`](https://github.com/truefoundry/CruiseKube/blob/main/charts/cruisekube/values.yaml) file.
 
 <br />

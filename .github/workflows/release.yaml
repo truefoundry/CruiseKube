@@ -56,145 +56,62 @@ jobs:
           echo "cruisekube tag: $cruisekube_TAG"
           echo "cruisekube-frontend tag: $cruisekube_frontend_TAG"
 
-  # Inlined (not github-workflows-public build.yml): that workflow passes
-  # build-args through toJSON(), which breaks multiline KEY=VAL lists for docker/build-push-action.
   build-cruisekube:
     name: Build and Push cruisekube Docker Images
+    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     needs: [read-chart-values]
-    runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
-    env:
-      IMAGE_TAG: ${{ needs.read-chart-values.outputs.cruisekube_tag }}
-      IMAGE_ARTIFACT_NAME: "cruisekube"
-      DOCKERFILE_PATH: "Dockerfile"
-      IMAGE_CONTEXT: "."
-      ARTIFACTORY_REGISTRY_URL: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
-      ARTIFACTORY_REPOSITORY_URL: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
-      PLATFORMS: "linux/amd64,linux/arm64"
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: "0"
-          submodules: "recursive"
-          token: ${{ secrets.CRUISE_KUBE_CI_SECRET }}
-
-      - name: Validate registry configuration
-        run: |
-          if [ -z "$ARTIFACTORY_REGISTRY_URL" ] || [ -z "$ARTIFACTORY_REPOSITORY_URL" ]; then
-            echo "Error: Artifactory registry or repository URL is not set"
-            exit 1
-          fi
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to JFrog Artifactory
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.ARTIFACTORY_REGISTRY_URL }}
-          username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
-          password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
-
-      - name: Prepare image tags
-        id: prepare_tags
-        run: |
-          FULL_IMAGE_NAME="${ARTIFACTORY_REPOSITORY_URL}/${IMAGE_ARTIFACT_NAME}"
-          IMAGE_WITH_TAG="${FULL_IMAGE_NAME}:${IMAGE_TAG}"
-          echo "image=${IMAGE_WITH_TAG}" >> $GITHUB_OUTPUT
-          echo "image_name=${FULL_IMAGE_NAME}" >> $GITHUB_OUTPUT
-          echo "Image: ${IMAGE_WITH_TAG}"
-
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: ${{ env.IMAGE_CONTEXT }}
-          file: ${{ env.DOCKERFILE_PATH }}
-          platforms: ${{ env.PLATFORMS }}
-          push: true
-          tags: ${{ steps.prepare_tags.outputs.image }}
-          cache-from: type=registry,ref=${{ steps.prepare_tags.outputs.image_name }}:buildcache
-          cache-to: type=registry,ref=${{ steps.prepare_tags.outputs.image_name }}:buildcache,mode=max,image-manifest=true,compression=zstd
-          build-args: |
-            USAGETELEMETRY_PROVIDER_API_KEY=${{ secrets.POSTHOG_API_KEY }}
-            VERSION=${{ needs.read-chart-values.outputs.cruisekube_tag }}
-
-      - name: Output image digest
-        run: |
-          echo "Image digest for ${{ steps.prepare_tags.outputs.image }} has been pushed successfully"
+    with:
+      artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
+      artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
+      image_artifact_name: cruisekube
+      image_tag: ${{ needs.read-chart-values.outputs.cruisekube_tag }}
+      image_context: .
+      dockerfile_path: Dockerfile
+      platforms: linux/amd64,linux/arm64
+      enable_jfrog: true
+      enable_public_ecr: true
+      ecr_repository_url: public.ecr.aws/truefoundrycloud
+      checkout_submodules: recursive
+      checkout_fetch_depth: 0
+      image_build_args: |
+        VERSION=${{ needs.read-chart-values.outputs.cruisekube_tag }}
+    secrets:
+      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
+      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+      ecr_role_arn: ${{ secrets.PUBLIC_ECR_IAM_ROLE_ARN }}
+      checkout_token: ${{ secrets.CRUISE_KUBE_CI_SECRET }}
+      image_build_secrets: |
+        USAGETELEMETRY_PROVIDER_API_KEY=${{ secrets.POSTHOG_API_KEY }}
 
   # Build and push cruisekube-frontend image
   build-cruisekube-frontend:
     name: Build and Push cruisekube-frontend Docker Images
+    uses: truefoundry/github-workflows-public/.github/workflows/build.yml@main
     needs: [read-chart-values]
-    runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
-    env:
-      IMAGE_TAG: ${{ needs.read-chart-values.outputs.cruisekube_frontend_tag }}
-      IMAGE_ARTIFACT_NAME: "cruisekube-frontend"
-      DOCKERFILE_PATH: "cruiseKube-frontend/Dockerfile"
-      IMAGE_CONTEXT: "cruiseKube-frontend"
-      ARTIFACTORY_REGISTRY_URL: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
-      ARTIFACTORY_REPOSITORY_URL: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
-      PLATFORMS: 'linux/amd64,linux/arm64'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: "0"
-          submodules: "recursive"
-          token: ${{ secrets.CRUISE_KUBE_CI_SECRET }}
-
-      - name: Validate registry configuration
-        run: |
-          if [ -z "$ARTIFACTORY_REGISTRY_URL" ] || [ -z "$ARTIFACTORY_REPOSITORY_URL" ]; then
-            echo "Error: Artifactory registry or repository URL is not set"
-            exit 1
-          fi
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to JFrog Artifactory
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.ARTIFACTORY_REGISTRY_URL }}
-          username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
-          password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
-
-      - name: Prepare image tags
-        id: prepare_tags
-        run: |
-          FULL_IMAGE_NAME="${ARTIFACTORY_REPOSITORY_URL}/${IMAGE_ARTIFACT_NAME}"
-          IMAGE_WITH_TAG="${FULL_IMAGE_NAME}:${IMAGE_TAG}"
-          echo "image=${IMAGE_WITH_TAG}" >> $GITHUB_OUTPUT
-          echo "image_name=${FULL_IMAGE_NAME}" >> $GITHUB_OUTPUT
-          echo "Image: ${IMAGE_WITH_TAG}"
-
-      - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ env.IMAGE_CONTEXT }}
-          file: ${{ env.DOCKERFILE_PATH }}
-          platforms: ${{ env.PLATFORMS }}
-          push: true
-          tags: ${{ steps.prepare_tags.outputs.image }}
-          cache-from: type=registry,ref=${{ steps.prepare_tags.outputs.image_name }}:buildcache
-          cache-to: type=registry,ref=${{ steps.prepare_tags.outputs.image_name }}:buildcache,mode=max
-
-      - name: Output image digest
-        run: |
-          echo "Image digest for ${{ steps.prepare_tags.outputs.image }} has been pushed successfully"
+    with:
+      artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
+      artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
+      image_artifact_name: cruisekube-frontend
+      image_tag: ${{ needs.read-chart-values.outputs.cruisekube_frontend_tag }}
+      image_context: cruiseKube-frontend
+      dockerfile_path: cruiseKube-frontend/Dockerfile
+      platforms: linux/amd64,linux/arm64
+      enable_jfrog: true
+      enable_public_ecr: true
+      ecr_repository_url: public.ecr.aws/truefoundrycloud
+      checkout_submodules: recursive
+      checkout_fetch_depth: 0
+    secrets:
+      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
+      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
+      ecr_role_arn: ${{ secrets.PUBLIC_ECR_IAM_ROLE_ARN }}
+      checkout_token: ${{ secrets.CRUISE_KUBE_CI_SECRET }}
 
   # Release the Helm chart
   release:

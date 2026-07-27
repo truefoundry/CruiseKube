@@ -41,6 +41,8 @@ func SetupServerEngine(handlerDeps handlers.HandlerDependencies, authAPI gin.Han
 		// Settings
 		clusterGroup.GET("/settings", handlerDeps.GetSettingsHandler)
 		clusterGroup.PUT("/settings", handlerDeps.UpdateSettingsHandler)
+		// Preflight / dashboard readiness
+		clusterGroup.GET("/preflight", handlerDeps.HandlePreflight)
 	}
 
 	if enableDevAPIs {

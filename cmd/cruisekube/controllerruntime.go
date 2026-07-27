@@ -216,7 +216,7 @@ func buildLocalClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.
 		return nil, nil, fmt.Errorf("failed to create prometheus client: %w", err)
 	}
 
-	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, promClient.GetClient())
+	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, promClient.GetClient(), cfg.Dependencies.Local.PrometheusURL)
 	return clusterManager, promClient, nil
 }
 
@@ -245,7 +245,7 @@ func buildInClusterRuntime(ctx context.Context, cfg *config.Config) (cluster.Man
 		return nil, nil, fmt.Errorf("failed to create prometheus client: %w", err)
 	}
 
-	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, promClient.GetClient())
+	clusterManager := cluster.NewSingleClusterManager(clusterCtx, kubeClient, dynamicClient, promClient.GetClient(), cfg.Dependencies.InCluster.PrometheusURL)
 	return clusterManager, promClient, nil
 }
 

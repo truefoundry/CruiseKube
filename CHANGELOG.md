@@ -9,7 +9,14 @@ All the unreleased changes are listed under `Unreleased` section. Add your chang
 
 ## Unreleased
 
-* feat: make admission webhook CPU over-provisioning configurable via `recommendationSettings.admissionCPUHeadroomFactor` (default `1.0` = full peak, lower = less startup over-provisioning)
+## v0.3.4 (08-07-2026)
+
+* feat: add a preflight checks to verify if the installation is done correctly by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/273
+* feat: update frontend and add diagnostics script by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/274
+* feat: update config for standalone prometheus by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/270
+* docs: update standalone prom values by @ramantehlan in https://github.com/truefoundry/CruiseKube/pull/271
+* fix: properly return database errors in HasCluster and HasWorkloadForCluster by @SuvigyaSrivastava in https://github.com/truefoundry/CruiseKube/pull/268
+* build(deps): bump golang.org/x/net from 0.52.0 to 0.55.0 by @dependabot in https://github.com/truefoundry/CruiseKube/pull/272
 
 ## v0.3.3 (04-06-2026)
 
