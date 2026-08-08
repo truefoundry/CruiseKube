@@ -105,6 +105,8 @@ type RecommendationSettings struct {
 	MaxConcurrentQueries      int  `yaml:"maxConcurrentQueries" mapstructure:"maxConcurrentQueries"`
 	OOMCooldownMinutes        int  `yaml:"oomCooldownMinutes" mapstructure:"oomCooldownMinutes"`
 	OptimizeGuaranteedPods    bool `yaml:"optimizeGuaranteedPods" mapstructure:"optimizeGuaranteedPods"`
+
+	AdmissionCPUHeadroomFactor float64 `yaml:"admissionCPUHeadroomFactor" mapstructure:"admissionCPUHeadroomFactor"`
 }
 
 type TelemetryConfig struct {
