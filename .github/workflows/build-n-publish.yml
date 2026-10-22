@@ -18,6 +18,7 @@ jobs:
       id-token: write
       contents: read
     with:
+      artifactory_oidc_provider_name: github-jfrog-public
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
       image_artifact_name: cruisekube
@@ -32,8 +33,6 @@ jobs:
       image_build_args: |
         VERSION=${{ github.sha }}
     secrets:
-      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
-      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
       ecr_role_arn: ${{ secrets.PUBLIC_ECR_IAM_ROLE_ARN }}
       image_build_secrets: |
         USAGETELEMETRY_PROVIDER_API_KEY=${{ secrets.POSTHOG_API_KEY }}
@@ -47,6 +46,7 @@ jobs:
       id-token: write
       contents: read
     with:
+      artifactory_oidc_provider_name: github-jfrog-public
       artifactory_registry_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_REGISTRY_URL }}
       artifactory_repository_url: ${{ vars.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_REPOSITORY }}
       image_artifact_name: cruisekube-frontend
@@ -60,8 +60,6 @@ jobs:
       checkout_submodules: recursive
       checkout_fetch_depth: 0
     secrets:
-      artifactory_username: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_USERNAME }}
-      artifactory_password: ${{ secrets.TRUEFOUNDRY_ARTIFACTORY_PUBLIC_PASSWORD }}
       ecr_role_arn: ${{ secrets.PUBLIC_ECR_IAM_ROLE_ARN }}
       checkout_token: ${{ secrets.CRUISE_KUBE_CI_SECRET }}
 
