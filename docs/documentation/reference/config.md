@@ -53,7 +53,7 @@ Exact names must match your chart version—verify in `values.yaml` on the tag y
 | **Metrics export** | `CRUISEKUBE_CONTROLLER_TASKS_FETCHMETRICS_*` |
 | **HTTP API** | `CRUISEKUBE_SERVER_PORT`, `CRUISEKUBE_SERVER_BASICAUTH_*` |
 | **DB** | `CRUISEKUBE_DB_*` |
-| **Recommendation policy** | `CRUISEKUBE_RECOMMENDATIONSETTINGS_*` (e.g. new workload threshold, OOM cooldown) |
+| **Recommendation policy** | `CRUISEKUBE_RECOMMENDATIONSETTINGS_*` (e.g. new workload threshold, OOM cooldown, `ADMISSIONCPUHEADROOMFACTOR` — fraction of CPU spike headroom provisioned at admission, `1.0`=full peak default, lower=less startup over-provisioning) |
 | **Webhook** | Stats URL host mapping and webhook env from `values.yaml` |
 
 Local development may use a **`config.local.yaml`** file instead—see [Dev environment](../contribute/dev-env.md).

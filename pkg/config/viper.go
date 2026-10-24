@@ -31,6 +31,7 @@ func LoadWithViperInstance(ctx context.Context, v *viper.Viper, configFilePath s
 	v.SetDefault("controller.tasks.applyRecommendation.overridesURL.host", "localhost:8080")
 	v.SetDefault("recommendationSettings.maxConcurrentQueries", 5)
 	v.SetDefault("recommendationSettings.oomCooldownMinutes", 5)
+	v.SetDefault("recommendationSettings.admissionCPUHeadroomFactor", 1.0)
 	v.SetDefault("controller.tasks.cleanup.enabled", false)
 	v.SetDefault("controller.tasks.cleanup.schedule", "24h")
 	v.SetDefault("controller.tasks.cleanup.metadata.retentionDays", 7)

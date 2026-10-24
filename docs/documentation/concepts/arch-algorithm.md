@@ -116,8 +116,14 @@ stats = fetchWorkloadStats(pod.workloadIdentifier, container.name)
 cpuPeakDemand = stats.CPUStats.Max
 memoryPeakDemand = stats.MemoryStats.Max
 
-// Set pod requests to accommodate peak usage
-pod.spec.containers[container].resources.requests.cpu = cpuPeakDemand
+// CPU request = steady-state base (P75) plus a configurable fraction of the
+// spike headroom. admissionCPUHeadroomFactor defaults to 1.0 (full peak);
+// lower values reduce startup over-provisioning.
+cpuBase = stats.CPUStats.P75
+cpuRequest = cpuBase + admissionCPUHeadroomFactor * max(0, cpuPeakDemand - cpuBase)
+
+// Set pod requests
+pod.spec.containers[container].resources.requests.cpu = cpuRequest
 pod.spec.containers[container].resources.requests.memory = memoryPeakDemand
 
 // Set memory limit to 2 × max memory over last 7 days (safety buffer)
@@ -130,8 +136,18 @@ pod.Spec.containers[container].Resources.Limits.CPU = nil
 
 ### Purpose
 
-- **Prevents repeated evictions**: By setting requests to peak usage, the pod is guaranteed to fit on the node where it's scheduled even after continuous optimization has run.
+- **Prevents repeated evictions**: With `admissionCPUHeadroomFactor` at its default of `1.0`, requests are set to peak usage, so the pod is guaranteed to fit on the node where it's scheduled even after continuous optimization has run. Lower factors trade some of this guarantee for less startup over-provisioning (see below).
 - **Provides initial optimization**: Even without continuous optimization, pods start with better resource allocation
+
+### Tuning startup over-provisioning
+
+Provisioning the full CPU peak at admission is the safest default, but on clusters with little spare capacity (e.g. a fixed-size node pool) it can leave freshly created pods `Pending` until the peak request fits — especially for workloads that redeploy frequently. The `recommendationSettings.admissionCPUHeadroomFactor` setting (`CRUISEKUBE_RECOMMENDATIONSETTINGS_ADMISSIONCPUHEADROOMFACTOR`) scales how much of the CPU spike headroom (`peak - P75`) is provisioned at admission, i.e. `request = base + factor * (peak - base)`:
+
+- `1.0` (default): provision the full peak — unchanged behavior.
+- `0.0`: provision only the steady-state base (P75); most aggressive.
+- e.g. `0.3`: base plus 30% of the spike.
+
+Lower values reduce startup over-provisioning at the cost of more in-place upward resizes once Phase 2 takes over. Memory is unaffected, since memory under-provisioning risks OOM kills.
 
 ## Phase 2: Continuous Optimization
 
@@ -323,11 +339,13 @@ During overload:
 
 ### Preventing Repeated Evictions
 
-The admission webhook ensures pods are scheduled with requests equal to their peak usage. This guarantees:
+With `admissionCPUHeadroomFactor` at its default of `1.0`, the admission webhook schedules pods with requests equal to their peak usage. This guarantees:
 
 - The node has sufficient capacity at scheduling time
 - Subsequent continuous optimization runs only evict pods whose spikes cannot be accommodated
 - Once evicted, a pod will be rescheduled with peak requests, preventing immediate re-eviction
+
+Lowering the factor relaxes this guarantee in exchange for less startup over-provisioning: pods are admitted with `base + factor * (peak - base)` and may need an in-place upward resize once Phase 2 runs.
 
 ### High-Priority Workload Protection
 
