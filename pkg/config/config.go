@@ -75,6 +75,7 @@ type ServerConfig struct {
 	Port          string     `yaml:"port" mapstructure:"port"`
 	Auth          AuthConfig `yaml:"auth" mapstructure:"auth"`
 	EnableDevAPIs bool       `yaml:"enableDevAPIs" mapstructure:"enableDevAPIs"`
+	CertsDir      string     `yaml:"certsDir" mapstructure:"certsDir"`
 }
 
 type AuthConfig struct {

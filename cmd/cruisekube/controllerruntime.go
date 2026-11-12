@@ -261,12 +261,18 @@ func startControllerHTTPServer(runtimeManager *runtimeManager, cfg *config.Confi
 		middleware.Common()...,
 	)
 
+	certsDir := cfg.Server.CertsDir
+
 	startHTTPServer(runtimeManager, "controller HTTP server", "Starting HTTP server on :"+cfg.Server.Port, &http.Server{
 		Addr:              ":" + cfg.Server.Port,
 		Handler:           engine,
 		ReadHeaderTimeout: 5 * time.Second,
 	}, func(server *http.Server) error {
-		return server.ListenAndServe()
+		if certsDir == "" {
+			return server.ListenAndServe()
+		}
+
+		return server.ListenAndServeTLS(certsDir+"/tls.crt", certsDir+"/tls.key")
 	})
 }
 
