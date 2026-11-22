@@ -8,7 +8,9 @@ on:
       - 'charts/**'
 jobs:
   update-readme-metadata:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: public-runner-group
+      labels: "gh-pb-runners-2c"
     permissions:
       contents: write
     steps:

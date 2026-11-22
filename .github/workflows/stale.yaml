@@ -7,7 +7,9 @@ permissions:
   contents: read
 jobs:
   stale_bot_for_cruisekube:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: public-runner-group
+      labels: "gh-pb-runners-2c"
     permissions:
       issues: write
       discussions: write

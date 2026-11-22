@@ -113,7 +113,9 @@ jobs:
 
   # Release the Helm chart
   release:
-    runs-on: ubuntu-latest
+    runs-on:
+      group: public-runner-group
+      labels: "gh-pb-runners-2c"
     needs: [build-cruisekube, build-cruisekube-frontend, read-chart-values]
     steps:
       - name: Checkout main
